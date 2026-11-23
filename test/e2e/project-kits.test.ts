@@ -120,7 +120,7 @@ async function draftWithKit(
   );
   assert.deepEqual(
     report.checks,
-    { build: 'ran', types: 'ran', ds: 'ran', a11y: 'ran', runtime: 'ran' },
+    { build: 'ran', types: 'ran', ds: 'ran', a11y: 'ran', ui: 'ran', ux: 'ran', runtime: 'ran' },
     `checks: ${JSON.stringify(report.checks)}; notes: ${notes}`,
   );
   const fixes = report.findings.filter((finding) => finding.severity === 'fix');

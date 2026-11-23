@@ -5,6 +5,7 @@ import {
   needsAttention,
   nextStep,
   statusLine,
+  studioWidth,
   versionStatus,
 } from '../../../src/studio/views/status.ts';
 import { checksOf, finding } from '../../helpers/findings.ts';
@@ -62,6 +63,29 @@ test('findings of this state and width, and of files, are shown in order; the re
     shown: [here, wide, file],
     elsewhere: 1,
   });
+});
+
+test('a width the studio does not show maps to the nearest one, a tie to the wider', () => {
+  assert.deepEqual(
+    [320, 390, 500, 600, 768, 1024, 1100, 1280, 1440].map(studioWidth),
+    [390, 390, 390, 768, 768, 1280, 1280, 1280, 1280],
+  );
+});
+
+test('a finding seen only at widths the studio lacks shows at the nearest studio width', () => {
+  const narrow = finding({ states: ['filled'], widths: [320], line: 1 });
+  const deep = finding({ states: ['filled'], widths: [1024, 1440], line: 2 });
+  const both = finding({ states: ['filled'], widths: [320, 1440], line: 3 });
+  // Seen at a studio width: it shows only there, not at the nearest of its other widths.
+  const mixed = finding({ states: ['filled'], widths: [390, 1440], line: 4 });
+  const checks = checksOf([narrow, deep, both, mixed]);
+  assert.deepEqual(findingsFor(checks, 'filled', 390), {
+    shown: [narrow, both, mixed],
+    elsewhere: 1,
+  });
+  assert.deepEqual(findingsFor(checks, 'filled', 768), { shown: [], elsewhere: 4 });
+  assert.deepEqual(findingsFor(checks, 'filled', 1280), { shown: [deep, both], elsewhere: 2 });
+  assert.deepEqual(findingsFor(checks, 'empty', 390), { shown: [], elsewhere: 4 });
 });
 
 test('the next step follows the status', () => {

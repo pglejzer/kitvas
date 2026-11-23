@@ -14,11 +14,15 @@ export type UsageRecord = {
 /** The part of a catalog entry these rules read. */
 export type CatalogComponent = {
   name: string;
+  /** The kit's category: `action`, `input`, `feedback`… */
+  category: string;
   props: {
     name: string;
     type: string;
     values?: string[] | undefined;
     required?: boolean | undefined;
+    /** The value the component uses when the prop is not passed. */
+    default?: string | number | boolean | undefined;
   }[];
   styling: string[];
 };

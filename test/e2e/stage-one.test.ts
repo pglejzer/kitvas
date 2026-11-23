@@ -213,7 +213,7 @@ async function buildAndCheck(box: Sandbox, version: number, s: TestContext): Pro
   );
   assert.deepEqual(
     report.checks,
-    { build: 'ran', types: 'ran', ds: 'ran', a11y: 'ran', runtime: 'ran' },
+    { build: 'ran', types: 'ran', ds: 'ran', a11y: 'ran', ui: 'ran', ux: 'ran', runtime: 'ran' },
     `checks: ${JSON.stringify(report.checks)}; notes: ${notes}`,
   );
   assert.equal(report.version, version);

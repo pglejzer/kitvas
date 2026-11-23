@@ -40,6 +40,7 @@ export const ERROR_TABLE = {
   SCAN_BLOCKED: { exit: 37, http: 422 },
   SCAN_FAILED: { exit: 38, http: 502 },
   PLUGIN_FOLDER: { exit: 39, http: 409 },
+  GUIDELINE_UNKNOWN: { exit: 40, http: 404 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;

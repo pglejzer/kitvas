@@ -57,6 +57,8 @@ test('a clean draft has nothing to fix and the results are saved', async () => {
       types: 'ran',
       ds: 'ran',
       a11y: 'skipped',
+      ui: 'skipped',
+      ux: 'skipped',
       runtime: 'skipped',
     });
     assert.equal(report.path, join(shop.dir, 'v1', 'build', 'json', 'checks.json'));

@@ -1,6 +1,6 @@
 // The findings beside the prototype, numbered in reading order, and the next step under them.
 
-import type { Finding } from '../../checks/index.ts';
+import { type Finding, type Guideline, guidelineFor } from '../../checks/index.ts';
 import type { Translate } from '../../shared/index.ts';
 import type { Line } from '../views/status.ts';
 import { type Html, html } from './html.ts';
@@ -13,10 +13,28 @@ function placeOf(t: Translate, finding: Finding): string | null {
   return t('studio.notes.place', { file: finding.file, line: finding.line });
 }
 
+/**
+ * The guideline a finding breaks: its sentence, whether a source or a kitvas heuristic backs it,
+ * and its sources. Links come only from the built-in book, never from the finding's text.
+ */
+export function guidelineNote(t: Translate, guideline: Guideline): Html {
+  const links = guideline.sources
+    .filter((source) => source.url.startsWith('https://'))
+    .map(
+      (source, index) =>
+        html`${index > 0 ? ', ' : ''}<a href="${source.url}" target="_blank" rel="noopener noreferrer">${source.name}</a>`,
+    );
+  const basis = t(guideline.basis === 'source' ? 'studio.notes.sourced' : 'studio.notes.heuristic');
+  const sources = links.length === 0 ? '' : html` ${t('studio.notes.sources')} ${links}`;
+  return html`<p>${t(`guideline.${guideline.key}.rule`)}</p><p>${basis}${sources}</p>`;
+}
+
 /** The rule id and the place stay in the details; the note itself is plain words. */
 function details(t: Translate, finding: Finding): Html {
   const place = placeOf(t, finding);
-  return html`<details><summary>${t('studio.notes.more')}</summary><p>${finding.hint}</p><p><code>${finding.rule}</code>${place === null ? '' : html` ${place}`}</p></details>`;
+  const guideline = guidelineFor(finding.rule);
+  const book = guideline === undefined ? '' : guidelineNote(t, guideline);
+  return html`<details><summary>${t('studio.notes.more')}</summary><p>${finding.hint}</p>${book}<p><code>${finding.rule}</code>${place === null ? '' : html` ${place}`}</p></details>`;
 }
 
 export function notesSection(input: NotesInput): Html {

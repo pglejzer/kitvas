@@ -14,6 +14,9 @@ const CLEAN: PageReport = {
   violations: [],
   usage: [],
   shot: true,
+  facts: null,
+  deep: null,
+  contrastUnsure: [],
 };
 
 function fakeBrowser(report: Partial<PageReport> = {}) {
@@ -74,6 +77,8 @@ test('every state is visited at both widths and a screenshot is listed for each'
       types: 'ran',
       ds: 'ran',
       a11y: 'ran',
+      ui: 'ran',
+      ux: 'ran',
       runtime: 'ran',
     });
     assert.deepEqual(
@@ -111,7 +116,7 @@ test('no browser: a11y and runtime are skipped with a note', async () => {
     assert.deepEqual([report.checks.a11y, report.checks.runtime], ['skipped', 'skipped']);
     assert.equal(report.browser, null);
     assert.deepEqual(report.notes, [
-      'a11y and runtime need Chrome, Edge or Chromium; none was found. Run "kitvas browser install".',
+      'a11y, ui, ux and runtime need Chrome, Edge or Chromium; none was found. Run "kitvas browser install".',
     ]);
   } finally {
     await shop.close();
@@ -125,7 +130,7 @@ test('a failed build is not opened; any other browser failure is an error', asyn
     rmSync(join(shop.dir, 'v1', 'src', 'tsx', 'sections', 'Hero.tsx'));
     const report = await shop.check();
     assert.deepEqual(fake.visits, []);
-    assert.deepEqual(report.notes, ['a11y and runtime need a page; the build failed.']);
+    assert.deepEqual(report.notes, ['a11y, ui, ux and runtime need a page; the build failed.']);
   } finally {
     await shop.close();
   }

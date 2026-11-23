@@ -1,10 +1,11 @@
-// `kitvas check <slug>`: build the latest version of a draft and check it against the kit.
+// `kitvas check <slug> [--deep]`: build the latest version of a draft and check it against the kit.
 
 import { dirname, join } from 'node:path';
 import {
   type Browser,
   CHECKS,
   type ChecksReport,
+  DEEP_VIEWPORTS,
   runChecks,
   type TypeChecker,
 } from '../../checks/index.ts';
@@ -12,7 +13,7 @@ import { type Command, defineCommand } from '../registry.ts';
 import type { BuildDeps } from './build.ts';
 import { openDrafts, slugAt } from './draft.ts';
 
-/** `types` and `browser` are called once per run, like `render`. Without `browser`, a11y and runtime are skipped. */
+/** `types` and `browser` are called once per run, like `render`. Without `browser`, a11y, ui, ux and runtime are skipped. */
 export type CheckCommandDeps = BuildDeps & { types(): TypeChecker; browser?(): Browser };
 
 const INDENT = '          ';
@@ -34,7 +35,7 @@ export function createCheckCommand(deps: CheckCommandDeps): Command {
         const render = { drafts, kits: deps.kits, ...tools };
         const browser = deps.browser?.();
         const options = { render, types: deps.types(), t: ctx.t, ...(browser ? { browser } : {}) };
-        return await runChecks(options, slug);
+        return await runChecks(options, slug, { deep: ctx.flags.deep });
       } finally {
         await tools.bundler.dispose();
         await tools.styles.dispose();
@@ -60,6 +61,10 @@ export function createCheckCommand(deps: CheckCommandDeps): Command {
       const skipped = CHECKS.filter((name) => data.checks[name] === 'skipped');
       if (skipped.length > 0) lines.push(t('check.report.skipped', { checks: skipped.join(', ') }));
       lines.push(...data.notes);
+      if (data.deep === true) {
+        const widths = DEEP_VIEWPORTS.map((viewport) => viewport.width).join(', ');
+        lines.push(t('check.report.deep', { widths }));
+      }
       if (data.shots.length > 0) {
         const dir = join(dirname(dirname(data.path)), 'shots');
         lines.push(t('check.report.shots', { count: data.shots.length, dir }));

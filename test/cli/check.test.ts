@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { createTscChecker } from '../../src/checks/adapters/tsc-checker.ts';
@@ -8,6 +8,7 @@ import { createCheckCommand, createDraftCommand, runCli } from '../../src/cli/in
 import { createFsDraftStore } from '../../src/drafts/adapters/fs-draft-store.ts';
 import { createFolderKitStore } from '../../src/kit/adapters/folder-store.ts';
 import { initWorkspace, KitvasError, PLUGIN_ROOT, workspaceDir } from '../../src/shared/index.ts';
+import { fakeBrowser } from '../helpers/checks.ts';
 import { FIXTURE_KITS } from '../helpers/kits.ts';
 import { renderTools, writeShopSections } from '../helpers/render.ts';
 import { tempDir } from '../helpers/tmp.ts';
@@ -17,6 +18,7 @@ type CheckData = {
   summary: { fix: number; review: number };
   findings: { rule: string }[];
   built: boolean;
+  deep?: boolean;
 };
 
 async function harness(browser?: Browser) {
@@ -55,7 +57,7 @@ test('a clean draft: nothing to fix, the browser checks are not run yet', async 
     h.out.at(-1),
     [
       'Checked "shop" version 1: nothing to fix or review.',
-      'Not run: a11y, runtime.',
+      'Not run: a11y, ui, ux, runtime.',
       `Results: ${results}`,
     ].join('\n'),
   );
@@ -109,6 +111,9 @@ test('with a browser, its findings and screenshots are listed', async () => {
             ],
             usage: [],
             shot: true,
+            facts: null,
+            deep: null,
+            contrastUnsure: [],
           };
         },
         async close() {},
@@ -141,7 +146,52 @@ test('without a browser on the machine the note says how to get one', async () =
   const lines = (h.out.at(-1) ?? '').split('\n');
   assert.deepEqual(lines.slice(0, 3), [
     'Checked "shop" version 1: nothing to fix or review.',
-    'Not run: a11y, runtime.',
-    'a11y and runtime need Chrome, Edge or Chromium; none was found. Run "kitvas browser install".',
+    'Not run: a11y, ui, ux, runtime.',
+    'a11y, ui, ux and runtime need Chrome, Edge or Chromium; none was found. Run "kitvas browser install".',
   ]);
+});
+
+/** checks.json of the shop's version 1 as written. */
+const savedDeep = (draftDir: string): unknown =>
+  (
+    JSON.parse(readFileSync(join(draftDir, 'v1', 'build', 'json', 'checks.json'), 'utf8')) as {
+      deep?: unknown;
+    }
+  ).deep;
+
+test('--deep visits the deep widths too, writes deep: true and says so', async () => {
+  const fake = fakeBrowser();
+  const h = await harness(fake.browser);
+  assert.equal(await h.run('check', 'shop', '--deep'), 0);
+  assert.deepEqual(
+    fake.visits.map((visit) => [visit.width, visit.passes.includes('deep'), visit.screenshot]),
+    [
+      [390, true, join(h.draftDir, 'v1', 'build', 'shots', 'filled-390.png')],
+      [1280, true, join(h.draftDir, 'v1', 'build', 'shots', 'filled-1280.png')],
+      [768, false, null],
+      [1024, false, null],
+      [1440, false, null],
+    ],
+  );
+  assert.deepEqual((h.out.at(-1) ?? '').split('\n').slice(-3), [
+    'Deep check: the stress passes ran, and the widths 768, 1024, 1440 were checked too.',
+    `Screenshots: 2 in ${join(h.draftDir, 'v1', 'build', 'shots')}`,
+    `Results: ${join(h.draftDir, 'v1', 'build', 'json', 'checks.json')}`,
+  ]);
+  assert.equal(savedDeep(h.draftDir), true);
+  assert.equal(await h.run('check', 'shop', '--deep', '--json'), 0);
+  assert.equal(h.data().deep, true);
+
+  // Without the flag the file does not say deep, and the text has no deep line.
+  assert.equal(await h.run('check', 'shop'), 0);
+  assert.equal(savedDeep(h.draftDir), undefined);
+  assert.ok(!(h.out.at(-1) ?? '').includes('Deep check'));
+  assert.equal(fake.visits.filter((visit) => visit.width === 1440).length, 2);
+});
+
+test('--deep without a browser runs nothing deep and does not say so', async () => {
+  const h = await harness();
+  assert.equal(await h.run('check', 'shop', '--deep'), 0);
+  assert.equal(savedDeep(h.draftDir), undefined);
+  assert.ok(!(h.out.at(-1) ?? '').includes('Deep check'));
 });

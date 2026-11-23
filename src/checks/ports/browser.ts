@@ -10,9 +10,14 @@ export type Visit = {
   state: string;
   width: number;
   height: number;
-  /** Absolute path the full-page screenshot is written to. */
-  screenshot: string;
+  /** Absolute path the full-page screenshot is written to; null: no screenshot. */
+  screenshot: string | null;
+  /** The extra passes after axe, in the order of ADR 0044. */
+  passes: Pass[];
 };
+
+/** `reflow` runs only at 390: the page resized to 320×568. `deep` only with `kitvas check --deep`. */
+export type Pass = 'focus' | 'reflow' | 'spacing' | 'deep';
 
 /** A look at one example page of a kit's catalog, for `kit verify`. */
 export type Inspect = {

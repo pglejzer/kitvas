@@ -2,7 +2,7 @@
 
 import type { Translate } from '../../shared/index.ts';
 
-export const CHECKS = ['build', 'types', 'ds', 'a11y', 'runtime'] as const;
+export const CHECKS = ['build', 'types', 'ds', 'a11y', 'ui', 'ux', 'runtime'] as const;
 export type CheckName = (typeof CHECKS)[number];
 export type Severity = 'fix' | 'review';
 export type Message = { key: string; params: Record<string, string | number> };
@@ -38,6 +38,8 @@ export type ChecksFile = {
   version: number;
   /** A check is skipped when what it needs is missing or comes in a later version of kitvas. */
   checks: Record<CheckName, 'ran' | 'skipped'>;
+  /** `kitvas check --deep` ran the stress passes and the extra widths. */
+  deep?: boolean | undefined;
   summary: { fix: number; review: number };
   /** The browser the page checks ran in; null when they did not run. */
   browser: string | null;

@@ -18,6 +18,14 @@ export type Flags = {
   open: boolean;
   /** `context --save`: write the context to the draft's build folder. */
   save: boolean;
+  /** `check --deep`: the stress passes and the extra widths. */
+  deep: boolean;
+  /** `guidelines --check a11y|ui|ux`. */
+  check: string | undefined;
+  /** `guidelines --mode auto|deep|manual`. */
+  mode: string | undefined;
+  /** `guidelines --screen <kind>`. */
+  screen: string | undefined;
 };
 
 export type ParsedArgs = {
@@ -45,6 +53,10 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         'allow-private': { type: 'boolean' },
         open: { type: 'boolean' },
         save: { type: 'boolean' },
+        deep: { type: 'boolean' },
+        check: { type: 'string' },
+        mode: { type: 'string' },
+        screen: { type: 'string' },
       },
     });
     const [command, ...rest] = positionals;
@@ -62,6 +74,10 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         allowPrivate: values['allow-private'] === true,
         open: values.open === true,
         save: values.save === true,
+        deep: values.deep === true,
+        check: values.check,
+        mode: values.mode,
+        screen: values.screen,
       },
     };
   } catch (cause) {

@@ -1,5 +1,7 @@
 // Scaffolds kitvas writes into a new draft. Agents fill them in; they are working files in English.
 
+import { SCREEN_KINDS } from './layout.ts';
+
 export const briefTemplate = (title: string): string =>
   [
     `# Brief: ${title}`,
@@ -27,6 +29,8 @@ export const layoutTemplate = (title: string): string =>
     `# Layout: ${title}`,
     '',
     '<!--',
+    'Under the title, one line "Screen: <kind>"; some checks run only for some kinds.',
+    `The kind is one of: ${SCREEN_KINDS.join(', ')}.`,
     'One "## <section-id>" heading per section, top to bottom.',
     'A section id is lower-case words joined by "-", for example "order-summary".',
     'Under each heading write two lines:',

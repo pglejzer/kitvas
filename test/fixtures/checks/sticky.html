@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sticky header</title>
+    <style>
+      body { margin: 0; font: 16px/1.5 Arial, Helvetica, sans-serif; color: #1a1a1a; background: #ffffff; }
+      /* The header sticks to the top and the page starts under it, as a page scrolled under it does. */
+      header {
+        position: sticky; top: 0; z-index: 1; box-sizing: border-box; height: 80px;
+        margin-bottom: -80px; padding: 8px 16px; background: #ffffff; border-bottom: 1px solid #cccccc;
+      }
+      .page { position: relative; height: 2000px; }
+      .page button {
+        position: absolute; left: 16px; width: 160px; height: 40px; padding: 0;
+        font: inherit; background: #eeeeee; color: #1a1a1a; border: 1px solid #888888;
+      }
+      #under { top: 10px; }
+      #half { top: 50px; height: 50px; }
+      #clear { top: 300px; }
+      .own { position: sticky; top: 0; display: block; width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <header id="bar" data-ks="sections/Top:header">
+        <a id="home" href="#top" data-ks="sections/Top:header/a"><span>Home</span></a>
+      </header>
+      <div class="page" data-ks="sections/Body:div">
+        <button id="under" type="button" data-ks="sections/Body:div/under">Under</button>
+        <button id="half" type="button" data-ks="sections/Body:div/half">Half</button>
+        <button id="clear" type="button" data-ks="sections/Body:div/clear"><span class="own">Own child</span></button>
+      </div>
+    </div>
+  </body>
+</html>

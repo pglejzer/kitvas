@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deep: orientation</title>
+    <style>
+      body {
+        margin: 0;
+        font: 16px/1.5 system-ui, sans-serif;
+        color: #1a1a1a;
+        background: #ffffff;
+      }
+      #root {
+        padding: 16px;
+      }
+      .turn {
+        display: none;
+      }
+      /* Held sideways, the page hides its content behind a notice, or with #rotate turns itself. */
+      @media (orientation: landscape) {
+        html:not(.rotate) main {
+          display: none;
+        }
+        html:not(.rotate) .turn {
+          display: block;
+        }
+        html.rotate body {
+          transform: rotate(90deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <p class="turn">Turn your phone upright.</p>
+      <main>
+        <h1>Order summary</h1>
+        <p>
+          Three items are on their way. The courier brings them on Friday between nine and noon,
+          and you can change the time until Thursday evening.
+        </p>
+      </main>
+    </div>
+    <script>
+      if (location.hash === '#rotate') document.documentElement.classList.add('rotate');
+    </script>
+  </body>
+</html>

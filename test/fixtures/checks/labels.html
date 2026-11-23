@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fields, actions and images</title>
+    <style>
+      body { margin: 0; font: 16px/1.5 Arial, Helvetica, sans-serif; color: #1a1a1a; }
+      main { position: relative; padding: 16px; }
+      label, input { display: block; }
+      .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+      }
+      .inset { position: absolute; top: 0; left: 0; width: 120px; height: 20px; clip-path: inset(50%); }
+      .radio { display: inline; }
+      .radio input { display: inline-block; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <main data-ks="sections/Form:main">
+        <form id="form" data-ks="sections/Form:main/form">
+          <label id="name-label" for="name" data-ks="sections/Form:main/form/name-label">Full name *</label>
+          <input id="name" name="name" autocomplete="name" required data-ks="sections/Form:main/form/name" />
+          <label id="search-label" for="search" class="sr-only" data-ks="sections/Form:main/form/search-label">Search the shop</label>
+          <input id="search" type="search" name="q" data-ks="sections/Form:main/form/search" />
+          <input id="code" name="code" aria-label="Discount code" data-ks="sections/Form:main/form/code" />
+          <input id="city" name="city" placeholder="City" data-ks="sections/Form:main/form/city" />
+          <input id="bare" name="bare" data-ks="sections/Form:main/form/bare" />
+          <fieldset id="plan" data-ks="sections/Form:main/form/plan">
+            <legend>Plan</legend>
+            <label class="radio"><input id="basic" type="radio" name="plan" value="basic" checked /> Basic</label>
+            <label class="radio"><input id="pro" type="radio" name="plan" value="pro" /> Pro (optional)</label>
+          </fieldset>
+          <label for="email" data-ks="sections/Form:main/form/email-label">Email</label>
+          <input id="email" type="email" name="email" value="sam@" aria-invalid="true" aria-describedby="email-error" data-ks="sections/Form:main/form/email" />
+          <p id="email-error" data-ks="sections/Form:main/form/email-error">Enter an email address like name@example.com</p>
+          <input id="secret" type="password" name="secret" value="hunter2" aria-label="Password" data-ks="sections/Form:main/form/secret" />
+          <button id="save" type="submit" data-ks="sections/Form:main/form/save">Save</button>
+        </form>
+        <span id="visually" class="sr-only" data-ks="sections/Form:main/visually">Only for screen readers</span>
+        <span id="inset" class="inset" data-ks="sections/Form:main/inset">Clipped to nothing</span>
+        <span id="shown" data-ks="sections/Form:main/shown">Shown text</span>
+        <a id="more" href="/plans" data-ks="sections/Form:main/more"><svg aria-hidden="true" width="16" height="16"><rect width="16" height="16" /></svg> See all plans</a>
+        <button id="close" type="button" aria-label="Close" data-ks="sections/Form:main/close"><svg width="16" height="16" aria-hidden="true"><path d="M0 0L16 16" stroke="#1a1a1a" /></svg></button>
+        <img id="photo" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='2'%3E%3Crect width='4' height='2' fill='%23888888'/%3E%3C/svg%3E" width="20" height="10" alt="A dot" data-ks="sections/Form:main/photo" />
+      </main>
+    </div>
+  </body>
+</html>

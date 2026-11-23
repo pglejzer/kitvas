@@ -12,6 +12,7 @@ import { cssVarName, type FlatToken, type LoadedKit } from '../../kit/index.ts';
 import { type BuildError, type BuildFs, buildDraft, type RenderDeps } from '../../render/index.ts';
 import { KitvasError, type Translate } from '../../shared/index.ts';
 import { importFindings, rawControlFindings } from '../domain/code.ts';
+import { FACTS_NODE_CAP } from '../domain/facts.ts';
 import {
   type ChecksFile,
   mergeFindings,
@@ -23,6 +24,7 @@ import {
   translateFinding,
 } from '../domain/finding.ts';
 import { type IdEntry, idEntries } from '../domain/ids.ts';
+import { sourceRuleFindings } from '../domain/source-rules.ts';
 import { type SizeToken, styleFindings } from '../domain/styles.ts';
 import { sheetClasses, tailwindFindings, tailwindUnknown } from '../domain/tailwind.ts';
 import { elementAt, typeFindings } from '../domain/tsc.ts';
@@ -33,9 +35,14 @@ import { type BrowserInput, browserChecks } from './browser-checks.ts';
 export type CheckDeps = {
   render: RenderDeps;
   types: TypeChecker;
-  /** Without one, a11y and runtime are skipped. */
+  /** Without one, a11y, ui, ux and runtime are skipped. */
   browser?: Browser;
   t: Translate;
+};
+
+export type CheckOptions = {
+  /** `kitvas check --deep`: the stress passes and the deep widths. */
+  deep?: boolean;
 };
 
 export type ChecksReport = ChecksFile & {
@@ -52,12 +59,19 @@ type PageResult = {
   notes: string[];
 };
 
+/** A file of the draft: its name, its path inside the version, its text. */
+type SourceText = { name: string; file: string; text: string };
+
+/** The TSX and the style sheets of the draft, read once for the ds check and the source rules. */
+type Sources = { code: SourceText[]; sheets: SourceText[] };
+
 type DsInput = {
   fs: BuildFs;
   versionDir: string;
   kit: LoadedKit;
   ids: IdEntry[];
   built: boolean;
+  sources: Sources;
 };
 
 const buildFinding = (error: BuildError): RawFinding => ({
@@ -92,13 +106,20 @@ function readJson(fs: BuildFs, file: string): unknown {
   }
 }
 
-function stateIds(drafts: DraftStore, slug: string, base: string): string[] {
+/** The state ids, and the baseline the state rules compare with: `filled` when there, else the default. */
+function draftStates(
+  drafts: DraftStore,
+  slug: string,
+  base: string,
+): { ids: string[]; baseline: string } {
   const parsed = StatesSchema.safeParse(drafts.readJson(slug, `${base}/src/json/states.json`));
-  return (parsed.success ? parsed.data : DEFAULT_STATES).states.map((state) => state.id);
+  const states = parsed.success ? parsed.data : DEFAULT_STATES;
+  const ids = states.states.map((state) => state.id);
+  return { ids, baseline: ids.includes('filled') ? 'filled' : states.default };
 }
 
 /** The draft's files under a folder of `src/`, as paths inside the version with their text. */
-function sources(fs: BuildFs, versionDir: string, folder: string, pattern: RegExp) {
+function folderFiles(fs: BuildFs, versionDir: string, folder: string, pattern: RegExp) {
   const dir = join(versionDir, 'src', folder);
   return fs
     .listFiles(dir)
@@ -110,17 +131,36 @@ function sources(fs: BuildFs, versionDir: string, folder: string, pattern: RegEx
     }));
 }
 
-/** The ds check: imports and controls of the TSX, the style sheets, and a Tailwind kit's classes. */
-function dsFindings({ fs, versionDir, kit, ids, built }: DsInput): RawFinding[] {
+const draftSources = (fs: BuildFs, versionDir: string): Sources => ({
+  code: folderFiles(fs, versionDir, 'tsx', /\.tsx?$/),
+  sheets: folderFiles(fs, versionDir, 'scss', /\.scss$/),
+});
+
+/** The rules that read sources (ADR 0043). A TSX finding gets the element written at its place. */
+function sourceFindings({ code, sheets }: Sources, ids: IdEntry[]): RawFinding[] {
   const raw: RawFinding[] = [];
-  const code = sources(fs, versionDir, 'tsx', /\.tsx?$/);
+  for (const { file, text } of code) {
+    for (const finding of sourceRuleFindings({ file, text })) {
+      raw.push({ ...finding, element: elementAt(ids, file, finding.line, finding.column) });
+    }
+  }
+  // index.scss is generated from the layout and only lists the section sheets.
+  for (const { name, file, text } of sheets) {
+    if (name !== 'index.scss') raw.push(...sourceRuleFindings({ file, text }));
+  }
+  return raw;
+}
+
+/** The ds check: imports and controls of the TSX, the style sheets, and a Tailwind kit's classes. */
+function dsFindings({ fs, versionDir, kit, ids, built, sources }: DsInput): RawFinding[] {
+  const raw: RawFinding[] = [];
+  const { code, sheets } = sources;
   const components = new Set(kit.kit.components.map((component) => component.name));
   for (const { file, text } of code) raw.push(...importFindings({ file, text, components }));
   raw.push(...rawControlFindings({ ids, catalog: kit.kit.components }));
 
   const tokens = new Set(kit.tokens.map((token) => cssVarName(token.path)));
   const sizes = sizeTokens(kit.tokens);
-  const sheets = sources(fs, versionDir, 'scss', /\.scss$/);
   // index.scss is generated from the layout and only lists the section sheets.
   for (const { name, file, text } of sheets) {
     if (name !== 'index.scss') raw.push(...styleFindings({ file, text, tokens, sizes }));
@@ -143,7 +183,7 @@ function dsFindings({ fs, versionDir, kit, ids, built }: DsInput): RawFinding[] 
   return raw;
 }
 
-/** a11y and runtime: skipped with a note when there is no page or no browser. */
+/** a11y, ui, ux and runtime: skipped with a note when there is no page or no browser. */
 async function pageChecks(
   deps: CheckDeps,
   built: boolean,
@@ -155,17 +195,24 @@ async function pageChecks(
   if (!deps.browser) return none;
   if (!built) return { ...none, notes: [deps.t('check.note.buildFailed')] };
   try {
-    return { ...(await browserChecks(deps.browser, input)), notes: [] };
+    const { findings, shots, browser, truncated } = await browserChecks(deps.browser, input);
+    // The rules still ran on what was measured; the note says the rest was not.
+    const notes = truncated ? [deps.t('check.note.factsTruncated', { cap: FACTS_NODE_CAP })] : [];
+    return { findings, shots, browser, notes };
   } catch (error) {
     if (!(error instanceof KitvasError && error.code === 'BROWSER_MISSING')) throw error;
     return { ...none, notes: [deps.t('check.note.noBrowser')] };
   }
 }
 
-export async function runChecks(deps: CheckDeps, slug: string): Promise<ChecksReport> {
+export async function runChecks(
+  deps: CheckDeps,
+  slug: string,
+  options: CheckOptions = {},
+): Promise<ChecksReport> {
   const { drafts, kits, fs } = deps.render;
   const build = await buildDraft(deps.render, slug);
-  const { version, base, kit } = inspectLayout(drafts, kits, slug);
+  const { version, base, kit, layout } = inspectLayout(drafts, kits, slug);
   const versionDir = join(drafts.dir(slug), base);
   const json = join(versionDir, 'build', 'json');
   const raw: RawFinding[] = build.errors.map(buildFinding);
@@ -180,13 +227,20 @@ export async function runChecks(deps: CheckDeps, slug: string): Promise<ChecksRe
   });
   // A project kit's own files and the project's are checked by `kit verify`.
   raw.push(...typeFindings(messages, ids, { onlyDraft: kit.project !== undefined }));
-  raw.push(...dsFindings({ fs, versionDir, kit, ids, built: build.built }));
+  const sources = draftSources(fs, versionDir);
+  raw.push(...dsFindings({ fs, versionDir, kit, ids, built: build.built, sources }));
+  raw.push(...sourceFindings(sources, ids));
 
+  const deep = options.deep === true;
+  const states = draftStates(drafts, slug, base);
   const page = await pageChecks(deps, build.built, {
     versionDir,
-    states: stateIds(drafts, slug, base),
+    states: states.ids,
     ids,
     catalog: kit.kit.components,
+    deep,
+    screen: layout.screen,
+    baseline: states.baseline,
   });
   raw.push(...page.findings);
   const browserRan = page.browser === null ? 'skipped' : 'ran';
@@ -196,7 +250,17 @@ export async function runChecks(deps: CheckDeps, slug: string): Promise<ChecksRe
     schemaVersion: 1,
     slug,
     version,
-    checks: { build: 'ran', types: 'ran', ds: 'ran', a11y: browserRan, runtime: browserRan },
+    checks: {
+      build: 'ran',
+      types: 'ran',
+      ds: 'ran',
+      a11y: browserRan,
+      ui: browserRan,
+      ux: browserRan,
+      runtime: browserRan,
+    },
+    // Only when the deep passes ran: without a browser nothing deep was done.
+    ...(deep && page.browser !== null ? { deep: true } : {}),
     summary: summarize(findings),
     browser: page.browser,
     notes: page.notes,
