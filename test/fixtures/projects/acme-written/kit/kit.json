@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "acme-site",
+  "name": "Acme site",
+  "version": "0.0.0",
+  "source": { "type": "web", "urls": ["http://127.0.0.1:1/"] },
+  "framework": "react",
+  "runtime": {
+    "packages": [
+      { "name": "react", "version": "19.3.1" },
+      { "name": "react-dom", "version": "19.3.1" }
+    ],
+    "entry": "generated/kit.ts",
+    "styles": { "files": [], "generated": "none", "imports": [] },
+    "providers": []
+  },
+  "tokens": {
+    "file": "json/tokens.json",
+    "format": "dtcg-2025.10"
+  },
+  "components": [
+    {
+      "name": "Button",
+      "category": "action",
+      "description": "Starts an action or submits a form.",
+      "import": { "from": "components/Button", "name": "Button" },
+      "props": [{ "name": "children", "type": "node", "required": true }],
+      "examples": [
+        {
+          "title": "Save changes",
+          "code": "<Button>Save changes</Button>",
+          "imports": ["Button"],
+          "reference": "source/web/1-1280/crops/button-0.png"
+        }
+      ]
+    },
+    {
+      "name": "TextField",
+      "category": "input",
+      "description": "A labelled single-line text input.",
+      "import": { "from": "components/TextField", "name": "TextField" },
+      "props": [
+        { "name": "label", "type": "string", "required": true },
+        { "name": "placeholder", "type": "string" }
+      ],
+      "examples": [
+        {
+          "title": "Email",
+          "code": "<TextField label=\"Email\" placeholder=\"you@example.com\" />",
+          "imports": ["TextField"]
+        }
+      ]
+    },
+    {
+      "name": "Card",
+      "category": "display",
+      "description": "A bordered block with a shadow, a heading and a line of text.",
+      "import": { "from": "components/Card", "name": "Card" },
+      "props": [
+        { "name": "title", "type": "string", "required": true },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        {
+          "title": "Plan",
+          "code": "<Card title=\"Starter plan\">For one person.</Card>",
+          "imports": ["Card"],
+          "reference": "source/web/1-1280/crops/card-0.png"
+        }
+      ],
+      "a11y": ["The title is a level 2 heading."]
+    },
+    {
+      "name": "Heading",
+      "category": "typography",
+      "description": "The page heading, a level 1 heading.",
+      "import": { "from": "components/Heading", "name": "Heading" },
+      "props": [{ "name": "children", "type": "node", "required": true }],
+      "examples": [
+        {
+          "title": "Page heading",
+          "code": "<Heading>Choose a plan</Heading>",
+          "imports": ["Heading"]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+$pad: 16px;
+
+.card {
+  padding: $pad;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  color: var(--ds-ink);
+
+  .title {
+    margin: 0 0 8px;
+    font-size: 18px;
+  }
+}

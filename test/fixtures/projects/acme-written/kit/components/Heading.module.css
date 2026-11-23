@@ -1,0 +1,5 @@
+.heading {
+  margin: 0;
+  font: 700 32px / 40px var(--kit-font-body);
+  color: var(--kit-color-ink);
+}

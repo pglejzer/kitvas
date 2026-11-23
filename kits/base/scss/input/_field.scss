@@ -1,0 +1,54 @@
+@use "../core/mixins";
+
+.kit-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kit-space-xs);
+  font-family: var(--kit-font-body);
+
+  &__label {
+    font-size: var(--kit-font-size-sm);
+    font-weight: var(--kit-font-weight-medium);
+    color: var(--kit-color-ink);
+  }
+
+  &__control {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: var(--kit-size-control);
+    padding: 0 var(--kit-space-md);
+    border: 1px solid var(--kit-color-line-strong);
+    border-radius: var(--kit-radius-md);
+    background: var(--kit-color-surface);
+    color: var(--kit-color-ink);
+    font-family: inherit;
+    font-size: var(--kit-font-size-md);
+
+    &::placeholder {
+      color: var(--kit-color-ink-mid);
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+    }
+
+    &:disabled {
+      @include mixins.disabled;
+    }
+  }
+
+  &__note {
+    margin: 0;
+    font-size: var(--kit-font-size-sm);
+    line-height: var(--kit-line-height-snug);
+    color: var(--kit-color-ink-mid);
+  }
+
+  &--error &__control {
+    border-color: var(--kit-color-fix);
+  }
+
+  &--error &__note {
+    color: var(--kit-color-fix);
+  }
+}

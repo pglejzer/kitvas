@@ -1,0 +1,61 @@
+// --_gap and --_columns are set inline by Stack and Grid.
+
+.kit-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--_gap, var(--kit-space-md));
+
+  &--row {
+    flex-direction: row;
+  }
+
+  &--wrap {
+    flex-wrap: wrap;
+  }
+
+  &--align-start {
+    align-items: flex-start;
+  }
+
+  &--align-center {
+    align-items: center;
+  }
+
+  &--align-end {
+    align-items: flex-end;
+  }
+
+  &--align-stretch {
+    align-items: stretch;
+  }
+
+  &--justify-start {
+    justify-content: flex-start;
+  }
+
+  &--justify-center {
+    justify-content: center;
+  }
+
+  &--justify-end {
+    justify-content: flex-end;
+  }
+
+  &--justify-between {
+    justify-content: space-between;
+  }
+}
+
+.kit-grid {
+  --_now: var(--_columns, 1);
+
+  display: grid;
+  grid-template-columns: repeat(var(--_now), minmax(0, 1fr));
+  gap: var(--_gap, var(--kit-space-md));
+}
+
+@media (max-width: 640px) {
+  .kit-grid--collapse {
+    --_now: 1;
+  }
+}

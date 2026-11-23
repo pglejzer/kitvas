@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    // shadcn/ui writes imports as "@/lib/utils": "@/" is the src folder.
+    "paths": { "@/*": ["./src/*"] }
+  }
+}

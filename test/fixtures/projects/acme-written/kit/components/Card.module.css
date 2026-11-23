@@ -1,0 +1,20 @@
+.card {
+  box-sizing: border-box;
+  width: 320px;
+  padding: var(--kit-space-lg);
+  border: 1px solid var(--kit-color-line);
+  border-radius: var(--kit-radius-md);
+  background: var(--kit-color-white);
+  box-shadow: 0 2px 6px var(--kit-color-shadow);
+  font: 16px / 24px var(--kit-font-body);
+  color: var(--kit-color-ink);
+}
+
+.title {
+  margin: 0 0 var(--kit-space-xs);
+  font: 600 18px / 24px var(--kit-font-body);
+}
+
+.text {
+  margin: 0;
+}

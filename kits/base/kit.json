@@ -1,0 +1,378 @@
+{
+  "schemaVersion": 1,
+  "id": "base",
+  "name": "Base",
+  "version": "0.1.0",
+  "source": { "type": "builtin" },
+  "framework": "react",
+  "runtime": {
+    "packages": [{ "name": "react", "version": "19.3.1" }],
+    "entry": "tsx/index.ts",
+    "styles": { "files": ["scss/index.scss"] }
+  },
+  "tokens": { "file": "json/tokens.json", "format": "dtcg-2025.10" },
+  "components": [
+    {
+      "name": "Button",
+      "category": "action",
+      "description": "Starts an action or submits a form.",
+      "import": { "from": "@kit", "name": "Button" },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "variant",
+          "type": "enum",
+          "values": ["solid", "outline", "plain"],
+          "default": "solid"
+        },
+        { "name": "size", "type": "enum", "values": ["md", "sm"], "default": "md" },
+        { "name": "tone", "type": "enum", "values": ["neutral", "danger"], "default": "neutral" },
+        {
+          "name": "type",
+          "type": "enum",
+          "values": ["button", "submit", "reset"],
+          "default": "button"
+        },
+        { "name": "disabled", "type": "boolean" },
+        { "name": "onClick", "type": "callback" },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        { "title": "Primary action", "code": "<Button>Save</Button>", "imports": ["Button"] },
+        {
+          "title": "Secondary, small",
+          "code": "<Button variant=\"outline\" size=\"sm\">Cancel</Button>",
+          "imports": ["Button"]
+        }
+      ],
+      "a11y": ["A button that shows only an icon needs aria-label."]
+    },
+    {
+      "name": "Input",
+      "category": "input",
+      "description": "A one-line text field with its label, hint and error.",
+      "import": { "from": "@kit", "name": "Input" },
+      "styling": ["className"],
+      "props": [
+        { "name": "label", "type": "string", "required": true },
+        { "name": "hint", "type": "string" },
+        {
+          "name": "error",
+          "type": "string",
+          "description": "Replaces the hint and marks the field invalid."
+        },
+        { "name": "hideLabel", "type": "boolean", "default": false },
+        {
+          "name": "type",
+          "type": "enum",
+          "values": ["text", "email", "tel", "number", "password", "search", "url"],
+          "default": "text"
+        },
+        { "name": "value", "type": "string" },
+        { "name": "defaultValue", "type": "string" },
+        { "name": "placeholder", "type": "string" },
+        { "name": "disabled", "type": "boolean" },
+        { "name": "required", "type": "boolean" },
+        { "name": "onChange", "type": "callback" }
+      ],
+      "state": [{ "value": "value", "default": "defaultValue", "onChange": "onChange" }],
+      "examples": [
+        {
+          "title": "Phone",
+          "code": "<Input label=\"Phone number\" type=\"tel\" />",
+          "imports": ["Input"]
+        }
+      ],
+      "a11y": [
+        "Always pass label; use hideLabel to hide it visually.",
+        "Other attributes go to the input element; className goes to the wrapper."
+      ]
+    },
+    {
+      "name": "Select",
+      "category": "input",
+      "description": "A native select with its label, hint and error.",
+      "import": { "from": "@kit", "name": "Select" },
+      "styling": ["className"],
+      "props": [
+        { "name": "label", "type": "string", "required": true },
+        {
+          "name": "options",
+          "type": "object",
+          "required": true,
+          "description": "Array of { value: string, label: string, disabled?: boolean }."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "description": "Shown as an empty first option."
+        },
+        { "name": "hint", "type": "string" },
+        { "name": "error", "type": "string" },
+        { "name": "hideLabel", "type": "boolean", "default": false },
+        { "name": "value", "type": "string" },
+        { "name": "defaultValue", "type": "string" },
+        { "name": "disabled", "type": "boolean" },
+        { "name": "required", "type": "boolean" },
+        { "name": "onChange", "type": "callback" }
+      ],
+      "state": [{ "value": "value", "default": "defaultValue", "onChange": "onChange" }],
+      "examples": [
+        {
+          "title": "Sizes",
+          "code": "<Select label=\"Size\" options={[{ value: 's', label: 'Small' }, { value: 'm', label: 'Medium' }]} />",
+          "imports": ["Select"]
+        }
+      ],
+      "a11y": ["Always pass label; use hideLabel to hide it visually."]
+    },
+    {
+      "name": "Checkbox",
+      "category": "input",
+      "description": "A native checkbox with its label.",
+      "import": { "from": "@kit", "name": "Checkbox" },
+      "styling": ["className"],
+      "props": [
+        { "name": "label", "type": "node", "required": true },
+        { "name": "checked", "type": "boolean" },
+        { "name": "defaultChecked", "type": "boolean" },
+        { "name": "disabled", "type": "boolean" },
+        { "name": "onChange", "type": "callback" }
+      ],
+      "state": [{ "value": "checked", "default": "defaultChecked", "onChange": "onChange" }],
+      "examples": [
+        {
+          "title": "Option",
+          "code": "<Checkbox label=\"Add a helmet\" />",
+          "imports": ["Checkbox"]
+        }
+      ]
+    },
+    {
+      "name": "Card",
+      "category": "layout",
+      "description": "A white surface that groups related content.",
+      "import": { "from": "@kit", "name": "Card" },
+      "polymorphic": { "prop": "as" },
+      "styling": ["className", "style"],
+      "props": [
+        { "name": "as", "type": "enum", "values": ["div", "section", "article"], "default": "div" },
+        { "name": "padding", "type": "enum", "values": ["none", "md", "lg"], "default": "md" },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        {
+          "title": "With text",
+          "code": "<Card><Text>Total today</Text></Card>",
+          "imports": ["Card", "Text"]
+        }
+      ]
+    },
+    {
+      "name": "Text",
+      "category": "typography",
+      "description": "Body text.",
+      "import": { "from": "@kit", "name": "Text" },
+      "polymorphic": { "prop": "as" },
+      "styling": ["className", "style"],
+      "props": [
+        { "name": "as", "type": "enum", "values": ["p", "span", "div"], "default": "p" },
+        { "name": "size", "type": "enum", "values": ["sm", "md", "lg"], "default": "md" },
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["default", "muted", "danger"],
+          "default": "default"
+        },
+        {
+          "name": "weight",
+          "type": "enum",
+          "values": ["regular", "medium", "bold"],
+          "default": "regular"
+        },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        {
+          "title": "Muted note",
+          "code": "<Text tone=\"muted\">Built 12 minutes ago</Text>",
+          "imports": ["Text"]
+        }
+      ]
+    },
+    {
+      "name": "Heading",
+      "category": "typography",
+      "description": "A heading of level 1 to 4.",
+      "import": { "from": "@kit", "name": "Heading" },
+      "styling": ["className", "style"],
+      "props": [
+        { "name": "level", "type": "number", "required": true, "description": "1, 2, 3 or 4." },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["xl", "lg", "md", "sm"],
+          "description": "Defaults to the size that matches the level."
+        },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        {
+          "title": "Page title",
+          "code": "<Heading level={1}>Rent a bike</Heading>",
+          "imports": ["Heading"]
+        }
+      ],
+      "a11y": ["Keep levels in order; do not skip from 1 to 3."]
+    },
+    {
+      "name": "Stack",
+      "category": "layout",
+      "description": "Lays children out in a column or a row with even gaps.",
+      "import": { "from": "@kit", "name": "Stack" },
+      "polymorphic": { "prop": "as" },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "as",
+          "type": "enum",
+          "values": ["div", "section", "main", "header", "footer", "nav"],
+          "default": "div"
+        },
+        { "name": "direction", "type": "enum", "values": ["column", "row"], "default": "column" },
+        {
+          "name": "gap",
+          "type": "enum",
+          "values": ["none", "xs", "sm", "md", "lg", "xl", "2xl", "3xl"],
+          "default": "md"
+        },
+        { "name": "align", "type": "enum", "values": ["start", "center", "end", "stretch"] },
+        { "name": "justify", "type": "enum", "values": ["start", "center", "end", "between"] },
+        { "name": "wrap", "type": "boolean", "default": false },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        {
+          "title": "Row of actions",
+          "code": "<Stack direction=\"row\" gap=\"sm\"><Button>Save</Button><Button variant=\"outline\">Cancel</Button></Stack>",
+          "imports": ["Stack", "Button"]
+        }
+      ]
+    },
+    {
+      "name": "Grid",
+      "category": "layout",
+      "description": "Equal columns that become one column on narrow screens.",
+      "import": { "from": "@kit", "name": "Grid" },
+      "styling": ["className", "style"],
+      "props": [
+        { "name": "columns", "type": "number", "default": 2, "description": "1 to 12." },
+        {
+          "name": "gap",
+          "type": "enum",
+          "values": ["none", "xs", "sm", "md", "lg", "xl", "2xl", "3xl"],
+          "default": "md"
+        },
+        {
+          "name": "collapse",
+          "type": "boolean",
+          "default": true,
+          "description": "One column under 640px."
+        },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        {
+          "title": "Three cards",
+          "code": "<Grid columns={3}><Card><Text>One</Text></Card><Card><Text>Two</Text></Card><Card><Text>Three</Text></Card></Grid>",
+          "imports": ["Grid", "Card", "Text"]
+        }
+      ]
+    },
+    {
+      "name": "Icon",
+      "category": "display",
+      "description": "One of the kit's line icons.",
+      "import": { "from": "@kit", "name": "Icon" },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "name",
+          "type": "enum",
+          "values": [
+            "alert",
+            "check",
+            "chevron-down",
+            "chevron-right",
+            "close",
+            "minus",
+            "plus",
+            "search"
+          ],
+          "required": true
+        },
+        { "name": "size", "type": "number", "default": 20 },
+        {
+          "name": "label",
+          "type": "string",
+          "description": "Accessible name. Without it the icon is hidden from assistive technology."
+        }
+      ],
+      "examples": [{ "title": "Check", "code": "<Icon name=\"check\" />", "imports": ["Icon"] }],
+      "a11y": ["Pass label when the icon carries meaning that no nearby text gives."]
+    },
+    {
+      "name": "Badge",
+      "category": "display",
+      "description": "A short status label.",
+      "import": { "from": "@kit", "name": "Badge" },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["neutral", "fix", "review", "good"],
+          "default": "neutral"
+        },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        {
+          "title": "Needs a fix",
+          "code": "<Badge tone=\"fix\">1 to fix</Badge>",
+          "imports": ["Badge"]
+        }
+      ],
+      "a11y": ["Do not rely on colour alone; the text must say the status."]
+    },
+    {
+      "name": "Dialog",
+      "category": "overlay",
+      "description": "A modal dialog with a title and a close button.",
+      "import": { "from": "@kit", "name": "Dialog" },
+      "styling": ["className"],
+      "props": [
+        { "name": "open", "type": "boolean", "required": true },
+        { "name": "title", "type": "string", "required": true },
+        { "name": "onClose", "type": "callback", "required": true },
+        { "name": "closeLabel", "type": "string", "default": "Close" },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "state": [{ "value": "open", "onChange": "onClose" }],
+      "examples": [
+        {
+          "title": "Confirm",
+          "code": "<Dialog open title=\"Remove item\" onClose={() => {}}><Text>This cannot be undone.</Text></Dialog>",
+          "imports": ["Dialog", "Text"]
+        }
+      ],
+      "a11y": ["Esc and the close button call onClose; set open to false there."]
+    }
+  ],
+  "icons": {
+    "source": "component",
+    "component": "Icon",
+    "names": ["alert", "check", "chevron-down", "chevron-right", "close", "minus", "plus", "search"]
+  },
+  "gaps": []
+}

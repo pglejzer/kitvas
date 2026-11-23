@@ -1,0 +1,14 @@
+// Styles of the tiny fixture kit.
+
+.tiny-button {
+  padding: var(--kit-space-sm);
+  color: var(--kit-color-ink);
+
+  &--plain {
+    background: none;
+  }
+}
+
+.tiny-icon {
+  display: inline-block;
+}

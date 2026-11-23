@@ -1,0 +1,214 @@
+// Starts the studio: the studio origin (pages and API) and the prototype origin, both on 127.0.0.1.
+
+import type { Server } from 'node:http';
+import { join } from 'node:path';
+import type { SharedBrowser } from '../../checks/index.ts';
+import type { DraftStore } from '../../drafts/index.ts';
+import { type KitStore, loadKit } from '../../kit/index.ts';
+import { PLUGIN_ROOT, type Translate } from '../../shared/index.ts';
+import { apiRoutes } from '../api/routes.ts';
+import { createEventHub, type EventLimits } from '../events/event-hub.ts';
+import { BODY_LIMIT } from '../http/body.ts';
+import {
+  answerClientErrors,
+  closeServer,
+  createLimitedServer,
+  listenLoopback,
+  listenPreferred,
+} from '../http/listen.ts';
+import { createInbox } from '../inbox/inbox.ts';
+import { type CliTarget, cliRunner, JOB_LIMITS, type JobLimits } from '../jobs/cli-runner.ts';
+import { createJobs } from '../jobs/jobs.ts';
+import { keepBrowser } from '../jobs/shared-browser.ts';
+import { assetRoutes, type StudioAssets } from '../pages/asset-routes.ts';
+import { openRoute } from '../pages/open-route.ts';
+import { pageRoutes } from '../pages/routes.ts';
+import { studioSkin } from '../pages/skin.ts';
+import { createDeniedLog } from '../security/denied-log.ts';
+import { createOpenLinks } from '../security/open-links.ts';
+import { frameHeaders, studioHeaders } from '../security/response-headers.ts';
+import { newFrameKey, newNonce, newToken } from '../security/token.ts';
+import { handleFrame } from './frame-handler.ts';
+import { handleStudio } from './studio-handler.ts';
+
+export type StudioDeps = {
+  /** The drafts of the project the studio shows. */
+  drafts: DraftStore;
+  /** The kits: the studio's own look comes from the Base kit's tokens. */
+  kits: KitStore;
+  /** The project's folder: where the kits' built examples are. Without it the kit page shows none. */
+  project?: string | undefined;
+  t: Translate;
+  /** The browser scripts of the pages, served from `/assets/`. */
+  assets: StudioAssets;
+  /** The plugin's version, reported by the status route. */
+  version: string;
+  now?: () => Date;
+  /** Errors kitvas did not raise; the response only says that something went wrong. */
+  onError?: (error: unknown) => void;
+  /** A line for each refused request (`security/denied-log.ts`), at most 20 a minute. */
+  onDenied?: (line: string) => void;
+  /** Called by the shutdown route, after its answer. */
+  shutdown?: () => void;
+  /** Where jobs run the CLI; by default this plugin's `bin/kitvas.ts` in the current folder. */
+  cli?: CliTarget;
+  /** Starts the browser the check jobs share; without it each check starts its own. */
+  browser?: () => Promise<SharedBrowser>;
+  /** The shared browser started (its pid) or went away by itself (`undefined`). */
+  onBrowser?: (pid: number | undefined) => void;
+};
+
+export type StudioOptions = {
+  /** The port to listen on, or fail; 0 or absent: `preferred`, else a free port. */
+  port?: number;
+  framePort?: number;
+  /**
+   * Ports to try first, such as the ones the project's studio had before, so its address stays
+   * the same. One that another program holds falls back to a free port.
+   */
+  preferred?: { port: number; framePort: number };
+  /** The page cookie's secret; a fresh one when absent, so no browser gets in until `/open`. */
+  pageSecret?: string;
+  /** Largest request body in bytes. */
+  bodyLimit?: number;
+  jobLimits?: Partial<JobLimits>;
+  eventLimits?: Partial<EventLimits>;
+};
+
+export type Studio = {
+  /**
+   * `http://127.0.0.1:<port>`, for programs on this machine that call the studio. People get
+   * `studioUrl(port)` on `kitvas.localhost`.
+   */
+  url: string;
+  port: number;
+  framePort: number;
+  /** The session token for API calls. Never put it in a URL or a log. */
+  token: string;
+  close(): Promise<void>;
+};
+
+/** A port given outright must be had; a preferred one is tried first; else the system picks. */
+function listenOn(
+  server: Server,
+  given: number | undefined,
+  preferred: number | undefined,
+): Promise<number> {
+  if (given !== undefined && given !== 0) return listenLoopback(server, given);
+  return preferred === undefined ? listenLoopback(server, 0) : listenPreferred(server, preferred);
+}
+
+export async function startStudio(deps: StudioDeps, options: StudioOptions = {}): Promise<Studio> {
+  // Before any port is opened: a studio without its look does not start.
+  const skin = studioSkin(loadKit(deps.kits, 'base').tokens);
+  const { t } = deps;
+  const studioServer = createLimitedServer();
+  const frameServer = createLimitedServer();
+  let port: number;
+  let framePort: number;
+  try {
+    port = await listenOn(studioServer, options.port, options.preferred?.port);
+    framePort = await listenOn(frameServer, options.framePort, options.preferred?.framePort);
+  } catch (error) {
+    await Promise.all([closeServer(studioServer), closeServer(frameServer)]);
+    throw error;
+  }
+  const token = newToken();
+  const key = newFrameKey();
+  const now = deps.now ?? (() => new Date());
+  const pageSecret = options.pageSecret ?? newToken();
+  const links = createOpenLinks(now);
+  const onError = deps.onError;
+  // One log for both origins, so the limit of 20 a minute holds for the studio as a whole.
+  const denied = deps.onDenied ? createDeniedLog(deps.onDenied) : undefined;
+  const events = createEventHub(options.eventLimits);
+  const cli = deps.cli ?? {
+    bin: join(PLUGIN_ROOT, 'bin', 'kitvas.ts'),
+    cwd: process.cwd(),
+    env: process.env,
+  };
+  const keeper = deps.browser ? keepBrowser(deps.browser, deps.onBrowser) : undefined;
+  const run = cliRunner(
+    cli,
+    { ...JOB_LIMITS, ...options.jobLimits },
+    t,
+    (text) => onError?.(new Error(text)),
+    keeper ? (args) => keeper.envFor(args) : undefined,
+  );
+  const jobs = createJobs({ run, publish: (job) => events.publish('job', job), now, t });
+  const inbox = createInbox({ now, publish: (pending) => events.publish('inbox', { pending }) });
+  const routes = [
+    ...pageRoutes({
+      drafts: deps.drafts,
+      kits: deps.kits,
+      project: deps.project,
+      t,
+      skin,
+      frame: { port: framePort, key },
+    }),
+    ...assetRoutes(deps.assets),
+    openRoute({ links, t, port, pageSecret, skin }),
+    ...apiRoutes({
+      drafts: deps.drafts,
+      kits: deps.kits,
+      version: deps.version,
+      startedAt: now().toISOString(),
+      port,
+      framePort,
+      now,
+      jobs,
+      events,
+      inbox,
+      t,
+      links,
+      ...(deps.shutdown ? { shutdown: deps.shutdown } : {}),
+    }),
+  ];
+  const studio = {
+    routes,
+    token,
+    pageSecret,
+    skin,
+    port,
+    framePort,
+    bodyLimit: options.bodyLimit ?? BODY_LIMIT,
+    t,
+    onError,
+    denied,
+  };
+  const frame = {
+    drafts: deps.drafts,
+    project: deps.project,
+    key,
+    port: framePort,
+    studioPort: port,
+    t,
+    onError,
+    denied,
+  };
+  // Handlers come only now: the security headers of each origin name the other one's port.
+  studioServer.on('request', (req, res) => {
+    handleStudio(studio, req, res).catch((error: unknown) => {
+      onError?.(error);
+      res.destroy();
+    });
+  });
+  frameServer.on('request', (req, res) => handleFrame(frame, req, res));
+  const unreadable = t('error.REQUEST_INVALID', { detail: t('studio.bad.unreadable') });
+  answerClientErrors(studioServer, () => studioHeaders(newNonce(), framePort), unreadable);
+  answerClientErrors(frameServer, () => frameHeaders(port, framePort), unreadable);
+  return {
+    url: `http://127.0.0.1:${port}`,
+    port,
+    framePort,
+    token,
+    close: async () => {
+      // Running jobs end first, so their last event still reaches the open streams.
+      await jobs.close();
+      await keeper?.close();
+      inbox.close();
+      events.close();
+      await Promise.all([closeServer(studioServer), closeServer(frameServer)]);
+    },
+  };
+}

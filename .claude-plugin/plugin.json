@@ -1,0 +1,7 @@
+{
+  "name": "kitvas",
+  "version": "0.1.0",
+  "description": "Build UI prototypes from any design system, in any project, and check them in a local studio.",
+  "author": { "name": "Piotr Glejzer" },
+  "license": "PolyForm-Shield-1.0.0"
+}

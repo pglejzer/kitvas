@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "firma",
+  "name": "Firma DS",
+  "version": "0.0.0",
+  "source": { "type": "repo", "path": "src/ds" },
+  "framework": "react",
+  "runtime": {
+    "packages": [
+      { "name": "react", "version": "19.3.1" },
+      { "name": "react-dom", "version": "19.3.1" }
+    ],
+    "entry": "generated/kit.ts",
+    "styles": { "files": [], "generated": "none", "imports": ["src/ds/tokens.css"] },
+    "providers": []
+  },
+  "tokens": {
+    "file": "json/tokens.json",
+    "format": "dtcg-2025.10",
+    "cssVars": { "prefix": "--ds-", "map": "json/css-var-map.json" }
+  },
+  "components": [
+    {
+      "name": "Button",
+      "category": "action",
+      "description": "Starts an action or submits a form.",
+      "import": { "from": "src/ds", "name": "Button" },
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["primary", "quiet"],
+          "default": "primary"
+        },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        { "title": "Primary action", "code": "<Button>Save</Button>", "imports": ["Button"] },
+        {
+          "title": "Quiet action",
+          "code": "<Button tone=\"quiet\">Cancel</Button>",
+          "imports": ["Button"]
+        }
+      ],
+      "a11y": ["A button that shows only an icon needs aria-label."]
+    },
+    {
+      "name": "Card",
+      "category": "layout",
+      "description": "A bordered block with a heading.",
+      "import": { "from": "src/ds", "name": "Card" },
+      "props": [
+        { "name": "title", "type": "string", "required": true },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        {
+          "title": "Plan",
+          "code": "<Card title=\"Plan\"><p>Ten seats included.</p></Card>",
+          "imports": ["Card"]
+        }
+      ],
+      "a11y": ["The title is a level 2 heading."]
+    },
+    {
+      "name": "Stack",
+      "category": "layout",
+      "description": "Puts its children in a column with a gap.",
+      "import": { "from": "src/ds", "name": "Stack" },
+      "props": [
+        {
+          "name": "gap",
+          "type": "enum",
+          "values": ["tight", "normal"],
+          "default": "normal"
+        },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        {
+          "title": "Two actions",
+          "code": "<Stack><Button>One</Button><Button tone=\"quiet\">Two</Button></Stack>",
+          "imports": ["Stack", "Button"]
+        }
+      ]
+    }
+  ]
+}

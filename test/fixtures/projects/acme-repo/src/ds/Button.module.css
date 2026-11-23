@@ -1,0 +1,17 @@
+.button {
+  font: inherit;
+  padding: 8px 16px;
+  border: 1px solid var(--ds-ink);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.primary {
+  background: var(--ds-ink);
+  color: #fff;
+}
+
+.quiet {
+  background: transparent;
+  color: var(--ds-ink);
+}

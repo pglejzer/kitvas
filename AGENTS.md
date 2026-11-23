@@ -1,0 +1,45 @@
+# kitvas
+
+A Claude Code plugin: builds UI prototypes from any design system (described as a "kit"), in any project, and checks them in a local studio. Decisions: `docs/adr/`.
+
+## Commands
+
+```bash
+npm ci --ignore-scripts                       # install
+npm run check                                 # the full gate: lint, types, tests with coverage, audit
+npm test                                      # all tests
+node --test test/shared/config.test.ts        # one test file
+npm run format                                # fix formatting
+npm run types                                 # type check only
+node bin/kitvas.ts status --json              # run the CLI from the repo
+claude plugin validate . --strict             # validate the plugin
+claude plugin eval . --allow-tools Bash Write Edit --tag smoke   # skill evals (evals/README.md)
+```
+
+## Rules
+
+- This is a new project. MIT-licensed code (such as superpowers) may be copied; keep its copyright and licence notice with the copied part. Other tools' code may be read for ideas, never copied. `test/guards/legacy.test.ts` fails on leftovers anywhere in the repo.
+- TypeScript runs directly in Node: erasable syntax only, relative imports end in `.ts`, `import type` for types.
+- Never the `any` type, in any form: not in code, tests, `.d.ts` files, generated code strings or samples, and no comment that switches the check off. Use `unknown` and narrow it, or an exact type. Biome and `test/guards/no-any.test.ts` enforce it.
+- Third-party packages load only through `src/shared/deps/deps.ts`. Never `import 'zod'` at runtime elsewhere.
+- Modules talk through their `index.ts`. Only `src/main.ts` imports adapters. `test/guards/architecture.test.ts` enforces it.
+- Code files have at most 500 lines, test files at most 800. Keep code in folders by responsibility, never one catch-all folder.
+- Text for people comes from `locales/en.json` through `t()`. English only.
+- Every CLI command supports `--json`: `{"ok":true,"data":…}` or `{"ok":false,"error":{"code","message"}}`.
+- New dependency: exact version, at least 14 days old unless it fixes a vulnerability, `npm audit` clean.
+- Changing a decision in `docs/adr/` needs a new ADR, not an edit.
+- Do not repeat in this file what the code already shows.
+
+## Where things are
+
+- Error codes and exit codes: `src/shared/errors/errors.ts`.
+- Paths and the data folder: `src/shared/env/paths.ts`.
+- Adding a command: a file in `src/cli/commands/`, exported from `src/cli/index.ts`, listed in `src/main.ts`, messages in `locales/en.json`.
+- Kits (contract, tokens, loading): `src/kit/`, rules in `src/kit/AGENTS.md`.
+- The built-in kit: `kits/base/`, rules in `kits/base/AGENTS.md`.
+- Project kits (`.kitvas/kits/<id>/`, sources `npm` and `repo`, `kit new | verify | use`): `src/kit/`; verified by `src/checks/app/verify-kit.ts`; learned by `/kitvas:learn` (`skills/learn/`, `agents/learner.md`, `reference/learn.md`). ADRs 0030 to 0034.
+- Written kits (sources `figma`, `web`, `images`; components in `<kit>/components/`): written by `agents/tailor.md` under `reference/write-kit.md`. `kit scan` (`src/checks/app/scan-kit.ts`) reads a website, `kit crop` (`src/checks/app/crop-kit.ts`) cuts references, and the sixth verify step `look` scores each example against its reference. Figma is read only by the skill through the person's own MCP. ADRs 0035 to 0039.
+- Drafts (versions, layout, section context): `src/drafts/`, rules in `src/drafts/AGENTS.md`.
+- Building a draft (bundle, styles, element ids): `src/render/`, rules in `src/render/AGENTS.md`. Code bundled into prototypes lives in the top-level `client/` folder.
+- Checks of a draft (findings, rules, `checks.json`): `src/checks/`, rules in `src/checks/AGENTS.md`.
+- The local studio (servers, API routes, security checks, pages): `src/studio/`, rules in `src/studio/AGENTS.md`.

@@ -1,0 +1,13 @@
+.kit-card {
+  border-radius: var(--kit-radius-lg);
+  background: var(--kit-color-surface);
+  color: var(--kit-color-ink);
+
+  &--md {
+    padding: var(--kit-space-lg);
+  }
+
+  &--lg {
+    padding: var(--kit-space-xl);
+  }
+}

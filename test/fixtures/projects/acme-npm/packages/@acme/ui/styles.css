@@ -1,0 +1,62 @@
+:root {
+  --acme-color-ink: #1a1a1a;
+  --acme-color-accent: #0055ff;
+  --acme-space-2: 8px;
+}
+
+.acme-root {
+  font-family: system-ui, sans-serif;
+  color: var(--acme-color-ink);
+}
+
+.acme-button {
+  font: inherit;
+  padding: var(--acme-space-2) 16px;
+  border: 1px solid var(--acme-color-accent);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.acme-button--solid {
+  background: var(--acme-color-accent);
+  color: #fff;
+}
+
+.acme-button--ghost {
+  background: transparent;
+  color: var(--acme-color-accent);
+}
+
+.acme-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acme-label {
+  font-size: 14px;
+}
+
+.acme-input {
+  font: inherit;
+  padding: var(--acme-space-2);
+  border: 1px solid var(--acme-color-ink);
+  border-radius: 6px;
+}
+
+.acme-badge {
+  display: inline-block;
+  padding: 2px var(--acme-space-2);
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.acme-badge--info {
+  background: #e6eeff;
+  color: #003a99;
+}
+
+.acme-badge--warn {
+  background: #fff1d6;
+  color: #7a4a00;
+}
