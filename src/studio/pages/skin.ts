@@ -92,6 +92,28 @@ code { font-family: var(--kit-font-mono); }
   transform: scale(0.2);
   transform-origin: 0 0;
 }
+.kind {
+  margin: var(--kit-space-sm) 0 0;
+  color: var(--kit-color-ink-mid);
+  font-size: var(--kit-font-size-sm);
+}
+.original-shot {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--kit-color-line);
+  border-radius: var(--kit-radius-lg);
+  background: var(--kit-color-surface);
+}
+.craft-pick { margin-top: var(--kit-space-2xl); }
+.pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--kit-space-xs) var(--kit-space-xl);
+  min-height: 24px;
+  margin-bottom: var(--kit-space-sm);
+}
 .card h2 { margin: var(--kit-space-sm) 0 0; }
 .card h2 a { text-decoration: none; }
 .card h2 a::after {

@@ -41,6 +41,11 @@ export const ERROR_TABLE = {
   SCAN_FAILED: { exit: 38, http: 502 },
   PLUGIN_FOLDER: { exit: 39, http: 409 },
   GUIDELINE_UNKNOWN: { exit: 40, http: 404 },
+  ADDITION_EXISTS: { exit: 41, http: 409 },
+  ADDITION_INVALID: { exit: 42, http: 422 },
+  DRAFT_KIND: { exit: 43, http: 409 },
+  SKETCH_UNKNOWN: { exit: 44, http: 404 },
+  EXPORT_EXISTS: { exit: 45, http: 409 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;

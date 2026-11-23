@@ -34,7 +34,18 @@ const verifyFile = (hash: string, failed: (keyof VerifyFile['steps'])[]): string
 
 const kitOf = (project: string | undefined, hash = 'h1'): LoadedKit => {
   const kit = { id: 'acme' } as LoadedKit['kit'];
-  return { kit, dir: '/kits/acme', tokens: [], issues: [], hash, project, cssVarMap: {} };
+  return {
+    kit,
+    dir: '/kits/acme',
+    tokens: [],
+    issues: [],
+    hash,
+    project,
+    cssVarMap: {},
+    additions: [],
+    additionsDir: undefined,
+    entry: '/kits/acme/generated/kit.ts',
+  };
 };
 
 test('only schema, imports and types block, and only for the same kit data', () => {

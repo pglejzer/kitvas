@@ -114,6 +114,7 @@ test('with a browser, its findings and screenshots are listed', async () => {
             facts: null,
             deep: null,
             contrastUnsure: [],
+            craft: null,
           };
         },
         async close() {},

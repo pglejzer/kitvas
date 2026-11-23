@@ -11,6 +11,7 @@ import {
 import { cssVarName, type FlatToken, type LoadedKit } from '../../kit/index.ts';
 import { type BuildError, type BuildFs, buildDraft, type RenderDeps } from '../../render/index.ts';
 import { KitvasError, type Translate } from '../../shared/index.ts';
+import type { Before } from '../domain/before.ts';
 import { importFindings, rawControlFindings } from '../domain/code.ts';
 import { FACTS_NODE_CAP } from '../domain/facts.ts';
 import {
@@ -24,12 +25,16 @@ import {
   translateFinding,
 } from '../domain/finding.ts';
 import { type IdEntry, idEntries } from '../domain/ids.ts';
+import { VIEWPORTS } from '../domain/page.ts';
+import { beforeProblemFindings, protectedFindings, reworkScore } from '../domain/rework.ts';
+import type { VisitInput } from '../domain/rules/index.ts';
 import { sourceRuleFindings } from '../domain/source-rules.ts';
 import { type SizeToken, styleFindings } from '../domain/styles.ts';
 import { sheetClasses, tailwindFindings, tailwindUnknown } from '../domain/tailwind.ts';
 import { elementAt, typeFindings } from '../domain/tsc.ts';
 import type { Browser } from '../ports/browser.ts';
 import type { TypeChecker } from '../ports/type-checker.ts';
+import { readBefore, uncappedFindings } from './before.ts';
 import { type BrowserInput, browserChecks } from './browser-checks.ts';
 
 export type CheckDeps = {
@@ -57,7 +62,11 @@ type PageResult = {
   shots: Shot[];
   browser: string | null;
   notes: string[];
+  /** The visits that measured facts; empty when the browser checks did not run. */
+  visits: VisitInput[];
 };
+
+type ReworkResult = { findings: RawFinding[]; score: { fixed: number; left: number } | null };
 
 /** A file of the draft: its name, its path inside the version, its text. */
 type SourceText = { name: string; file: string; text: string };
@@ -189,20 +198,47 @@ async function pageChecks(
   built: boolean,
   input: BrowserInput,
 ): Promise<PageResult> {
-  const none: PageResult = { findings: [], shots: [], browser: null, notes: [] };
+  const none: PageResult = { findings: [], shots: [], browser: null, notes: [], visits: [] };
   // Old screenshots would show a page that no longer exists.
   deps.render.fs.remove(join(input.versionDir, 'build', 'shots'));
   if (!deps.browser) return none;
   if (!built) return { ...none, notes: [deps.t('check.note.buildFailed')] };
   try {
-    const { findings, shots, browser, truncated } = await browserChecks(deps.browser, input);
+    const { findings, shots, browser, truncated, visits } = await browserChecks(
+      deps.browser,
+      input,
+    );
     // The rules still ran on what was measured; the note says the rest was not.
     const notes = truncated ? [deps.t('check.note.factsTruncated', { cap: FACTS_NODE_CAP })] : [];
-    return { findings, shots, browser, notes };
+    return { findings, shots, browser, notes, visits };
   } catch (error) {
     if (!(error instanceof KitvasError && error.code === 'BROWSER_MISSING')) throw error;
     return { ...none, notes: [deps.t('check.note.noBrowser')] };
   }
+}
+
+const isMainWidth = (width: number): boolean =>
+  VIEWPORTS.some((viewport) => viewport.width === width);
+
+/**
+ * The rework rules (ADR 0045) over the baseline state's visits at the phone and laptop widths: the
+ * protected items once the person confirmed them, and the original's problems against this
+ * version's, counted with no cap. Nothing when no page was measured, since nothing could be held
+ * against the original then.
+ */
+function reworkChecks(before: Before, page: PageResult): ReworkResult {
+  const visits = page.visits.filter(
+    (visit) => visit.stateKind === 'baseline' && isMainWidth(visit.seen.width),
+  );
+  if (visits.length === 0) return { findings: [], score: null };
+  const findings: RawFinding[] = [];
+  if (before.protected?.confirmed === true) {
+    findings.push(...protectedFindings(before.protected.items, visits));
+  }
+  if (before.problems === null) return { findings, score: null };
+  const after = uncappedFindings(visits);
+  findings.push(...beforeProblemFindings(before.problems, after));
+  return { findings, score: reworkScore(before.problems, after) };
 }
 
 export async function runChecks(
@@ -212,7 +248,9 @@ export async function runChecks(
 ): Promise<ChecksReport> {
   const { drafts, kits, fs } = deps.render;
   const build = await buildDraft(deps.render, slug);
-  const { version, base, kit, layout } = inspectLayout(drafts, kits, slug);
+  const { draft, version, base, kit, layout } = inspectLayout(drafts, kits, slug);
+  // Read first, so a `before/` the skill wrote wrong stops the check before the slow part.
+  const before = draft.kind === 'rework' ? readBefore(drafts, slug) : null;
   const versionDir = join(drafts.dir(slug), base);
   const json = join(versionDir, 'build', 'json');
   const raw: RawFinding[] = build.errors.map(buildFinding);
@@ -222,7 +260,7 @@ export async function runChecks(
   const messages = await deps.types.check({
     workingDir: versionDir,
     entry: join(versionDir, 'src', 'tsx', 'index.tsx'),
-    kitEntry: join(kit.dir, kit.kit.runtime.entry),
+    kitEntry: kit.entry,
     project: kit.project,
   });
   // A project kit's own files and the project's are checked by `kit verify`.
@@ -241,8 +279,11 @@ export async function runChecks(
     deep,
     screen: layout.screen,
     baseline: states.baseline,
+    kind: draft.kind,
   });
   raw.push(...page.findings);
+  const rework = before === null ? null : reworkChecks(before, page);
+  if (rework !== null) raw.push(...rework.findings);
   const browserRan = page.browser === null ? 'skipped' : 'ran';
 
   const findings = sortFindings(mergeFindings(raw.map((item) => translateFinding(item, deps.t))));
@@ -261,6 +302,8 @@ export async function runChecks(
     },
     // Only when the deep passes ran: without a browser nothing deep was done.
     ...(deep && page.browser !== null ? { deep: true } : {}),
+    // Only for a rework whose original has a problems list and whose version was measured.
+    ...(rework?.score ? { rework: rework.score } : {}),
     summary: summarize(findings),
     browser: page.browser,
     notes: page.notes,

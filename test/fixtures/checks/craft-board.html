@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Craft: a sketch board</title>
+    <style>
+      body {
+        margin: 0;
+        font: 16px/1.5 system-ui, sans-serif;
+        background: #ffffff;
+        color: #111111;
+      }
+      .craft-board {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px;
+      }
+      .craft-sketch {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .craft-ground {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+      }
+      .craft-ground--light {
+        background: #fff;
+        color: #111;
+      }
+      .craft-ground--dark {
+        background: #111;
+        color: #fff;
+      }
+      /* Sketch A gets its stroke from the board's style sheet: a clone must keep it. */
+      .craft-ground .wide {
+        stroke-width: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <!-- #icon: A strokes 2 on a 24 grid, B is filled, C paints fixed colours. The kit icons are
+           Base's: a 20 grid, stroke 1.75, round caps. -->
+      <main class="craft-board" data-board="icon" data-craft-subject="icon">
+        <section class="craft-sketch" data-craft-sketch="A">
+          <h2>Mark · A</h2>
+          <div class="craft-ground craft-ground--light">
+            <svg class="wide" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+            <svg class="wide" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+            <svg class="wide" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+            <span data-kit-icon="check"><svg class="kit-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9" /></svg></span>
+            <span data-kit-icon="close"><svg class="kit-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" /></svg></span>
+            <span data-kit-icon="plus"><svg class="kit-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg></span>
+          </div>
+          <div class="craft-ground craft-ground--dark">
+            <svg class="wide" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+            <svg class="wide" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+            <span data-kit-icon="check"><svg class="kit-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9" /></svg></span>
+            <span data-kit-icon="close"><svg class="kit-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" /></svg></span>
+            <span data-kit-icon="plus"><svg class="kit-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4v12M4 10h12" /></svg></span>
+          </div>
+        </section>
+        <section class="craft-sketch" data-craft-sketch="B">
+          <h2>Mark · B</h2>
+          <div class="craft-ground craft-ground--light">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M4 4h16v16H4z" /></svg>
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor" aria-hidden="true"><path d="M4 4h16v16H4z" /></svg>
+            <!-- Not drawn: never measured. -->
+            <svg viewBox="0 0 48 48" width="48" height="48" style="display: none" aria-hidden="true"><path d="M4 4h40v40H4z" /></svg>
+          </div>
+          <div class="craft-ground craft-ground--dark">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M4 4h16v16H4z" /></svg>
+          </div>
+        </section>
+        <section class="craft-sketch" data-craft-sketch="C">
+          <h2>Mark · C</h2>
+          <!-- The upright stroke is the light ground's own ink, written out: it is fixed all the same. -->
+          <div class="craft-ground craft-ground--light">
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 10h12" /><path d="M10 4v12" stroke="#111111" /><circle cx="10" cy="10" r="2.5" fill="#ff0000" stroke="none" /></svg>
+          </div>
+          <div class="craft-ground craft-ground--dark">
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 10h12" /><path d="M10 4v12" stroke="#111111" /><circle cx="10" cy="10" r="2.5" fill="#ff0000" stroke="none" /></svg>
+          </div>
+        </section>
+      </main>
+
+      <!-- #hairline: a stroke of 0.75 on a 24 grid is half a pixel at 16 px. -->
+      <main class="craft-board" data-board="hairline" data-craft-subject="icon">
+        <section class="craft-sketch" data-craft-sketch="A">
+          <div class="craft-ground craft-ground--light">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="0.75" aria-hidden="true"><path d="M4 12h16M12 4v16" /></svg>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="0.75" aria-hidden="true"><path d="M4 12h16M12 4v16" /></svg>
+          </div>
+        </section>
+      </main>
+
+      <!-- #logo: A has a colour tone and a one-colour tone; B has its colour tone only, a light
+           yellow that is faint on white. -->
+      <main class="craft-board" data-board="logo" data-craft-subject="logo">
+        <section class="craft-sketch" data-craft-sketch="A">
+          <div class="craft-ground craft-ground--light">
+            <svg viewBox="0 0 32 32" width="32" height="32" data-craft-tone="colour" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="#2563eb" /></svg>
+          </div>
+          <div class="craft-ground craft-ground--dark">
+            <svg viewBox="0 0 32 32" width="32" height="32" data-craft-tone="colour" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="#2563eb" /></svg>
+          </div>
+          <div class="craft-ground craft-ground--light">
+            <svg viewBox="0 0 32 32" width="32" height="32" fill="currentColor" data-craft-tone="mono" aria-hidden="true"><circle cx="16" cy="16" r="12" /></svg>
+          </div>
+          <div class="craft-ground craft-ground--dark">
+            <svg viewBox="0 0 32 32" width="32" height="32" fill="currentColor" data-craft-tone="mono" aria-hidden="true"><circle cx="16" cy="16" r="12" /></svg>
+          </div>
+        </section>
+        <section class="craft-sketch" data-craft-sketch="B">
+          <div class="craft-ground craft-ground--light">
+            <svg viewBox="0 0 32 32" width="32" height="32" data-craft-tone="colour" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="#facc15" /></svg>
+          </div>
+          <div class="craft-ground craft-ground--dark">
+            <svg viewBox="0 0 32 32" width="32" height="32" data-craft-tone="colour" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="#facc15" /></svg>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script>
+      // The hash keeps one board: #icon, #hairline or #logo. Any other keeps none.
+      const keep = location.hash.slice(1);
+      for (const board of document.querySelectorAll('[data-board]')) {
+        if (board.getAttribute('data-board') !== keep) board.remove();
+      }
+    </script>
+  </body>
+</html>

@@ -1,13 +1,18 @@
 // Runs in the page: the facts walk of a visit (ADR 0044). One record per visible element under
-// #root (a box of some size, visibility not hidden), in document order and at most `cap` of them:
-// the style as the browser paints it, the nearest landmark and whether the element is visually
-// hidden. Text, controls and bars are read after it, over the same list. The element list stays on
-// the page as `window.__KITVAS_NODES__` and the helpers the later reads share as
-// `window.__KITVAS_TOOLS__`, so axe and every pass of the visit name the same node by the same index.
+// the root (a box of some size, visibility not hidden), in document order and at most `cap` of
+// them: the style as the browser paints it, the nearest landmark and whether the element is
+// visually hidden. The root is a draft's #root, or the body of any page (`root: 'page'`, a live
+// page measured for `rework`). Text, controls and bars are read after it, over the same list. The
+// element list stays on the page as `window.__KITVAS_NODES__` and the helpers the later reads share
+// as `window.__KITVAS_TOOLS__`, so axe and every pass of the visit name the same node by the same
+// index.
 //
 // Everything here is serialized into the page: it uses no name from outside the function.
 
 import type { Box, Colour, FactNode, Landmark, NodeStyle, PageFacts } from '../domain/facts.ts';
+
+/** Where the walk starts: a draft's #root, or the body of any page. */
+export type FactsRoot = 'draft' | 'page';
 
 /** What the walk leaves on the page for the reads after it (controls, focus, passes). */
 export type PageTools = {
@@ -17,7 +22,10 @@ export type PageTools = {
   paint(value: string): Colour;
   /** What is painted behind the element: its own and its ancestors' backgrounds over white. */
   ground(element: Element): Colour;
-  /** Visually hidden: a box of 1 px or less, clipped to nothing, or inside something that hides. */
+  /**
+   * Visually hidden: a box of 1 px or less, clipped to nothing, inside something that hides, off
+   * the page, or wholly outside an ancestor that cuts its overflow.
+   */
   hidden(element: Element): boolean;
   /** Page coordinates at scroll 0. */
   box(element: Element): Box;
@@ -33,10 +41,10 @@ export type Walked = Pick<
   'viewport' | 'scrollWidth' | 'bodyFontSize' | 'nodes' | 'truncated'
 >;
 
-export function walkNodes(options: { cap: number }): Walked {
+export function walkNodes(options: { cap: number; root: FactsRoot }): Walked {
   const { cap } = options;
   const scope = window as unknown as FactsWindow;
-  const root = document.getElementById('root');
+  const root = options.root === 'page' ? document.body : document.getElementById('root');
   const round = (value: number): number => Math.round(value * 100) / 100;
   const px = (value: string): number => {
     const number = Number.parseFloat(value);
@@ -127,16 +135,120 @@ export function walkNodes(options: { cap: number }): Walked {
     memo.set(element, result);
     return result;
   };
+
+  /** What an ancestor does with what overflows it on one axis: cuts it, scrolls it or shows it. */
+  type Reach = 'cut' | 'scroll' | 'show';
+  type Holder = {
+    /** `gone`: no box (display: contents). `inline`: overflow does not apply to it. */
+    kind: 'gone' | 'inline' | 'box';
+    position: string;
+    /** Holds fixed and absolute descendants whatever its position, as a transform or filter does. */
+    contains: boolean;
+    x: Reach;
+    y: Reach;
+    /** The padding box, where overflow is cut, in window coordinates: left, top, right, bottom. */
+    inner: [number, number, number, number];
+  };
+  /** What one hidden check measures once: hiders, holders and the document's scroll width. */
+  type Seen = { hiders: Map<Element, boolean>; holders: Map<Element, Holder>; width: number };
+  const seenNow = (): Seen => ({
+    hiders: new Map(),
+    holders: new Map(),
+    width: document.documentElement.scrollWidth,
+  });
+  const reachOf = (value: string): Reach => {
+    if (value === 'hidden' || value === 'clip') return 'cut';
+    return value === 'auto' || value === 'scroll' ? 'scroll' : 'show';
+  };
+  const NO_OVERFLOW = /^(inline|table-(row|column)(-group)?|table-(header|footer)-group)$/;
+  const CONTAINING = 'transform translate rotate scale perspective filter backdrop-filter'.split(
+    ' ',
+  );
+  const holderOf = (element: Element, seen: Seen): Holder => {
+    const known = seen.holders.get(element);
+    if (known !== undefined) return known;
+    const style = getComputedStyle(element);
+    const value = (name: string): string => style.getPropertyValue(name).trim();
+    const rect = element.getBoundingClientRect();
+    const html = document.documentElement;
+    const rootShows = (): boolean => {
+      const own = getComputedStyle(html);
+      return own.overflowX === 'visible' && own.overflowY === 'visible';
+    };
+    // The root's overflow, and the body's while the root's is visible, is the window's: it cuts
+    // nothing, and what lies past the window is judged against the document instead.
+    const toWindow = element === html || (element === document.body && rootShows());
+    // An inline svg cuts its drawing at its own box; overflow does not apply to other inlines.
+    const inline = NO_OVERFLOW.test(style.display) && !(element instanceof SVGSVGElement);
+    const holder: Holder = {
+      kind: style.display === 'contents' ? 'gone' : inline ? 'inline' : 'box',
+      position: style.position,
+      contains:
+        CONTAINING.some((name) => !['', 'none'].includes(value(name))) ||
+        /\b(layout|paint|strict|content)\b/.test(value('contain')) ||
+        /\b(transform|translate|rotate|scale|perspective|filter)\b/.test(value('will-change')) ||
+        !['', 'normal'].includes(value('container-type')) ||
+        value('content-visibility') === 'auto',
+      x: toWindow ? 'show' : reachOf(style.overflowX),
+      y: toWindow ? 'show' : reachOf(style.overflowY),
+      inner: [
+        rect.left + px(style.borderLeftWidth),
+        rect.top + px(style.borderTopWidth),
+        rect.right - px(style.borderRightWidth),
+        rect.bottom - px(style.borderBottomWidth),
+      ],
+    };
+    seen.holders.set(element, holder);
+    return holder;
+  };
+  /** From and to on one axis. */
+  type Span = [number, number];
+  /** One axis of a box seen through a holder: cut to its inner edges, or anywhere between them. */
+  const through = (reach: Reach, span: Span, inner: Span): Span => {
+    if (reach === 'cut') return [Math.max(span[0], inner[0]), Math.min(span[1], inner[1])];
+    return reach === 'scroll' ? inner : span;
+  };
+  /**
+   * Out of sight for good (plan 12, C4; the spike found carousel cards at x = -3554 inside an
+   * `overflow: hidden` track): the box lies wholly outside the padding box of an ancestor that
+   * cuts its overflow on that axis, or wholly outside the document (right or bottom at 0 or less,
+   * left at the scroll width or more). Only the ancestors the box is laid out in count: a fixed or
+   * absolute box skips those below its containing block. A box in a scroller can be scrolled into
+   * view, so past a scroller its place on that axis is anywhere inside the scroller.
+   */
+  const outside = (element: Element, rect: DOMRect, position: string, seen: Seen): boolean => {
+    let across: Span = [rect.left, rect.right];
+    let down: Span = [rect.top, rect.bottom];
+    let placed = position;
+    for (let up = element.parentElement; up !== null; up = up.parentElement) {
+      const holder = holderOf(up, seen);
+      if (holder.kind === 'gone') continue;
+      if (placed === 'fixed' && !holder.contains) continue;
+      if (placed === 'absolute' && !holder.contains && holder.position === 'static') continue;
+      placed = holder.position;
+      if (holder.kind === 'inline') continue;
+      const [left, top, right, bottom] = holder.inner;
+      across = through(holder.x, across, [left, right]);
+      down = through(holder.y, down, [top, bottom]);
+      if (across[1] <= across[0] || down[1] <= down[0]) return true;
+    }
+    // A box fixed to the window stays where it is when the page scrolls; any other is on the page.
+    const fixed = placed === 'fixed';
+    const offsetX = fixed ? 0 : window.scrollX;
+    const offsetY = fixed ? 0 : window.scrollY;
+    return across[1] + offsetX <= 0 || down[1] + offsetY <= 0 || across[0] + offsetX >= seen.width;
+  };
   const hiddenOf = (
     element: Element,
     rect: DOMRect,
     style: CSSStyleDeclaration,
-    memo: Map<Element, boolean>,
+    seen: Seen,
   ): boolean =>
     rect.width <= 1 ||
     rect.height <= 1 ||
     clippedAway(style, rect.width, rect.height) ||
-    inHider(element.parentElement, memo);
+    inHider(element.parentElement, seen.hiders) ||
+    outside(element, rect, style.position, seen);
   const boxOf = (rect: DOMRect): Box => [
     round(rect.left + window.scrollX),
     round(rect.top + window.scrollY),
@@ -292,7 +404,7 @@ export function walkNodes(options: { cap: number }): Walked {
   const indexes = new Map<Element, number>();
   const nodes: FactNode[] = [];
   const grounds = new Map<Element, Rgb>();
-  const hiders = new Map<Element, boolean>();
+  const seen = seenNow();
   const landmarks = new Map<Element, Landmark | null>();
   const describe = (element: Element, rect: DOMRect, style: CSSStyleDeclaration): FactNode => {
     let parent = -1;
@@ -316,7 +428,7 @@ export function walkNodes(options: { cap: number }): Walked {
       heading: headingOf(element, tag, role),
       landmark: landmarkOf(element, landmarks),
       box: boxOf(rect),
-      hidden: hiddenOf(element, rect, style, hiders),
+      hidden: hiddenOf(element, rect, style, seen),
       style: styleOf(element, style, rect.width, grounds),
       // Filled in by `readTexts` (`playwright-facts-text.ts`).
       text: null,
@@ -359,8 +471,9 @@ export function walkNodes(options: { cap: number }): Walked {
     index: (element) => indexes.get(element) ?? -1,
     paint,
     ground: (element) => hexOf(groundOf(element, new Map())),
+    // Measured afresh: a pass may have resized or scrolled the page since the walk.
     hidden: (element) =>
-      hiddenOf(element, element.getBoundingClientRect(), getComputedStyle(element), new Map()),
+      hiddenOf(element, element.getBoundingClientRect(), getComputedStyle(element), seenNow()),
     box: (element) => boxOf(element.getBoundingClientRect()),
   };
   return {

@@ -88,6 +88,8 @@ function shop(
     remove: (_id, relPath) => {
       removed.push(relPath);
     },
+    writeAddition: () => {},
+    exportFiles: () => {},
   };
   const session: BrowserSession = {
     name: 'fake',

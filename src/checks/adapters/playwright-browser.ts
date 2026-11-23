@@ -8,10 +8,12 @@ import { AXE_TAGS, type AxeViolation, type PageReport } from '../domain/page.ts'
 import type { UsageRecord } from '../domain/usage.ts';
 import type { Browser, BrowserSession, Inspect, InspectReport, Visit } from '../ports/browser.ts';
 import { captureExample } from './playwright-capture.ts';
+import { boardSubject, craftPass } from './playwright-craft.ts';
 import { measureFacts } from './playwright-facts.ts';
 import { cropImages } from './playwright-images.ts';
 import { runPasses } from './playwright-passes.ts';
 import { scanPage } from './playwright-scan.ts';
+import { surveyPage } from './playwright-survey.ts';
 
 type Playwright = typeof import('playwright-core');
 type PlaywrightBrowser = import('playwright-core').Browser;
@@ -165,6 +167,7 @@ function createSession(
         facts: null,
         deep: null,
         contrastUnsure: [],
+        craft: null,
       };
       let listening = true;
       try {
@@ -210,6 +213,11 @@ function createSession(
         }
         // Reflow, focus, deep and spacing change the page, so they come after the screenshot.
         await runPasses(page, { width, height, passes }, report);
+        // After deep: the craft pass draws clones over the page and takes them away again.
+        if (passes.includes('craft')) {
+          const subject = await boardSubject(page);
+          report.craft = await craftPass(page, { subject }).catch(() => null);
+        }
         return report;
       } finally {
         await context.close();
@@ -253,6 +261,7 @@ function createSession(
       }
     },
     scan: (input) => scanPage(browser, input),
+    survey: (input) => surveyPage(browser, input),
     crop: (inputs) => cropImages(browser, inputs),
     capture: (input) => captureExample(browser, input),
     async close() {

@@ -22,15 +22,21 @@ const HEADER =
 
 const kitOf = (raw: Json): Kit => parseKit(raw, String(raw.id));
 
-const loadedOf = (kit: Kit, project: string | undefined, folder = kit.id): LoadedKit => ({
-  kit,
-  dir: join('project', '.kitvas', 'kits', folder),
-  tokens: [],
-  issues: [],
-  hash: 'hash',
-  project,
-  cssVarMap: {},
-});
+const loadedOf = (kit: Kit, project: string | undefined, folder = kit.id): LoadedKit => {
+  const dir = join('project', '.kitvas', 'kits', folder);
+  return {
+    kit,
+    dir,
+    tokens: [],
+    issues: [],
+    hash: 'hash',
+    project,
+    cssVarMap: {},
+    additions: [],
+    additionsDir: undefined,
+    entry: join(dir, ...kit.runtime.entry.split('/')),
+  };
+};
 
 function fakeWriter() {
   const files = new Map<string, string>();
@@ -46,6 +52,12 @@ function fakeWriter() {
     },
     remove: (id, relPath) => {
       files.delete(`${id}/${relPath}`);
+    },
+    writeAddition: () => {
+      throw new Error('no additions here');
+    },
+    exportFiles: () => {
+      throw new Error('no export here');
     },
   };
   return { writer, files, writes };

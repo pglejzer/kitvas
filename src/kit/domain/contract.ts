@@ -24,6 +24,8 @@ export const CATEGORIES = [
   'feedback',
   'overlay',
   'navigation',
+  /** A single icon, such as one crafted into the project's additions (spec 3b, 6.4). */
+  'icon',
 ] as const;
 
 const kitId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/);

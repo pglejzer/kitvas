@@ -1,15 +1,20 @@
 // `kitvas kit …`: list kits, show one, check it, read one component, print its token sheet, build
 // its rendered examples; for project kits also start one, verify it and use it in this project.
 
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   type CropResult,
+  readVerifyFile,
   type ScanResult,
+  VERIFY_FILE,
   VERIFY_STEPS,
   type VerifyFile,
   type VerifyIssue,
 } from '../../checks/index.ts';
 import {
+  type Detected,
+  detectKits,
   findComponent,
   type KitComponent,
   type KitIssue,
@@ -74,6 +79,7 @@ export type KitView =
   | ({ view: 'scan' } & ScanResult)
   | ({ view: 'crop' } & CropResult)
   | { view: 'use'; id: string }
+  | ({ view: 'detect' } & Detected)
   | KitVerifyView;
 
 const problems = (title: string, issues: IssueLine[]): string[] => [
@@ -126,6 +132,28 @@ function renderVerify(data: KitVerifyView, t: Translate): string {
   const skipped = named('skipped');
   if (skipped) lines.push(t('kits.verify.skipped', { steps: skipped }));
   return [...lines, ...data.notes.map((note) => t(note))].join('\n');
+}
+
+function renderDetect(data: Detected, t: Translate): string {
+  const { signs } = data;
+  const lines = data.kits.map((kit) =>
+    t(kit.stale ? 'kits.detect.kitStale' : 'kits.detect.kit', { id: kit.id, source: kit.source }),
+  );
+  if (lines.length === 0) lines.push(t('kits.detect.noKits'));
+  lines.push(
+    data.active === null ? t('kits.detect.noActive') : t('kits.detect.active', { id: data.active }),
+  );
+  if (signs.components.length > 0) {
+    lines.push(t('kits.detect.components', { folders: signs.components.join(', ') }));
+  }
+  if (signs.packages.length > 0) {
+    lines.push(t('kits.detect.packages', { names: signs.packages.join(', ') }));
+  }
+  if (signs.figma.length > 0) lines.push(t('kits.detect.figma', { urls: signs.figma.join(' ') }));
+  if (signs.components.length + signs.packages.length + signs.figma.length === 0) {
+    lines.push(t('kits.detect.noSigns'));
+  }
+  return lines.join('\n');
 }
 
 function renderView(data: KitView, t: Translate): string {
@@ -202,6 +230,8 @@ function renderView(data: KitView, t: Translate): string {
       ].join('\n');
     case 'use':
       return t('kits.use.ok', { id: data.id });
+    case 'detect':
+      return renderDetect(data, t);
     case 'verify':
       return renderVerify(data, t);
   }
@@ -344,6 +374,26 @@ export function createKitCommand(deps: KitDeps): Command {
           syncGeneratedEntry(deps.kitWriter, loadKit(deps.kits, id));
           saveProjectKit(ctx.cwd, id);
           return { view: 'use', id };
+        }
+        case 'detect': {
+          const settings = loadSettings({ home: ctx.home, cwd: ctx.cwd });
+          const verifiedHash = (id: string): string | undefined => {
+            try {
+              const text = readFileSync(join(catalogDir(ctx.cwd, id), VERIFY_FILE), 'utf8');
+              return readVerifyFile(text)?.hash;
+            } catch {
+              return undefined;
+            }
+          };
+          return {
+            view: 'detect',
+            ...detectKits({
+              kits: deps.kits,
+              files: deps.projectFiles(ctx.cwd),
+              verifiedHash,
+              activeKit: settings.kit,
+            }),
+          };
         }
         case 'verify': {
           const id = idAt(ctx, 1);

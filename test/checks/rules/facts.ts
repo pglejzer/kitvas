@@ -96,6 +96,7 @@ export const REPORT: PageReport = {
   facts: null,
   deep: null,
   contrastUnsure: [],
+  craft: null,
 };
 
 type VisitPart = Omit<Partial<VisitInput>, 'seen' | 'report'> & {

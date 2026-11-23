@@ -1,7 +1,12 @@
 // Two kit stores as one: the built-in kits, then the kits of the project. A project folder with a
 // built-in id is hidden: the built-in kit wins everywhere, and `shadowedIds` names such folders.
+// The project's additions (`<project>/.kitvas/additions/<id>/`) apply to the kit of either layer.
 
+import { join } from 'node:path';
+import { workspaceDir } from '../../shared/index.ts';
+import { ADDITIONS_DIR } from '../domain/additions.ts';
 import type { KitStore } from '../ports/kit-store.ts';
+import { readAdditionsFile } from './additions-folder.ts';
 
 export type ProjectLayer = {
   /** The project folder: what `KitFiles.project` and `LoadedKit.project` say. */
@@ -36,5 +41,7 @@ export function createLayeredKitStore(
       const builtinIds = new Set(builtin.list());
       return project.store.list().filter((id) => builtinIds.has(id));
     },
+    readAdditions: (id) =>
+      project ? readAdditionsFile(join(workspaceDir(project.dir), ADDITIONS_DIR), id) : undefined,
   };
 }

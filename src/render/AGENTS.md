@@ -17,6 +17,7 @@ Builds the latest version of a draft into `build/html`, `build/js`, `build/css`,
 ## Project kits
 
 - Builds call `syncGeneratedEntry` first when `kitWriter` is set, and pass `project` to the bundler. Provider and binding imports that are project paths become absolute paths (`app/project-kit.ts`); everything from kit.json is quoted (`domain/provider-source.ts`).
+- The `@kit` alias is `LoadedKit.entry` (ADR 0046): with additions it is the generated entry that also exports them, so never build it from `kit.dir` and `runtime.entry`. The additions folder is part of the build stamp and the Tailwind sources.
 - One React: `react` and `react-dom` are aliased to the project's copies when it has React, else to kitvas's. Packages are found up to the workspace root (`packageDirFrom`). A project with a `tsconfig.json` gets `build/json/tsconfig.esbuild.json` (extends it, sets only the JSX options for kitvas's dev runtime) as esbuild's `tsconfig`, so its `paths` still apply.
 - A catalog build copies each shown example's `reference` image to `build/img/refs/<key><ext>`: `img/` is a folder the prototype origin serves.
 - Styles imported by modules come out of the bundle as CSS: `.css`, `.module.css` as CSS Modules, `.scss` through the Sass plugin (`adapters/scss-plugin.ts`) on the session's one compiler. Fonts and images in them are inlined as data URLs.

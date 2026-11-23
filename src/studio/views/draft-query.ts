@@ -27,8 +27,12 @@ export function pickWidth(query: URLSearchParams): Width {
   return WIDTHS.find((width) => width === asked) ?? WIDTHS[0];
 }
 
-/** `?compare=`: a version the draft has, other than the one shown; `null` for anything else. */
+/**
+ * `?compare=`: a version the draft has, other than the one shown; `null` for anything else.
+ * `0` is the original of a rework draft ("version 0").
+ */
 export function pickCompare(query: URLSearchParams, draft: Draft, shown: number): number | null {
+  if (query.get('compare') === '0') return draft.kind === 'rework' ? 0 : null;
   const asked = Number(query.get('compare'));
   return asked !== shown && draft.versions.some((entry) => entry.number === asked) ? asked : null;
 }

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Off the page</title>
+    <style>
+      body { margin: 0; font: 16px/1.5 Arial, Helvetica, sans-serif; color: #1a1a1a; background: #ffffff; }
+      main { padding: 16px; }
+      h1 { margin: 0; font-size: 28px; line-height: 1.25; }
+      /* Placed against the page itself: nothing around the cards is positioned or cuts overflow. */
+      .card {
+        position: absolute; box-sizing: border-box; width: 300px; height: 200px; padding: 16px;
+        background: #eef2f7;
+      }
+      .card p { margin: 0; }
+      /* Wholly left of the page, as the spike's carousel cards were. */
+      #far { left: -3554px; top: 100px; }
+      /* Wholly above the page. */
+      #above { left: 16px; top: -500px; }
+      /* Partly on the page: it shows. */
+      #edge { left: -100px; top: 400px; }
+    </style>
+  </head>
+  <body>
+    <main id="main">
+      <h1 id="title">Spring sale</h1>
+      <div id="far" class="card"><p id="far-text">Last season's offer</p></div>
+      <div id="above" class="card"><p id="above-text">Moved up out of sight</p></div>
+      <div id="edge" class="card"><p id="edge-text">Partly on the page</p></div>
+    </main>
+  </body>
+</html>

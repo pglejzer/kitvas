@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cut away by what holds it</title>
+    <style>
+      body { margin: 0; font: 16px/1.5 Arial, Helvetica, sans-serif; color: #1a1a1a; background: #ffffff; }
+      #root { padding: 16px; }
+      section { margin: 0 0 24px; }
+      /* A carousel: a 200 px track that cuts what overflows it, and a row of 150 px slides. */
+      .track { width: 200px; height: 100px; overflow: hidden; }
+      .strip { display: flex; gap: 60px; }
+      .slide { flex: none; width: 150px; height: 100px; background: #eef2f7; }
+      /*
+        The live case: the row is moved 3570 px left, so its first slide sits at x = -3554 and the
+        one 3570 px along is the slide in view. The gap stands in for the slides between them.
+      */
+      .moved { gap: 3420px; transform: translateX(-3570px); }
+      /* The band cuts across only; the shutter cuts both ways. */
+      .band { width: 200px; height: 40px; overflow-x: clip; }
+      .shutter { width: 200px; height: 60px; overflow: hidden; }
+      .block { width: 100px; height: 40px; background: #eef2f7; }
+      #beside { margin-left: 220px; }
+      #below { margin-top: 20px; }
+      #under { margin-top: 30px; }
+      /* Positioned 230 px along: against what holds the track, or against the track itself. */
+      .holder, .positioned { position: relative; }
+      .pop { position: absolute; left: 230px; top: 0; width: 100px; height: 40px; background: #eef2f7; }
+      /* A scroller: what lies past its edge is a swipe away, even past the page's own edge. */
+      .scroller { width: 200px; overflow-x: auto; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <section id="carousel" data-ks="sections/Carousel:section">
+        <div id="track" class="track">
+          <div class="strip">
+            <div id="inside" class="slide">In view</div>
+            <div id="past" class="slide">Past the edge</div>
+          </div>
+        </div>
+      </section>
+      <section data-ks="sections/Moved:section">
+        <div class="track">
+          <div class="strip moved">
+            <div id="moved" class="slide">Moved away</div>
+            <div id="current" class="slide">In view</div>
+          </div>
+        </div>
+      </section>
+      <section data-ks="sections/Band:section">
+        <div class="band">
+          <div id="beside" class="block">Beside</div>
+          <div id="below" class="block">Below</div>
+        </div>
+      </section>
+      <section data-ks="sections/Shutter:section">
+        <div class="shutter">
+          <div id="lit" class="block">Inside</div>
+          <div id="under" class="block">Under</div>
+        </div>
+      </section>
+      <section class="holder" data-ks="sections/Escape:section">
+        <div class="track"><div id="escape" class="pop">Escapes</div></div>
+      </section>
+      <section data-ks="sections/Trapped:section">
+        <div class="track positioned"><div id="trapped" class="pop">Trapped</div></div>
+      </section>
+      <section data-ks="sections/Scroller:section">
+        <div class="scroller">
+          <div class="strip">
+            <div id="first" class="slide">First</div>
+            <div id="second" class="slide">Second</div>
+            <div id="later" class="slide">Later</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

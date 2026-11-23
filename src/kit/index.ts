@@ -1,11 +1,14 @@
 // Public API of the kit module. Adapters are wired in src/main.ts, not exported here.
 
+export * from './app/craft-add.ts';
 export * from './app/describe.ts';
+export * from './app/detect.ts';
 export * from './app/generated.ts';
 export * from './app/load-kit.ts';
 export * from './app/new-kit.ts';
 export type { SkippedImage } from './app/new-written-kit.ts';
 export * from './app/project-checks.ts';
+export * from './domain/additions.ts';
 export * from './domain/contract.ts';
 export * from './domain/crop-boxes.ts';
 export * from './domain/css-vars.ts';

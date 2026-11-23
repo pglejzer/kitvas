@@ -47,6 +47,8 @@ function recorder(): KitWriter & { writes: [string, string, string][] } {
     },
     writeBytes: () => {},
     remove: () => {},
+    writeAddition: () => {},
+    exportFiles: () => {},
   };
 }
 

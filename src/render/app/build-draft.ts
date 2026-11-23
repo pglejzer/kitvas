@@ -155,7 +155,8 @@ export async function buildDraft(deps: RenderDeps, slug: string): Promise<BuildR
       }),
     },
     alias: {
-      '@kit': join(kit.dir, runtime.entry),
+      // The kit's entry, or the one kitvas writes for a built-in kit with additions.
+      '@kit': kit.entry,
       '@draft': join(tsxDir, 'index.tsx'),
       'kitvas-frame': FRAME_RUNTIME,
     },

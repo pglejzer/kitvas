@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inventory</title>
+<style>
+  body { margin: 0; font: 16px/1.5 sans-serif; }
+  header { display: flex; align-items: center; gap: 16px; padding: 12px 24px; }
+  main { padding: 0 24px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<a class="sr-only" href="#plans">Skip to plans</a>
+<header>
+  <a href="/" aria-label="Acme home"><svg width="40" height="40" viewBox="0 0 40 40"><title>Acme logo</title><rect width="40" height="40" fill="#0f7a52"/></svg></a>
+  <nav><a href="/pricing">Pricing</a> <a href="/about">About us</a></nav>
+</header>
+<main>
+  <h1>Build calm pages</h1>
+  <p>Kitvas turns any page into a plain list of what a person can see.</p>
+  <p style="visibility: hidden">Nobody can see this text.</p>
+  <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Team at work" width="120" height="80">
+  <div hidden><h2>Hidden heading</h2></div>
+  <h2 id="plans">Plans</h2>
+  <p>$1,299.00</p>
+  <p>15 &euro;</p>
+  <button type="button" aria-label="Close dialog">&times;</button>
+  <form>
+    <label for="email">Work email</label>
+    <input id="email" type="email">
+    <input type="text" placeholder="Search plans">
+    <input type="hidden" name="token" value="x">
+    <button type="submit">Start free</button>
+  </form>
+  <a href="/contact">Contact sales</a>
+</main>
+</body>
+</html>

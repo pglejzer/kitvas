@@ -1,8 +1,9 @@
 // Composition root: the one place that wires modules together.
 
 import { lookup } from 'node:dns/promises';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { createBrowserInstaller } from './checks/adapters/browser-installer.ts';
 import { createPlaywrightBrowser } from './checks/adapters/playwright-browser.ts';
 import { createPlaywrightHost } from './checks/adapters/playwright-host.ts';
@@ -11,7 +12,10 @@ import {
   cropKit,
   refuseFailedKit,
   SHARED_BROWSER_ENV,
+  type StartReworkInput,
   scanKit,
+  startCraft,
+  startRework,
   verifyKit,
 } from './checks/index.ts';
 import {
@@ -19,11 +23,13 @@ import {
   createBuildCommand,
   createCheckCommand,
   createContextCommand,
+  createCraftCommand,
   createDraftCommand,
   createInboxCommand,
   createKitCommand,
   createLayoutCommand,
   createMapCommand,
+  createReworkCommand,
   createStudioCommand,
   disposeRenderTools,
   guidelinesCommand,
@@ -140,6 +146,54 @@ export function main(argv: string[]): Promise<number> {
   const scan = (project: string, id: string, options: { urls: string[]; allowPrivate: boolean }) =>
     scanKit({ kits, kitWriter, browser: browser(), lookup: addresses }, project, id, options);
   const crop = (project: string, id: string) => cropKit({ kits, browser: browser() }, project, id);
+  const craftStart = (project: string, input: Parameters<typeof startCraft>[1], t: Translate) =>
+    startCraft(
+      {
+        drafts: drafts.draftsAt(project),
+        kits: kitsAt(project),
+        browser: browser(),
+        lookup: addresses,
+        readFile: (path) => {
+          try {
+            return readFileSync(path);
+          } catch {
+            return undefined;
+          }
+        },
+        writeFile: (path, bytes) => {
+          mkdirSync(dirname(path), { recursive: true });
+          writeFileSync(path, bytes);
+        },
+        now: () => new Date(),
+        t,
+      },
+      input,
+    );
+  // `rework new`: like `kit scan` for a URL, and the person's images copied into the draft.
+  const reworkStart = (project: string, input: StartReworkInput, t: Translate) =>
+    startRework(
+      {
+        drafts: drafts.draftsAt(project),
+        kits: kitsAt(project),
+        browser: browser(),
+        lookup: addresses,
+        readFile: (path) => {
+          try {
+            return readFileSync(path);
+          } catch {
+            return undefined;
+          }
+        },
+        writeFile: (path, bytes) => {
+          mkdirSync(dirname(path), { recursive: true });
+          writeFileSync(path, bytes);
+        },
+        remove: (path) => rmSync(path, { recursive: true, force: true }),
+        now: () => new Date(),
+        t,
+      },
+      input,
+    );
   const browserHost = () => createPlaywrightHost({ roots: defaultDepRoots(), browsersDir });
   const installer = () => createBrowserInstaller({ roots: defaultDepRoots(), browsersDir });
   const version = pluginVersion();
@@ -183,6 +237,8 @@ export function main(argv: string[]): Promise<number> {
       crop,
     }),
     createDraftCommand(drafts),
+    createCraftCommand({ ...drafts, kitWriter, start: craftStart }),
+    createReworkCommand({ ...drafts, start: reworkStart }),
     createLayoutCommand(drafts),
     createContextCommand(drafts),
     createMapCommand(drafts),

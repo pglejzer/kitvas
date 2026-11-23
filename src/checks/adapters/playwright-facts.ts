@@ -1,4 +1,5 @@
-// Page facts (ADR 0044): what the rules read about one visit of a draft. The walk
+// Page facts (ADR 0044): what the rules read about one visit of a draft, or of a live page for
+// `rework` (`root: 'page'` walks the body instead of the draft's #root). The walk
 // (`playwright-facts-walk.ts`) keeps its element list on the page as `window.__KITVAS_NODES__`, so
 // axe and the passes after it name the same nodes by the same indexes. Text blocks
 // (`playwright-facts-text.ts`) and controls (`playwright-facts-controls.ts`) are read over that
@@ -7,9 +8,12 @@
 import { FACTS_NODE_CAP, type FixedBar, type PageFacts } from '../domain/facts.ts';
 import { readControls } from './playwright-facts-controls.ts';
 import { readTexts } from './playwright-facts-text.ts';
-import { type FactsWindow, walkNodes } from './playwright-facts-walk.ts';
+import { type FactsRoot, type FactsWindow, walkNodes } from './playwright-facts-walk.ts';
 
 type Page = import('playwright-core').Page;
+
+/** Where the walk starts: `'draft'` (the default) walks #root, `'page'` the body of any page. */
+export type FactsOptions = { root: FactsRoot };
 
 /**
  * Runs in the page: the outermost fixed and sticky nodes, measured after scrolling one viewport
@@ -55,8 +59,9 @@ export async function readFixed(): Promise<FixedBar[]> {
 }
 
 /** The facts of the page as it is now; the passes (`playwright-passes.ts`) fill in the rest. */
-export async function measureFacts(page: Page): Promise<PageFacts> {
-  const walked = await page.evaluate(walkNodes, { cap: FACTS_NODE_CAP });
+export async function measureFacts(page: Page, options?: FactsOptions): Promise<PageFacts> {
+  const root: FactsRoot = options?.root ?? 'draft';
+  const walked = await page.evaluate(walkNodes, { cap: FACTS_NODE_CAP, root });
   for (const { node, text } of await page.evaluate(readTexts)) {
     const read = walked.nodes[node];
     if (read !== undefined) read.text = text;

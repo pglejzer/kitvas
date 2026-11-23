@@ -4,7 +4,7 @@
 import type { KitIssue } from '../domain/issues.ts';
 import { importTargets, isProjectKit, majorVersion, packageOf } from '../domain/sources.ts';
 import type { ProjectFiles } from '../ports/project-files.ts';
-import type { LoadedKit } from './load-kit.ts';
+import { type LoadedKit, ownKit } from './load-kit.ts';
 
 /** The oldest React whose APIs kitvas's runtime uses (createRoot, flushSync). */
 const OLDEST_REACT = 18;
@@ -16,7 +16,8 @@ const OLDEST_REACT = 18;
  * built-in kit.
  */
 export function projectIssues(files: ProjectFiles, loaded: LoadedKit): KitIssue[] {
-  const { kit } = loaded;
+  // The project's additions import their own files, never the project's paths or packages.
+  const kit = ownKit(loaded);
   if (!isProjectKit(kit)) return [];
   const issues: KitIssue[] = [];
   const seenPaths = new Set<string>();

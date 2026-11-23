@@ -22,11 +22,13 @@ import {
 } from '../views/draft-query.ts';
 import { findingsFor, nextStep, versionStatus } from '../views/status.ts';
 import { filterRow, optionRow } from './controls.ts';
+import { craftPick } from './craft-board.ts';
 import { stage } from './draft-stage.ts';
 import { type FrameOrigin, frameSrc } from './frame-src.ts';
 import type { PageRequest } from './gallery.ts';
 import { type Html, html } from './html.ts';
 import { notesSection } from './notes.ts';
+import { originalPane } from './original-pane.ts';
 import { page } from './shell.ts';
 
 export type DraftPageDeps = {
@@ -61,18 +63,28 @@ function compareRow(
   link: (change: Partial<DraftChoice>, compare: number | null) => string,
 ): Html | '' {
   const name = t('studio.draft.compareRow');
+  // A rework also compares with its original, version 0.
+  const original =
+    draft.kind === 'rework' && choice.compare !== 0
+      ? [{ label: t('studio.draft.compareOriginal'), href: link({}, 0), current: false }]
+      : [];
   if (choice.compare !== undefined) {
     const stop = { label: t('studio.draft.stopCompare'), href: link({}, null), current: false };
-    return filterRow(name, [stop]);
+    return filterRow(name, [stop, ...original]);
   }
   const previous = previousVersion(draft, choice.version);
-  if (previous === null) return '';
-  const start = {
-    label: t('studio.draft.compare', { version: previous }),
-    href: link({}, previous),
-    current: false,
-  };
-  return filterRow(name, [start]);
+  const start =
+    previous === null
+      ? []
+      : [
+          {
+            label: t('studio.draft.compare', { version: previous }),
+            href: link({}, previous),
+            current: false,
+          },
+        ];
+  if (start.length + original.length === 0) return '';
+  return filterRow(name, [...start, ...original]);
 }
 
 function controlRows(t: Translate, draft: Draft, states: States, choice: DraftChoice): Html {
@@ -143,6 +155,18 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   const { shown, elsewhere } = findingsFor(checks, choice.state, choice.width);
   const next = nextStep(versionStatus(info.built, checks), slug, latestVersion(draft));
   const target = (number: number) => ({ slug, version: number, state: choice.state });
+  // Compare 0 is the original of a rework: a picture, not a built version.
+  const original =
+    compare === 0
+      ? originalPane({
+          t,
+          store: deps.drafts,
+          slug,
+          title: draft.title,
+          width: choice.width,
+          score: checks?.rework ?? null,
+        })
+      : null;
   const framed = stage({
     t,
     host: request.host,
@@ -152,8 +176,9 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
     built: info.built,
     slug,
     src: frameSrc(deps.frame, request.host, target(version)),
+    original,
     compare:
-      compare === null
+      compare === null || compare === 0
         ? null
         : {
             version: compare,
@@ -165,9 +190,10 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   const layout = choice.width > WIDTHS[0] ? 'draft wide' : 'draft';
   const controls = html`<section class="controls" aria-label="${t('studio.draft.controls')}">${controlRows(t, draft, info.states, choice)}${footLines(t, kit, info.built, checks)}</section>`;
   const notes = notesSection({ t, shown, elsewhere, next });
-  const attrs = html` data-draft="${slug}" data-version="${version}" data-state="${choice.state}" data-width="${choice.width}"${compare === null ? '' : html` data-compare="${compare}"`}`;
+  const attrs = html` data-draft="${slug}" data-version="${version}" data-state="${choice.state}" data-width="${choice.width}"${compare === null || compare === 0 ? '' : html` data-compare="${compare}"`}`;
   const script = html`<script type="module" src="/assets/draft.js"></script>`;
-  const body = html`<main class="draft-page"${attrs}><h1>${draft.title}</h1><div class="${layout}">${controls}<section class="stage">${framed}</section>${notes}</div>${script}</main>`;
+  const craft = craftPick(t, draft) ?? '';
+  const body = html`<main class="draft-page"${attrs}><h1>${draft.title}</h1><div class="${layout}">${controls}<section class="stage">${framed}${craft}</section>${notes}</div>${script}</main>`;
   return page({
     title: draft.title,
     nonce: request.nonce,

@@ -1,8 +1,10 @@
 // The whole guideline book and how to look entries up.
 
 import { A11Y_GUIDELINES } from './a11y.ts';
+import { CRAFT_GUIDELINES } from './craft.ts';
 import { DEEP_GUIDELINES } from './deep.ts';
 import { MANUAL_GUIDELINES } from './manual.ts';
+import { REWORK_GUIDELINES } from './rework.ts';
 import { SOURCE_GUIDELINES } from './source.ts';
 import type { Guideline } from './types.ts';
 import { UI_LAYOUT_GUIDELINES } from './ui-layout.ts';
@@ -28,6 +30,8 @@ export const GUIDELINES: readonly Guideline[] = [
   ...UX_FLOW_GUIDELINES,
   ...SOURCE_GUIDELINES,
   ...DEEP_GUIDELINES,
+  ...REWORK_GUIDELINES,
+  ...CRAFT_GUIDELINES,
   ...MANUAL_GUIDELINES,
 ];
 

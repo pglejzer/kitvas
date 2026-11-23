@@ -17,3 +17,9 @@ Reads kits and checks them against the kit contract.
 - `generated/kit.ts` (`GENERATED_ENTRY`) is written only by kitvas: `generatedEntry` builds it, `syncGeneratedEntry` writes it through the `KitWriter` port. Every string from kit.json is quoted with `JSON.stringify`; bare names must match a strict pattern.
 - Written kits (`figma`, `web`, `images`; `isWrittenKit`): components are files of `<kit>/components/`, and `import.from` is a `KIT_PATH`, never a package or a project path. The kit's hash also covers those files, so an edit makes `verify.json` stale; other kits keep their hash. An example's `reference` must exist (`REFERENCE_PATH`). `domain/crop-boxes.ts` is the shape of `boxes.json`. kitvas parses no Figma data and copies no fonts, images or logos into a kit.
 - `kit new` (`app/new-kit.ts`) writes a skeleton and never validates it; the learner fills it, `kit verify` checks it.
+
+## Additions
+
+- `.kitvas/additions/<kit-id>/` (ADR 0046) holds components crafted by kitvas, for any kit source. `loadKit` merges them after the kit's own and `LoadedKit.additions` names them; never write into a package or the person's source.
+- `LoadedKit.entry` is the file `@kit` points at: a project kit's `generated/kit.ts` (with a line per addition), or, for a built-in kit with additions, `.kitvas/additions/<id>/generated/kit.ts`, which re-exports the kit's entry and the additions. Use it, never `join(kit.dir, runtime.entry)`.
+- A crafted icon has category `icon`; a logo `display`; a component the category `craft add --category` names (default `display`).
