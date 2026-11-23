@@ -45,9 +45,9 @@ function renderView(data: CraftView, t: Translate): string {
     case 'pick':
       return t('craft.pick.ok', { slug: data.slug, sketch: data.picked, version: data.version });
     case 'add':
-      return t('craft.add.ok', { name: data.name, kit: data.kit, count: data.files.length });
+      return t('craft.add.ok', { name: data.name, kit: data.kit, files: data.files.join(', ') });
     case 'export':
-      return t('craft.export.ok', { count: data.files.length, to: data.to });
+      return t('craft.export.ok', { files: data.files.join(', '), to: data.to });
   }
 }
 

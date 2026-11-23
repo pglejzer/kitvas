@@ -20,7 +20,7 @@ export type CraftPicked = {
 
 export type CraftDeps = {
   writer: KitWriter;
-  /** Throws DRAFT_KIND for a draft that is not craft, SKETCH_UNKNOWN when nothing is picked. */
+  /** Throws DRAFT_KIND for a draft that is not craft, SKETCH_NOT_PICKED when nothing is picked. */
   picked(slug: string): CraftPicked;
   t: Translate;
 };

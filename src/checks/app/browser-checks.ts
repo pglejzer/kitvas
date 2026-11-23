@@ -188,6 +188,8 @@ export async function browserChecks(
   } finally {
     await session.close();
   }
-  findings.push(...runRules(visits, rules));
+  // A craft board is laid out by kitvas: only the craft rules judge it, never the screen rules.
+  const used = input.kind === 'craft' ? { ...rules, visit: [], states: [], deep: [] } : rules;
+  findings.push(...runRules(visits, used));
   return { findings, shots, browser: session.name, truncated, visits };
 }

@@ -710,7 +710,7 @@
   "rework.new.badNote": "{file} is not a readable UTF-8 text file.",
   "rework.new.badUrl": "{url} is not an http or https address.",
   "rework.new.created": "Started the rework draft {slug} in {path}.",
-  "rework.new.measured": "The original was measured: {inventory} inventory items and {problems} problems.",
+  "rework.new.measured": "The original was measured. Inventory items: {inventory}. Problems found: {problems}.",
   "rework.new.read": "The original is kept as images; read them, write before/inventory.json, then run \"kitvas rework propose {slug}\".",
   "rework.new.tooMany": "At most {max} images can be given.",
   "rework.propose.empty": "Nothing to propose for {slug}: its inventory is empty.",
@@ -722,8 +722,8 @@
   "kitIssue.additionsInvalid": "The file .kitvas/additions/{kit}/additions.json is not valid at {at}.",
   "studio.kit.category.icon": "Icon",
   "command.craft.summary": "Craft: craft new <slug> --subject component|icon|logo --name <Name> --description <text> [--image <file>] [--url <page>] | pick <slug> <A|B|C> | add <slug> [--replace] | export <slug> --to <folder>",
-  "craft.add.ok": "Added {name} to the additions of kit \"{kit}\" ({count} file(s)).",
-  "craft.export.ok": "Wrote {count} file(s) to {to}.",
+  "craft.add.ok": "Added {name} to the additions of kit \"{kit}\": {files}.",
+  "craft.export.ok": "Wrote {files} to {to}.",
   "craft.export.readme": "# {name}\n\n{description}\n\nCopy {file} into your project and import it where you need it. The component uses only the design tokens and components of the kit it was made for.\n",
   "craft.new.badImage": "{file} is not a readable PNG, JPEG or WebP image of at most 10 MB",
   "craft.new.badUrl": "{url} is not an http or https address",
@@ -748,7 +748,7 @@
   "studio.craft.pickHint": "Nothing is picked yet. Run one of these commands to pick a sketch.",
   "studio.craft.pickLabel": "Pick a sketch",
   "studio.craft.picked": "Picked",
-  "studio.craft.pickedLine": "Sketch {sketch} is picked. Run another command to change it.",
+  "studio.craft.pickedLine": "Sketch {sketch} is picked. Refine it in new versions, then add it to the kit or export it:",
   "studio.craft.sketch": "Sketch {sketch}",
   "studio.draft.compareOriginal": "Compare with the original",
   "studio.draft.original": "Version 0, the original",
@@ -789,5 +789,6 @@
   "guideline.uiLogoMono.rule": "A logo has a variant in one colour.",
   "guideline.uiLogoMono.why": "Favicons, stamps, dark headers and printed pages often allow one colour only, and a logo without such a variant gets recoloured by hand.",
   "guideline.uiLogoSmall.rule": "A logo stays legible at 32 px, with no part thinner than one device pixel.",
-  "guideline.uiLogoSmall.why": "Logos are shown tiny in tabs, favicons and lists. Fine lines and small lettering blur away there, and the mark becomes a blot."
+  "guideline.uiLogoSmall.why": "Logos are shown tiny in tabs, favicons and lists. Fine lines and small lettering blur away there, and the mark becomes a blot.",
+  "error.SKETCH_NOT_PICKED": "Nothing is picked in \"{slug}\" yet. Run \"kitvas craft pick {slug} A\" (or B or C) first."
 }

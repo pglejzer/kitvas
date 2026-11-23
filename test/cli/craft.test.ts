@@ -285,8 +285,8 @@ test('pick refuses a rework draft, a screen draft and an unknown sketch', async 
 test('add before a pick fails; after it the entry goes to the kit writer', async () => {
   const h = harness();
   await started(h);
-  assert.equal(await h.run('craft', 'add', 'badge', '--json'), 44);
-  assert.equal(h.error().code, 'SKETCH_UNKNOWN');
+  assert.equal(await h.run('craft', 'add', 'badge', '--json'), 46);
+  assert.equal(h.error().code, 'SKETCH_NOT_PICKED');
   assert.equal(h.additions.length, 0);
 
   writeFileSync(h.sketch('badge', 1, 'B'), SKETCH_B);
@@ -322,7 +322,7 @@ test('add passes --replace through', async () => {
 test('export writes the component and a README to the folder', async () => {
   const h = harness();
   await started(h);
-  assert.equal(await h.run('craft', 'export', 'badge', '--to', 'out', '--json'), 44);
+  assert.equal(await h.run('craft', 'export', 'badge', '--to', 'out', '--json'), 46);
   writeFileSync(h.sketch('badge', 1, 'C'), SKETCH_B);
   await h.run('craft', 'pick', 'badge', 'C', '--json');
   assert.equal(await h.run('craft', 'export', 'badge', '--json'), 2);
@@ -337,7 +337,7 @@ test('export writes the component and a README to the folder', async () => {
   assert.match(written?.files[1]?.text ?? '', /^# Badge\n\nA small status badge/);
   assert.match(written?.files[0]?.text ?? '', /export function Badge/);
   await h.run('craft', 'export', 'badge', '--to', 'out');
-  assert.equal(h.out.at(-1), `Wrote 2 file(s) to ${join(h.io.cwd, 'out')}.`);
+  assert.equal(h.out.at(-1), `Wrote Badge.tsx, README.md to ${join(h.io.cwd, 'out')}.`);
 });
 
 test('the catalog entry of an icon', () => {

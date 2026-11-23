@@ -68,11 +68,11 @@ export type PickedFinal = {
   text: string;
 };
 
-/** The picked sketch of the latest version. Not craft is `DRAFT_KIND`; nothing picked is `SKETCH_UNKNOWN`. */
+/** The picked sketch of the latest version. Not craft is `DRAFT_KIND`; nothing picked is `SKETCH_NOT_PICKED`. */
 export function pickedFinal(store: DraftStore, slug: string): PickedFinal {
   const draft = loadDraft(store, slug);
   const craft = requireCraft(draft);
-  if (craft.picked === null) throw unknownSketch(slug, '');
+  if (craft.picked === null) throw new KitvasError('SKETCH_NOT_PICKED', { slug });
   const text = store.readText(slug, sketchFile(latestVersion(draft), craft.picked));
   if (text === undefined) throw unknownSketch(slug, craft.picked);
   return {

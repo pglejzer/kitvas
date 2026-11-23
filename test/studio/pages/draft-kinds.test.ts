@@ -256,11 +256,10 @@ test('a picked sketch is named and marked', async () => {
   const text = await pages(store)('draft', { params: { slug: 'mark' } });
   assert.ok(text.includes(escapeHtml(t('studio.craft.pickedLine', { sketch: 'B' }))));
   assert.equal(text.match(/<strong>Picked<\/strong>/g)?.length, 1);
-  assert.ok(
-    text.includes(
-      `data-sketch="B"><span class="label">Sketch B</span><code>kitvas craft pick mark B</code> <strong>Picked</strong>`,
-    ),
-  );
+  assert.ok(text.includes('data-sketch="B"><strong>Picked</strong>'));
+  assert.ok(text.includes('<code>kitvas craft add mark</code>'));
+  assert.ok(text.includes('<code>kitvas craft export mark --to &lt;folder&gt;</code>'));
+  assert.ok(!text.includes('kitvas craft pick mark'));
   assert.ok(!text.includes(escapeHtml(t('studio.craft.pickHint'))));
 });
 

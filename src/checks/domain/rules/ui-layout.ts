@@ -167,8 +167,10 @@ const headingGap: VisitRule = {
       if (!before) return;
       const above = group.box[1] - (before.box[1] + before.box[3]);
       const below = content.box[1] - (node.box[1] + node.box[3]);
-      if (below < above * ratio) return;
-      found.push(at(input, UI_HEADING_GAP.id, index, UI_HEADING_GAP.key, {}, { above, below }));
+      // A group beside the one before it, not under it, has no gap above to compare.
+      if (above < 0 || below < above * ratio) return;
+      const gaps = { above: Math.round(above), below: Math.round(below) };
+      found.push(at(input, UI_HEADING_GAP.id, index, UI_HEADING_GAP.key, {}, gaps));
     });
     return found;
   },

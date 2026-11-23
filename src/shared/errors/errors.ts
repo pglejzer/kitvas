@@ -46,6 +46,7 @@ export const ERROR_TABLE = {
   DRAFT_KIND: { exit: 43, http: 409 },
   SKETCH_UNKNOWN: { exit: 44, http: 404 },
   EXPORT_EXISTS: { exit: 45, http: 409 },
+  SKETCH_NOT_PICKED: { exit: 46, http: 409 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;
