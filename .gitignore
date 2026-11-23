@@ -1,0 +1,13 @@
+docs/superpowers/
+docs/specs/
+docs/plans/
+docs/design/
+.superpowers/
+.playwright-mcp/
+node_modules/
+.kitvas/
+/spikes/
+coverage/
+evals/results/
+*.log
+docs/spikes/
