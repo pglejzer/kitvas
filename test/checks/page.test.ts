@@ -38,6 +38,9 @@ const REPORT: PageReport = {
   violations: [],
   usage: [],
   shot: true,
+  facts: null,
+  deep: null,
+  contrastUnsure: [],
 };
 
 test('axe violations are placed at the nearest element; impact sets the severity', () => {

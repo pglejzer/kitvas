@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>A page that breaks the focus walk</title>
+    <style>
+      body { margin: 0; padding: 16px; font: 16px/1.5 Arial, Helvetica, sans-serif; color: #1a1a1a; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <main data-ks="sections/Broken:main">
+        <button id="go" type="button" data-ks="sections/Broken:main/button">Go</button>
+        <p data-ks="sections/Broken:main/p">The walk asks what lies under a focused button, and this page answers with an error.</p>
+      </main>
+    </div>
+    <script>
+      // Hit testing works for axe (nothing focused) and throws once a button has focus, so the
+      // focus pass fails part way and every other read still works.
+      const elementsFromPoint = document.elementsFromPoint.bind(document);
+      document.elementsFromPoint = (x, y) => {
+        if (document.activeElement && document.activeElement.tagName === 'BUTTON') {
+          throw new Error('hit testing is broken on this page');
+        }
+        return elementsFromPoint(x, y);
+      };
+    </script>
+  </body>
+</html>

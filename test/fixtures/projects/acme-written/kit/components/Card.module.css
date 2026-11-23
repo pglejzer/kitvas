@@ -1,6 +1,7 @@
 .card {
   box-sizing: border-box;
   width: 320px;
+  max-width: 100%;
   padding: var(--kit-space-lg);
   border: 1px solid var(--kit-color-line);
   border-radius: var(--kit-radius-md);

@@ -1,5 +1,6 @@
 // The browser checks: what one visit of the page reports, turned into findings.
 
+import type { DeepFacts, PageFacts } from './facts.ts';
 import { type Message, type RawFinding, toolText } from './finding.ts';
 import { elementPlace, type IdEntry } from './ids.ts';
 import type { UsageRecord } from './usage.ts';
@@ -32,6 +33,12 @@ export type PageReport = {
   usage: UsageRecord[];
   /** The screenshot was written. */
   shot: boolean;
+  /** What the page measured; null when it did not load. */
+  facts: PageFacts | null;
+  /** The deep passes; null without `--deep` or at the deep widths. */
+  deep: DeepFacts | null;
+  /** axe's `color-contrast` results it could not decide: text over images, gradients, overlays. */
+  contrastUnsure: { node: number; element: string | null }[];
 };
 
 /** Which visit a finding comes from. */

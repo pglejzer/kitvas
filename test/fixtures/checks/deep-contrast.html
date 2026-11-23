@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deep: contrast on an image</title>
+    <style>
+      body {
+        margin: 0;
+        font: 16px/1.5 system-ui, sans-serif;
+        background: #ffffff;
+      }
+      /* Stands in for a dark photo: axe cannot decide the contrast of text over a gradient. */
+      .hero {
+        padding: 24px;
+        background: linear-gradient(135deg, #1c1c1c 0%, #2a2a2a 100%);
+      }
+      /* Dark text on the dark ground: far under 4.5:1. */
+      .dim {
+        margin: 0 0 16px;
+        color: #454545;
+      }
+      /* Large white text: well over 3:1. */
+      .bright {
+        margin: 0;
+        color: #ffffff;
+        font-size: 32px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="hero">
+        <p class="dim" id="dim">Fresh bread every morning, baked on site.</p>
+        <h1 class="bright" id="bright">Our bakery</h1>
+      </div>
+    </div>
+  </body>
+</html>

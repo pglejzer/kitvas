@@ -380,12 +380,16 @@ test('clean checks say so and suggest the next version; skipped checks are named
     types: 'ran',
     ds: 'ran',
     a11y: 'skipped',
+    ui: 'skipped',
+    ux: 'skipped',
     runtime: 'skipped',
   } as const;
   check(store, checksOf([], { checks }));
   const text = await pages(store)('draft', SHOP);
   assert.ok(
-    text.includes('<p>Not run: Accessibility, Runtime.</p><p>Nothing to fix or review.</p>'),
+    text.includes(
+      '<p>Not run: Accessibility, Look, Usability, Runtime.</p><p>Nothing to fix or review.</p>',
+    ),
   );
   assert.ok(text.includes(escapeHtml(t('studio.next.good', { next: 2 }))));
   assert.ok(!text.includes('<h2'));
@@ -401,4 +405,44 @@ test('a kit that is gone is named by its id; a missing draft is an error', async
     view('draft', { params: { slug: 'nope' } }),
     (error: unknown) => error instanceof KitvasError && error.code === 'DRAFT_NOT_FOUND',
   );
+});
+
+test('an older checks.json without ui and ux reads: its findings show, the new checks are not run', async () => {
+  const { store } = shopDraft();
+  build(store);
+  const old = {
+    schemaVersion: 1,
+    slug: 'shop',
+    version: 1,
+    checks: { build: 'ran', types: 'ran', ds: 'ran', a11y: 'ran', runtime: 'ran' },
+    summary: { fix: 1, review: 0 },
+    browser: 'chrome',
+    notes: [],
+    shots: [],
+    findings: [finding({ states: ['filled'], widths: [390, 1280] })],
+  };
+  store.writeText('shop', 'v1/build/json/checks.json', serializeJson(old));
+  const text = await pages(store)('draft', SHOP);
+  assert.ok(text.includes('<h2 class="fix">1 to fix</h2>'));
+  assert.ok(
+    text.includes(
+      '<span class="num">1</span><div>The phone field has no label.<small>Accessibility</small>',
+    ),
+  );
+  assert.ok(text.includes('<p>Not run: Look, Usability.</p>'));
+});
+
+test('findings seen at widths the studio lacks show at the nearest one', async () => {
+  const { store } = shopDraft();
+  build(store);
+  const narrow = finding({ states: ['filled'], widths: [320], message: 'Wider than 320.' });
+  const wide = finding({ states: ['filled'], widths: [1024, 1440], line: 30, message: 'At 1440.' });
+  check(store, checksOf([narrow, wide]));
+  const view = pages(store);
+  const phone = await view('draft', SHOP);
+  assert.ok(phone.includes('<span class="num">1</span><div>Wider than 320.'));
+  assert.ok(!phone.includes('At 1440.'));
+  const desktop = await view('draft', { ...SHOP, query: 'width=1280' });
+  assert.ok(desktop.includes('<span class="num">1</span><div>At 1440.'));
+  assert.ok(!desktop.includes('Wider than 320.'));
 });

@@ -39,6 +39,8 @@ test('a clean draft passes in a real browser and gets a screenshot per width', a
       types: 'ran',
       ds: 'ran',
       a11y: 'ran',
+      ui: 'ran',
+      ux: 'ran',
       runtime: 'ran',
     });
     assert.ok(

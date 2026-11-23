@@ -52,6 +52,17 @@ Read by the `maker` agent before it writes a section. Each rule has an id; repor
 - R-COMPOSE-25: Status is never shown by colour alone: add text or an icon.
 - R-COMPOSE-26: Images are files in the version's `v<n>/src/img` folder, referred to as `../img/<file>` from a section's styles. No remote addresses.
 
+## UI and UX
+
+- R-COMPOSE-31: Every field has a visible label. Never only a placeholder or an `aria-label` (`ux/visible-label`).
+- R-COMPOSE-32: One primary action per section. Other actions use a secondary variant of the kit's button (`ux/one-primary`).
+- R-COMPOSE-33: An empty state says what goes there and gives one action. A loading state shows an indicator: a feedback component, or `aria-busy` or `role="status"`. An error state says what failed and gives a way on.
+- R-COMPOSE-34: No placeholder copy: no lorem ipsum, "Title here", "Click me" or "Item 1" (`ux/placeholder-text`).
+- R-COMPOSE-35: A heading sits closer to its own content than to the block above it. Set the gap above a heading larger than the gap below it, with spacing tokens.
+- R-COMPOSE-36: No card inside a card. Separate parts of a card with spacing or a divider (`ui/nested-frame`).
+- R-COMPOSE-37: Long text stays at about 80 characters per line or less: set a `max-width` from a token (`ui/line-length`).
+- R-COMPOSE-38: Body text is at least 14 px on phones. Use the kit's body size token and never shrink it for density.
+
 ## Report
 
 - R-COMPOSE-27: Reply in a few lines: the files written, what the kit could not give, and any rule here that was missing, wrong or hard to follow. Do not paste code.

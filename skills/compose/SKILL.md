@@ -37,7 +37,7 @@ The slug is lower-case words joined by `-`. The answer holds `data.path`, the dr
 
 ## 3. Layout
 
-Write `v<N>/md/layout.md`. One `## <section-id>` heading per section, top to bottom, each with `Purpose:` and `Components:` lines. Choose components with `KITVAS kit show --json`. Put what all sections share under a `## shared` heading in the same file: page width, grid gaps, which section owns state that others use. It is not a section; kitvas gives its text to every maker. Leave it out when there is nothing shared. List the states in `v<N>/src/json/states.json` when the draft has more than `filled`. Then run:
+Write `v<N>/md/layout.md`. Under its title write a line `Screen: <kind>`, with the kind one of `landing`, `form`, `sign-in`, `sign-up`, `checkout`, `dashboard`, `list`, `detail`, `article`, `settings`, `other` (checks and the checklist in step 7 use it). One `## <section-id>` heading per section, top to bottom, each with `Purpose:` and `Components:` lines. Choose components with `KITVAS kit show --json`. Put what all sections share under a `## shared` heading in the same file: page width, grid gaps, which section owns state that others use. It is not a section; kitvas gives its text to every maker. Leave it out when there is nothing shared. List the states in `v<N>/src/json/states.json` when the draft has more than `filled`. Name extra states with the prefixes `empty`, `loading` or `error` (for example `empty`, `error-network`), because some checks run only for those. Then run:
 
 `KITVAS layout <slug> --json`
 
@@ -67,7 +67,7 @@ Run `KITVAS build <slug> --json`. If `data.built` is false, send the errors to a
 
 ## 6. Check
 
-Run `KITVAS check <slug> --json`.
+Run `KITVAS check <slug> --json`. Add `--deep` only when the user asks, or before you hand over a version as final; it takes longer.
 
 ```json
 {
@@ -94,7 +94,7 @@ Run `KITVAS check <slug> --json`.
 
 ## 7. Look
 
-Check results do not say whether the page looks like a product. Open the screenshots in `build/shots/` of the version with the Read tool: the state with the most content first, at both widths. Ask: does it read as the product, or as a wireframe? Name what makes it a wireframe: grey boxes where pictures should be, a flat hierarchy, no ground colours, everything the same weight. Write each point as a note with the section and the change wanted. Do not say it looks right if you did not look at the shots. The notes go to the patcher in step 8, in the same round as the findings.
+Check results do not say whether the page looks like a product. Open the screenshots in `build/shots/` of the version with the Read tool: the state with the most content first, at both widths. Ask: does it read as the product, or as a wireframe? Name what makes it a wireframe: grey boxes where pictures should be, a flat hierarchy, no ground colours, everything the same weight. Write each point as a note with the section and the change wanted. Then run `KITVAS guidelines --mode manual --screen <kind> --json` (leave out `--screen` when the layout has no `Screen:` line) and answer each entry from the shots. Every note carries the guideline `id`, the section and the change wanted. Never say an item is fine without looking at the shots. The notes go to the patcher in step 8, in the same round as the findings.
 
 ## 8. Fix
 

@@ -12,6 +12,7 @@ const IDS: IdEntry[] = [
 const CATALOG: CatalogComponent[] = [
   {
     name: 'Button',
+    category: 'action',
     styling: ['className', 'style'],
     props: [
       { name: 'variant', type: 'enum', values: ['solid', 'plain'] },
@@ -19,7 +20,12 @@ const CATALOG: CatalogComponent[] = [
       { name: 'onClick', type: 'callback' },
     ],
   },
-  { name: 'Icon', styling: [], props: [{ name: 'name', type: 'string', required: true }] },
+  {
+    name: 'Icon',
+    category: 'display',
+    styling: [],
+    props: [{ name: 'name', type: 'string', required: true }],
+  },
 ];
 
 test('an id is placed where it is written; an unknown id has no place', () => {

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>A good page</title>
+    <style>
+      body { margin: 0; font: 16px/1.5 Arial, Helvetica, sans-serif; color: #1a1a1a; background: #ffffff; }
+      header, main { padding: 16px; }
+      h1 { font-size: 28px; line-height: 1.25; margin: 0 0 8px; }
+      p { margin: 0 0 16px; }
+      .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+      input { font: inherit; padding: 8px; border: 1px solid #5a5a5a; box-sizing: border-box; max-width: 100%; }
+      button { font: inherit; padding: 8px 16px; color: #ffffff; background: #1d4ed8; border: 1px solid #1d4ed8; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <header data-ks="sections/Header:header">
+        <a href="#main" data-ks="sections/Header:header/a">Skip to the form</a>
+      </header>
+      <main id="main" data-ks="sections/Join:main">
+        <h1 data-ks="sections/Join:main/h1">Join the list</h1>
+        <p data-ks="sections/Join:main/p">One short email a month about new plans. You can leave at any time.</p>
+        <form data-ks="sections/Join:main/form">
+          <div class="field" data-ks="sections/Join:main/form/div">
+            <label for="email" data-ks="sections/Join:main/form/label">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" data-ks="sections/Join:main/form/input" />
+          </div>
+          <button type="submit" data-ks="sections/Join:main/form/button">Join</button>
+        </form>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,11 +1,25 @@
-// The checks that need a browser: every state at every viewport, with a screenshot each.
+// The checks that need a browser: every state at every viewport, with a screenshot each, and the
+// ui, ux and a11y rules over what each visit measured (ADR 0044).
 
 import { join } from 'node:path';
+import { DEEP_VIEWPORTS } from '../domain/facts.ts';
 import type { RawFinding, Shot } from '../domain/finding.ts';
+import { MAX_FINDINGS_PER_RULE } from '../domain/guidelines/index.ts';
 import type { IdEntry } from '../domain/ids.ts';
 import { a11yFindings, componentsOf, runtimeFindings, VIEWPORTS } from '../domain/page.ts';
+import {
+  DEEP_RULES,
+  DEEP_WIDTH_RULE_IDS,
+  type DeepRule,
+  STATE_RULES,
+  type StatesRule,
+  stateKind,
+  VISIT_RULES,
+  type VisitInput,
+  type VisitRule,
+} from '../domain/rules/index.ts';
 import { type CatalogComponent, usageFindings } from '../domain/usage.ts';
-import type { Browser } from '../ports/browser.ts';
+import type { Browser, Pass } from '../ports/browser.ts';
 
 export type BrowserInput = {
   /** Absolute folder of the draft version. */
@@ -13,44 +27,142 @@ export type BrowserInput = {
   states: string[];
   ids: IdEntry[];
   catalog: CatalogComponent[];
+  /** `kitvas check --deep`: the stress passes and the deep widths. */
+  deep: boolean;
+  /** The layout's `Screen:` kind; null when it has none. */
+  screen: string | null;
+  /** The state the others are compared with: `filled` when the draft has it, else its default. */
+  baseline: string;
 };
 
-export type BrowserResult = { findings: RawFinding[]; shots: Shot[]; browser: string };
+export type BrowserResult = {
+  findings: RawFinding[];
+  shots: Shot[];
+  browser: string;
+  /** Some visit measured only the first FACTS_NODE_CAP elements. */
+  truncated: boolean;
+};
+
+/** The rules the browser checks run; tests pass their own. */
+export type BrowserRules = {
+  visit: readonly VisitRule[];
+  states: readonly StatesRule[];
+  deep: readonly DeepRule[];
+  /** Ids of the visit rules that also run at the deep widths. */
+  deepWidth: readonly string[];
+};
+
+export const BROWSER_RULES: BrowserRules = {
+  visit: VISIT_RULES,
+  states: STATE_RULES,
+  deep: DEEP_RULES,
+  deepWidth: DEEP_WIDTH_RULE_IDS,
+};
+
+/** One visit of a state: its size, its passes, and whether it gets a screenshot. */
+export type VisitPlan = { width: number; height: number; passes: Pass[]; shot: boolean };
+
+/** A phone and a laptop with their passes, and with `deep` the deep widths, measured only. */
+export function visitPlan(deep: boolean): VisitPlan[] {
+  const extra: Pass[] = deep ? ['deep'] : [];
+  const [phone, laptop] = VIEWPORTS;
+  const plan: VisitPlan[] = [
+    { ...phone, passes: ['reflow', 'focus', 'spacing', ...extra], shot: true },
+    { ...laptop, passes: ['focus', 'spacing', ...extra], shot: true },
+  ];
+  if (!deep) return plan;
+  return [...plan, ...DEEP_VIEWPORTS.map((size) => ({ ...size, passes: [], shot: false }))];
+}
+
+const isMainWidth = (width: number): boolean =>
+  VIEWPORTS.some((viewport) => viewport.width === width);
+
+/**
+ * The rules over the visits that have facts. At the phone and laptop widths every visit rule
+ * runs, and the deep rules where the visit has deep facts; at the deep widths only the rules
+ * named in `deepWidth`. The state rules run once per main width: the baseline state's visit
+ * against the other states' visits, and not at all when the baseline has no facts there.
+ */
+/** At most MAX_FINDINGS_PER_RULE findings of one rule from one run of it. */
+const capped = (found: RawFinding[]): RawFinding[] => found.slice(0, MAX_FINDINGS_PER_RULE);
+
+export function runRules(visits: readonly VisitInput[], rules: BrowserRules): RawFinding[] {
+  const findings: RawFinding[] = [];
+  const atDeepWidth = rules.visit.filter((rule) => rules.deepWidth.includes(rule.id));
+  for (const visit of visits) {
+    const main = isMainWidth(visit.seen.width);
+    for (const rule of main ? rules.visit : atDeepWidth) findings.push(...capped(rule.run(visit)));
+    const deep = visit.report.deep;
+    if (!main || deep === null) continue;
+    for (const rule of rules.deep) findings.push(...capped(rule.run({ visit, deep })));
+  }
+  for (const { width } of VIEWPORTS) {
+    const here = visits.filter((visit) => visit.seen.width === width);
+    const baseline = here.find((visit) => visit.stateKind === 'baseline');
+    if (baseline === undefined) continue;
+    const others = here.filter((visit) => visit !== baseline);
+    for (const rule of rules.states) {
+      findings.push(...capped(rule.run({ width, baseline, visits: others })));
+    }
+  }
+  return findings;
+}
 
 /** One browser for the whole run, closed at the end whatever happens. */
-export async function browserChecks(browser: Browser, input: BrowserInput): Promise<BrowserResult> {
+export async function browserChecks(
+  browser: Browser,
+  input: BrowserInput,
+  rules: BrowserRules = BROWSER_RULES,
+): Promise<BrowserResult> {
   const session = await browser.open();
   const findings: RawFinding[] = [];
   const shots: Shot[] = [];
+  const visits: VisitInput[] = [];
+  let truncated = false;
   const page = join(input.versionDir, 'build', 'html', 'index.html');
   try {
     for (const state of input.states) {
-      for (const { width, height } of VIEWPORTS) {
+      for (const { width, height, passes, shot } of visitPlan(input.deep)) {
         const file = `build/shots/${state}-${width}.png`;
-        const screenshot = join(input.versionDir, ...file.split('/'));
-        const report = await session.visit({ page, state, width, height, screenshot });
+        const screenshot = shot ? join(input.versionDir, ...file.split('/')) : null;
+        const report = await session.visit({ page, state, width, height, screenshot, passes });
         const seen = {
           state,
           width,
           ids: input.ids,
           components: componentsOf(report.usage),
         };
-        findings.push(
-          ...runtimeFindings(report, seen),
-          ...a11yFindings(report.violations, seen),
-          ...usageFindings({
-            usage: report.usage,
-            catalog: input.catalog,
-            ids: input.ids,
-            state,
-            width,
-          }),
-        );
-        if (report.shot) shots.push({ state, width, file });
+        // The deep widths add the layout rules only; errors, axe and usage are the same page's.
+        if (isMainWidth(width)) {
+          findings.push(
+            ...runtimeFindings(report, seen),
+            ...a11yFindings(report.violations, seen),
+            ...usageFindings({
+              usage: report.usage,
+              catalog: input.catalog,
+              ids: input.ids,
+              state,
+              width,
+            }),
+          );
+        }
+        if (screenshot !== null && report.shot) shots.push({ state, width, file });
+        // A page that did not load measured nothing: the runtime findings say why.
+        if (report.facts === null) continue;
+        if (report.facts.truncated) truncated = true;
+        visits.push({
+          facts: report.facts,
+          report,
+          seen,
+          catalog: input.catalog,
+          screen: input.screen,
+          stateKind: stateKind(state, input.baseline),
+        });
       }
     }
   } finally {
     await session.close();
   }
-  return { findings, shots, browser: session.name };
+  findings.push(...runRules(visits, rules));
+  return { findings, shots, browser: session.name, truncated };
 }

@@ -55,7 +55,14 @@ export function inspectLayout(store: DraftStore, kits: KitStore, slug: string): 
   const text = store.readText(slug, `${base}/md/layout.md`);
   if (text === undefined) {
     const issues = [{ path: 'layout', key: 'draftIssue.layoutMissing', params: {} }];
-    return { draft, version, base, kit, layout: { title: '', sections: [], shared: '' }, issues };
+    return {
+      draft,
+      version,
+      base,
+      kit,
+      layout: { title: '', screen: null, sections: [], shared: '' },
+      issues,
+    };
   }
   const layout = parseLayout(text);
   const known = new Set(kit.kit.components.map((component) => component.name));

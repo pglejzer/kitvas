@@ -83,8 +83,10 @@ export const SECTION_FILES: Record<string, string> = {
   'md/layout.md': GOOD_LAYOUT,
   'src/tsx/sections/Hero.tsx': HERO_TSX,
   'src/tsx/sections/OrderSummary.tsx': ORDER_SUMMARY_TSX,
-  'src/scss/sections/hero.scss': '.hero {\n  color: var(--kit-color-ink);\n}\n',
-  'src/scss/sections/order-summary.scss': '.order-summary {\n  padding: 0;\n}\n',
+  'src/scss/sections/hero.scss':
+    '.hero {\n  color: var(--kit-color-ink);\n  padding-inline: var(--kit-space-sm);\n}\n',
+  'src/scss/sections/order-summary.scss':
+    '.order-summary {\n  padding-inline: var(--kit-space-sm);\n}\n',
 };
 
 /** `draftDir` is the folder of the draft: `<workspace>/drafts/shop`. */

@@ -8,7 +8,9 @@ import { AXE_TAGS, type AxeViolation, type PageReport } from '../domain/page.ts'
 import type { UsageRecord } from '../domain/usage.ts';
 import type { Browser, BrowserSession, Inspect, InspectReport, Visit } from '../ports/browser.ts';
 import { captureExample } from './playwright-capture.ts';
+import { measureFacts } from './playwright-facts.ts';
 import { cropImages } from './playwright-images.ts';
+import { runPasses } from './playwright-passes.ts';
 import { scanPage } from './playwright-scan.ts';
 
 type Playwright = typeof import('playwright-core');
@@ -31,27 +33,49 @@ export const CANDIDATES: { name: string; channel?: string }[] = [
 const PAGE_TIMEOUT_MS = 15_000;
 const CONNECT_TIMEOUT_MS = 5_000;
 
-/** Runs in the page: axe, then the nearest element id around every node it reports. */
-async function runAxe(tags: string[]): Promise<AxeViolation[]> {
+type AxeRead = { violations: AxeViolation[]; unsure: PageReport['contrastUnsure'] };
+
+/**
+ * Runs in the page: axe, then the nearest element id around every node it reports. The
+ * `color-contrast` results axe could not decide (text over images, gradients, overlays) are kept
+ * as nodes of the facts walk (`window.__KITVAS_NODES__`); one outside the walk is left out.
+ */
+async function runAxe(tags: string[]): Promise<AxeRead> {
   type AxeNode = { element?: Element; failureSummary?: string };
   type AxeResult = { id: string; impact?: string | null; help: string; nodes: AxeNode[] };
-  type Axe = { run(context: Document, options: object): Promise<{ violations: AxeResult[] }> };
+  type AxeResults = { violations: AxeResult[]; incomplete: AxeResult[] };
+  type Axe = { run(context: Document, options: object): Promise<AxeResults> };
   const axe = (window as unknown as { axe: Axe }).axe;
   const results = await axe.run(document, {
     runOnly: { type: 'tag', values: tags },
     elementRef: true,
     preload: false,
-    resultTypes: ['violations'],
+    resultTypes: ['violations', 'incomplete'],
   });
-  return results.violations.map((violation) => ({
-    id: violation.id,
-    impact: violation.impact ?? null,
-    help: violation.help,
-    nodes: violation.nodes.map((node) => ({
-      element: node.element?.closest('[data-ks]')?.getAttribute('data-ks') ?? null,
-      summary: node.failureSummary ?? '',
+  const idOf = (element: Element | undefined): string | null =>
+    element?.closest('[data-ks]')?.getAttribute('data-ks') ?? null;
+  const nodes = (window as unknown as { __KITVAS_NODES__?: Element[] }).__KITVAS_NODES__ ?? [];
+  const unsure: AxeRead['unsure'] = [];
+  for (const result of results.incomplete) {
+    if (result.id !== 'color-contrast') continue;
+    for (const { element } of result.nodes) {
+      const node = element === undefined ? -1 : nodes.indexOf(element);
+      if (node === -1 || unsure.some((entry) => entry.node === node)) continue;
+      unsure.push({ node, element: idOf(element) });
+    }
+  }
+  return {
+    violations: results.violations.map((violation) => ({
+      id: violation.id,
+      impact: violation.impact ?? null,
+      help: violation.help,
+      nodes: violation.nodes.map((node) => ({
+        element: idOf(node.element),
+        summary: node.failureSummary ?? '',
+      })),
     })),
-  }));
+    unsure,
+  };
 }
 
 /** Runs in the page: what the JSX runtime recorded. */
@@ -118,7 +142,14 @@ function createSession(
 ): BrowserSession {
   return {
     name,
-    async visit({ page: file, state, width, height, screenshot }: Visit): Promise<PageReport> {
+    async visit({
+      page: file,
+      state,
+      width,
+      height,
+      screenshot,
+      passes,
+    }: Visit): Promise<PageReport> {
       const context = await browser.newContext({
         viewport: { width, height },
         deviceScaleFactor: 1,
@@ -131,6 +162,9 @@ function createSession(
         violations: [],
         usage: [],
         shot: false,
+        facts: null,
+        deep: null,
+        contrastUnsure: [],
       };
       let listening = true;
       try {
@@ -160,13 +194,22 @@ function createSession(
         await page.evaluate(settle);
         report.rendered = await page.evaluate(hasContent);
         report.usage = (await page.evaluate(readUsage)) as UsageRecord[];
+        // The facts come first: axe and every pass name nodes by the walk's indexes. A walk that
+        // fails leaves no facts, and the rules stay silent on this visit.
+        report.facts = await measureFacts(page).catch(() => null);
         // axe's own messages are not the draft's.
         listening = false;
         await page.addScriptTag({ content: axeSource });
-        report.violations = await page.evaluate(runAxe, AXE_TAGS);
-        mkdirSync(dirname(screenshot), { recursive: true });
-        await page.screenshot({ path: screenshot, fullPage: true });
-        report.shot = true;
+        const axe = await page.evaluate(runAxe, AXE_TAGS);
+        report.violations = axe.violations;
+        report.contrastUnsure = axe.unsure;
+        if (screenshot !== null) {
+          mkdirSync(dirname(screenshot), { recursive: true });
+          await page.screenshot({ path: screenshot, fullPage: true });
+          report.shot = true;
+        }
+        // Reflow, focus, deep and spacing change the page, so they come after the screenshot.
+        await runPasses(page, { width, height, passes }, report);
         return report;
       } finally {
         await context.close();

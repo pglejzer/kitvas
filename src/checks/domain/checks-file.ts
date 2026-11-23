@@ -1,7 +1,7 @@
 // checks.json read back: the shape kitvas writes, checked before the studio shows any of it.
 
 import { type Zod, z } from '../../shared/index.ts';
-import { CHECKS, type ChecksFile } from './finding.ts';
+import { CHECKS, type CheckName, type ChecksFile } from './finding.ts';
 
 const count = z.number().int().min(0);
 
@@ -24,10 +24,20 @@ export const ChecksFileSchema: Zod.ZodType<ChecksFile> = z.object({
   schemaVersion: z.literal(1),
   slug: z.string(),
   version: z.number().int().min(1),
-  checks: z.record(z.enum(CHECKS), z.enum(['ran', 'skipped'])),
+  // A file from before a check existed lacks its key; it reads as skipped.
+  checks: z
+    .partialRecord(z.enum(CHECKS), z.enum(['ran', 'skipped']))
+    .transform(
+      (ran) =>
+        Object.fromEntries(CHECKS.map((name) => [name, ran[name] ?? 'skipped'])) as Record<
+          CheckName,
+          'ran' | 'skipped'
+        >,
+    ),
   summary: z.object({ fix: count, review: count }),
   browser: z.string().nullable(),
   notes: z.array(z.string()),
   shots: z.array(z.object({ state: z.string(), width: z.number().int(), file: z.string() })),
   findings: z.array(FindingSchema),
+  deep: z.boolean().optional(),
 });

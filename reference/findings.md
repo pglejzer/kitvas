@@ -8,6 +8,9 @@ Read by the `patcher` agent. A finding has `rule` (`<check>/<name>`), `severity`
 - build and types
 - ds
 - a11y
+- ui
+- ux
+- Guideline details
 - runtime
 - Not fixed
 
@@ -43,6 +46,29 @@ Read by the `patcher` agent. A finding has `rule` (`<check>/<name>`), `severity`
 - R-FIND-19: Contrast: change to a token pair with enough contrast; never lighten or darken by hand.
 - R-FIND-20: Heading order and landmarks: change the kit component's level or tag prop; do not reach for plain elements.
 - R-FIND-21: Targets below 24 px: raise the size of the component or its padding with tokens. A finding inside a kit component (severity `review`, hint `kitInternal` naming the component) is not fixed by restyling the component. Use another variant or prop of it. If none helps, leave it and report it as a note for the kit's owners.
+
+- R-FIND-27: `a11y/reflow`: at 320 px wide the page scrolls sideways. Let the named element shrink or wrap: `flex-wrap`, `min-width: 0`, a `max-width` from a token, a stacked `Grid` at narrow widths. Never hide the overflow.
+- R-FIND-28: `a11y/text-spacing`: text is clipped or overlaps when line, letter and word spacing grow. Remove fixed heights and `overflow: hidden` from the box, use `min-height` and padding tokens, and let it grow.
+- R-FIND-29: `a11y/focus-visible` and `a11y/focus-hidden`: a control shows no focus or a fixed bar covers it. Use the kit's own focus style or a `--kit-…` focus token; never `outline: none` without a replacement. For a covered control, add scroll padding or move the fixed element out of the way.
+- R-FIND-30: `a11y/control-contrast`, `a11y/icon-contrast`, `a11y/focus-contrast`, `a11y/contrast-unsure` and `a11y/contrast-on-image`: pick a token pair with enough contrast, or put a solid token surface behind text on an image. Never tune colours by hand.
+- R-FIND-31: `a11y/error-text`: an error shows only as colour or an icon. Add text that says what is wrong, tied to its field with the kit's field props (error and description props, not by hand).
+- R-FIND-32: `a11y/autocomplete`: set the field's autocomplete value through the kit component's prop, using the standard token for what the field asks (email, given-name, current-password and so on).
+
+## ui
+
+- R-FIND-33: `ui/<name>` findings are about look: type, space, hierarchy, cards, chrome and media. Fix them with tokens (spacing, font size, radius, surface), kit props and structure: widths, a `max-width`, one `Stack` gap. Most are `review`; fix them when the change is plainly better. Never hide, remove content or disable a rule.
+- R-FIND-34: `ui/line-length`: add a `max-width` token on the text block, or put it in a narrower column. `ui/page-overflow` and `ui/clipped-text`: let the box grow or wrap rather than clipping. `ui/image-size`: give the `img` width and height or an aspect ratio.
+- R-FIND-35: A finding that counts things (sizes, cards, bands, buttons) is measured on the draft's own elements. Remove variety by using one token, one variant or one size across the group.
+
+## ux
+
+- R-FIND-36: `ux/<name>` findings are about forms, states and actions. Fix them with the kit's field, feedback and button components and their props: a visible label, one primary variant per section, a state's text and one action, a real label for a link or button.
+- R-FIND-37: `ux/placeholder-text`: replace the text with real content from the brief. Never reword it to dodge the match.
+
+## Guideline details
+
+- R-FIND-38: `kitvas guidelines <rule id> --json` gives a rule's sentence, thresholds and sources. Read it when the message is not enough.
+- R-FIND-39: A `review` finding with the `kitInternal` hint is a kit component's own markup. Do not fix it by restyling the component; use another variant or prop, or report it for the kit's owners.
 
 ## runtime
 

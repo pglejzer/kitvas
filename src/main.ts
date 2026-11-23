@@ -26,6 +26,7 @@ import {
   createMapCommand,
   createStudioCommand,
   disposeRenderTools,
+  guidelinesCommand,
   initCommand,
   type RenderTools,
   runCli,
@@ -190,6 +191,7 @@ export function main(argv: string[]): Promise<number> {
     createBrowserCommand({ browser, installer, browsersDir }),
     createStudioCommand(studio),
     createInboxCommand({ lifecycle: studio.lifecycle }),
+    guidelinesCommand,
   ];
   return runCli(argv, commands, {
     out: (text) => console.log(text),

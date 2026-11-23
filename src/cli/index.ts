@@ -6,6 +6,7 @@ export * from './commands/build.ts';
 export * from './commands/check.ts';
 export * from './commands/context.ts';
 export * from './commands/draft.ts';
+export * from './commands/guidelines.ts';
 export * from './commands/inbox.ts';
 export * from './commands/init.ts';
 export * from './commands/kit.ts';

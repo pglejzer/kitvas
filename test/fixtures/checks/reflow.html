@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Too wide at 320</title>
+    <style>
+      body { margin: 0; font: 16px/1.5 Arial, Helvetica, sans-serif; color: #1a1a1a; }
+      #outer { width: 340px; }
+      #inner { width: 360px; background: #f3f3f3; }
+      .scroller { overflow-x: auto; }
+      table { width: 600px; border-collapse: collapse; }
+      .bar { position: fixed; bottom: 0; left: 0; width: 500px; height: 24px; background: #eeeeee; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <main data-ks="sections/Wide:main">
+        <p data-ks="sections/Wide:main/p">Short text that fits.</p>
+        <div id="outer" data-ks="sections/Wide:main/outer">
+          <div id="inner" data-ks="sections/Wide:main/inner">Wider than a 320 px screen.</div>
+        </div>
+        <div class="scroller" data-ks="sections/Wide:main/scroller">
+          <table id="table" data-ks="sections/Wide:main/table">
+            <tr><td>A wide table scrolls in its own box</td><td>Second cell</td></tr>
+          </table>
+        </div>
+        <div class="bar" data-ks="sections/Wide:main/bar">A fixed bar</div>
+      </main>
+    </div>
+  </body>
+</html>

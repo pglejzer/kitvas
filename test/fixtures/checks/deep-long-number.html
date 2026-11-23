@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deep: long number</title>
+    <style>
+      body {
+        margin: 0;
+        font: 16px/1.5 system-ui, sans-serif;
+        color: #1a1a1a;
+        background: #ffffff;
+      }
+      #root {
+        padding: 16px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        width: 358px;
+        padding: 8px 0;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      /* A price cell of a fixed width that cuts what does not fit. */
+      .price {
+        flex: none;
+        width: 72px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-align: right;
+      }
+      /* Free to grow. */
+      .total {
+        flex: none;
+        white-space: nowrap;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="row">
+        <span>Coffee beans</span>
+        <span class="price" id="price">$12.00</span>
+      </div>
+      <div class="row">
+        <span>Total</span>
+        <span class="total" id="total">$24.00</span>
+      </div>
+    </div>
+  </body>
+</html>

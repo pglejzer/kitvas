@@ -1,6 +1,7 @@
 // What the studio says about a version: its status, the findings to show and the next step.
 
 import { type ChecksFile, type Finding, sortFindings } from '../../checks/index.ts';
+import { WIDTHS, type Width } from './draft-query.ts';
 
 export type DraftStatus =
   | { kind: 'unreadable' }
@@ -45,6 +46,24 @@ export function statusLine(status: DraftStatus): StatusLine {
   }
 }
 
+/** The studio width a checked width shows at: the nearest one, a tie going to the wider. */
+export function studioWidth(width: number): Width {
+  let best: Width = WIDTHS[0];
+  for (const candidate of WIDTHS) {
+    if (Math.abs(candidate - width) <= Math.abs(best - width)) best = candidate;
+  }
+  return best;
+}
+
+/**
+ * The studio widths a finding shows at: those it was seen at, or, when it was seen at none of
+ * them (320, 1024, 1440), the nearest to each, so no finding is left without a place.
+ */
+function shownAt(widths: number[]): number[] {
+  const own = widths.filter((width) => WIDTHS.some((studio) => studio === width));
+  return own.length > 0 ? own : widths.map(studioWidth);
+}
+
 /** Findings seen in this state at this width, and those of files, which hold everywhere. */
 export function findingsFor(
   checks: ChecksFile | undefined,
@@ -55,7 +74,7 @@ export function findingsFor(
   const shown = sortFindings(checks.findings).filter(
     (finding) =>
       finding.states.length === 0 ||
-      (finding.states.includes(state) && finding.widths.includes(width)),
+      (finding.states.includes(state) && shownAt(finding.widths).includes(width)),
   );
   return { shown, elsewhere: checks.findings.length - shown.length };
 }
