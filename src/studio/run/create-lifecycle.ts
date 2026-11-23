@@ -4,8 +4,10 @@ import type { SharedBrowser } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
 import { KitvasError, loadSettings, type Translate } from '../../shared/index.ts';
+import type { EditDeps } from '../api/edit-routes.ts';
 import { LinkSchema } from '../api/schemas.ts';
 import type { InboxItem } from '../inbox/inbox.ts';
+import type { LiveTools } from '../live/index.ts';
 import type { StudioAssets } from '../pages/asset-routes.ts';
 import type { LifecycleDeps } from './lifecycle.ts';
 import { forceKill, isAlive, spawnServer } from './processes.ts';
@@ -118,6 +120,10 @@ export type ServeInput = {
   assets: StudioAssets;
   /** Starts the browser the check jobs share. */
   browser?: () => Promise<SharedBrowser>;
+  /** The editor's compiler and hooks (stage 4a); without it the edit routes refuse. */
+  edit?: EditDeps;
+  /** The live loop's watch and warm build. */
+  live?: LiveTools;
 };
 
 /** `kitvas studio serve`: errors go to stderr, which is the log file of a detached studio. */
@@ -130,6 +136,8 @@ export function serveProject(input: ServeInput): Promise<StudioState> {
     version: input.version,
     project: input.project,
     ...(input.browser ? { browser: input.browser } : {}),
+    ...(input.edit ? { edit: input.edit } : {}),
+    ...(input.live ? { live: input.live } : {}),
     files: studioFiles(input.dataDir, input.project),
     // Read once at the start: a changed setting applies from the next start of the studio.
     idleMinutes: loadSettings({ home: input.home, cwd: input.project }).studioIdleMinutes,

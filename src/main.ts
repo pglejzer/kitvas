@@ -39,6 +39,7 @@ import {
   statusCommand,
 } from './cli/index.ts';
 import { createFsDraftStore } from './drafts/adapters/fs-draft-store.ts';
+import { createEsbuildCompiler } from './edit/adapters/esbuild-compiler.ts';
 import { createFolderKitStore } from './kit/adapters/folder-store.ts';
 import { createFolderKitWriter } from './kit/adapters/folder-writer.ts';
 import { createLayeredKitStore } from './kit/adapters/layered-store.ts';
@@ -48,6 +49,7 @@ import { createEsbuildBundler } from './render/adapters/esbuild-bundler.ts';
 import { createNodeBuildFs } from './render/adapters/node-build-fs.ts';
 import { createSassPipeline } from './render/adapters/sass-pipeline.ts';
 import { createTailwindCss } from './render/adapters/tailwind-css.ts';
+import { buildDraft } from './render/index.ts';
 import {
   defaultDepRoots,
   PLUGIN_ROOT,
@@ -59,7 +61,7 @@ import {
 } from './shared/index.ts';
 import { createEsbuildAssets } from './studio/adapters/esbuild-assets.ts';
 import { createSystemBrowser } from './studio/adapters/system-browser.ts';
-import { createLifecycle, serveProject } from './studio/index.ts';
+import { createLifecycle, fsWatchPort, serveProject } from './studio/index.ts';
 
 export function main(argv: string[]): Promise<number> {
   const cwd = process.cwd();
@@ -93,15 +95,19 @@ export function main(argv: string[]): Promise<number> {
       runtimeFiles: [
         jsxRuntime,
         ...[
+          'channel/edit-protocol.ts',
           'channel/protocol.ts',
+          'frame/edit.ts',
           'frame/example.ts',
           'frame/flip.ts',
           'frame/marks.ts',
           'frame/measure.ts',
           'frame/motion.ts',
           'frame/place.ts',
+          'frame/preview.ts',
           'frame/runtime.ts',
           'frame/snapshot.ts',
+          'frame/tree.ts',
         ].map((file) => join(PLUGIN_ROOT, 'client', file)),
       ],
     };
@@ -208,8 +214,15 @@ export function main(argv: string[]): Promise<number> {
         bin: join(PLUGIN_ROOT, 'bin', 'kitvas.ts'),
         env: process.env,
       }),
-    serve: (project: string, t: Translate) =>
-      serveProject({
+    serve: (project: string, t: Translate) => {
+      // The editor finds elements again and checks its writes with one kept esbuild service.
+      const compiler = createEsbuildCompiler(defaultDepRoots());
+      // One set of build tools kept loaded for the studio's life: a rebuild after an edit costs no
+      // process start.
+      const warm = render();
+      const projectDrafts = drafts.draftsAt(project);
+      const projectKits = kitsAt(project);
+      return serveProject({
         dataDir,
         home: homedir(),
         project,
@@ -222,7 +235,20 @@ export function main(argv: string[]): Promise<number> {
           clientDir: join(PLUGIN_ROOT, 'client'),
         }),
         browser: () => browserHost().serve(),
-      }),
+        edit: { compiler, dispose: () => compiler.dispose() },
+        live: {
+          watch: fsWatchPort(join(workspaceDir(project), 'drafts')),
+          build: async (slug) => {
+            const report = await buildDraft(
+              { drafts: projectDrafts, kits: projectKits, ...warm },
+              slug,
+            );
+            return { ok: report.built, version: report.version };
+          },
+          dispose: () => disposeRenderTools(warm),
+        },
+      });
+    },
   };
   const commands = [
     statusCommand,

@@ -5,6 +5,8 @@ import type { SharedBrowser } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
 import { PLUGIN_ROOT, type Translate } from '../../shared/index.ts';
+import type { EditDeps } from '../api/edit-routes.ts';
+import type { LiveTools } from '../live/index.ts';
 import type { StudioAssets } from '../pages/asset-routes.ts';
 import type { IdleClock } from '../server/idle-stop.ts';
 import { startStudio } from '../server/start-studio.ts';
@@ -32,6 +34,10 @@ export type ServeDeps = {
   idleMinutes?: number;
   /** The idle stop's time and timers; tests pass their own. */
   idleClock?: IdleClock;
+  /** The editor's compiler and write hooks, from `src/main.ts`. */
+  edit?: EditDeps;
+  /** The live loop's watch and warm build, from `src/main.ts`. */
+  live?: LiveTools;
 };
 
 /**
@@ -63,6 +69,8 @@ export async function serveStudio(deps: ServeDeps): Promise<StudioState> {
       ...(deps.idleClock ? { idleClock: deps.idleClock } : {}),
       cli: { bin: join(PLUGIN_ROOT, 'bin', 'kitvas.ts'), cwd: deps.project, env: process.env },
       ...(deps.browser ? { browser: deps.browser } : {}),
+      ...(deps.edit ? { edit: deps.edit } : {}),
+      ...(deps.live ? { live: deps.live } : {}),
       // The browser's pid goes into the state file: `kitvas studio stop` ends one that lingers.
       onBrowser: (browserPid) => {
         if (!state) return;

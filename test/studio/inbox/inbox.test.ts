@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { KitvasError } from '../../../src/shared/index.ts';
-import { createInbox, type InboxLimits, type NewNote } from '../../../src/studio/inbox/inbox.ts';
+import {
+  createInbox,
+  type InboxLimits,
+  type NewNote,
+  NewNoteSchema,
+} from '../../../src/studio/inbox/inbox.ts';
 import { NOW } from '../../helpers/drafts.ts';
 
 const NOTE: NewNote = { kind: 'note', slug: 'shop', element: null, text: 'Bigger title' };
@@ -62,6 +67,12 @@ test('a waiter that times out, leaves or is replaced gets nothing and loses noth
   assert.deepEqual(await last.items, []);
   inbox.add(NOTE);
   assert.equal(inbox.pending(), 1);
+});
+
+test('a note may point at an element id with slashes and a dollar sign', () => {
+  const id = 'sections/Pricing:section/Stack/Card.2$1';
+  assert.equal(NewNoteSchema.safeParse({ ...NOTE, element: id }).success, true);
+  assert.equal(NewNoteSchema.safeParse({ ...NOTE, element: 'a b' }).success, false);
 });
 
 test('a full inbox refuses more', () => {

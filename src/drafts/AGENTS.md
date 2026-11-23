@@ -10,4 +10,6 @@ Drafts in a project's workspace: `.kitvas/drafts/<slug>/`, one folder per versio
 - All file access goes through `DraftStore`; paths inside a draft are relative with forward slashes. The store refuses anything outside the draft folder.
 - A new version copies `md/` and `src/` of the latest one and never `build/`.
 - This module reads kits only through `src/kit/index.ts`.
+- The optional `edit` field of `draft.json` (`{ version, startedAt }`, ADR 0049) is the open editing session: open only while `edit.version` is the latest version (`app/edit-session.ts`). Never write it by hand; the editor starts and ends it.
+- `DraftStore.replaceAll(slug, files)` writes several files all or none: each to a temporary file, then renames; a failed rename puts the files already renamed back. Use it when one change spans files. A path outside the draft throws `DRAFT_INVALID` before anything is written.
 - Kinds (ADR 0045): `kind` is `screen`, `rework` or `craft`, and each carries only its own block. A craft draft's sketches are `src/tsx/sketches/A.tsx`, `B.tsx`, `C.tsx`; its entry is generated (`domain/craft-entry.ts`), and the next version after a pick holds only the picked sketch.

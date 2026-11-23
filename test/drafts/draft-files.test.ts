@@ -1,13 +1,44 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { addVersion, createDraft, listDrafts, loadDraft } from '../../src/drafts/index.ts';
+import {
+  createFsDraftStore,
+  REPLACE_SUFFIX,
+  type ReplaceIo,
+} from '../../src/drafts/adapters/fs-draft-store.ts';
+import {
+  addVersion,
+  createDraft,
+  type DraftStore,
+  listDrafts,
+  loadDraft,
+} from '../../src/drafts/index.ts';
 import { KitvasError } from '../../src/shared/index.ts';
 import { NOW, shopDraft, TINY, tempDrafts } from '../helpers/drafts.ts';
 
 const hasCode = (code: string) => (error: unknown) =>
   error instanceof KitvasError && error.code === code;
+
+const HERO = 'v1/src/tsx/sections/Hero.tsx';
+const SCSS = 'v1/src/scss/sections/hero.scss';
+const NEW = 'v1/src/tsx/sections/New.tsx';
+
+/** The temporary files `replaceAll` left anywhere in a draft. */
+const leftovers = (root: string): string[] =>
+  readdirSync(join(root, 'shop'), { recursive: true, encoding: 'utf8' }).filter((name) =>
+    name.endsWith(REPLACE_SUFFIX),
+  );
+
+/** A `shop` draft whose store makes some of its `replaceAll` calls through `io`. */
+function shopWith(io: Partial<ReplaceIo>): { store: DraftStore; root: string } {
+  const { root } = tempDrafts();
+  const store = createFsDraftStore(root, io);
+  createDraft(store, { slug: 'shop', title: 'Shop', kit: TINY, now: NOW });
+  store.writeText('shop', HERO, 'hero 1\n');
+  store.writeText('shop', SCSS, '.hero {}\n');
+  return { store, root };
+}
 
 test('a new draft has draft.json, scaffolds, states and folders by file type', () => {
   const { store, root } = shopDraft();
@@ -91,4 +122,70 @@ test('the store never reads or writes outside a draft folder', () => {
   assert.equal(store.readText('shop', '../../outside.txt'), undefined);
   assert.throws(() => store.writeText('shop', '../outside.txt', 'x'), hasCode('DRAFT_INVALID'));
   assert.throws(() => store.makeDir('shop', '../../outside'), hasCode('DRAFT_INVALID'));
+});
+
+test('replaceAll writes every file, a new one too, and leaves no temporary file', () => {
+  const { store, root } = shopWith({});
+  store.replaceAll('shop', [
+    { relPath: HERO, text: 'hero 2\n' },
+    { relPath: NEW, text: 'new\n' },
+    { relPath: SCSS, text: '.hero { gap: 0; }\n' },
+  ]);
+  assert.equal(store.readText('shop', HERO), 'hero 2\n');
+  assert.equal(store.readText('shop', NEW), 'new\n');
+  assert.equal(store.readText('shop', SCSS), '.hero { gap: 0; }\n');
+  assert.deepEqual(leftovers(root), []);
+});
+
+test('when a move fails, replaceAll puts back every file it already replaced', () => {
+  let moves = 0;
+  const { store, root } = shopWith({
+    rename(from, to) {
+      moves += 1;
+      if (moves === 3) throw new Error('disk gone');
+      renameSync(from, to);
+    },
+  });
+  const files = [
+    { relPath: HERO, text: 'hero 2\n' },
+    { relPath: NEW, text: 'new\n' },
+    { relPath: SCSS, text: '.hero { gap: 0; }\n' },
+  ];
+  assert.throws(() => store.replaceAll('shop', files), /disk gone/);
+  assert.equal(store.readText('shop', HERO), 'hero 1\n');
+  assert.equal(store.exists('shop', NEW), false);
+  assert.equal(store.readText('shop', SCSS), '.hero {}\n');
+  assert.deepEqual(leftovers(root), []);
+});
+
+test('when a temporary file cannot be written, replaceAll changes no file', () => {
+  const { store, root } = shopWith({
+    write(file, text) {
+      if (file.endsWith(`hero.scss${REPLACE_SUFFIX}`)) throw new Error('no space');
+      writeFileSync(file, text);
+    },
+  });
+  const files = [
+    { relPath: HERO, text: 'hero 2\n' },
+    { relPath: SCSS, text: '.hero { gap: 0; }\n' },
+  ];
+  assert.throws(() => store.replaceAll('shop', files), /no space/);
+  assert.equal(store.readText('shop', HERO), 'hero 1\n');
+  assert.equal(store.readText('shop', SCSS), '.hero {}\n');
+  assert.deepEqual(leftovers(root), []);
+});
+
+test('replaceAll refuses a path outside the draft, or one given twice, before writing', () => {
+  const { store } = shopWith({});
+  const outside = [
+    { relPath: HERO, text: 'hero 2\n' },
+    { relPath: '../outside.tsx', text: 'x' },
+  ];
+  assert.throws(() => store.replaceAll('shop', outside), hasCode('DRAFT_INVALID'));
+  const twice = [
+    { relPath: HERO, text: 'hero 2\n' },
+    { relPath: HERO, text: 'hero 3\n' },
+  ];
+  assert.throws(() => store.replaceAll('shop', twice), hasCode('DRAFT_INVALID'));
+  assert.equal(store.readText('shop', HERO), 'hero 1\n');
 });

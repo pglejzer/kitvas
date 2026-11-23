@@ -47,6 +47,20 @@ What craft adds goes to `.kitvas/additions/<kit-id>/`, next to the kit, never in
 
 Notes you leave in the studio reach Claude. The studio keeps its address (`http://kitvas.localhost:<port>/`), and your browser stays signed in for 30 days, so a bookmark works after a restart.
 
+## Edit in the studio
+
+Open a draft in the studio and turn on edit mode. Click an element (Shift adds more, Esc clears, the arrow keys go to the parent or the first child), or find it in the layers list. Then you can change:
+
+- a kit component's props: variant, size, gap and the rest;
+- spacing, colour, typography, radius, border, width and height, with the kit's tokens offered first and the arrow keys stepping through the kit's scale;
+- the text, by a double click.
+
+Each row says where its value lives: a kit prop, the section's SCSS, or the kit's default. kitvas writes the change into the draft's TSX or SCSS itself, touching only the lines it changes, and the prototype shows it within about a second. A value outside the kit is allowed; it is marked in the code and in the session's change list, and can be mapped to the nearest token. Undo and redo work with Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y.
+
+The first edit starts a new version, and later edits go into it. "Save version" ends the session; the next edit starts another version. Claude can edit the same files while you work: you see its changes live, nothing is locked, and when you both changed the same place you choose between yours and theirs.
+
+What works offline: the studio, every edit above, the builds, the checks and the versions. No account, network or model is involved. What needs Claude: asking for a change kitvas cannot write itself, such as a value computed in code, a prop passed through a spread or a style set by a utility class. kitvas refuses those and shows why. "Ask Claude" then sends the element, the change you wanted and the reason to Claude through the studio's notes. Drafts that use Tailwind can edit props and text; their styles are read-only for now. Text that spans several lines in the code is read-only too, and a rebuild while you type in the prototype reloads it, so finish the text first.
+
 ## What kitvas will not do
 
 - Write into your application's code. Everything goes to `.kitvas/`, or to a folder you name when you export.

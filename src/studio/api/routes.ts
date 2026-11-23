@@ -16,6 +16,7 @@ import { type ApiRoute, apiRoute } from '../http/router.ts';
 import type { Inbox } from '../inbox/inbox.ts';
 import type { Jobs } from '../jobs/jobs.ts';
 import type { OpenLinks } from '../security/open-links.ts';
+import { type EditDeps, editRoutes } from './edit-routes.ts';
 import { eventRoutes } from './event-routes.ts';
 import { inboxRoutes } from './inbox-routes.ts';
 import { jobRoutes } from './job-routes.ts';
@@ -52,6 +53,8 @@ export type ApiDeps = {
   links: OpenLinks;
   /** Stops the studio; the shutdown route calls it once its answer is sent. */
   shutdown?: () => void;
+  /** The editor's compiler and write hooks; without them inspect and edits answer 500. */
+  edit?: EditDeps;
 };
 
 const draftPath = (slug: string): string => `/api/v1/drafts/${slug}`;
@@ -162,6 +165,7 @@ export function apiRoutes(deps: ApiDeps): ApiRoute[] {
     ...eventRoutes(deps),
     ...inboxRoutes(deps),
     ...linkRoutes(deps),
+    ...editRoutes(deps),
   ];
   routes.push(
     apiRoute({

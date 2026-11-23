@@ -24,6 +24,7 @@ import { findingsFor, nextStep, versionStatus } from '../views/status.ts';
 import { filterRow, optionRow } from './controls.ts';
 import { craftPick } from './craft-board.ts';
 import { stage } from './draft-stage.ts';
+import { editPanel, editToggle } from './edit-panel.ts';
 import { type FrameOrigin, frameSrc } from './frame-src.ts';
 import type { PageRequest } from './gallery.ts';
 import { type Html, html } from './html.ts';
@@ -188,12 +189,14 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   });
   const kit = kitName(deps.kits, draft.kit.id);
   const layout = choice.width > WIDTHS[0] ? 'draft wide' : 'draft';
-  const controls = html`<section class="controls" aria-label="${t('studio.draft.controls')}">${controlRows(t, draft, info.states, choice)}${footLines(t, kit, info.built, checks)}</section>`;
+  const editable = info.built && compare === null && version === latestVersion(draft);
+  const controls = html`<section class="controls" aria-label="${t('studio.draft.controls')}">${editToggle({ t, editable })}${controlRows(t, draft, info.states, choice)}${footLines(t, kit, info.built, checks)}</section>`;
   const notes = notesSection({ t, shown, elsewhere, next });
   const attrs = html` data-draft="${slug}" data-version="${version}" data-state="${choice.state}" data-width="${choice.width}"${compare === null || compare === 0 ? '' : html` data-compare="${compare}"`}`;
   const script = html`<script type="module" src="/assets/draft.js"></script>`;
   const craft = craftPick(t, draft) ?? '';
-  const body = html`<main class="draft-page"${attrs}><h1>${draft.title}</h1><div class="${layout}">${controls}<section class="stage">${framed}${craft}</section>${notes}</div>${script}</main>`;
+  const editor = editPanel({ t, nonce: request.nonce, editable });
+  const body = html`<main class="draft-page"${attrs}><h1>${draft.title}</h1><div class="${layout}">${controls}<section class="stage">${framed}${craft}</section>${editor}${notes}</div>${script}</main>`;
   return page({
     title: draft.title,
     nonce: request.nonce,

@@ -1,0 +1,254 @@
+// One element as its source writes it, for the properties panel (plan 13, task D2): the tag and
+// its props, the kit component it is, its text, the class a style edit writes and where each
+// style property's value comes from (spec decisions 3, 4 and 9).
+
+import { type DraftStore, latestVersion, loadDraft, versionFolder } from '../../drafts/index.ts';
+import type { KitComponent, KitStore, LoadedKit } from '../../kit/index.ts';
+import { KitvasError } from '../../shared/index.ts';
+import { readRule } from '../domain/apply-scss.ts';
+import { readTag } from '../domain/apply-tsx.ts';
+import { CLASS_NAME, fileOfId, type PropValue } from '../domain/ops.ts';
+import { type SourceInput, styleSource, tokenGroupsOf } from '../domain/source.ts';
+import {
+  type PropView,
+  type Refusal,
+  type RuleView,
+  STYLE_PROPERTIES,
+  type StyleProperty,
+  type StyleSource,
+  type TagView,
+} from '../domain/types.ts';
+import type { EditCompiler } from '../ports/compiler.ts';
+import { editKit, styleFormat, tokenOptions } from './edit-state.ts';
+import { locateElement } from './locate.ts';
+import { sectionScss } from './section-files.ts';
+
+export type InspectDeps = {
+  drafts: DraftStore;
+  kits: KitStore;
+  compiler: EditCompiler;
+  /** The ETag of a file's text, as the studio's API writes it. */
+  etag(text: string): string;
+};
+
+type CatalogProp = {
+  name: string;
+  type: string;
+  values?: string[];
+  default?: string | number | boolean;
+};
+
+type InspectProp =
+  | { name: string; kind: 'literal'; value: PropValue }
+  | { name: string; kind: 'expr'; source: string };
+
+/** The same shape as the studio's `InspectSchema` (`src/studio/api/edit-schemas.ts`). */
+export type InspectView = {
+  id: string;
+  version: number;
+  file: string;
+  etag: string;
+  tag: string;
+  component: { name: string; takesClassName: boolean; props: CatalogProp[] } | null;
+  props: InspectProp[];
+  spread: boolean;
+  text: string | null;
+  textRefusal: Refusal | null;
+  className: { kind: 'string'; value: string } | { kind: 'expr'; source: string } | null;
+  styleClass: { className: string; exists: boolean } | null;
+  scss: {
+    file: string;
+    etag: string;
+    rule: boolean;
+    declarations: { property: string; value: string; offKit: boolean }[];
+    nested: string[];
+  } | null;
+  styles: Record<StyleProperty, StyleSource>;
+};
+
+/** `Card.Header` is the part `Header` of `Card`: the catalog entry is `Card`. */
+function catalogComponent(kit: LoadedKit | null, tag: string): KitComponent | null {
+  const name = tag.split('.')[0] ?? tag;
+  if (!/^[A-Z]/.test(name)) return null;
+  return kit?.kit.components.find((component) => component.name === name) ?? null;
+}
+
+/** A part such as `Card.Header` takes none of the root's catalog props (`Card`'s `padding`). */
+const isPart = (tag: string): boolean => tag.includes('.');
+
+const catalogProps = (component: KitComponent): CatalogProp[] =>
+  component.props.map((prop) => ({
+    name: prop.name,
+    type: prop.type,
+    ...(prop.values === undefined ? {} : { values: prop.values }),
+    ...(prop.default === undefined ? {} : { default: prop.default }),
+  }));
+
+function propOut(prop: PropView): InspectProp {
+  return prop.kind === 'literal'
+    ? { name: prop.name, kind: 'literal', value: prop.value }
+    : { name: prop.name, kind: 'expr', source: prop.source };
+}
+
+/** `Card.Header` becomes `card-header`: a class name kitvas may write (`CLASS_NAME`). */
+export function classNameOf(tag: string): string {
+  const words = tag
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  const name = /^[a-z]/.test(words) ? words : `el-${words}`;
+  // Room for a `-12` after it within the 64 characters of a class name.
+  return name.slice(0, 56).replace(/-+$/, '');
+}
+
+const CLASS_ATTRIBUTE = /\bclassName\s*=\s*(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/g;
+const QUOTED = /"([^"]*)"|'([^']*)'|`([^`]*)`/g;
+
+/** Every class the TSX names in a `className`, also inside strings of a `className={…}`. */
+function tsxClasses(text: string): Set<string> {
+  const found = new Set<string>();
+  for (const match of text.matchAll(CLASS_ATTRIBUTE)) {
+    const inner = match[3];
+    const chunks =
+      inner === undefined
+        ? [match[1] ?? match[2] ?? '']
+        : [...inner.matchAll(QUOTED)].map((quoted) => quoted[1] ?? quoted[2] ?? quoted[3] ?? '');
+    for (const chunk of chunks) {
+      for (const name of chunk.split(/\s+/)) {
+        if (name !== '') found.add(name);
+      }
+    }
+  }
+  return found;
+}
+
+const splitClasses = (value: string): string[] => value.split(/\s+/).filter((name) => name !== '');
+
+/** The classes of a string `className`; none for an expression or no `className`. */
+const classesOf = (tag: TagView): string[] =>
+  tag.className?.kind === 'string' ? splitClasses(tag.className.value) : [];
+
+/** The tag's class name, with `-2`, `-3` until neither file uses it yet. */
+function freeClassName(tag: string, tsx: string, scss: string): string {
+  const taken = tsxClasses(tsx);
+  const used = (name: string): boolean =>
+    taken.has(name) || new RegExp(`\\.${name}(?![\\w-])`).test(scss);
+  const base = classNameOf(tag);
+  let name = base;
+  for (let n = 2; used(name); n += 1) name = `${base}-${n}`;
+  return name;
+}
+
+/**
+ * The class a style edit writes (decision 3): the first class with a rule in the section SCSS,
+ * else the first class, else a new one (`exists: false`: the edit adds it first). `null` when no
+ * class can carry a style: a kit component without `className`, a `className` built in code, or
+ * only classes kitvas cannot write.
+ */
+function pickStyleClass(
+  tag: TagView,
+  component: KitComponent | null,
+  tsx: string,
+  scss: string | undefined,
+): { className: string; exists: boolean } | null {
+  if (component !== null && !component.styling.includes('className')) return null;
+  if (tag.className?.kind === 'expr') return null;
+  const classes = classesOf(tag);
+  const writable = classes.filter((name) => CLASS_NAME.test(name));
+  const ruled =
+    scss === undefined ? undefined : writable.find((name) => readRule(scss, name) !== null);
+  const first = ruled ?? writable[0];
+  if (first !== undefined) return { className: first, exists: true };
+  if (classes.length > 0) return null;
+  return { className: freeClassName(tag.name, tsx, scss ?? ''), exists: false };
+}
+
+function classNameOut(tag: TagView): InspectView['className'] {
+  if (tag.className === null) return null;
+  return tag.className.kind === 'string'
+    ? { kind: 'string', value: tag.className.value }
+    : { kind: 'expr', source: tag.className.source };
+}
+
+/** The element `id` in the latest version. Throws EDIT_ELEMENT_NOT_FOUND when it is not there. */
+export async function inspectElement(
+  deps: InspectDeps,
+  slug: string,
+  id: string,
+): Promise<InspectView> {
+  const draft = loadDraft(deps.drafts, slug);
+  const version = latestVersion(draft);
+  const base = versionFolder(version);
+  const file = fileOfId(id);
+  const missing = () => new KitvasError('EDIT_ELEMENT_NOT_FOUND', { slug, version, id });
+  const text = deps.drafts.readText(slug, `${base}/${file}`);
+  if (text === undefined) throw missing();
+  // Found again in the current text every time: Claude may have changed the file since the build.
+  const at = await locateElement(deps.compiler, text, file, id);
+  if (typeof at !== 'number') throw missing();
+  const tag = readTag(text, at);
+  if (typeof tag === 'string') throw missing();
+
+  const kit = editKit(deps.kits, draft.kit.id);
+  const component = catalogComponent(kit, tag.name);
+  const catalog = component === null || isPart(tag.name) ? null : catalogProps(component);
+  const scssFile = sectionScss(deps.drafts, slug, version, file);
+  const scssText =
+    scssFile === null ? undefined : deps.drafts.readText(slug, `${base}/${scssFile}`);
+  const styleClass = pickStyleClass(tag, component, text, scssText);
+  const read =
+    styleClass === null || scssText === undefined ? null : readRule(scssText, styleClass.className);
+  const rule: RuleView | null = read === null || read === 'ambiguous' ? null : read;
+  // `className` has a field of its own; the props are the ones a prop control edits.
+  const props = tag.props.filter((prop) => prop.name !== 'className');
+
+  const input: Omit<SourceInput, 'property'> = {
+    component: catalog === null ? null : { props: catalog },
+    written: props.map((prop) => prop.name),
+    rule,
+    classes: classesOf(tag),
+    format: styleFormat(kit),
+    tokenGroups: tokenGroupsOf(tokenOptions(kit)),
+  };
+  const styles = Object.fromEntries(
+    STYLE_PROPERTIES.map((property) => [property, styleSource({ ...input, property })]),
+  ) as Record<StyleProperty, StyleSource>;
+
+  return {
+    id,
+    version,
+    file,
+    etag: deps.etag(text),
+    tag: tag.name,
+    component:
+      component === null
+        ? null
+        : {
+            name: component.name,
+            takesClassName: component.styling.includes('className'),
+            props: catalog ?? [],
+          },
+    props: props.map(propOut),
+    spread: tag.spread,
+    text: tag.text?.value ?? null,
+    textRefusal: tag.text === null ? 'no-text' : null,
+    className: classNameOut(tag),
+    styleClass,
+    scss:
+      scssFile === null || scssText === undefined
+        ? null
+        : {
+            file: scssFile,
+            etag: deps.etag(scssText),
+            rule: read !== null,
+            declarations: (rule?.declarations ?? []).map(({ property, value, offKit }) => ({
+              property,
+              value,
+              offKit,
+            })),
+            nested: rule?.nested ?? [],
+          },
+    styles,
+  };
+}

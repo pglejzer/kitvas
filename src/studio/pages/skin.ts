@@ -3,6 +3,7 @@
 // the focus ring, the 24 px targets).
 
 import { type FlatToken, tokensToCss } from '../../kit/index.ts';
+import { EDIT_SKIN_RULES } from './edit-skin/index.ts';
 
 export const SKIN_RULES = `
 *, *::before, *::after { box-sizing: border-box; }
@@ -294,5 +295,5 @@ body[data-paused] > :not(.paused) { display: none; }
 
 /** The style sheet of every studio page. */
 export function studioSkin(tokens: FlatToken[]): string {
-  return `${tokensToCss(tokens)}${SKIN_RULES}`;
+  return `${tokensToCss(tokens)}${SKIN_RULES}${EDIT_SKIN_RULES}`;
 }

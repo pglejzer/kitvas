@@ -155,9 +155,17 @@ test('a built draft is framed at the phone width in its default state', async ()
       '<main class="draft-page" data-draft="shop" data-version="1" data-state="filled" data-width="390">',
     ),
   );
+  // The latest built version can be edited: the toggle opens the controls, the panel follows the
+  // stage, and the notes close the layout.
   assert.ok(
     text.includes('</section></div><script type="module" src="/assets/draft.js"></script></main>'),
   );
+  assert.ok(
+    text.includes(
+      '<section class="controls" aria-label="View"><button type="button" class="edit-toggle"',
+    ),
+  );
+  assert.ok(text.includes('</section><aside class="edit-panel" data-edit-panel hidden'));
   assert.ok(!text.includes('data-compare'));
   assert.ok(!text.includes('data-frame="before"'));
   assert.ok(text.includes('<div class="draft">'));
