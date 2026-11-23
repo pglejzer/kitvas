@@ -27,6 +27,8 @@ export type Jobs = {
   list(): Job[];
   /** Asks a running job to stop; a finished one stays as it is. */
   cancel(id: string): Job;
+  /** Whether a job runs now; the idle stop waits for it. */
+  busy(): boolean;
   /** Stops every running job and waits for it to end. */
   close(): Promise<void>;
 };
@@ -109,6 +111,7 @@ export function createJobs(deps: JobsDeps): Jobs {
       running.get(id)?.cancel();
       return job;
     },
+    busy: () => running.size > 0,
     async close() {
       const handles = [...running.values()];
       for (const handle of handles) handle.cancel();

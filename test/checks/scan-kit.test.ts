@@ -38,6 +38,7 @@ const facts = (url: string, width: number, candidates = 1): ScanFacts => ({
   borders: [],
   rootVars: [],
   breakpoints: [],
+  overlays: [],
   candidates: Array.from({ length: candidates }, (_, index) => ({
     id: `button-${index}`,
     kind: 'button' as const,
@@ -45,6 +46,7 @@ const facts = (url: string, width: number, candidates = 1): ScanFacts => ({
     crop: `crops/button-${index}.png`,
     text: { pageText: 'Save' },
     style: {},
+    overlay: false,
   })),
 });
 

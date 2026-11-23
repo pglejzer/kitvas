@@ -1,7 +1,7 @@
 ---
 
 name: kit
-description: "Shows what the current kit (design system) of a kitvas project offers: its components with props and examples, its tokens and icons, and whether the kit is valid. Use when the user asks which components, tokens or icons are available, how to use one component, or whether the kit is fine, and before writing prototype code that uses a kit."
+description: "Use when the user asks which components, tokens or icons the project's kit (design system) offers, how to use one component, or whether the kit is valid, and before writing prototype code that uses a kit."
 ---
 
 # kitvas: the kit

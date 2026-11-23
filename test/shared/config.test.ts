@@ -3,7 +3,11 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { KitvasError } from '../../src/shared/errors/errors.ts';
-import { loadSettings, saveProjectKit } from '../../src/shared/settings/config.ts';
+import {
+  loadSettings,
+  saveProjectKit,
+  UserConfigSchema,
+} from '../../src/shared/settings/config.ts';
 import { initWorkspace } from '../../src/shared/settings/workspace.ts';
 import { tempDir } from '../helpers/tmp.ts';
 
@@ -12,14 +16,41 @@ function write(dir: string, value: unknown): void {
   writeFileSync(join(dir, '.kitvas', 'config.json'), JSON.stringify(value));
 }
 
+const isInvalid = (error: unknown) =>
+  error instanceof KitvasError && error.code === 'CONFIG_INVALID';
+
 test('defaults when nothing is configured', () => {
   const home = tempDir();
   const cwd = tempDir();
   assert.deepEqual(loadSettings({ home, cwd }), {
     language: 'en',
     kit: 'base',
+    studioIdleMinutes: 240,
     workspace: { path: join(cwd, '.kitvas'), exists: false },
   });
+});
+
+test('studioIdleMinutes: whole minutes from 0 (never) to one week, 240 when not set', () => {
+  assert.equal(UserConfigSchema.parse({ schemaVersion: 1 }).studioIdleMinutes, 240);
+  assert.equal(UserConfigSchema.parse({ schemaVersion: 1, language: 'pl' }).studioIdleMinutes, 240);
+  for (const minutes of [0, 1, 240, 10_080]) {
+    const parsed = UserConfigSchema.parse({ schemaVersion: 1, studioIdleMinutes: minutes });
+    assert.equal(parsed.studioIdleMinutes, minutes);
+  }
+  for (const minutes of [-1, 10_081, 1.5, '240', null]) {
+    const parsed = UserConfigSchema.safeParse({ schemaVersion: 1, studioIdleMinutes: minutes });
+    assert.equal(parsed.success, false, String(minutes));
+  }
+});
+
+test('reads studioIdleMinutes from the user config; a wrong one is CONFIG_INVALID', () => {
+  const home = tempDir();
+  write(home, { schemaVersion: 1, studioIdleMinutes: 0 });
+  assert.equal(loadSettings({ home, cwd: tempDir() }).studioIdleMinutes, 0);
+  write(home, { schemaVersion: 1, studioIdleMinutes: 30 });
+  assert.equal(loadSettings({ home, cwd: tempDir() }).studioIdleMinutes, 30);
+  write(home, { schemaVersion: 1, studioIdleMinutes: 20_000 });
+  assert.throws(() => loadSettings({ home, cwd: tempDir() }), isInvalid);
 });
 
 test('reads the user language and the project kit', () => {

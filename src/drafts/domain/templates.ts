@@ -34,4 +34,11 @@ export const layoutTemplate = (title: string): string =>
     'Components: the kit components it uses, separated by commas',
     '-->',
     '',
+    '## shared',
+    '',
+    '<!--',
+    'Not a section. What every section needs to agree on: page width, grid gaps,',
+    'which section owns state that others use. Plain lines; agents read them as written.',
+    '-->',
+    '',
   ].join('\n');

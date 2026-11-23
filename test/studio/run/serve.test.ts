@@ -7,7 +7,9 @@ import type { SharedBrowser } from '../../../src/checks/index.ts';
 import { serveStudio } from '../../../src/studio/run/serve.ts';
 import { readState, type StudioState, writeState } from '../../../src/studio/run/state-file.ts';
 import { callStudio } from '../../../src/studio/run/studio-client.ts';
+import type { IdleClock } from '../../../src/studio/server/idle-stop.ts';
 import { shopDraft } from '../../helpers/drafts.ts';
+import { fakeClock } from '../../helpers/fake-clock.ts';
 import { builtinKits } from '../../helpers/kits.ts';
 import { call, fakeAssets } from '../../helpers/studio.ts';
 import { tempDir } from '../../helpers/tmp.ts';
@@ -21,8 +23,15 @@ const filesIn = (dir: string) => ({
   secret: join(dir, 'project.secret'),
 });
 
+type ServeOptions = {
+  browser?: () => Promise<SharedBrowser>;
+  dir?: string;
+  idleMinutes?: number;
+  idleClock?: IdleClock;
+};
+
 /** A studio over the shop draft; runs given the same `dir` share their kept ports and secret. */
-function serve(options: { browser?: () => Promise<SharedBrowser>; dir?: string } = {}) {
+function serve(options: ServeOptions = {}) {
   const { store } = shopDraft();
   const files = filesIn(options.dir ?? join(tempDir(), 'studio'));
   const logs: string[] = [];
@@ -36,6 +45,8 @@ function serve(options: { browser?: () => Promise<SharedBrowser>; dir?: string }
     project: 'C:/projects/shop',
     files,
     ...(options.browser ? { browser: options.browser } : {}),
+    ...(options.idleMinutes === undefined ? {} : { idleMinutes: options.idleMinutes }),
+    ...(options.idleClock ? { idleClock: options.idleClock } : {}),
     log: (text) => logs.push(text),
     onStop: (fn) => {
       stop = fn;
@@ -105,6 +116,21 @@ test('the shutdown route stops serve after its answer', async () => {
   const ran = await run.serving;
   assert.equal(ran.port, state.port);
   assert.equal(readState(run.files.state), undefined);
+});
+
+test('unused for the set minutes, serve stops the way the shutdown route stops it', async () => {
+  const clock = fakeClock();
+  const run = serve({ idleMinutes: 2, idleClock: clock });
+  const state = await until(() => readState(run.files.state));
+  clock.advance(2 * 60_000 - 1);
+  assert.equal(readState(run.files.state)?.pid, state.pid);
+  clock.advance(1);
+  const ran = await run.serving;
+  assert.equal(ran.port, state.port);
+  assert.equal(readState(run.files.state), undefined);
+  // The log says why, in one line, without the token.
+  assert.deepEqual(run.logs, [t('studio.log.idle', { minutes: 2 })]);
+  assert.ok(!run.logs.join('\n').includes(state.token));
 });
 
 test("a studio that stops leaves a newer studio's file alone", async () => {

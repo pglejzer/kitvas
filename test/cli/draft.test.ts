@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import {
@@ -142,6 +142,23 @@ test('context returns one section; a missing --section or section is an error', 
   assert.equal(await h.run('context', 'shop', '--json'), 2);
   assert.equal(await h.run('context', 'shop', '--section', 'footer', '--json'), 12);
   assert.equal(h.error().code, 'SECTION_NOT_FOUND');
+});
+
+test('context --save writes the file and answers its path', async () => {
+  const h = harness();
+  await h.run('draft', 'new', 'shop');
+  writeFileSync(join(h.draftDir('shop'), 'v1', 'md', 'layout.md'), GOOD_LAYOUT);
+  const file = join(h.draftDir('shop'), 'v1', 'build', 'context', 'hero.json');
+  assert.equal(await h.run('context', 'shop', '--section', 'hero', '--save', '--json'), 0);
+  assert.deepEqual(h.data(), { section: 'hero', path: file });
+  const saved = JSON.parse(readFileSync(file, 'utf8')) as { section: { id: string } };
+  assert.equal(saved.section.id, 'hero');
+  assert.equal(await h.run('context', 'shop', '--section', 'hero', '--save'), 0);
+  assert.equal(h.out.at(-1), `Saved the context of section hero to ${file}`);
+  // Without --save nothing is written.
+  rmSync(file);
+  assert.equal(await h.run('context', 'shop', '--section', 'hero', '--json'), 0);
+  assert.equal(existsSync(file), false);
 });
 
 test('without a workspace every command says to run init', async () => {

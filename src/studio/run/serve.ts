@@ -6,6 +6,7 @@ import type { DraftStore } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
 import { PLUGIN_ROOT, type Translate } from '../../shared/index.ts';
 import type { StudioAssets } from '../pages/asset-routes.ts';
+import type { IdleClock } from '../server/idle-stop.ts';
 import { startStudio } from '../server/start-studio.ts';
 import { readPorts, writePorts } from './ports-file.ts';
 import { pageSecretOf } from './secret-file.ts';
@@ -27,9 +28,16 @@ export type ServeDeps = {
   browser?: () => Promise<SharedBrowser>;
   /** Gets the function that stops the studio, for signals. */
   onStop?: (stop: () => void) => void;
+  /** Minutes without use before the studio stops by itself (ADR 0042); 0 or absent: never. */
+  idleMinutes?: number;
+  /** The idle stop's time and timers; tests pass their own. */
+  idleClock?: IdleClock;
 };
 
-/** Runs until the shutdown route or the stop function is called; resolves with the state it ran with. */
+/**
+ * Runs until the shutdown route, the idle stop or the stop function ends it; resolves with the
+ * state it ran with.
+ */
 export async function serveStudio(deps: ServeDeps): Promise<StudioState> {
   let stop: () => void = () => undefined;
   const stopped = new Promise<void>((resolve) => {
@@ -49,7 +57,10 @@ export async function serveStudio(deps: ServeDeps): Promise<StudioState> {
       onError: (error) =>
         deps.log(error instanceof Error ? (error.stack ?? error.message) : String(error)),
       onDenied: (line) => deps.log(line),
+      onLog: (line) => deps.log(line),
+      // The shutdown route and the idle stop end the studio the same way: through `stopped`.
       shutdown: () => stop(),
+      ...(deps.idleClock ? { idleClock: deps.idleClock } : {}),
       cli: { bin: join(PLUGIN_ROOT, 'bin', 'kitvas.ts'), cwd: deps.project, env: process.env },
       ...(deps.browser ? { browser: deps.browser } : {}),
       // The browser's pid goes into the state file: `kitvas studio stop` ends one that lingers.
@@ -58,7 +69,11 @@ export async function serveStudio(deps: ServeDeps): Promise<StudioState> {
         writeState(stateFile, browserPid === undefined ? state : { ...state, browserPid });
       },
     },
-    { pageSecret: pageSecretOf(deps.files.secret), ...(saved ? { preferred: saved } : {}) },
+    {
+      pageSecret: pageSecretOf(deps.files.secret),
+      ...(saved ? { preferred: saved } : {}),
+      ...(deps.idleMinutes === undefined ? {} : { idleMinutes: deps.idleMinutes }),
+    },
   );
   // Only the first start writes the ports. A later one that had to take others leaves the file
   // alone: it names the address the person bookmarked, which works again once the port is free.

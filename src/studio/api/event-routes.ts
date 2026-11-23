@@ -4,6 +4,9 @@ import type { EventHub } from '../events/event-hub.ts';
 import { type ApiRoute, apiRoute } from '../http/router.ts';
 import { NoParams, StudioEventSchema } from './schemas.ts';
 
+/** The stream's address; the idle stop does not count requests for it as use (ADR 0042). */
+export const EVENTS_PATH = '/api/v1/events';
+
 export function eventRoutes(deps: { events: EventHub }): ApiRoute[] {
   return [
     apiRoute({
@@ -11,7 +14,7 @@ export function eventRoutes(deps: { events: EventHub }): ApiRoute[] {
       summary:
         'Server-Sent Events of the studio. With Last-Event-ID a reconnecting tab gets what it missed, or a reset event.',
       method: 'GET',
-      path: '/api/v1/events',
+      path: EVENTS_PATH,
       policy: 'read',
       params: NoParams,
       request: null,

@@ -33,13 +33,17 @@ const VAR_NAME = /^--[A-Za-z0-9_-]{1,64}$/;
 const STYLE_KEY = /^[a-z-]{1,40}$/;
 const WHERE: readonly Where[] = ['text', 'background', 'border'];
 
-export type MergedStyles = Omit<ScanFacts, 'schemaVersion' | 'url' | 'width' | 'candidates'>;
+export type MergedStyles = Omit<
+  ScanFacts,
+  'schemaVersion' | 'url' | 'width' | 'candidates' | 'overlays'
+>;
 /** A candidate with its box measured and its crop placed, before it has an id. */
 export type Chosen = {
   kind: CandidateKind;
   box: Rect;
   /** The crop in the page shot: the box widened by the shadow, clamped. */
   rect: Rect;
+  overlay: boolean;
   text: string;
   style: Record<string, string>;
 };
@@ -164,13 +168,17 @@ export function mergeStyles(frames: FrameStyles[]): MergedStyles {
   };
 }
 
-/** Every frame's candidates in the order of the facts: by kind, rank, frame, then the page's order. */
+/**
+ * Every frame's candidates in the order of the facts: those outside overlays first, then by kind,
+ * rank, frame, then the page's order.
+ */
 export function rankCandidates(frames: FrameCandidate[][]): Located[] {
   const kindOrder = (kind: CandidateKind): number => CANDIDATE_KINDS.indexOf(kind);
   return frames
     .flatMap((list, frame) => list.map((candidate) => ({ frame, candidate })))
     .sort(
       (a, b) =>
+        +a.candidate.overlay - +b.candidate.overlay ||
         kindOrder(a.candidate.kind) - kindOrder(b.candidate.kind) ||
         a.candidate.rank - b.candidate.rank ||
         a.frame - b.frame ||
@@ -215,6 +223,7 @@ export function numberCandidates(
         crop: `crops/${id}.png`,
         text: pageText(item.text),
         style: cleanStyle(item.style),
+        overlay: item.overlay,
       },
       png: cut.png,
     });

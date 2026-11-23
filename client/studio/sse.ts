@@ -96,8 +96,17 @@ type Connection = {
   onEvent(event: StreamEvent): void;
 };
 
-/** One request: it returns when the stream ends or is refused, and throws on network errors. */
-async function readOnce(connection: Connection): Promise<void> {
+/**
+ * The studio's side of the stream, for the paused view: it `opened`, or it was `lost` (a stream
+ * that was open ended, or the studio did not answer). A refusal is neither: the studio answers.
+ */
+export type StreamHealth = { opened(): void; lost(): void };
+
+/**
+ * One request: it returns when the stream ends (`true`) or is refused (`false`), and throws on
+ * network errors.
+ */
+async function readOnce(connection: Connection): Promise<boolean> {
   const headers: Record<string, string> = { accept: 'text/event-stream' };
   if (connection.lastId !== '') headers['Last-Event-ID'] = connection.lastId;
   const response = await fetch(connection.url, {
@@ -109,7 +118,7 @@ async function readOnce(connection: Connection): Promise<void> {
   const type = response.headers.get('content-type') ?? '';
   if (!response.ok || response.body === null || !type.startsWith('text/event-stream')) {
     await response.body?.cancel();
-    return;
+    return false;
   }
   connection.onOpen();
   const reader = response.body.getReader();
@@ -124,23 +133,25 @@ async function readOnce(connection: Connection): Promise<void> {
         if (event.id !== undefined) connection.lastId = event.id;
         connection.onEvent(event);
       }
-      if (buffer.length > MAX_PENDING) return;
+      if (buffer.length > MAX_PENDING) return true;
       chunk = await reader.read();
     }
   } finally {
     reader.cancel().catch(() => undefined);
   }
+  return true;
 }
 
 /**
  * Reads the event stream at `url` until `signal` aborts, reconnecting after 2 s, 4, 8, up to 30 s
  * and sending `Last-Event-ID`, so the studio replays what was missed (or sends `reset`). The pause
- * starts again at 2 s after a stream opened. Never rejects.
+ * starts again at 2 s after a stream opened. `health` hears each open and each loss. Never rejects.
  */
 export async function readEvents(
   url: string,
   onEvent: (event: StreamEvent) => void,
   signal: AbortSignal,
+  health?: StreamHealth,
 ): Promise<void> {
   let attempt = 0;
   const connection: Connection = {
@@ -149,16 +160,19 @@ export async function readEvents(
     lastId: '',
     onOpen: () => {
       attempt = 0;
+      health?.opened();
     },
     onEvent: (event) => deliver(onEvent, event),
   };
   while (!signal.aborted) {
+    let lost = true;
     try {
-      await readOnce(connection);
+      lost = await readOnce(connection);
     } catch {
       // The network failed or the stream broke: the pause below, then a new request.
     }
     if (signal.aborted) return;
+    if (lost) health?.lost();
     await pause(reconnectDelay(attempt), signal);
     attempt += 1;
   }

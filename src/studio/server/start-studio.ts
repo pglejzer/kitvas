@@ -29,6 +29,7 @@ import { createOpenLinks } from '../security/open-links.ts';
 import { frameHeaders, studioHeaders } from '../security/response-headers.ts';
 import { newFrameKey, newNonce, newToken } from '../security/token.ts';
 import { handleFrame } from './frame-handler.ts';
+import { type IdleClock, isUse, startIdleStop } from './idle-stop.ts';
 import { handleStudio } from './studio-handler.ts';
 
 export type StudioDeps = {
@@ -48,8 +49,12 @@ export type StudioDeps = {
   onError?: (error: unknown) => void;
   /** A line for each refused request (`security/denied-log.ts`), at most 20 a minute. */
   onDenied?: (line: string) => void;
-  /** Called by the shutdown route, after its answer. */
+  /** Called by the shutdown route, after its answer, and by the idle stop. */
   shutdown?: () => void;
+  /** Lines for the studio's log that are no errors: why it stopped by itself. */
+  onLog?: (line: string) => void;
+  /** The idle stop's time and timers; tests pass their own. */
+  idleClock?: IdleClock;
   /** Where jobs run the CLI; by default this plugin's `bin/kitvas.ts` in the current folder. */
   cli?: CliTarget;
   /** Starts the browser the check jobs share; without it each check starts its own. */
@@ -73,6 +78,11 @@ export type StudioOptions = {
   bodyLimit?: number;
   jobLimits?: Partial<JobLimits>;
   eventLimits?: Partial<EventLimits>;
+  /**
+   * Minutes without use before the studio stops itself through `shutdown` (ADR 0042); 0 or
+   * absent never stops it.
+   */
+  idleMinutes?: number;
 };
 
 export type Studio = {
@@ -135,7 +145,28 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
     (text) => onError?.(new Error(text)),
     keeper ? (args) => keeper.envFor(args) : undefined,
   );
-  const jobs = createJobs({ run, publish: (job) => events.publish('job', job), now, t });
+  const jobs = createJobs({
+    run,
+    // A job that starts or ends is use: the idle wait counts from the end of the last one.
+    publish: (job) => {
+      idle.touch();
+      events.publish('job', job);
+    },
+    now,
+    t,
+  });
+  // Without a way to stop, there is nothing to stop when idle.
+  const minutes = deps.shutdown ? (options.idleMinutes ?? 0) : 0;
+  const idle = startIdleStop({
+    minutes,
+    busy: () => jobs.busy(),
+    stop: () => {
+      // The log says why the studio went away; the line holds no token and no page secret.
+      deps.onLog?.(t('studio.log.idle', { minutes }));
+      deps.shutdown?.();
+    },
+    ...(deps.idleClock ? { clock: deps.idleClock } : {}),
+  });
   const inbox = createInbox({ now, publish: (pending) => events.publish('inbox', { pending }) });
   const routes = [
     ...pageRoutes({
@@ -188,6 +219,8 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
   };
   // Handlers come only now: the security headers of each origin name the other one's port.
   studioServer.on('request', (req, res) => {
+    // Use from the request until its answer ends; never the events stream (`isUse`).
+    if (isUse(req.url)) res.once('close', idle.hold());
     handleStudio(studio, req, res).catch((error: unknown) => {
       onError?.(error);
       res.destroy();
@@ -203,6 +236,7 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
     framePort,
     token,
     close: async () => {
+      idle.close();
       // Running jobs end first, so their last event still reaches the open streams.
       await jobs.close();
       await keeper?.close();

@@ -143,7 +143,10 @@ async function writeSection(box: Sandbox, section: SectionSource, version: numbe
     );
   }
   for (const token of tokensUsed(section.scss)) {
-    assert.ok(context.kit.tokens.includes(token), `${section.id} uses ${token}, not a kit token`);
+    assert.ok(
+      context.kit.tokens.some((entry) => entry.name === token),
+      `${section.id} uses ${token}, not a kit token`,
+    );
   }
   writeText(context.files.tsx, section.tsx);
   writeText(context.files.scss, section.scss);

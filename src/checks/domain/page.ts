@@ -35,7 +35,18 @@ export type PageReport = {
 };
 
 /** Which visit a finding comes from. */
-export type Seen = { state: string; width: number; ids: IdEntry[] };
+export type Seen = {
+  state: string;
+  width: number;
+  ids: IdEntry[];
+  /** Element id to kit component name, from the usage records of the version. */
+  components: ReadonlyMap<string, string>;
+};
+
+/** Usage records as a map from element id to component name. */
+export function componentsOf(usage: UsageRecord[]): Map<string, string> {
+  return new Map(usage.map((record) => [record.id, record.component]));
+}
 
 const SERIOUS = new Set(['critical', 'serious']);
 /** Chrome's line for a request that failed; the request is reported on its own. */
@@ -57,19 +68,23 @@ export function buildPath(url: string): string {
 
 export function a11yFindings(violations: AxeViolation[], seen: Seen): RawFinding[] {
   return violations.flatMap((violation) =>
-    violation.nodes.map(
-      (node): RawFinding => ({
+    violation.nodes.map((node): RawFinding => {
+      // Restyling a kit component does not fix it, so a person decides.
+      const component = node.element ? seen.components.get(node.element) : undefined;
+      return {
         check: 'a11y',
         rule: `a11y/${violation.id}`,
-        severity: SERIOUS.has(violation.impact ?? '') ? 'fix' : 'review',
+        severity: component || !SERIOUS.has(violation.impact ?? '') ? 'review' : 'fix',
         ...elementPlace(seen.ids, node.element),
         element: node.element,
         message: toolText(violation.help),
-        hint: toolText(node.summary.trim()),
+        hint: component
+          ? { key: 'checkHint.kitInternal', params: { component } }
+          : toolText(node.summary.trim()),
         states: [seen.state],
         widths: [seen.width],
-      }),
-    ),
+      };
+    }),
   );
 }
 

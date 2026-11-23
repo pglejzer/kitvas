@@ -19,6 +19,7 @@ const FILES: Record<string, { file: string; type: string }> = {
   '/': { file: 'index.html', type: 'text/html; charset=utf-8' },
   '/index.html': { file: 'index.html', type: 'text/html; charset=utf-8' },
   '/empty.html': { file: 'empty.html', type: 'text/html; charset=utf-8' },
+  '/overlay.html': { file: 'overlay.html', type: 'text/html; charset=utf-8' },
   '/private.html': { file: 'private.html', type: 'text/html; charset=utf-8' },
   '/style.css': { file: 'style.css', type: 'text/css; charset=utf-8' },
 };

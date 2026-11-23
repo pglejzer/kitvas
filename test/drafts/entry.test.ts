@@ -46,6 +46,8 @@ test('the scaffolds carry the title; a fresh layout has no sections yet', () => 
   assert.match(briefTemplate('Rent a bike'), /^## Goal$/m);
   const layout = parseLayout(layoutTemplate('Rent a bike'));
   assert.equal(layout.title, 'Rent a bike');
+  assert.match(layoutTemplate('Rent a bike'), /^## shared$/m);
+  assert.equal(layout.shared, '');
   assert.deepEqual(
     layoutIssues(layout, new Set()).map((issue) => issue.key),
     ['draftIssue.noSections'],

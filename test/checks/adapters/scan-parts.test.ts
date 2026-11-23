@@ -220,11 +220,13 @@ const candidate = (
   kind: FrameCandidate['kind'],
   rank: number,
   order: number,
+  overlay = false,
 ): FrameCandidate => ({
   mark,
   kind,
   rank,
   order,
+  overlay,
   text: '',
   style: {},
 });
@@ -252,6 +254,21 @@ test('candidates go by kind, then main before the rest before banners, then fram
   );
 });
 
+test('candidates inside an overlay come after all others', () => {
+  const ranked = rankCandidates([
+    [candidate('0', 'button', 2, 1, true), candidate('1', 'heading', 0, 2)],
+    [candidate('0', 'button', 1, 1)],
+  ]);
+  assert.deepEqual(
+    ranked.map(({ frame, candidate: found }) => [frame, found.mark]),
+    [
+      [1, '0'],
+      [0, '1'],
+      [0, '0'],
+    ],
+  );
+});
+
 test('candidates are numbered per kind as their crops fit; the first that does not fit ends them', () => {
   const chosen = (
     kind: Chosen['kind'],
@@ -261,6 +278,7 @@ test('candidates are numbered per kind as their crops fit; the first that does n
     kind,
     box: [1, 2, 3, 4],
     rect: [0, 0, 5, 6],
+    overlay: false,
     text,
     style,
   });

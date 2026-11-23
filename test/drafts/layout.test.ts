@@ -42,6 +42,45 @@ test('reads the title, the sections, their purpose and components', () => {
   assert.deepEqual(layoutIssues(layout, KNOWN), []);
 });
 
+test('the shared block is kept as text and is not a section', () => {
+  const layout = parseLayout(
+    [
+      '# Layout: Shop',
+      '## hero',
+      'Purpose: x',
+      'Components: Button',
+      '## shared',
+      '<!-- dropped',
+      'also dropped -->',
+      'Page width: 1200px.',
+      'Purpose: stays text here',
+      '',
+      '## footer',
+      'Purpose: y',
+      'Components: Button',
+    ].join('\r\n'),
+  );
+  assert.equal(layout.shared, 'Page width: 1200px.\nPurpose: stays text here');
+  assert.deepEqual(
+    layout.sections.map((section) => section.id),
+    ['hero', 'footer'],
+  );
+  assert.deepEqual(layoutIssues(layout, KNOWN), []);
+  assert.equal(parseLayout(GOOD).shared, '');
+});
+
+test('shared is not a valid section id', () => {
+  const layout = {
+    title: '',
+    shared: '',
+    sections: [{ id: 'shared', purpose: 'x', components: ['Button'], line: 1 }],
+  };
+  assert.deepEqual(
+    layoutIssues(layout, KNOWN).map((issue) => [issue.path, issue.key]),
+    [['layout.shared', 'draftIssue.badSectionId']],
+  );
+});
+
 test('a layout with no sections is a problem', () => {
   const layout = parseLayout('# Layout: Empty\n\n<!-- nothing yet -->\n');
   assert.deepEqual(layout.sections, []);

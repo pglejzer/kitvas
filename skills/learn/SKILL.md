@@ -1,7 +1,7 @@
 ---
 
 name: learn
-description: "Learns a design system as a kitvas kit, verifies it and makes it the project's kit. Sources: an npm package (MUI, a company package), a folder of the project's own components (src/components/ui), a Figma file link, a website address, or a folder of screenshots. Use when the user wants prototypes in the look of their own app, product, site or Figma file, wants kitvas to use their design system, or wants more components added to a learned kit."
+description: "Use when the user wants prototypes in the look of their own app, product, site or Figma file, wants kitvas to use their design system (an npm package, a components folder, a Figma link, a website or screenshots), or wants more components added to a learned kit."
 ---
 
 # kitvas: learn a design system
@@ -60,7 +60,15 @@ Needs the person's own Figma MCP, signed in by them. kitvas holds no Figma key a
 2. A Starter plan or a View or Collab seat has 20 read calls a month; Full and Dev seats on paid plans have far more. Tell the user: this learning uses about 6 calls, and they have N. Stop and ask if they have fewer than 6.
 3. A Community file cannot be read until the person opens it in Figma, which copies it to their drafts. Ask for the copy's link.
 4. The calls: the page list; the components page's metadata (node ids, names, boxes, variant names); its variable definitions; one to three screenshots of whole component sheets at a large `maxDimension`. No call per component.
-5. Save them in the kit folder: `source/figma/metadata.xml`, `variables.json`, `sheet-<n>.png` (as the MCP's answer says).
+5. Save each answer in the kit folder at once, before the next call, so a stopped read can go on from the files: `source/figma/metadata.xml`, `variables.json`, `sheet-<n>.png` (as the MCP's answer says).
+
+Figma rules:
+
+- Call `get_variable_defs` on a component or frame node, never on a page node.
+- On a rate-limit answer, stop and tell the person. Do not retry.
+- When a read's font weight disagrees with the weight in the text style's name, the name wins.
+- Check on the first live run: whether `use_figma` read scripts and screenshots count against the read limit.
+
 6. Write `source/figma/boxes.json` yourself from the metadata: `[{ "image": "source/figma/sheet-1.png", "box": [x, y, w, h], "scale": S, "name": "Button.1" }]`. `box` is in sheet pixels. `scale` is sheet pixels per CSS pixel: the sheet's pixel width divided by its frame's width in the metadata. Names are unique.
 7. Run `KITVAS kit crop <id> --json`. It writes `source/refs/<name>.png`. Error lines (a box outside the sheet) are listed in the answer: fix `boxes.json` and run it again.
 

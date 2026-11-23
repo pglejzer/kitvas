@@ -17,7 +17,12 @@ const IDS: IdEntry[] = [
     tag: 'img',
   },
 ];
-const SEEN = { state: 'filled', width: 390, ids: IDS };
+const SEEN = {
+  state: 'filled',
+  width: 390,
+  ids: IDS,
+  components: new Map([['sections/Hero:section/Button', 'Button']]),
+};
 
 const REPORT: PageReport = {
   rendered: false,
@@ -78,6 +83,22 @@ test('axe violations are placed at the nearest element; impact sets the severity
     [findings[1]?.severity, findings[1]?.file, findings[1]?.element],
     ['review', null, null],
   );
+});
+
+test('a node inside a kit component is a review with the kit hint; a plain element is unchanged', () => {
+  const violation = (element: string) => ({
+    id: 'color-contrast',
+    impact: 'serious',
+    help: 'Contrast',
+    nodes: [{ element, summary: 'low' }],
+  });
+  const [kit] = a11yFindings([violation('sections/Hero:section/Button')], SEEN);
+  assert.equal(kit?.severity, 'review');
+  assert.equal(kit?.message.key, 'checkRule.tool');
+  assert.deepEqual(kit?.hint, { key: 'checkHint.kitInternal', params: { component: 'Button' } });
+  const [plain] = a11yFindings([violation('sections/Hero:section/img')], SEEN);
+  assert.equal(plain?.severity, 'fix');
+  assert.equal(plain?.hint.key, 'checkRule.tool');
 });
 
 test('the page itself: blank, errors, console and files that did not load', () => {

@@ -14,11 +14,15 @@ export type FrameCandidate = {
   rank: number;
   /** Place among the frame's visible elements, in document order. */
   order: number;
+  /** Inside a fixed or sticky element that covers `overlayShare` of the window or more. */
+  overlay: boolean;
   text: string;
   style: Record<string, string>;
 };
 
 export type PickOptions = {
+  /** The share of the window's area that makes a fixed or sticky element an overlay, 0 to 1. */
+  overlayShare: number;
   /** The attribute that marks a candidate. */
   attribute: string;
   /** Kept per kind in this frame: a few more than the facts take, as some may have no box. */
@@ -29,7 +33,7 @@ export type PickOptions = {
 };
 
 export function pickCandidates(options: PickOptions): FrameCandidate[] {
-  const { attribute, perKind, textMax, valueMax, elementsMax } = options;
+  const { attribute, perKind, textMax, valueMax, elementsMax, overlayShare } = options;
 
   const canvas = document.createElement('canvas');
   canvas.width = 1;
@@ -186,6 +190,35 @@ export function pickCandidates(options: PickOptions): FrameCandidate[] {
     for (const node of path) banners.set(node, found);
     return found;
   };
+  const windowArea = window.innerWidth * window.innerHeight;
+  const overlays = new Map<Element, boolean>();
+  const isOverlay = (node: Element): boolean => {
+    const position = getComputedStyle(node).position;
+    if (position !== 'fixed' && position !== 'sticky') return false;
+    const box = node.getBoundingClientRect();
+    const width = Math.min(box.right, window.innerWidth) - Math.max(box.left, 0);
+    const height = Math.min(box.bottom, window.innerHeight) - Math.max(box.top, 0);
+    return width > 0 && height > 0 && (width * height) / windowArea >= overlayShare;
+  };
+  /** The element or one of its parents is an overlay. */
+  const inOverlay = (element: Element): boolean => {
+    const path: Element[] = [];
+    let found = false;
+    for (let node: Element | null = element; node !== null; node = node.parentElement) {
+      const known = overlays.get(node);
+      if (known !== undefined) {
+        found = known;
+        break;
+      }
+      path.push(node);
+      if (isOverlay(node)) {
+        found = true;
+        break;
+      }
+    }
+    for (const node of path) overlays.set(node, found);
+    return found;
+  };
   const MAIN = 'main, [role="main"]';
   const framed = window.parent !== window;
   const hasMain = document.querySelector(MAIN) !== null;
@@ -254,7 +287,13 @@ export function pickCandidates(options: PickOptions): FrameCandidate[] {
     return out;
   };
 
-  const found: { element: Element; kind: CandidateKind; rank: number; order: number }[] = [];
+  const found: {
+    element: Element;
+    kind: CandidateKind;
+    rank: number;
+    order: number;
+    overlay: boolean;
+  }[] = [];
   let order = 0;
   for (const element of Array.from(document.querySelectorAll('body *')).slice(0, elementsMax)) {
     const rect = element.getBoundingClientRect();
@@ -264,20 +303,29 @@ export function pickCandidates(options: PickOptions): FrameCandidate[] {
     const kind = kindOf(element, rect);
     if (kind === undefined) continue;
     const rank = Math.max(hostRank, rankOf(element, window, true));
-    found.push({ element, kind, rank, order });
+    found.push({ element, kind, rank, order, overlay: inOverlay(element) });
   }
-  found.sort((a, b) => a.rank - b.rank || a.order - b.order);
+  // Overlays last, so a dialog never takes the place of the page's own elements in the cap.
+  found.sort((a, b) => +a.overlay - +b.overlay || a.rank - b.rank || a.order - b.order);
 
   const kept = new Map<CandidateKind, number>();
   const picked: FrameCandidate[] = [];
-  for (const { element, kind, rank, order: place } of found) {
+  for (const { element, kind, rank, order: place, overlay } of found) {
     const count = kept.get(kind) ?? 0;
     if (count >= perKind) continue;
     kept.set(kind, count + 1);
     const mark = String(picked.length);
     element.setAttribute(attribute, mark);
     const text = textOf(element);
-    picked.push({ mark, kind, rank, order: place, text, style: styleOf(element, kind) });
+    picked.push({
+      mark,
+      kind,
+      rank,
+      order: place,
+      overlay,
+      text,
+      style: styleOf(element, kind),
+    });
   }
   return picked;
 }

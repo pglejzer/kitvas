@@ -1,5 +1,5 @@
-// Settings: the user's language and the project's kit, each from its own config.json. The project's
-// kit is also written here (`kit use`).
+// Settings: the user's language and studio idle time, and the project's kit, each from its own
+// config.json. The project's kit is also written here (`kit use`).
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -7,13 +7,27 @@ import { type Zod, z } from '../deps/zod.ts';
 import { userDir, workspaceDir } from '../env/paths.ts';
 import { KitvasError } from '../errors/errors.ts';
 
+/** A studio nobody uses stops after 4 hours unless the user says otherwise (ADR 0042). */
+export const STUDIO_IDLE_MINUTES = 240;
+/** One week: a longer wait is the same as never stopping, which 0 already says. */
+export const MAX_STUDIO_IDLE_MINUTES = 10_080;
+
 export const UserConfigSchema = z.strictObject({
   schemaVersion: z.literal(1),
   language: z
     .string()
     .regex(/^[a-z]{2}(-[A-Z]{2})?$/)
     .default('en'),
+  /** Minutes without use before the studio stops by itself; 0 never stops it. */
+  studioIdleMinutes: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_STUDIO_IDLE_MINUTES)
+    .default(STUDIO_IDLE_MINUTES),
 });
+
+export type UserConfig = Zod.infer<typeof UserConfigSchema>;
 
 export const ProjectConfigSchema = z.strictObject({
   schemaVersion: z.literal(1),
@@ -28,6 +42,8 @@ export type ProjectConfig = Zod.infer<typeof ProjectConfigSchema>;
 export type Settings = {
   language: string;
   kit: string;
+  /** Minutes without use before the studio stops by itself; 0 never stops it. */
+  studioIdleMinutes: number;
   workspace: { path: string; exists: boolean };
 };
 
@@ -52,17 +68,20 @@ function readConfig<T>(file: string, schema: Zod.ZodType<T>, fallback: T): T {
 }
 
 const DEFAULT_PROJECT: ProjectConfig = { schemaVersion: 1, kit: 'base' };
+const DEFAULT_USER: UserConfig = {
+  schemaVersion: 1,
+  language: 'en',
+  studioIdleMinutes: STUDIO_IDLE_MINUTES,
+};
 
 export function loadSettings({ home, cwd }: { home: string; cwd: string }): Settings {
-  const user = readConfig(join(userDir(home), 'config.json'), UserConfigSchema, {
-    schemaVersion: 1,
-    language: 'en',
-  });
+  const user = readConfig(join(userDir(home), 'config.json'), UserConfigSchema, DEFAULT_USER);
   const workspace = workspaceDir(cwd);
   const project = readConfig(join(workspace, 'config.json'), ProjectConfigSchema, DEFAULT_PROJECT);
   return {
     language: user.language,
     kit: project.kit,
+    studioIdleMinutes: user.studioIdleMinutes,
     workspace: { path: workspace, exists: existsSync(workspace) },
   };
 }

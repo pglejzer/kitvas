@@ -156,6 +156,7 @@ export function main(argv: string[]): Promise<number> {
     serve: (project: string, t: Translate) =>
       serveProject({
         dataDir,
+        home: homedir(),
         project,
         version,
         drafts: drafts.draftsAt(project),

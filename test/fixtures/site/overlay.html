@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Overlay page</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui;
+      }
+      .spacer {
+        height: 2400px;
+      }
+      .dialog {
+        position: fixed;
+        top: 10vh;
+        left: 10vw;
+        width: 80vw;
+        height: 50vh;
+        padding: 16px;
+        box-sizing: border-box;
+        background: #ffffff;
+        border: 1px solid #cecece;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <button type="button">Page action</button>
+      <div class="spacer"></div>
+      <div id="lazy"></div>
+    </main>
+    <div class="dialog" role="dialog" aria-label="Newsletter">
+      <p>Join our newsletter</p>
+      <button type="button">Dialog OK</button>
+    </div>
+    <script>
+      // The block below the spacer exists only once the visitor has scrolled.
+      const lazy = document.getElementById('lazy');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY < 200 || lazy.hasChildNodes()) return;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = 'Loaded later';
+        lazy.appendChild(button);
+      });
+    </script>
+  </body>
+</html>

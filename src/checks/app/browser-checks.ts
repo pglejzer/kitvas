@@ -3,7 +3,7 @@
 import { join } from 'node:path';
 import type { RawFinding, Shot } from '../domain/finding.ts';
 import type { IdEntry } from '../domain/ids.ts';
-import { a11yFindings, runtimeFindings, VIEWPORTS } from '../domain/page.ts';
+import { a11yFindings, componentsOf, runtimeFindings, VIEWPORTS } from '../domain/page.ts';
 import { type CatalogComponent, usageFindings } from '../domain/usage.ts';
 import type { Browser } from '../ports/browser.ts';
 
@@ -29,7 +29,12 @@ export async function browserChecks(browser: Browser, input: BrowserInput): Prom
         const file = `build/shots/${state}-${width}.png`;
         const screenshot = join(input.versionDir, ...file.split('/'));
         const report = await session.visit({ page, state, width, height, screenshot });
-        const seen = { state, width, ids: input.ids };
+        const seen = {
+          state,
+          width,
+          ids: input.ids,
+          components: componentsOf(report.usage),
+        };
         findings.push(
           ...runtimeFindings(report, seen),
           ...a11yFindings(report.violations, seen),

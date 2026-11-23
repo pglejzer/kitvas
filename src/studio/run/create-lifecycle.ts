@@ -3,7 +3,7 @@
 import type { SharedBrowser } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
-import { KitvasError, type Translate } from '../../shared/index.ts';
+import { KitvasError, loadSettings, type Translate } from '../../shared/index.ts';
 import { LinkSchema } from '../api/schemas.ts';
 import type { InboxItem } from '../inbox/inbox.ts';
 import type { StudioAssets } from '../pages/asset-routes.ts';
@@ -108,6 +108,8 @@ export function createLifecycle(input: LifecycleInput): LifecycleDeps {
 
 export type ServeInput = {
   dataDir: string;
+  /** The user's home: `studioIdleMinutes` is read from its `.kitvas/config.json`. */
+  home: string;
   project: string;
   version: string;
   drafts: DraftStore;
@@ -129,6 +131,8 @@ export function serveProject(input: ServeInput): Promise<StudioState> {
     project: input.project,
     ...(input.browser ? { browser: input.browser } : {}),
     files: studioFiles(input.dataDir, input.project),
+    // Read once at the start: a changed setting applies from the next start of the studio.
+    idleMinutes: loadSettings({ home: input.home, cwd: input.project }).studioIdleMinutes,
     log: (text) => {
       process.stderr.write(`${new Date().toISOString()} ${text}\n`);
     },

@@ -121,6 +121,34 @@ test('the phone width keeps the same order', { timeout: TEST_MS }, async (t) => 
   assert.equal(facts.candidates.find((candidate) => candidate.kind === 'card')?.box[0], 16);
 });
 
+test('a dialog over the page is an overlay and its candidates come last; lazy content is found', {
+  timeout: TEST_MS,
+}, async (t) => {
+  const report = await scan('/overlay.html');
+  if (report === undefined) return t.skip(NO_BROWSER);
+  const facts = scanned(report);
+  assert.doesNotThrow(() => ScanFactsSchema.parse(facts));
+  assert.equal(facts.overlays.length, 1, JSON.stringify(facts.overlays));
+  assert.match(facts.overlays[0]?.text.pageText ?? '', /Join our newsletter/);
+  // The dialog box itself (a card) and its button are both inside the overlay, and every
+  // candidate of an overlay comes after every candidate of the page.
+  const first = facts.candidates.findIndex((candidate) => candidate.overlay);
+  assert.ok(first > 0, JSON.stringify(facts.candidates.map((c) => [c.id, c.overlay])));
+  assert.ok(facts.candidates.slice(first).every((candidate) => candidate.overlay));
+  assert.ok(facts.candidates.slice(0, first).every((candidate) => !candidate.overlay));
+  const overlaid = facts.candidates.filter((candidate) => candidate.overlay);
+  assert.ok(
+    overlaid.some((c) => c.kind === 'button' && c.text.pageText === 'Dialog OK'),
+    JSON.stringify(overlaid.map((c) => [c.kind, c.text.pageText])),
+  );
+  assert.ok(overlaid.every((c) => /Dialog OK/.test(c.text.pageText)));
+  const buttons = facts.candidates.filter((candidate) => candidate.kind === 'button');
+  assert.deepEqual(
+    buttons.map((c) => c.text.pageText),
+    ['Page action', 'Loaded later', 'Dialog OK'],
+  );
+});
+
 test('a page with an empty main is scanned with no candidates', { timeout: TEST_MS }, async (t) => {
   const out = tempDir('kitvas-scan-');
   const report = await scan('/empty.html', { out });
