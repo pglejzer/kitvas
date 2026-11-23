@@ -3,8 +3,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import {
+  CRAFT_RULES,
   DEEP_RULES,
   GUIDELINES,
+  REWORK_RULE_IDS,
   SOURCE_RULE_IDS,
   STATE_RULES,
   VISIT_RULES,
@@ -28,6 +30,8 @@ const ruleIds = [
   ...STATE_RULES.map((rule) => rule.id),
   ...DEEP_RULES.map((rule) => rule.id),
   ...SOURCE_RULE_IDS,
+  ...REWORK_RULE_IDS,
+  ...CRAFT_RULES.map((rule) => rule.id),
 ];
 
 test('ids are unique and start with their check', () => {

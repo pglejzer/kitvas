@@ -61,6 +61,7 @@ export function createCheckCommand(deps: CheckCommandDeps): Command {
       const skipped = CHECKS.filter((name) => data.checks[name] === 'skipped');
       if (skipped.length > 0) lines.push(t('check.report.skipped', { checks: skipped.join(', ') }));
       lines.push(...data.notes);
+      if (data.rework !== undefined) lines.push(t('check.report.rework', data.rework));
       if (data.deep === true) {
         const widths = DEEP_VIEWPORTS.map((viewport) => viewport.width).join(', ');
         lines.push(t('check.report.deep', { widths }));

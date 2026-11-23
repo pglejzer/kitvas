@@ -41,6 +41,7 @@ const REPORT: PageReport = {
   facts: null,
   deep: null,
   contrastUnsure: [],
+  craft: null,
 };
 
 test('axe violations are placed at the nearest element; impact sets the severity', () => {

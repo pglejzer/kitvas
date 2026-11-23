@@ -51,6 +51,12 @@ function folderWriter(project: string): KitWriter & { written: string[] } {
     remove(id, relPath) {
       rmSync(join(root, id, ...relPath.split('/')), { recursive: true, force: true });
     },
+    writeAddition() {
+      throw new Error('these builds add nothing');
+    },
+    exportFiles() {
+      throw new Error('these builds export nothing');
+    },
   };
 }
 

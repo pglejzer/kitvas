@@ -35,6 +35,8 @@ export type StageInput = {
   slug: string;
   /** The compared version, its frame address and whether it is built; null without compare. */
   compare: { version: number; built: boolean; src: string } | null;
+  /** The pane of a rework's original (version 0), shown instead of a compared version. */
+  original?: Html | null;
 };
 
 function summary(t: Translate): Html {
@@ -53,6 +55,11 @@ export function stage(input: StageInput): Html {
   }
   const wide = html`<p class="caption">${t('studio.draft.wide', { width: input.width })}</p>`;
   const base = { t, host: input.host, width: input.width };
+  if (input.original) {
+    const title = `${t('studio.page.frame', { title: input.name })}, ${t('studio.draft.versionCaption', { version: input.version })}`;
+    const current = frameBox({ ...base, src: input.src, title, role: 'current' });
+    return html`<div class="compare">${input.original}${pane(t, input.version, current)}</div>${wide}`;
+  }
   if (!compare) {
     const title = t('studio.page.frame', { title: input.name });
     return html`${frameBox({ ...base, src: input.src, title, role: 'current' })}${wide}`;

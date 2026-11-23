@@ -1,7 +1,13 @@
 // `/`: every draft as a live thumbnail of its latest version, with its name, version and status.
 
 import { readChecks } from '../../checks/index.ts';
-import { type DraftStore, listDrafts, versionInfo } from '../../drafts/index.ts';
+import {
+  type DraftKind,
+  type DraftStore,
+  listDrafts,
+  loadDraft,
+  versionInfo,
+} from '../../drafts/index.ts';
 import type { Translate } from '../../shared/index.ts';
 import { type DraftStatus, needsAttention, statusLine, versionStatus } from '../views/status.ts';
 import { filterRow } from './controls.ts';
@@ -17,6 +23,8 @@ export type PageRequest = { query: URLSearchParams; host: string; nonce: string 
 type Card = {
   slug: string;
   title: string;
+  /** Screen, rework or craft; null for a draft that cannot be read. */
+  kind: DraftKind | null;
   version: number;
   status: DraftStatus;
   /** The frame address of the latest version in its default state; null when it is not built. */
@@ -29,6 +37,7 @@ function cardsOf(deps: GalleryDeps, host: string): Card[] {
       return {
         slug: item.slug,
         title: item.slug,
+        kind: null,
         version: 0,
         status: { kind: 'unreadable' },
         thumb: null,
@@ -40,6 +49,7 @@ function cardsOf(deps: GalleryDeps, host: string): Card[] {
     return {
       slug: item.slug,
       title: item.title ?? item.slug,
+      kind: loadDraft(deps.drafts, item.slug).kind,
       version: item.version,
       status: versionStatus(info.built, checks),
       thumb: info.built ? frameSrc(deps.frame, host, target) : null,
@@ -62,7 +72,11 @@ function card(t: Translate, item: Card): Html {
     item.version > 0
       ? html`<span>${t('studio.page.version', { version: item.version })}</span>`
       : '';
-  return html`<li class="card">${thumb}<h2>${name}</h2><p class="meta">${version}<span class="${line.tone}">${t(line.key, line.params)}</span></p></li>`;
+  const kind =
+    item.kind === null
+      ? ''
+      : html`<p class="kind" data-kind="${item.kind}">${t(`studio.kind.${item.kind}`)}</p>`;
+  return html`<li class="card">${thumb}${kind}<h2>${name}</h2><p class="meta">${version}<span class="${line.tone}">${t(line.key, line.params)}</span></p></li>`;
 }
 
 export function galleryPage(deps: GalleryDeps, request: PageRequest): string {

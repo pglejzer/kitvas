@@ -34,6 +34,9 @@ const loadedOf = (raw: Json): LoadedKit => {
     hash: 'hash',
     project: 'project',
     cssVarMap: {},
+    additions: [],
+    additionsDir: undefined,
+    entry: 'kit/generated/kit.ts',
   };
 };
 

@@ -63,6 +63,15 @@ Read by the `maker` agent before it writes a section. Each rule has an id; repor
 - R-COMPOSE-37: Long text stays at about 80 characters per line or less: set a `max-width` from a token (`ui/line-length`).
 - R-COMPOSE-38: Body text is at least 14 px on phones. Use the kit's body size token and never shrink it for density.
 
+## Rework
+
+These apply when the draft is a rework of an existing page (`kind: 'rework'`). The layout and the order may differ from the original; the content may not.
+
+- R-COMPOSE-39: Keep every protected item. The layout names each one by its exact text; the section that holds it shows that text, label or accessible name at both widths (`ux/protected`). Never drop, rename or merge away a protected item, and never edit `before/protected.json`.
+- R-COMPOSE-40: Never drop content. The words, prices, field labels and calls to action of the original stay, in the section the layout gives them. Shorten or reorder, but do not delete. Say in the report what has no place.
+- R-COMPOSE-41: The original's problems are the first to fix. When `before/problems.json` lists a rule, do not repeat that problem in the section; the version must fire that rule less often than the original (`ux/before-problems`).
+- R-COMPOSE-42: "Nicer" comes from the kit and the guideline book, never from a style of your own. Use the kit's components and tokens as the kit shows them, and add no look the kit does not hold.
+
 ## Report
 
 - R-COMPOSE-27: Reply in a few lines: the files written, what the kit could not give, and any rule here that was missing, wrong or hard to follow. Do not paste code.

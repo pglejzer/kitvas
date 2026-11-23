@@ -30,16 +30,27 @@ export type ImportProbe = {
 export const importedName = (component: KitComponent): string =>
   component.import.default === true ? 'default' : (component.import.name ?? component.name);
 
+/** The project's additions of a kit: their names, and the folder their imports start from. */
+export type ProbeAdditions = { names: readonly string[]; dir: string };
+
 /**
  * `project` is the folder of a repo kit, whose components are imported by paths from the
  * project's root; `kitDir` is the folder of a written kit, whose components are its own
- * `components/` files. Both are written absolute, which esbuild takes with forward slashes.
+ * `components/` files; an addition's file is in `additions.dir`. All are written absolute, which
+ * esbuild takes with forward slashes.
  */
-export function importProbe(kit: Kit, project: string | undefined, kitDir?: string): ImportProbe {
+export function importProbe(
+  kit: Kit,
+  project: string | undefined,
+  kitDir?: string,
+  additions?: ProbeAdditions,
+): ImportProbe {
   const source = ['import "@kit";'];
   const lines: Record<number, number> = {};
+  const added = new Set(additions?.names ?? []);
   for (const [index, component] of kit.components.entries()) {
-    const root = kit.source.type === 'repo' ? project : isWrittenKit(kit) ? kitDir : undefined;
+    const own = kit.source.type === 'repo' ? project : isWrittenKit(kit) ? kitDir : undefined;
+    const root = added.has(component.name) ? additions?.dir : own;
     const from =
       root !== undefined
         ? join(root, ...component.import.from.split('/'))
@@ -71,8 +82,10 @@ export type ImportsInput = {
 };
 
 export async function importsStep({ loaded, dir, bundler }: ImportsInput): Promise<StepResult> {
-  const { kit } = loaded;
-  const probe = importProbe(kit, loaded.project, loaded.dir);
+  const { kit, additionsDir } = loaded;
+  const additions =
+    additionsDir === undefined ? undefined : { names: loaded.additions, dir: additionsDir };
+  const probe = importProbe(kit, loaded.project, loaded.dir, additions);
   const bundle = await bundler.bundle({
     workingDir: dir,
     entry: { name: IMPORT_PROBE, source: probe.source },

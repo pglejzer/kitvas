@@ -17,6 +17,7 @@ const CLEAN: PageReport = {
   facts: null,
   deep: null,
   contrastUnsure: [],
+  craft: null,
 };
 
 function fakeBrowser(report: Partial<PageReport> = {}) {

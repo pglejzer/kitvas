@@ -40,6 +40,11 @@ export type ChecksFile = {
   checks: Record<CheckName, 'ran' | 'skipped'>;
   /** `kitvas check --deep` ran the stress passes and the extra widths. */
   deep?: boolean | undefined;
+  /**
+   * A rework draft whose original has a problems list: how many of the original's problems are
+   * gone and how many are left in this version (ADR 0045).
+   */
+  rework?: { fixed: number; left: number } | undefined;
   summary: { fix: number; review: number };
   /** The browser the page checks ran in; null when they did not run. */
   browser: string | null;

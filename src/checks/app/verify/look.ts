@@ -47,6 +47,8 @@ export async function lookStep(input: LookInput): Promise<StepResult & { look: L
   const look: LookEntry[] = [];
 
   for (const [index, component] of loaded.kit.components.entries()) {
+    // The project's additions were crafted, not cut from the kit's source: they have no reference.
+    if (loaded.additions.includes(component.name)) continue;
     let referenced = 0;
     for (const [number, example] of component.examples.entries()) {
       const reference = example.reference;

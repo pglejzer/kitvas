@@ -2,7 +2,7 @@
 // count for the cache key, which hold class names, and the import paths of its providers.
 
 import { join } from 'node:path';
-import { isWrittenKit, type LoadedKit, PROJECT_PATH } from '../../kit/index.ts';
+import { ADDITION_FILES, isWrittenKit, type LoadedKit, PROJECT_PATH } from '../../kit/index.ts';
 import { packageDirFrom } from '../../shared/index.ts';
 import { CANDIDATE_LIMITS } from '../domain/candidates.ts';
 import type { MountProvider } from '../domain/provider-source.ts';
@@ -72,23 +72,39 @@ export function componentDir(loaded: LoadedKit): string | undefined {
 
 /**
  * What of the project counts for a build's cache key besides the kit folder: every file of a repo
- * kit's folder; an npm kit's `package.json`, so an upgrade of the package builds again.
+ * kit's folder; an npm kit's `package.json`, so an upgrade of the package builds again; the kit's
+ * additions folder, for any kit that has one.
  */
 export function projectInputs(loaded: LoadedKit): { dirs: string[]; files: string[] } {
+  const added = loaded.additionsDir === undefined ? [] : [loaded.additionsDir];
   const dir = componentDir(loaded);
-  if (dir === undefined) return { dirs: [], files: [] };
+  if (dir === undefined) return { dirs: added, files: [] };
   const { type } = loaded.kit.source;
   // A written kit's components are inside the kit folder, which is hashed already.
-  if (isWrittenKit(loaded.kit)) return { dirs: [], files: [] };
+  if (isWrittenKit(loaded.kit)) return { dirs: added, files: [] };
   return type === 'repo'
-    ? { dirs: [dir], files: [] }
-    : { dirs: [], files: [join(dir, 'package.json')] };
+    ? { dirs: [dir, ...added], files: [] }
+    : { dirs: added, files: [join(dir, 'package.json')] };
 }
 
 const SCRIPTS = { repo: /\.(tsx|ts|jsx|js)$/, npm: /\.(js|mjs)$/, written: /\.(tsx|ts)$/ };
 
-/** Absolute files of the kit's components that may hold class names. */
+/** Absolute files of the kit's components, its additions' included, that may hold class names. */
 export function componentSources(fs: BuildFs, loaded: LoadedKit): string[] {
+  return [...ownSources(fs, loaded), ...additionSources(fs, loaded)];
+}
+
+/** The scripts of the kit's additions (`.kitvas/additions/<id>/components/`). */
+function additionSources(fs: BuildFs, loaded: LoadedKit): string[] {
+  if (loaded.additionsDir === undefined) return [];
+  const dir = join(loaded.additionsDir, ADDITION_FILES);
+  return fs
+    .listFiles(dir)
+    .filter((relPath) => SCRIPTS.written.test(relPath) && !relPath.endsWith('.d.ts'))
+    .map((relPath) => join(dir, ...relPath.split('/')));
+}
+
+function ownSources(fs: BuildFs, loaded: LoadedKit): string[] {
   const dir = componentDir(loaded);
   const { type } = loaded.kit.source;
   if (dir === undefined || type === 'builtin') return [];

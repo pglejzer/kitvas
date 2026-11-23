@@ -160,6 +160,21 @@ test('heading-gap fires when the heading is no closer to its content than its gr
   ]);
 });
 
+test('heading-gap rounds its gaps and is silent for a group beside the one before it', () => {
+  const nodes = headingStack(460.4);
+  const fractional = nodes.map((one, index) =>
+    index === 2 ? { ...one, box: [0, 300.3, 390, 300] as [number, number, number, number] } : one,
+  );
+  assert.deepEqual(run('ui/heading-gap', fractional).map(brief)[0]?.hint.params, {
+    above: 100,
+    below: 130,
+  });
+  const beside = nodes.map((one, index) =>
+    index === 2 ? { ...one, box: [400, 0, 390, 600] as [number, number, number, number] } : one,
+  );
+  assert.deepEqual(run('ui/heading-gap', beside), []);
+});
+
 test('heading-gap is silent for a close heading, for a heading after a badge, and on an empty page', () => {
   assert.deepEqual(run('ui/heading-gap', headingStack(340)), []);
   assert.deepEqual(run('ui/heading-gap', headingStack(520, true)), []);

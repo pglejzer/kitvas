@@ -2,6 +2,7 @@
 
 import { type KitStore, type LoadedKit, requireKit } from '../../kit/index.ts';
 import type { Issue } from '../../shared/index.ts';
+import { craftEntryScss, craftEntryTsx } from '../domain/craft-entry.ts';
 import { type Draft, latestVersion } from '../domain/draft.ts';
 import { entryScss, entryTsx } from '../domain/entry.ts';
 import { type Layout, layoutIssues, parseLayout } from '../domain/layout.ts';
@@ -41,6 +42,8 @@ export type InspectedLayout = {
   issues: Issue[];
 };
 
+const EMPTY_LAYOUT: Layout = { title: '', screen: null, sections: [], shared: '' };
+
 export const sectionPaths = (base: string, id: string): { tsx: string; scss: string } => ({
   tsx: `${base}/src/tsx/sections/${pascalCase(id)}.tsx`,
   scss: `${base}/src/scss/sections/${id}.scss`,
@@ -52,6 +55,10 @@ export function inspectLayout(store: DraftStore, kits: KitStore, slug: string): 
   const version = latestVersion(draft);
   const base = versionFolder(version);
   const kit = requireKit(kits, draft.kit.id);
+  if (draft.kind === 'craft') {
+    // A craft draft has no layout: its entry is the sketch board.
+    return { draft, version, base, kit, layout: EMPTY_LAYOUT, issues: [] };
+  }
   const text = store.readText(slug, `${base}/md/layout.md`);
   if (text === undefined) {
     const issues = [{ path: 'layout', key: 'draftIssue.layoutMissing', params: {} }];
@@ -60,7 +67,7 @@ export function inspectLayout(store: DraftStore, kits: KitStore, slug: string): 
       version,
       base,
       kit,
-      layout: { title: '', screen: null, sections: [], shared: '' },
+      layout: EMPTY_LAYOUT,
       issues,
     };
   }
@@ -74,7 +81,24 @@ export function inspectLayout(store: DraftStore, kits: KitStore, slug: string): 
 }
 
 export function checkLayout(store: DraftStore, kits: KitStore, slug: string): LayoutReport {
-  const { version, base, layout, issues } = inspectLayout(store, kits, slug);
+  const { draft, kit, version, base, layout, issues } = inspectLayout(store, kits, slug);
+  if (draft.craft) {
+    const { icons } = kit.kit;
+    const generated = [`${base}/src/tsx/index.tsx`, `${base}/src/scss/index.scss`];
+    store.writeText(
+      slug,
+      generated[0] ?? '',
+      craftEntryTsx({
+        name: draft.craft.name,
+        subject: draft.craft.subject,
+        picked: draft.craft.picked,
+        kitIcons: icons?.source === 'component' ? icons.names.slice(0, 6) : [],
+        ...(icons?.source === 'component' ? { iconComponent: icons.component } : {}),
+      }),
+    );
+    store.writeText(slug, generated[1] ?? '', craftEntryScss());
+    return { slug, version, valid: true, issues: [], sections: [], generated };
+  }
   const sections = layout.sections.map((section) => {
     const paths = sectionPaths(base, section.id);
     return {

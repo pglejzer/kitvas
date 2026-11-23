@@ -26,6 +26,26 @@ export type Flags = {
   mode: string | undefined;
   /** `guidelines --screen <kind>`. */
   screen: string | undefined;
+  /** `craft new --subject component|icon|logo`. */
+  subject: string | undefined;
+  /** `craft new --name <PascalCase>`. */
+  name: string | undefined;
+  /** `craft new --description <text>`. */
+  description: string | undefined;
+  /** `craft add --category <category>`: a crafted component's catalog category (default display). */
+  category: string | undefined;
+  /** `craft add --replace`: replace an earlier addition of the same name. */
+  replace: boolean;
+  /** `craft export --to <folder>`. */
+  to: string | undefined;
+  /** `craft new --image <file>`, repeatable; empty when absent. */
+  image: string[];
+  /** `craft new --kit <id>`: the kit to make the draft for. */
+  kit: string | undefined;
+  /** `rework new --figma-image <file>`: the PNG of a Figma frame the skill saved. */
+  figmaImage: string | undefined;
+  /** `rework new --note <file>`: the frame's structure note, with `--figma-image`. */
+  note: string | undefined;
 };
 
 export type ParsedArgs = {
@@ -57,6 +77,16 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         check: { type: 'string' },
         mode: { type: 'string' },
         screen: { type: 'string' },
+        subject: { type: 'string' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+        category: { type: 'string' },
+        replace: { type: 'boolean' },
+        to: { type: 'string' },
+        image: { type: 'string', multiple: true },
+        kit: { type: 'string' },
+        'figma-image': { type: 'string' },
+        note: { type: 'string' },
       },
     });
     const [command, ...rest] = positionals;
@@ -78,6 +108,16 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         check: values.check,
         mode: values.mode,
         screen: values.screen,
+        subject: values.subject,
+        name: values.name,
+        description: values.description,
+        category: values.category,
+        replace: values.replace === true,
+        to: values.to,
+        image: values.image ?? [],
+        kit: values.kit,
+        figmaImage: values['figma-image'],
+        note: values.note,
       },
     };
   } catch (cause) {

@@ -1,5 +1,7 @@
 // A browser that opens a built page and reports what it saw.
 
+import type { PageFacts } from '../domain/facts.ts';
+import type { InventoryItem } from '../domain/inventory.ts';
 import type { Pixels } from '../domain/look-score.ts';
 import type { PageReport } from '../domain/page.ts';
 import type { ScanFacts } from '../domain/scan-facts.ts';
@@ -17,7 +19,7 @@ export type Visit = {
 };
 
 /** `reflow` runs only at 390: the page resized to 320×568. `deep` only with `kitvas check --deep`. */
-export type Pass = 'focus' | 'reflow' | 'spacing' | 'deep';
+export type Pass = 'focus' | 'reflow' | 'spacing' | 'deep' | 'craft';
 
 /** A look at one example page of a kit's catalog, for `kit verify`. */
 export type Inspect = {
@@ -63,6 +65,22 @@ export type Scan = {
   out: string;
   policy: ScanPolicy;
 };
+
+/** One live page at one width, for `rework new --url` and `craft new --url` (ADR 0045). */
+export type Survey = {
+  url: string;
+  width: number;
+  height: number;
+  /** Absolute path of the screenshot to write. */
+  shot: string;
+  policy: ScanPolicy;
+};
+
+export type SurveyReport =
+  | { state: 'surveyed'; facts: PageFacts; inventory: InventoryItem[]; viewportMeta: boolean }
+  /** The page, or a redirect of it, was refused by the policy. */
+  | { state: 'blocked'; url: string }
+  | { state: 'failed'; error: string };
 
 export type ScanReport =
   | { state: 'scanned'; facts: ScanFacts }
@@ -123,6 +141,8 @@ export interface BrowserSession {
   crop?(inputs: Crop[]): Promise<CropReport[]>;
   /** Screenshots a catalog example and decodes it with its reference. */
   capture?(input: Capture): Promise<CaptureReport>;
+  /** A live page for rework and craft: shot, page facts and inventory. */
+  survey?(input: Survey): Promise<SurveyReport>;
   close(): Promise<void>;
 }
 

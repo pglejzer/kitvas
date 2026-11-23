@@ -10,3 +10,4 @@ Drafts in a project's workspace: `.kitvas/drafts/<slug>/`, one folder per versio
 - All file access goes through `DraftStore`; paths inside a draft are relative with forward slashes. The store refuses anything outside the draft folder.
 - A new version copies `md/` and `src/` of the latest one and never `build/`.
 - This module reads kits only through `src/kit/index.ts`.
+- Kinds (ADR 0045): `kind` is `screen`, `rework` or `craft`, and each carries only its own block. A craft draft's sketches are `src/tsx/sketches/A.tsx`, `B.tsx`, `C.tsx`; its entry is generated (`domain/craft-entry.ts`), and the next version after a pick holds only the picked sketch.

@@ -1,12 +1,41 @@
-// Writes files into kit folders under one root, the project's `.kitvas/kits/`.
+// Writes files into kit folders under one root, the project's `.kitvas/kits/`, into the project's
+// additions beside it (`.kitvas/additions/`), and plain files out to a folder.
 
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
-import { KitvasError } from '../../shared/index.ts';
+import { dirname, join } from 'node:path';
+import { KitvasError, PLUGIN_ROOT } from '../../shared/index.ts';
+import { ADDITIONS_DIR } from '../domain/additions.ts';
+import type { KitStore } from '../ports/kit-store.ts';
 import type { KitWriter } from '../ports/kit-writer.ts';
+import { createAdditionsWriter } from './additions-folder.ts';
+import { createFolderKitStore } from './folder-store.ts';
 import { kitFile } from './kit-folder.ts';
+import { createLayeredKitStore } from './layered-store.ts';
 
-export function createFolderKitWriter(root: string): KitWriter {
+export type FolderWriterOptions = {
+  /** The project's additions folder. Default: `additions` beside `root`, `.kitvas/additions`. */
+  additions?: string;
+  /**
+   * Where kits are read from, for the names an addition may not take. Default: the kits shipped
+   * with the plugin, then the kits under `root`, as `src/main.ts` layers them.
+   */
+  kits?: KitStore;
+};
+
+/** `root` is the project's `.kitvas/kits`. */
+export function createFolderKitWriter(root: string, options: FolderWriterOptions = {}): KitWriter {
+  const workspace = dirname(root);
+  const kits =
+    options.kits ??
+    createLayeredKitStore(createFolderKitStore(join(PLUGIN_ROOT, 'kits')), {
+      dir: dirname(workspace),
+      store: createFolderKitStore(root),
+    });
+  const additions = createAdditionsWriter({
+    root: options.additions ?? join(workspace, ADDITIONS_DIR),
+    kits,
+  });
+
   return {
     readText(id, relPath) {
       const file = kitFile(root, id, relPath);
@@ -36,5 +65,8 @@ export function createFolderKitWriter(root: string): KitWriter {
       if (!file) throw new KitvasError('KIT_INVALID', { id, detail: relPath });
       rmSync(file, { recursive: true, force: true });
     },
+    writeAddition: additions.writeAddition,
+    exportFiles: additions.exportFiles,
+    syncAdditionsEntry: additions.syncAdditionsEntry,
   };
 }

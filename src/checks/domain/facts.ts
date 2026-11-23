@@ -119,7 +119,7 @@ export type ImageFacts = {
 };
 
 export type FactNode = {
-  /** Index of the parent in `nodes`; -1 when the parent is #root or outside the cap. */
+  /** Index of the parent in `nodes`; -1 when the parent is the walk's root (#root or body) or outside the cap. */
   parent: number;
   /** Element id: the node's own data-ks, else the nearest ancestor's; null outside any. */
   ks: string | null;
@@ -135,7 +135,7 @@ export type FactNode = {
   /** The nearest landmark, the node itself included. */
   landmark: Landmark | null;
   box: Box;
-  /** Visually hidden: a box of 1 px or less in a dimension, or clipped to nothing. */
+  /** Visually hidden: a box of 1 px or less in a dimension, clipped to nothing, off the page, or cut away by an `overflow: hidden|clip` ancestor (ADR 0047). */
   hidden: boolean;
   style: NodeStyle;
   text: TextFacts | null;
@@ -169,7 +169,7 @@ export type PageFacts = {
   viewport: [number, number];
   scrollWidth: number;
   bodyFontSize: number;
-  /** Visible elements under #root in document order (w > 0, h > 0, visibility not hidden), at most FACTS_NODE_CAP. */
+  /** Visible elements under #root (a draft) or body (a live page) in document order (w > 0, h > 0, visibility not hidden), at most FACTS_NODE_CAP. */
   nodes: FactNode[];
   truncated: boolean;
   /** Fixed and sticky elements, measured one viewport down the page. */

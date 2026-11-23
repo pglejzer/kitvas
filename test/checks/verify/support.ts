@@ -43,27 +43,35 @@ export function acmeLoaded(
 ): LoadedKit {
   const json = acmeKitJson();
   change(json);
+  const dir = join(projectKitsDir(PROJECT), 'acme');
   return {
     kit: parseKit(json, 'acme'),
-    dir: join(projectKitsDir(PROJECT), 'acme'),
+    dir,
     tokens: options.tokens ?? [],
     issues: [],
     hash: 'a'.repeat(64),
     project: PROJECT,
     cssVarMap: options.cssVarMap ?? {},
+    additions: [],
+    additionsDir: undefined,
+    entry: join(dir, 'generated', 'kit.ts'),
   };
 }
 
 /** The built-in fixture kit `tiny`, in a folder of its own name. */
 export function tinyLoaded(): LoadedKit {
+  const dir = join(PLUGIN_ROOT, 'test', 'fixtures', 'kits', 'tiny');
   return {
     kit: parseKit(tinyKitJson(), 'tiny'),
-    dir: join(PLUGIN_ROOT, 'test', 'fixtures', 'kits', 'tiny'),
+    dir,
     tokens: [],
     issues: [],
     hash: 'b'.repeat(64),
     project: undefined,
     cssVarMap: {},
+    additions: [],
+    additionsDir: undefined,
+    entry: join(dir, 'tsx', 'index.ts'),
   };
 }
 
@@ -77,14 +85,18 @@ export function writtenLoaded(reference: string | null = REFERENCE): LoadedKit {
   const [button] = json.components as { examples: { reference?: string }[] }[];
   const example = button?.examples[0];
   if (example && reference !== null) example.reference = reference;
+  const dir = join(projectKitsDir(PROJECT), 'tiny');
   return {
     kit: parseKit(json, 'tiny'),
-    dir: join(projectKitsDir(PROJECT), 'tiny'),
+    dir,
     tokens: [],
     issues: [],
     hash: 'c'.repeat(64),
     project: PROJECT,
     cssVarMap: {},
+    additions: [],
+    additionsDir: undefined,
+    entry: join(dir, 'tsx', 'index.ts'),
   };
 }
 

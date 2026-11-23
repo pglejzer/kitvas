@@ -46,6 +46,8 @@ function workshop(options: Options = {}) {
       writeText: () => {},
       writeBytes: () => {},
       remove: () => {},
+      writeAddition: () => {},
+      exportFiles: () => {},
     },
     projectFiles: () => {
       throw new Error('a built-in kit has no project to look at');

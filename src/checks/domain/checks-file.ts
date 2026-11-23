@@ -40,4 +40,5 @@ export const ChecksFileSchema: Zod.ZodType<ChecksFile> = z.object({
   shots: z.array(z.object({ state: z.string(), width: z.number().int(), file: z.string() })),
   findings: z.array(FindingSchema),
   deep: z.boolean().optional(),
+  rework: z.object({ fixed: count, left: count }).optional(),
 });

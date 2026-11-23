@@ -1,6 +1,68 @@
 // Scaffolds kitvas writes into a new draft. Agents fill them in; they are working files in English.
 
+import type { CraftSubject, Sketch } from './draft.ts';
 import { SCREEN_KINDS } from './layout.ts';
+
+const kebab = (name: string): string =>
+  name
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+    .toLowerCase();
+
+/**
+ * The starting TSX of one craft sketch; the sketcher agent rewrites it. It exports `${name}${sketch}`
+ * (a component sketch also `${name}${sketch}Example`).
+ */
+export function sketchTemplate(name: string, sketch: Sketch, subject: CraftSubject): string {
+  const id = `${name}${sketch}`;
+  if (subject === 'component') {
+    return [
+      `// Sketch ${sketch} of the component ${name}. Replace the body; use kit components and tokens.`,
+      '',
+      `export type ${id}Props = { label?: string };`,
+      '',
+      `export function ${id}({ label = 'Example' }: ${id}Props) {`,
+      `  return <div className="${kebab(name)}-${sketch.toLowerCase()}">{label}</div>;`,
+      '}',
+      '',
+      `export function ${id}Example() {`,
+      `  return <${id} label="Example" />;`,
+      '}',
+      '',
+    ].join('\n');
+  }
+  const logo = subject === 'logo';
+  const size = logo ? 128 : 24;
+  return [
+    `// Sketch ${sketch} of the ${subject} ${name}. Replace the shapes; keep currentColor and the props.`,
+    `// viewBox: 0 0 ${size} ${size} (placeholder: set it to the grid of the kit's ${logo ? 'logo' : 'icons'})`,
+    '',
+    `export type ${id}Props = {`,
+    '  size?: number;',
+    '  /** Gives the graphic an accessible name; without it the graphic is hidden from assistive tech. */',
+    '  title?: string;',
+    ...(logo ? ["  tone?: 'colour' | 'mono';"] : []),
+    '};',
+    '',
+    `export function ${id}({ size = ${size}, title${logo ? ", tone = 'colour'" : ''} }: ${id}Props) {`,
+    '  return (',
+    '    <svg',
+    `      viewBox="0 0 ${size} ${size}"`,
+    '      width={size}',
+    '      height={size}',
+    '      fill="currentColor"',
+    ...(logo ? ['      data-craft-tone={tone}'] : []),
+    '      aria-hidden={title === undefined ? true : undefined}',
+    "      role={title === undefined ? undefined : 'img'}",
+    '    >',
+    '      {title === undefined ? null : <title>{title}</title>}',
+    `      <rect x="4" y="4" width="${size - 8}" height="${size - 8}" />`,
+    '    </svg>',
+    '  );',
+    '}',
+    '',
+  ].join('\n');
+}
 
 export const briefTemplate = (title: string): string =>
   [

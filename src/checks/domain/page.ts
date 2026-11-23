@@ -1,5 +1,6 @@
 // The browser checks: what one visit of the page reports, turned into findings.
 
+import type { CraftFacts } from './craft-facts.ts';
 import type { DeepFacts, PageFacts } from './facts.ts';
 import { type Message, type RawFinding, toolText } from './finding.ts';
 import { elementPlace, type IdEntry } from './ids.ts';
@@ -39,6 +40,8 @@ export type PageReport = {
   deep: DeepFacts | null;
   /** axe's `color-contrast` results it could not decide: text over images, gradients, overlays. */
   contrastUnsure: { node: number; element: string | null }[];
+  /** A craft board's sketches and kit icons, measured by the `craft` pass; null otherwise. */
+  craft: CraftFacts | null;
 };
 
 /** Which visit a finding comes from. */
