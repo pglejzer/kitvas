@@ -61,7 +61,7 @@ Read by the `tailor` agent before it writes a kit from Figma files, a website sc
 ## Images and Figma
 
 - W28: Images: you read the files under `source/images/`. To cut components out of them, write `source/images/boxes.json`: `[{ "image": "source/images/home.png", "box": [x, y, width, height], "scale": 1, "name": "Button.1" }]`. Pixels are the image's own. Names are unique across the kit. The skill runs `kit crop`, which writes `source/refs/<name>.png`.
-- W29: Figma: read `source/figma/metadata.xml` for names, variants and structure, `variables.json` for tokens and `sheet-<n>.png` for the look. The skill wrote `source/figma/boxes.json`; use its `name` values as reference paths: `source/refs/<name>.png`.
+- W29: Figma: read `source/figma/metadata.xml` for names, variants and structure, `variables.json` for tokens and `sheet-<n>.png` for the look. The skill wrote `source/figma/boxes.json`; use its `name` values as reference paths: `source/refs/<name>.png`. When a font weight in those files disagrees with the weight in the text style's name (`Semibold`, `Bold`), the name wins.
 - W30: Never download or copy fonts, images or logos from any source. A logo or an icon you cannot draw with CSS goes to `gaps` with `unsupported`.
 
 ## Findings and report

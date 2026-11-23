@@ -249,6 +249,15 @@ h4 {
   border-radius: var(--kit-radius-md);
   background: var(--kit-color-surface);
 }
+/* The paused view (ADR 0042) takes the page's place once the studio has stopped. */
+body[data-paused] > :not(.paused) { display: none; }
+.paused { max-width: 40rem; padding: var(--kit-space-md) var(--kit-space-lg); }
+/* The script moves focus here: the ring shows where it went, for mouse users too. */
+.paused:focus {
+  outline: 2px solid var(--kit-color-focus);
+  outline-offset: 4px;
+  border-radius: var(--kit-radius-sm);
+}
 @media (min-width: 900px) {
   .example-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

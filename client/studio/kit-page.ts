@@ -9,6 +9,7 @@ import {
   startedJob,
 } from './kit-catalog.ts';
 import { applyReport, exampleReport, findExampleFrames } from './kit-frames.ts';
+import { watchStudio } from './live.ts';
 import { readEvents } from './sse.ts';
 
 const EVENTS_URL = '/api/v1/events';
@@ -78,12 +79,16 @@ function watchCatalog(main: HTMLElement, kit: string): void {
   const end = (step: CatalogStep): void => {
     if (over) return;
     over = true;
-    // Closing the stream first: nothing more arrives, so the page acts only once.
-    stream.abort();
     if (step === 'failed') showFailed(main);
     // Only a reload for new examples is marked; one after lost events cannot repeat by itself.
     if (step === 'reload') setReloadMark(kit);
-    if (step === 'reload' || step === 'missed') location.reload();
+    if (step === 'reload' || step === 'missed') {
+      // Closing the stream first: nothing more arrives, so the page reloads only once.
+      stream.abort();
+      location.reload();
+    }
+    // Otherwise the stream stays open, its events unheard, so the paused view still shows when
+    // the studio goes away.
   };
   // The stream is asked for before the job, so the job cannot end between the studio's answer and
   // the stream opening; until the answer names the job, any catalog job of this kit counts.
@@ -95,6 +100,7 @@ function watchCatalog(main: HTMLElement, kit: string): void {
       if (step) end(step);
     },
     stream.signal,
+    watchStudio(stream),
   );
   askForCatalog(kit).then(({ status, body }) => {
     if (over) return;

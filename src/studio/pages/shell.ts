@@ -2,6 +2,7 @@
 
 import type { Translate } from '../../shared/index.ts';
 import { type Html, html, trusted } from './html.ts';
+import { pausedView } from './paused.ts';
 
 export type PageFrame = {
   title: string;
@@ -9,7 +10,7 @@ export type PageFrame = {
   /** The studio's style sheet, from `studioSkin`. */
   skin: string;
   body: Html;
-  /** The studio's links; `null` on a page shown before the page cookie is set. */
+  /** The studio's links and paused view; `null` on a page shown before the cookie is set. */
   nav: { t: Translate; current: NavCurrent } | null;
 };
 
@@ -35,6 +36,7 @@ export function page(input: PageFrame): string {
 <body>
 ${input.nav ? navBar(input.nav) : ''}
 ${input.body}
+${input.nav ? pausedView(input.nav.t) : ''}
 </body>
 </html>
 `.text;

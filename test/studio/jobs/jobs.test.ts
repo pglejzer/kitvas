@@ -111,6 +111,20 @@ test('old finished jobs are dropped; running ones never are', async () => {
   assert.equal(jobs.get(running.id).state, 'running');
 });
 
+test('busy while any job runs, for the idle stop', async () => {
+  const { jobs, runner } = setup();
+  assert.equal(jobs.busy(), false);
+  jobs.start('build', 'shop');
+  jobs.start('check', 'blog');
+  assert.equal(jobs.busy(), true);
+  runner.started[0]?.finish({ state: 'succeeded', result: null });
+  await tick();
+  assert.equal(jobs.busy(), true);
+  runner.started[1]?.finish({ state: 'failed', error: { code: 'X', message: 'x' } });
+  await tick();
+  assert.equal(jobs.busy(), false);
+});
+
 test('close stops every running job and waits for it', async () => {
   const { jobs } = setup();
   const a = jobs.start('build', 'shop');

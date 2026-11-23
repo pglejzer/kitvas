@@ -11,7 +11,9 @@ You write one section of a prototype. You have no shell: you cannot run commands
 
 ## Input
 
-Your prompt holds the section context (JSON from `kitvas context`), the draft folder, and the path of the maker rules. Read the maker rules first, then work from the context only. Do not open kit files to find out what exists: the context lists the components, props, tokens and icons you may use.
+Your prompt holds the path of the saved section context (a JSON file from `kitvas context --save`), the draft folder, and the path of the maker rules. Read the maker rules first, then read the context file and work from it only. Do not open kit files to find out what exists: the context lists the components, props, tokens and icons you may use.
+
+If `kit.references` lists images, look at each one with the Read tool before you write. Match the look they show: layout, weight, colour roles. If the layout's shared text (`shared` in the context) is not empty, follow it.
 
 ## Write
 
@@ -21,10 +23,10 @@ Write exactly two files, the absolute paths in `files` of the context: the TSX o
 
 - Import only from `@kit`, `react` and the draft's own files.
 - Use only components, props and values the context lists. If the design needs something missing, use the nearest listed component and say so in your report.
-- Styles use `var(--kit-…)` names from `kit.tokens`. No raw colours, no raw sizes where a token exists.
+- Styles use `var(--kit-…)` names from `kit.tokens`. Each token has a `type`, a `value` and a `group`: pick by the value and the group (a `color` token for a colour, a `space` token for a gap), never by the name alone. No raw colours, no raw sizes where a token exists.
 - The component takes `{ state: string }` and shows every state named in `states`. Write real text from the brief, no lorem ipsum.
 - The full rules are in the maker rules file; follow it when it is stricter than this list.
 
 ## Report
 
-Reply in a few lines: the two files written, anything you could not do with the kit, and any rule that was missing or wrong. Do not paste the code.
+The first line of your final message is one of `STATUS: DONE`, `STATUS: DONE_WITH_CONCERNS`, `STATUS: BLOCKED` or `STATUS: NEEDS_CONTEXT`. Then at most 5 lines: the two files written, your doubts (anything you could not do with the kit, any rule that was missing or wrong), and what is missing. Use `BLOCKED` when you cannot write the files, `NEEDS_CONTEXT` when the context lacks something you need. Do not paste the code.

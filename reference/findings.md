@@ -38,11 +38,11 @@ Read by the `patcher` agent. A finding has `rule` (`<check>/<name>`), `severity`
 
 ## a11y
 
-- R-FIND-17: `a11y/<axe rule>` findings come from axe-core at 390 px and 1280 px, in the states named. Fix the element in every state it appears.
+- R-FIND-17: `a11y/<axe rule>` findings come from axe-core at 390 px and 1280 px, in the states named. Fix the element in every state it appears. A finding on an element that is a kit component's own markup follows R-FIND-21.
 - R-FIND-18: Missing names: add visible text or `aria-label`. Missing `alt`: add it.
 - R-FIND-19: Contrast: change to a token pair with enough contrast; never lighten or darken by hand.
 - R-FIND-20: Heading order and landmarks: change the kit component's level or tag prop; do not reach for plain elements.
-- R-FIND-21: Targets below 24 px: raise the size of the component or its padding with tokens.
+- R-FIND-21: Targets below 24 px: raise the size of the component or its padding with tokens. A finding inside a kit component (severity `review`, hint `kitInternal` naming the component) is not fixed by restyling the component. Use another variant or prop of it. If none helps, leave it and report it as a note for the kit's owners.
 
 ## runtime
 

@@ -16,6 +16,8 @@ export type Flags = {
   allowPrivate: boolean;
   /** `studio --open`: open the one-time link in the default browser. */
   open: boolean;
+  /** `context --save`: write the context to the draft's build folder. */
+  save: boolean;
 };
 
 export type ParsedArgs = {
@@ -42,6 +44,7 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         url: { type: 'string', multiple: true },
         'allow-private': { type: 'boolean' },
         open: { type: 'boolean' },
+        save: { type: 'boolean' },
       },
     });
     const [command, ...rest] = positionals;
@@ -58,6 +61,7 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         url: values.url ?? [],
         allowPrivate: values['allow-private'] === true,
         open: values.open === true,
+        save: values.save === true,
       },
     };
   } catch (cause) {

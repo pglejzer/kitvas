@@ -1,6 +1,7 @@
 // `kit scan`, one web page at one width: a fresh context with no stored state whose every request
 // passes the policy, one navigation, the settle wait, facts read in the page and its same-origin
-// frames, one full-page shot and the candidates cut out of it. Nothing is clicked or scrolled.
+// frames, one full-page shot and the candidates cut out of it. Nothing is clicked; the page is
+// scrolled once to the bottom and back before anything is read, and a phone width gets a phone.
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -12,7 +13,6 @@ import {
   PAGE_HEIGHT_MAX,
   PER_KIND_MAX,
   ROLE_TAGS,
-  SCAN_HEIGHT,
   SCAN_TIMEOUT_MS,
   type ScanFacts,
   SETTLE_MS,
@@ -36,8 +36,10 @@ import {
   numberCandidates,
   rankCandidates,
 } from './playwright-scan-merge.ts';
+import { findOverlays } from './playwright-scan-overlays.ts';
 import { guardRequests } from './playwright-scan-policy.ts';
 import { collectStyles, type FrameStyles } from './playwright-scan-styles.ts';
+import { scrollThrough, viewContext } from './playwright-scan-view.ts';
 
 type PlaywrightBrowser = import('playwright-core').Browser;
 type BrowserContext = import('playwright-core').BrowserContext;
@@ -59,7 +61,12 @@ const STYLE_OPTIONS = {
   varsMax: 1_600,
   roleTags: ROLE_TAGS,
 };
+/** A fixed or sticky element covering this share of the window is an overlay. */
+const OVERLAY_SHARE = 0.3;
+/** The overlays the facts name. */
+const OVERLAYS_MAX = 5;
 const PICK_OPTIONS = {
+  overlayShare: OVERLAY_SHARE,
   attribute: MARK,
   perKind: PER_KIND_MAX + 4,
   textMax: TEXT_MAX,
@@ -132,6 +139,7 @@ async function measure(
       kind: candidate.kind,
       box: roundBox(onPage),
       rect,
+      overlay: candidate.overlay,
       text: candidate.text,
       style: candidate.style,
     });
@@ -170,7 +178,17 @@ async function scanIn(
   // The page may have tried to go somewhere else while it settled.
   if (guard.refused !== undefined) return blocked(guard.refused);
 
+  // Lazy content appears while scrolling; the facts are read from the top again.
+  await scrollThrough(page);
+  if (guard.refused !== undefined) return blocked(guard.refused);
+
   const reads = await readFrames(page);
+  const found = await page.evaluate(findOverlays, {
+    share: OVERLAY_SHARE,
+    max: OVERLAYS_MAX,
+    textMax: TEXT_MAX,
+    elementsMax: ELEMENTS_MAX,
+  });
   const size = await page.evaluate(pageSize);
   const shotSize = {
     width: input.width,
@@ -201,6 +219,7 @@ async function scanIn(
     url: page.url(),
     width: input.width,
     ...mergeStyles(reads.map((read) => read.styles)),
+    overlays: found.map(({ box, text }) => ({ box, text: { pageText: text.slice(0, TEXT_MAX) } })),
     candidates: kept.map(({ candidate }) => candidate),
   };
   return { state: 'scanned', facts };
@@ -210,13 +229,7 @@ async function scanIn(
 export async function scanPage(browser: PlaywrightBrowser, input: Scan): Promise<ScanReport> {
   let context: BrowserContext;
   try {
-    context = await browser.newContext({
-      viewport: { width: input.width, height: SCAN_HEIGHT },
-      deviceScaleFactor: 1,
-      serviceWorkers: 'block',
-      acceptDownloads: false,
-      permissions: [],
-    });
+    context = await browser.newContext(viewContext(input.width));
   } catch (cause) {
     return failed(cause);
   }

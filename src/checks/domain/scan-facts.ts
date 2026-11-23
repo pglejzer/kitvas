@@ -103,6 +103,16 @@ export const ScanFactsSchema = z.strictObject({
     .max(400),
   /** Widths in px from `min-width` and `max-width` media queries of same-origin style sheets. */
   breakpoints: z.array(z.number().int().min(0)),
+  /** Fixed or sticky elements covering 30% of the window or more: cookie banners, dialogs. */
+  overlays: z
+    .array(
+      z.strictObject({
+        box: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+        text: PageTextSchema,
+      }),
+    )
+    .max(5)
+    .default([]),
   candidates: z
     .array(
       z.strictObject({
@@ -116,6 +126,8 @@ export const ScanFactsSchema = z.strictObject({
         text: PageTextSchema,
         /** Computed styles that matter for the kind: color, background, font, padding, border, radius, shadow… */
         style: z.record(z.string().regex(/^[a-z-]{1,40}$/), cssValue),
+        /** Inside a fixed or sticky element covering 30% of the window or more (a banner, a dialog). */
+        overlay: z.boolean().default(false),
       }),
     )
     .max(PER_KIND_MAX * CANDIDATE_KINDS.length),

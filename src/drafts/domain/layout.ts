@@ -12,17 +12,30 @@ export type LayoutSection = {
   line: number;
 };
 
-export type Layout = { title: string; sections: LayoutSection[] };
+export type Layout = {
+  title: string;
+  sections: LayoutSection[];
+  /** The `## shared` block as written, trimmed; `''` when absent. It is not a section. */
+  shared: string;
+};
+
+/** The heading of the block every section reads; reserved, so no section can take the name. */
+export const SHARED_ID = 'shared';
 
 const HEADING = /^(#{1,2})\s+(.+?)\s*$/;
 const FIELD = /^(?:[-*]\s+)?(purpose|components)\s*:\s*(.*)$/i;
 
-/** Reads `# title`, `## section-id`, and the `Purpose:` and `Components:` lines of each section. */
+/**
+ * Reads `# title`, `## section-id`, and the `Purpose:` and `Components:` lines of each section.
+ * The `## shared` block is kept as text.
+ */
 export function parseLayout(text: string): Layout {
   let title = '';
   let current: LayoutSection | undefined;
+  let inShared = false;
   let inComment = false;
   const sections: LayoutSection[] = [];
+  const shared: string[] = [];
 
   for (const [index, raw] of text.split(/\r?\n/).entries()) {
     const line = raw.trim();
@@ -38,16 +51,21 @@ export function parseLayout(text: string): Layout {
     const heading = HEADING.exec(line);
     if (heading) {
       const name = heading[2] ?? '';
+      inShared = heading[1] === '##' && name === SHARED_ID;
+      current = undefined;
       if (heading[1] === '#') {
         if (!title) title = name.replace(/^layout:\s*/i, '');
-        current = undefined;
-      } else {
+      } else if (!inShared) {
         current = { id: name, purpose: '', components: [], line: index + 1 };
         sections.push(current);
       }
       continue;
     }
 
+    if (inShared) {
+      shared.push(raw.trimEnd());
+      continue;
+    }
     const field = FIELD.exec(line);
     if (!field || !current) continue;
     const value = (field[2] ?? '').trim();
@@ -60,7 +78,7 @@ export function parseLayout(text: string): Layout {
         .filter(Boolean);
     }
   }
-  return { title, sections };
+  return { title, sections, shared: shared.join('\n').trim() };
 }
 
 /** `known` holds the component names of the draft's kit. */
@@ -75,7 +93,7 @@ export function layoutIssues(layout: Layout, known: ReadonlySet<string>): Issue[
     const report = (key: string, params: Issue['params'] = {}) =>
       issues.push({ path: `layout.${id}`, key, params: { id, ...params } });
 
-    if (!SECTION_ID.test(id)) report('draftIssue.badSectionId');
+    if (!SECTION_ID.test(id) || id === SHARED_ID) report('draftIssue.badSectionId');
     if (seen.has(id)) report('draftIssue.duplicateSection');
     seen.add(id);
     if (!section.purpose) report('draftIssue.noPurpose');

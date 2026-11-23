@@ -1,7 +1,7 @@
 ---
 
 name: kitvas
-description: Sets up and reports the state of kitvas, the plugin that builds UI prototypes from any design system, in any project, and checks them in a local studio. Use when the user runs /kitvas, asks whether kitvas is ready, or wants to start using it in a project.
+description: Use when the user runs /kitvas, asks whether kitvas is ready, or wants to start using kitvas (UI prototypes from any design system, checked in a local studio) in a project.
 ---
 
 # kitvas: setup and status

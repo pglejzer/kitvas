@@ -39,6 +39,7 @@ export const ERROR_TABLE = {
   KIT_SOURCE_INVALID: { exit: 36, http: 422 },
   SCAN_BLOCKED: { exit: 37, http: 422 },
   SCAN_FAILED: { exit: 38, http: 502 },
+  PLUGIN_FOLDER: { exit: 39, http: 409 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;
