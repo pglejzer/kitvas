@@ -1,0 +1,13 @@
+{
+  "name": "acme-npm-fixture",
+  "private": true,
+  "description": "A project whose design system is the npm package @acme/ui (a fake one, in packages/).",
+  "dependencies": {
+    "@acme/ui": "1.2.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0"
+  }
+}

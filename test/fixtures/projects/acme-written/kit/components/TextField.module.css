@@ -1,0 +1,16 @@
+.field {
+  display: grid;
+  gap: var(--kit-space-xs);
+  font: 16px / 24px var(--kit-font-body);
+  color: var(--kit-color-ink);
+}
+
+.input {
+  width: 320px;
+  box-sizing: border-box;
+  font: 16px / 24px var(--kit-font-body);
+  padding: var(--kit-space-sm) var(--kit-space-md);
+  border: 1px solid var(--kit-color-line);
+  border-radius: var(--kit-radius-sm);
+  color: var(--kit-color-ink);
+}

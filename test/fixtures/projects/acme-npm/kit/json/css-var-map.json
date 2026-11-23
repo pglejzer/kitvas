@@ -1,0 +1,5 @@
+{
+  "color.ink": "--acme-color-ink",
+  "color.accent": "--acme-color-accent",
+  "space.sm": "--acme-space-2"
+}

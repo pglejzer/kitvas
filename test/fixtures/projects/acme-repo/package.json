@@ -1,0 +1,12 @@
+{
+  "name": "acme-repo-fixture",
+  "private": true,
+  "description": "A project whose design system is a folder of its own components: src/ds.",
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0"
+  }
+}

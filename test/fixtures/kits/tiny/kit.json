@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "tiny",
+  "name": "Tiny",
+  "version": "1.0.0",
+  "source": { "type": "builtin" },
+  "framework": "react",
+  "runtime": {
+    "entry": "tsx/index.ts",
+    "styles": { "files": ["scss/index.scss"] }
+  },
+  "tokens": { "file": "json/tokens.json", "format": "dtcg-2025.10" },
+  "components": [
+    {
+      "name": "Button",
+      "category": "action",
+      "description": "Starts an action.",
+      "import": { "from": "@kit", "name": "Button" },
+      "styling": ["className", "style"],
+      "props": [
+        { "name": "variant", "type": "enum", "values": ["solid", "plain"], "default": "solid" },
+        { "name": "children", "type": "node", "required": true },
+        { "name": "onClick", "type": "callback" }
+      ],
+      "examples": [{ "title": "Solid", "code": "<Button>Save</Button>", "imports": ["Button"] }],
+      "a11y": ["Needs a visible label or aria-label"]
+    },
+    {
+      "name": "Icon",
+      "category": "display",
+      "description": "Shows an icon.",
+      "import": { "from": "@kit", "name": "Icon" },
+      "props": [{ "name": "name", "type": "string", "required": true }]
+    }
+  ],
+  "icons": { "source": "component", "component": "Icon", "names": ["check", "close"] },
+  "gaps": [{ "path": "components.Icon.examples", "reason": "missing" }]
+}

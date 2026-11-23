@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "acme",
+  "name": "Acme UI",
+  "version": "1.2.0",
+  "source": { "type": "npm", "package": "@acme/ui", "version": "1.2.0" },
+  "framework": "react",
+  "runtime": {
+    "packages": [
+      { "name": "@acme/ui", "version": "1.2.0" },
+      { "name": "react", "version": "19.3.1" },
+      { "name": "react-dom", "version": "19.3.1" }
+    ],
+    "entry": "generated/kit.ts",
+    "styles": { "files": [], "generated": "none", "imports": ["@acme/ui/styles.css"] },
+    "providers": [
+      {
+        "import": { "from": "@acme/ui", "name": "AcmeProvider" },
+        "props": { "theme": "light" },
+        "bindings": {}
+      }
+    ]
+  },
+  "tokens": {
+    "file": "json/tokens.json",
+    "format": "dtcg-2025.10",
+    "cssVars": { "prefix": "--acme-", "map": "json/css-var-map.json" }
+  },
+  "components": [
+    {
+      "name": "Button",
+      "category": "action",
+      "description": "Starts an action or submits a form.",
+      "import": { "from": "@acme/ui", "name": "Button" },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "variant",
+          "type": "enum",
+          "values": ["solid", "ghost"],
+          "default": "solid"
+        },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        { "title": "Primary action", "code": "<Button>Save</Button>", "imports": ["Button"] },
+        {
+          "title": "Quiet action",
+          "code": "<Button variant=\"ghost\">Cancel</Button>",
+          "imports": ["Button"]
+        }
+      ],
+      "a11y": ["A button that shows only an icon needs aria-label."]
+    },
+    {
+      "name": "TextField",
+      "category": "input",
+      "description": "A one-line text field with its label.",
+      "import": { "from": "@acme/ui", "name": "TextField" },
+      "styling": ["className"],
+      "props": [
+        { "name": "label", "type": "string", "required": true },
+        { "name": "placeholder", "type": "string" }
+      ],
+      "examples": [
+        {
+          "title": "Email",
+          "code": "<TextField label=\"Email address\" placeholder=\"you@example.com\" />",
+          "imports": ["TextField"]
+        }
+      ],
+      "a11y": ["The label is always visible and tied to the input."]
+    },
+    {
+      "name": "Badge",
+      "category": "display",
+      "description": "A short status label.",
+      "import": { "from": "@acme/ui", "name": "Badge" },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["info", "warn"],
+          "default": "info"
+        },
+        { "name": "children", "type": "node", "required": true }
+      ],
+      "examples": [
+        { "title": "Warning", "code": "<Badge tone=\"warn\">Pending</Badge>", "imports": ["Badge"] }
+      ],
+      "a11y": ["The text carries the meaning; the tone only supports it."]
+    }
+  ]
+}
