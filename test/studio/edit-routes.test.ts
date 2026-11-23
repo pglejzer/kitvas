@@ -1,0 +1,276 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { createDraft, type DraftStore } from '../../src/drafts/index.ts';
+import { createEsbuildCompiler } from '../../src/edit/adapters/esbuild-compiler.ts';
+import { PLUGIN_ROOT } from '../../src/shared/index.ts';
+import type { EditDeps } from '../../src/studio/api/edit-routes.ts';
+import type {
+  EditEnd,
+  EditOutcome,
+  EditState,
+  Inspect,
+  OffKit,
+} from '../../src/studio/api/edit-schemas.ts';
+import { etagOf } from '../../src/studio/http/etag.ts';
+import { NOW, tempDrafts } from '../helpers/drafts.ts';
+import { call, studioOver } from '../helpers/studio.ts';
+
+const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const TSX_FILE = 'src/tsx/sections/Pricing.tsx';
+const SCSS_FILE = 'src/scss/sections/pricing.scss';
+const STACK = 'sections/Pricing:section/Stack';
+
+const PRICING_TSX = [
+  "import { Stack, Text } from '@kit';",
+  '',
+  'export function Pricing(_props: { state: string }) {',
+  '  return (',
+  '    <section className="pricing">',
+  '      <Stack gap="md">',
+  '        <Text>Plans</Text>',
+  '      </Stack>',
+  '    </section>',
+  '  );',
+  '}',
+  '',
+].join('\n');
+const PRICING_SCSS = '.pricing {\n  margin: 13px; /* off-kit */\n}\n';
+const LAYOUT = '# Layout: Shop\n\n## pricing\nPurpose: Show the plans.\nComponents: Stack, Text\n';
+
+type Problem = { code: string; errors?: { pointer: string; detail: string }[] };
+type Written = { slug: string; version: number; etags: Record<string, string> };
+
+const json = <T>(text: string): T => JSON.parse(text) as T;
+
+/** The `shop` draft on the Base kit with one section, `pricing`. */
+function pricingDrafts(): DraftStore {
+  const { store } = tempDrafts();
+  createDraft(store, { slug: 'shop', title: 'Shop', kit: BASE, now: NOW });
+  store.writeText('shop', 'v1/md/layout.md', LAYOUT);
+  store.writeText('shop', `v1/${TSX_FILE}`, PRICING_TSX);
+  store.writeText('shop', `v1/${SCSS_FILE}`, PRICING_SCSS);
+  return store;
+}
+
+/** A studio over the pricing draft with the real compiler; the write hooks are recorded. */
+async function editStudio(withEditor = true) {
+  const drafts = pricingDrafts();
+  const before: Written[] = [];
+  const after: Written[] = [];
+  const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
+  const edit: EditDeps = {
+    compiler,
+    // The studio stops esbuild when it closes.
+    dispose: () => compiler.dispose(),
+    beforeWrite: (slug, version, etags) => {
+      before.push({ slug, version, etags });
+    },
+    afterWrite: (slug, version, etags) => {
+      after.push({ slug, version, etags });
+    },
+  };
+  const { studio, errors } = await studioOver(drafts, {}, withEditor ? { edit } : {});
+  const auth = { authorization: `Bearer ${studio.token}` };
+  const write = { ...auth, origin: studio.url, 'content-type': 'application/json' };
+  const get = (path: string) => call(studio.port, { path, headers: auth });
+  const post = (path: string, body: unknown, headers: Record<string, string> = write) =>
+    call(studio.port, { method: 'POST', path, headers, body: JSON.stringify(body) });
+  return { drafts, studio, errors, before, after, auth, get, post };
+}
+
+/** `gap` of the Stack from `from` to `to`. */
+const setGap = (to: string, from: string) => ({
+  op: 'setProp',
+  id: STACK,
+  name: 'gap',
+  value: { kind: 'string', value: to },
+  before: { kind: 'string', value: from },
+  after: null,
+});
+
+const EDITS = '/api/v1/drafts/shop/edits';
+
+test("the edit state names the version, the session, the files' ETags and the tokens", async () => {
+  const { studio, errors, get } = await editStudio();
+  try {
+    const answer = await get(EDITS);
+    assert.equal(answer.status, 200, answer.text);
+    const state = json<EditState>(answer.text);
+    assert.equal(state.slug, 'shop');
+    assert.equal(state.version, 1);
+    assert.equal(state.session, null);
+    assert.equal(state.format, 'scss');
+    assert.deepEqual(state.etags, {
+      [SCSS_FILE]: etagOf(PRICING_SCSS),
+      [TSX_FILE]: etagOf(PRICING_TSX),
+    });
+    assert.deepEqual(
+      state.tokens.find((token) => token.var === '--kit-space-md'),
+      { var: '--kit-space-md', path: 'space.md', type: 'dimension', css: '12px' },
+    );
+  } finally {
+    await studio.close();
+  }
+  assert.deepEqual(errors, []);
+});
+
+test('inspect answers one element as written; an id that names no element is refused', async () => {
+  const { studio, errors, get } = await editStudio();
+  try {
+    const answer = await get(`/api/v1/drafts/shop/inspect?id=${encodeURIComponent(STACK)}`);
+    assert.equal(answer.status, 200, answer.text);
+    const stack = json<Inspect>(answer.text);
+    assert.equal(stack.tag, 'Stack');
+    assert.equal(stack.file, TSX_FILE);
+    assert.equal(stack.etag, etagOf(PRICING_TSX));
+    assert.deepEqual(stack.styles.gap, { kind: 'prop', prop: 'gap' });
+    for (const query of ['', '?id=', '?id=nope', `?id=${encodeURIComponent('../x:div')}`]) {
+      const bad = await get(`/api/v1/drafts/shop/inspect${query}`);
+      assert.equal(bad.status, 400, query);
+      assert.equal(json<Problem>(bad.text).code, 'REQUEST_INVALID', query);
+    }
+    const gone = await get(`/api/v1/drafts/shop/inspect?id=${encodeURIComponent(`${STACK}/Grid`)}`);
+    assert.equal(gone.status, 404);
+    assert.equal(json<Problem>(gone.text).code, 'EDIT_ELEMENT_NOT_FOUND');
+  } finally {
+    await studio.close();
+  }
+  assert.deepEqual(errors, []);
+});
+
+test('the first edit starts a version, the next goes into it, and saving ends it', async () => {
+  const { drafts, studio, errors, before, after, get, post } = await editStudio();
+  try {
+    const first = await post(EDITS, {
+      version: 1,
+      ops: [setGap('lg', 'md')],
+      etags: { [TSX_FILE]: etagOf(PRICING_TSX) },
+    });
+    assert.equal(first.status, 200, first.text);
+    const v2 = drafts.readText('shop', `v2/${TSX_FILE}`) ?? '';
+    assert.equal(v2, PRICING_TSX.replace('gap="md"', 'gap="lg"'));
+    assert.equal(drafts.readText('shop', `v1/${TSX_FILE}`), PRICING_TSX, 'v1 is kept');
+    const etags = { [TSX_FILE]: etagOf(v2) };
+    assert.deepEqual(json<EditOutcome>(first.text), {
+      outcome: 'applied',
+      version: 2,
+      started: true,
+      etags,
+      merged: false,
+    });
+    // The live loop hears of the write after it with the ETags it made, and before it also of
+    // the files the new version copied, so none of them is taken for someone else's change.
+    assert.deepEqual(after, [{ slug: 'shop', version: 2, etags }]);
+    assert.deepEqual(before, [
+      { slug: 'shop', version: 2, etags: { ...etags, [SCSS_FILE]: etagOf(PRICING_SCSS) } },
+    ]);
+
+    const open = json<EditState>((await get(EDITS)).text);
+    assert.equal(open.version, 2);
+    assert.equal(open.session?.version, 2);
+
+    const second = await post(EDITS, { version: 2, ops: [setGap('xl', 'lg')], etags });
+    assert.equal(second.status, 200, second.text);
+    const outcome = json<EditOutcome>(second.text);
+    assert.equal(outcome.outcome, 'applied');
+    assert.equal(outcome.version, 2);
+    assert.equal(outcome.outcome === 'applied' && outcome.started, false);
+    assert.match(drafts.readText('shop', `v2/${TSX_FILE}`) ?? '', /<Stack gap="xl">/);
+    assert.equal(drafts.exists('shop', 'v3'), false);
+    // A later edit names only the file it writes.
+    assert.deepEqual(Object.keys(before[1]?.etags ?? {}), [TSX_FILE]);
+
+    const ended = await post(`${EDITS}/end`, {});
+    assert.equal(ended.status, 200, ended.text);
+    assert.deepEqual(json<EditEnd>(ended.text), { version: 2, ended: true });
+    assert.equal(json<EditState>((await get(EDITS)).text).session, null);
+  } finally {
+    await studio.close();
+  }
+  assert.deepEqual(errors, []);
+});
+
+test('an edit of a version that is no longer the latest is refused as stale', async () => {
+  const { studio, post } = await editStudio();
+  try {
+    const etags = { [TSX_FILE]: etagOf(PRICING_TSX) };
+    const first = await post(EDITS, { version: 1, ops: [setGap('lg', 'md')], etags });
+    assert.equal(first.status, 200, first.text);
+    const stale = await post(EDITS, { version: 1, ops: [setGap('xl', 'lg')], etags });
+    assert.equal(stale.status, 409);
+    assert.equal(json<Problem>(stale.text).code, 'EDIT_STALE_VERSION');
+  } finally {
+    await studio.close();
+  }
+});
+
+test("a write without the studio's Origin is refused, and so is an op on no source file", async () => {
+  const { drafts, studio, auth, post } = await editStudio();
+  try {
+    const noOrigin = { ...auth, 'content-type': 'application/json' };
+    const edit = { version: 1, ops: [setGap('lg', 'md')], etags: {} };
+    assert.equal((await post(EDITS, edit, noOrigin)).status, 403);
+    assert.equal((await post(`${EDITS}/end`, {}, noOrigin)).status, 403);
+    const outside = await post(EDITS, {
+      ...edit,
+      ops: [{ ...setGap('lg', 'md'), id: '../x:div' }],
+    });
+    assert.equal(outside.status, 422);
+    const problem = json<Problem>(outside.text);
+    assert.equal(problem.code, 'BODY_INVALID');
+    assert.equal(problem.errors?.[0]?.pointer, '/ops/0/id');
+    assert.equal(drafts.exists('shop', 'v2'), false, 'nothing was written');
+  } finally {
+    await studio.close();
+  }
+});
+
+test('the off-kit values of the latest version are listed', async () => {
+  const { studio, errors, get } = await editStudio();
+  try {
+    const answer = await get('/api/v1/drafts/shop/off-kit');
+    assert.equal(answer.status, 200, answer.text);
+    const offKit = json<OffKit>(answer.text);
+    assert.equal(offKit.version, 1);
+    assert.deepEqual(
+      offKit.items.map(({ file, className, property, value }) => ({
+        file,
+        className,
+        property,
+        value,
+      })),
+      [{ file: SCSS_FILE, className: 'pricing', property: 'margin', value: '13px' }],
+    );
+  } finally {
+    await studio.close();
+  }
+  assert.deepEqual(errors, []);
+});
+
+test('the API document lists the five edit routes', async () => {
+  const { studio, get } = await editStudio();
+  try {
+    type Doc = { paths: Record<string, Record<string, { operationId: string }>> };
+    const { paths } = json<Doc>((await get('/api/v1/openapi.json')).text);
+    const base = '/api/v1/drafts/{slug}';
+    assert.equal(paths[`${base}/edits`]?.get?.operationId, 'getEditState');
+    assert.equal(paths[`${base}/edits`]?.post?.operationId, 'applyEdits');
+    assert.equal(paths[`${base}/inspect`]?.get?.operationId, 'inspectElement');
+    assert.equal(paths[`${base}/edits/end`]?.post?.operationId, 'endEditSession');
+    assert.equal(paths[`${base}/off-kit`]?.get?.operationId, 'listOffKit');
+  } finally {
+    await studio.close();
+  }
+});
+
+test('a studio started without the editor still answers the state, but not inspect', async () => {
+  const { studio, get } = await editStudio(false);
+  try {
+    assert.equal((await get(EDITS)).status, 200);
+    const inspect = await get(`/api/v1/drafts/shop/inspect?id=${encodeURIComponent(STACK)}`);
+    assert.equal(inspect.status, 500);
+    assert.equal(json<Problem>(inspect.text).code, 'INTERNAL');
+  } finally {
+    await studio.close();
+  }
+});

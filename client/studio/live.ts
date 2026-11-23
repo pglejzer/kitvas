@@ -1,13 +1,36 @@
-// Live refresh: a studio page loads itself again, once, shortly after work it shows has ended.
-// While the studio is gone the page shows its paused view, and loads itself again when it is back.
+// Live refresh: a studio page loads itself again, once, shortly after work it shows has ended:
+// a job, or the studio's own build of a draft. While the person edits, the page never does; the
+// editor loads only its frame again (`edit/live-frame.ts`), which hears the same stream through
+// `onStudioEvent`. While the studio is gone the page shows its paused view, and loads itself
+// again when it is back.
 
-import { needsRefresh } from './job-events.ts';
+import { needsReload } from './job-events.ts';
 import { watchPause } from './paused.ts';
-import { readEvents, type StreamHealth } from './sse.ts';
+import { readEvents, type StreamEvent, type StreamHealth } from './sse.ts';
 
 const EVENTS_URL = '/api/v1/events';
 /** Jobs often end close together; one reload, this long after the last of them, covers them. */
 const RELOAD_DELAY_MS = 300;
+
+/** Other parts of the page that hear the stream: one stream per tab, never a second one. */
+const listeners = new Set<(event: StreamEvent) => void>();
+
+/** Hears every event of the page's stream from now on; returns the way to stop. */
+export function onStudioEvent(listener: (event: StreamEvent) => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/** One listener's bug is reported; the others still hear the event. */
+function tell(event: StreamEvent): void {
+  for (const listener of [...listeners]) {
+    try {
+      listener(event);
+    } catch (error) {
+      reportError(error);
+    }
+  }
+}
 
 /**
  * The paused view of this page (`src/studio/pages/paused.ts`), worked by the stream's health. The
@@ -40,8 +63,14 @@ export function watchStudio(stream: AbortController): StreamHealth | undefined {
   );
 }
 
-/** Listens to the studio's events; `shows` says whether the page shows a draft. */
-export function reloadWhenJobsEnd(shows: (slug: string) => boolean): void {
+/**
+ * Listens to the studio's events; `shows` says whether the page shows a draft, `editing` whether
+ * the person is editing on it now (then the page stays as it is).
+ */
+export function reloadWhenJobsEnd(
+  shows: (slug: string) => boolean,
+  editing: () => boolean = () => false,
+): void {
   const stream = new AbortController();
   /** Counts the calls; only the timer of the last one reloads. */
   let calls = 0;
@@ -49,7 +78,8 @@ export function reloadWhenJobsEnd(shows: (slug: string) => boolean): void {
     calls += 1;
     const call = calls;
     setTimeout(() => {
-      if (call !== calls) return;
+      // Edit mode may have been turned on meanwhile: then the editor carries on instead.
+      if (call !== calls || editing()) return;
       // Closing the stream first: nothing more arrives, so the page reloads only once.
       stream.abort();
       location.reload();
@@ -58,7 +88,8 @@ export function reloadWhenJobsEnd(shows: (slug: string) => boolean): void {
   readEvents(
     EVENTS_URL,
     (event) => {
-      if (needsRefresh(event, shows)) reloadSoon();
+      tell(event);
+      if (needsReload(event, shows, editing())) reloadSoon();
     },
     stream.signal,
     watchStudio(stream),

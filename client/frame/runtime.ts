@@ -4,9 +4,11 @@
 // open prototypes that way, and so does a person opening the page on its own.
 
 import { type FrameMessage, parseStudioMessage, readHash } from '../channel/protocol.ts';
+import { createEdit } from './edit.ts';
 import { createMarks } from './marks.ts';
 import { measureElements, settle } from './measure.ts';
 import { createMotion } from './motion.ts';
+import { createPreview } from './preview.ts';
 
 export type FrameInput = {
   states: string[];
@@ -37,6 +39,8 @@ export function startFrame({ states, initial, render }: FrameInput): void {
   };
   const marks = createMarks();
   const motion = createMotion();
+  // Edit mode stays off, with no listener on the page, until the studio turns it on.
+  const edit = createEdit({ channel, post, preview: createPreview() });
   let current = initial;
   let heard = false;
 
@@ -47,6 +51,7 @@ export function startFrame({ states, initial, render }: FrameInput): void {
       current = state;
       document.documentElement.dataset.state = state;
       marks.follow(moved);
+      edit.follow(moved);
     }
     // Also when the state did not change, so the studio is never left waiting.
     post({ kitvas: 1, channel, type: 'shown', state });
@@ -64,7 +69,9 @@ export function startFrame({ states, initial, render }: FrameInput): void {
     heard = true;
     if (message.type === 'measure') answer(message.request);
     else if (message.type === 'state') show(message.state);
-    else marks.draw(message.marks);
+    else if (message.type === 'marks') marks.draw(message.marks);
+    // Every other message the parser lets through is one of the editor's.
+    else edit.handle(message);
   });
 
   const announce = (): void => {

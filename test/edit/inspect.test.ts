@@ -1,0 +1,207 @@
+import assert from 'node:assert/strict';
+import { after, test } from 'node:test';
+import { createDraft, type DraftStore } from '../../src/drafts/index.ts';
+import { createEsbuildCompiler } from '../../src/edit/adapters/esbuild-compiler.ts';
+import { classNameOf, inspectElement } from '../../src/edit/app/inspect.ts';
+import type { KitStore } from '../../src/kit/index.ts';
+import { KitvasError, PLUGIN_ROOT } from '../../src/shared/index.ts';
+import { etagOf } from '../../src/studio/http/etag.ts';
+import { NOW, tempDrafts } from '../helpers/drafts.ts';
+import { builtinKits } from '../helpers/kits.ts';
+
+const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+
+const PRICING_TSX = [
+  "import { Button, Card, Stack, Text } from '@kit';",
+  '',
+  "const plans = [{ name: 'Free' }, { name: 'Pro' }];",
+  '',
+  'export function Pricing({ state }: { state: string }) {',
+  "  const tone = state === 'error' ? 'danger' : 'neutral';",
+  '  return (',
+  '    <section className="pricing">',
+  '      <Stack gap="md">',
+  '        <Text tone="muted">Plans</Text>',
+  '        {plans.map((plan) => (',
+  '          <Card key={plan.name}>',
+  '            <Text>{plan.name}</Text>',
+  '          </Card>',
+  '        ))}',
+  '        <Button tone={tone}>Buy</Button>',
+  '        <p>Cancel whenever you like.</p>',
+  '        <Text className="button-2">Billed monthly.</Text>',
+  '      </Stack>',
+  '    </section>',
+  '  );',
+  '}',
+  '',
+].join('\n');
+
+const PRICING_SCSS = [
+  '.pricing {',
+  '  padding: var(--kit-space-lg);',
+  '}',
+  '',
+  '.button {',
+  '  color: var(--kit-color-ink);',
+  '}',
+  '',
+].join('\n');
+
+const PRICING = {
+  'md/layout.md': '# Layout: Shop\n\n## pricing\nPurpose: Show the plans.\nComponents: Stack\n',
+  'src/tsx/sections/Pricing.tsx': PRICING_TSX,
+  'src/scss/sections/pricing.scss': PRICING_SCSS,
+};
+
+const HERO = {
+  'md/layout.md': '# Layout: Shop\n\n## hero\nPurpose: Say hello.\nComponents: Text\n',
+  'src/tsx/sections/Hero.tsx': [
+    'export function Hero(_props: { state: string }) {',
+    '  return <div className="p-4 md:p-6">Hello</div>;',
+    '}',
+    '',
+  ].join('\n'),
+  // A partial is the section's SCSS too: `@use 'sections/hero'` finds it.
+  'src/scss/sections/_hero.scss': '.hero {\n  color: var(--kit-color-ink);\n}\n',
+};
+
+const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
+after(() => compiler.dispose());
+
+/** The `shop` draft on the Base kit, with `files` written into its version 1. */
+function draftWith(files: Record<string, string>): DraftStore {
+  const { store } = tempDrafts();
+  createDraft(store, { slug: 'shop', title: 'Shop', kit: BASE, now: NOW });
+  for (const [path, text] of Object.entries(files)) store.writeText('shop', `v1/${path}`, text);
+  return store;
+}
+
+const inspectIn = (drafts: DraftStore, id: string, kits: KitStore = builtinKits()) =>
+  inspectElement({ drafts, kits, compiler, etag: etagOf }, 'shop', id);
+
+type RawKit = { runtime: { styles: Record<string, unknown> } };
+
+/** The built-in kits, with Base marked as a Tailwind kit. */
+function tailwindKits(): KitStore {
+  const kits = builtinKits();
+  return {
+    ...kits,
+    read(id) {
+      const files = kits.read(id);
+      if (files === undefined) return undefined;
+      const json = structuredClone(files.kitJson) as RawKit;
+      json.runtime.styles.tailwind = { entry: 'src/app/globals.css' };
+      return { ...files, kitJson: json };
+    },
+  };
+}
+
+const isCode = (code: string) => (error: unknown) =>
+  error instanceof KitvasError && error.code === code;
+
+test("a Base Stack's gap comes from its gap prop, the place an edit writes", async () => {
+  const stack = await inspectIn(draftWith(PRICING), 'sections/Pricing:section/Stack');
+  assert.equal(stack.version, 1);
+  assert.equal(stack.tag, 'Stack');
+  assert.equal(stack.file, 'src/tsx/sections/Pricing.tsx');
+  assert.equal(stack.etag, etagOf(PRICING_TSX));
+  assert.equal(stack.component?.name, 'Stack');
+  assert.equal(stack.component?.takesClassName, true);
+  assert.deepEqual(stack.props, [
+    { name: 'gap', kind: 'literal', value: { kind: 'string', value: 'md' } },
+  ]);
+  assert.deepEqual(stack.styles.gap, { kind: 'prop', prop: 'gap' });
+  // Stack has no padding prop and no class: its padding is the kit's.
+  assert.deepEqual(stack.styles.padding, { kind: 'kit' });
+  assert.equal(stack.text, null);
+  assert.equal(stack.textRefusal, 'no-text');
+});
+
+test('a prop written as an expression is read-only and keeps its source', async () => {
+  const button = await inspectIn(draftWith(PRICING), 'sections/Pricing:section/Stack/Button');
+  const tone = button.props.find((prop) => prop.name === 'tone');
+  assert.equal(tone?.kind, 'expr');
+  assert.match(tone?.kind === 'expr' ? tone.source : '', /tone/);
+  assert.equal(button.spread, false);
+  assert.equal(button.text, 'Buy');
+  assert.equal(button.textRefusal, null);
+});
+
+test('an element of a mapped list is one site, and its computed text is no text', async () => {
+  const drafts = draftWith(PRICING);
+  const card = await inspectIn(drafts, 'sections/Pricing:section/Stack/Card');
+  assert.equal(card.tag, 'Card');
+  assert.equal(card.component?.name, 'Card');
+  // Card's padding prop takes the names of the space tokens.
+  assert.deepEqual(card.styles.padding, { kind: 'prop', prop: 'padding' });
+  const name = await inspectIn(drafts, 'sections/Pricing:section/Stack/Card/Text');
+  assert.equal(name.text, null);
+  assert.equal(name.textRefusal, 'no-text');
+});
+
+test('a plain element is no kit component, and its plain text can be edited', async () => {
+  const note = await inspectIn(draftWith(PRICING), 'sections/Pricing:section/Stack/p');
+  assert.equal(note.tag, 'p');
+  assert.equal(note.component, null);
+  assert.deepEqual(note.props, []);
+  assert.equal(note.text, 'Cancel whenever you like.');
+  assert.equal(note.className, null);
+  assert.deepEqual(note.styles.padding, { kind: 'kit' });
+});
+
+test('an element without a class gets a new class name that neither file uses', async () => {
+  const drafts = draftWith(PRICING);
+  // `.button` has a rule in the SCSS and `button-2` is a class in the TSX.
+  const button = await inspectIn(drafts, 'sections/Pricing:section/Stack/Button');
+  assert.deepEqual(button.styleClass, { className: 'button-3', exists: false });
+  assert.equal(button.scss?.file, 'src/scss/sections/pricing.scss');
+  assert.equal(button.scss?.rule, false);
+  assert.deepEqual(button.scss?.declarations, []);
+  const stack = await inspectIn(drafts, 'sections/Pricing:section/Stack');
+  assert.deepEqual(stack.styleClass, { className: 'stack', exists: false });
+});
+
+test('a class with a rule is the style class, and its declaration is the source', async () => {
+  const section = await inspectIn(draftWith(PRICING), 'sections/Pricing:section');
+  assert.deepEqual(section.className, { kind: 'string', value: 'pricing' });
+  assert.deepEqual(section.styleClass, { className: 'pricing', exists: true });
+  assert.deepEqual(section.scss, {
+    file: 'src/scss/sections/pricing.scss',
+    etag: etagOf(PRICING_SCSS),
+    rule: true,
+    declarations: [{ property: 'padding', value: 'var(--kit-space-lg)', offKit: false }],
+    nested: [],
+  });
+  assert.deepEqual(section.styles.padding, {
+    kind: 'scss',
+    className: 'pricing',
+    value: 'var(--kit-space-lg)',
+    offKit: false,
+  });
+});
+
+test('a Tailwind kit gives the utility class as the source of a style it sets', async () => {
+  const hero = await inspectIn(draftWith(HERO), 'sections/Hero:div', tailwindKits());
+  assert.equal(hero.styles.padding.kind, 'utility');
+  assert.equal(hero.text, 'Hello');
+  assert.equal(hero.scss?.file, 'src/scss/sections/_hero.scss');
+  // The same element on an SCSS kit: no utility, and no rule for `p-4`.
+  const plain = await inspectIn(draftWith(HERO), 'sections/Hero:div');
+  assert.deepEqual(plain.styles.padding, { kind: 'kit' });
+});
+
+test('an element that is not in the current text is not found', async () => {
+  const drafts = draftWith(PRICING);
+  await assert.rejects(
+    inspectIn(drafts, 'sections/Pricing:section/Grid'),
+    isCode('EDIT_ELEMENT_NOT_FOUND'),
+  );
+  await assert.rejects(inspectIn(drafts, 'sections/Gone:div'), isCode('EDIT_ELEMENT_NOT_FOUND'));
+});
+
+test('a new class name is the tag in kebab case', () => {
+  assert.equal(classNameOf('Card.Header'), 'card-header');
+  assert.equal(classNameOf('PriceTag'), 'price-tag');
+  assert.equal(classNameOf('h2'), 'h2');
+});

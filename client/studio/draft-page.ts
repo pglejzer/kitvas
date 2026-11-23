@@ -2,6 +2,7 @@
 // compare with a diff, and a reload when a build or check of this draft ends. Without frames (a
 // version not built) or without a frame that answers, links simply load the next page.
 
+import { isEditFrameMessage } from '../channel/edit-protocol.ts';
 import type { ElementSnapshot } from '../channel/protocol.ts';
 import { isPlainClick } from './clicks.ts';
 import { diffElements, type ElementDiff } from './diff.ts';
@@ -13,6 +14,7 @@ import {
   swapSections,
   writeSummary,
 } from './draft-dom.ts';
+import { startEditor } from './edit/start.ts';
 import {
   type Frame,
   type FrameRole,
@@ -175,7 +177,10 @@ function onClick(page: Page, event: MouseEvent): void {
 
 export function startDraftPage(main: HTMLElement): void {
   const slug = main.dataset.draft;
-  reloadWhenJobsEnd((job) => job === slug);
+  // While the person edits, the page never loads itself again; the editor reloads only the frame.
+  const editing = (): boolean =>
+    main.querySelector('button[data-edit-toggle]')?.getAttribute('aria-pressed') === 'true';
+  reloadWhenJobsEnd((job) => job === slug, editing);
   const frames = findFrames(main);
   if (frames.length === 0) return;
   const roles = new Set(frames.map((frame) => frame.role));
@@ -190,10 +195,16 @@ export function startDraftPage(main: HTMLElement): void {
     pending: undefined,
     switches: 0,
   };
+  const current = currentFrame(page);
+  const editor = current && !page.compare ? startEditor(main, current) : undefined;
   window.addEventListener('message', (event) => {
     const heard = frameMessage(page.frames, event);
     if (!heard) return;
     const { frame, message } = heard;
+    if (isEditFrameMessage(message)) {
+      if (frame.role === 'current') editor?.(message);
+      return;
+    }
     if (message.type === 'ready') onReady(page, frame);
     else if (message.type === 'shown') onShown(page, frame, message.state);
     // `example` comes only from the kit page's frames; a draft frame has no use for it.

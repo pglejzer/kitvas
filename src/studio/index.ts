@@ -1,6 +1,7 @@
 // Public API of the studio module.
 
 export * from './inbox/inbox.ts';
+export * from './live/index.ts';
 export * from './run/create-lifecycle.ts';
 export * from './run/lifecycle.ts';
 export * from './run/state-file.ts';

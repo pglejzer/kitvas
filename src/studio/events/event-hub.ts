@@ -4,7 +4,8 @@
 import type { ServerResponse } from 'node:http';
 import { RequestError } from '../http/problem.ts';
 
-export type EventType = 'job' | 'inbox';
+/** `source` and `build` are the editor's (api/edit-schemas.ts). */
+export type EventType = 'job' | 'inbox' | 'source' | 'build';
 
 export type StudioEvent = { id: number; type: EventType | 'reset'; data: unknown };
 

@@ -40,6 +40,7 @@ claude plugin eval . --allow-tools Bash Write Edit --tag smoke   # skill evals (
 - Project kits (`.kitvas/kits/<id>/`, sources `npm` and `repo`, `kit new | verify | use`): `src/kit/`; verified by `src/checks/app/verify-kit.ts`; learned by `/kitvas:learn` (`skills/learn/`, `agents/learner.md`, `reference/learn.md`). ADRs 0030 to 0034.
 - Written kits (sources `figma`, `web`, `images`; components in `<kit>/components/`): written by `agents/tailor.md` under `reference/write-kit.md`. `kit scan` (`src/checks/app/scan-kit.ts`) reads a website, `kit crop` (`src/checks/app/crop-kit.ts`) cuts references, and the sixth verify step `look` scores each example against its reference. Figma is read only by the skill through the person's own MCP. ADRs 0035 to 0039.
 - Rework and craft (`/kitvas:rework`, `/kitvas:craft`, `agents/sketcher.md`, `reference/craft.md`): draft kinds, `before/`, additions layer, `kit detect`. ADRs 0045 to 0047.
+- The editor's write-back (operations, TSX and SCSS apply, style source, off-kit values): `src/edit/`, rules in `src/edit/AGENTS.md`; its panels are `client/studio/edit/`. ADRs 0048 to 0050.
 - Drafts (versions, layout, section context): `src/drafts/`, rules in `src/drafts/AGENTS.md`.
 - Building a draft (bundle, styles, element ids): `src/render/`, rules in `src/render/AGENTS.md`. Code bundled into prototypes lives in the top-level `client/` folder.
 - Checks of a draft (findings, rules, `checks.json`): `src/checks/`, rules in `src/checks/AGENTS.md`.

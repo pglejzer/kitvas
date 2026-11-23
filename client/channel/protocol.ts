@@ -1,6 +1,16 @@
 // Messages between a studio page and a prototype frame. Both sides check every message they get.
 // Nothing secret goes through here: the channel id only tells two frames on one page apart.
 // The example frames of the kit page only send `example`; the studio sends them nothing.
+// The editor's messages are in `edit-protocol.ts`; the two parsers here hand them over.
+
+import {
+  EDIT_FRAME_TYPES,
+  EDIT_STUDIO_TYPES,
+  type EditFrameMessage,
+  type EditStudioMessage,
+  parseEditFrame,
+  parseEditStudio,
+} from './edit-protocol.ts';
 
 /** `#kitvas=<channel>&studio=<port>` at the end of a frame's address turns the channel on. */
 const HASH = /^#kitvas=([A-Za-z0-9_-]{16,64})&studio=([1-9][0-9]{0,4})$/;
@@ -27,12 +37,14 @@ export type FrameMessage =
   | { kitvas: 1; channel: string; type: 'ready'; state: string }
   | { kitvas: 1; channel: string; type: 'elements'; request: number; items: ElementSnapshot[] }
   | { kitvas: 1; channel: string; type: 'shown'; state: string }
-  | { kitvas: 1; channel: string; type: 'example'; shown: boolean; height: number };
+  | { kitvas: 1; channel: string; type: 'example'; shown: boolean; height: number }
+  | EditFrameMessage;
 
 export type StudioMessage =
   | { kitvas: 1; channel: string; type: 'measure'; request: number }
   | { kitvas: 1; channel: string; type: 'state'; state: string }
-  | { kitvas: 1; channel: string; type: 'marks'; marks: Mark[] };
+  | { kitvas: 1; channel: string; type: 'marks'; marks: Mark[] }
+  | EditStudioMessage;
 
 export function frameHash(channel: string, studioPort: number): string {
   return `#kitvas=${channel}&studio=${studioPort}`;
@@ -82,6 +94,9 @@ function mark(value: unknown): Mark | undefined {
 export function parseFrameMessage(data: unknown, channel: string): FrameMessage | undefined {
   const message = ours(data, channel);
   if (!message) return undefined;
+  if (typeof message.type === 'string' && EDIT_FRAME_TYPES.has(message.type)) {
+    return parseEditFrame(message, channel);
+  }
   if (message.type === 'ready' || message.type === 'shown') {
     const { state } = message;
     if (typeof state !== 'string' || !STATE_ID.test(state)) return undefined;
@@ -106,6 +121,9 @@ export function parseFrameMessage(data: unknown, channel: string): FrameMessage 
 export function parseStudioMessage(data: unknown, channel: string): StudioMessage | undefined {
   const message = ours(data, channel);
   if (!message) return undefined;
+  if (typeof message.type === 'string' && EDIT_STUDIO_TYPES.has(message.type)) {
+    return parseEditStudio(message, channel);
+  }
   if (message.type === 'measure') {
     return isCount(message.request)
       ? { kitvas: 1, channel, type: 'measure', request: message.request }

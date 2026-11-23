@@ -4,6 +4,7 @@ export * from './app/context.ts';
 export * from './app/craft-pick.ts';
 export * from './app/create-draft.ts';
 export * from './app/draft-map.ts';
+export * from './app/edit-session.ts';
 export * from './app/layout.ts';
 export * from './app/load-draft.ts';
 export * from './app/new-version.ts';

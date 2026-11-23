@@ -19,6 +19,33 @@ export function shopDraft(): { store: DraftStore; root: string } {
   return drafts;
 }
 
+/** Writes files into one version of a draft, by path inside it: `{ 'src/tsx/…': '…' }`. */
+export function writeVersionFiles(
+  store: DraftStore,
+  slug: string,
+  version: number,
+  files: Record<string, string>,
+): void {
+  for (const [relPath, text] of Object.entries(files)) {
+    store.writeText(slug, `v${version}/${relPath}`, text);
+  }
+}
+
+/** The texts of files in one version of a draft, by path inside it; a missing one is `undefined`. */
+export function readVersionFiles(
+  store: DraftStore,
+  slug: string,
+  version: number,
+  paths: string[],
+): Record<string, string | undefined> {
+  return Object.fromEntries(
+    paths.map((relPath): [string, string | undefined] => [
+      relPath,
+      store.readText(slug, `v${version}/${relPath}`),
+    ]),
+  );
+}
+
 export const GOOD_LAYOUT = [
   '# Layout: Shop',
   '',

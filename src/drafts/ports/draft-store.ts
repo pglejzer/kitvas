@@ -16,4 +16,12 @@ export interface DraftStore {
   makeDir(slug: string, relPath: string): void;
   /** Copies a folder inside the draft. Does nothing when the source is missing. */
   copyDir(slug: string, fromRel: string, toRel: string): void;
+  /**
+   * Writes every file or none (spec 4a, decision 10): each text goes to a temporary file beside its
+   * file, then each is moved over its file. When a move fails, the files already moved get their old
+   * text back (a file that did not exist is removed), the temporary files are removed, and the
+   * failure is thrown. A path outside the draft, or a path given twice, throws DRAFT_INVALID before
+   * anything is written.
+   */
+  replaceAll(slug: string, files: { relPath: string; text: string }[]): void;
 }

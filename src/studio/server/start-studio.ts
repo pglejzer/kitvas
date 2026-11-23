@@ -6,9 +6,11 @@ import type { SharedBrowser } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
 import { type KitStore, loadKit } from '../../kit/index.ts';
 import { PLUGIN_ROOT, type Translate } from '../../shared/index.ts';
+import type { EditDeps } from '../api/edit-routes.ts';
 import { apiRoutes } from '../api/routes.ts';
 import { createEventHub, type EventLimits } from '../events/event-hub.ts';
 import { BODY_LIMIT } from '../http/body.ts';
+import { etagOf } from '../http/etag.ts';
 import {
   answerClientErrors,
   closeServer,
@@ -20,6 +22,7 @@ import { createInbox } from '../inbox/inbox.ts';
 import { type CliTarget, cliRunner, JOB_LIMITS, type JobLimits } from '../jobs/cli-runner.ts';
 import { createJobs } from '../jobs/jobs.ts';
 import { keepBrowser } from '../jobs/shared-browser.ts';
+import { type LiveTools, startLiveLoop } from '../live/index.ts';
 import { assetRoutes, type StudioAssets } from '../pages/asset-routes.ts';
 import { openRoute } from '../pages/open-route.ts';
 import { pageRoutes } from '../pages/routes.ts';
@@ -61,6 +64,13 @@ export type StudioDeps = {
   browser?: () => Promise<SharedBrowser>;
   /** The shared browser started (its pid) or went away by itself (`undefined`). */
   onBrowser?: (pid: number | undefined) => void;
+  /**
+   * The editor's compiler and its write hooks (`api/edit-routes.ts`); `src/main.ts` gives the
+   * compiler. Without it the edit routes that read TSX answer 500.
+   */
+  edit?: EditDeps;
+  /** The live loop's watch and warm build (`live/`); without it nothing rebuilds by itself. */
+  live?: LiveTools;
 };
 
 export type StudioOptions = {
@@ -132,6 +142,27 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
   // One log for both origins, so the limit of 20 a minute holds for the studio as a whole.
   const denied = deps.onDenied ? createDeniedLog(deps.onDenied) : undefined;
   const events = createEventHub(options.eventLimits);
+  // What the editor and Claude write rebuilds in this process and reaches the open pages.
+  const live = deps.live
+    ? startLiveLoop({
+        ...deps.live,
+        drafts: deps.drafts,
+        etag: etagOf,
+        publish: (type, data) => events.publish(type, data),
+        onError,
+      })
+    : undefined;
+  // The editor's own writes are told to the watcher first, so they count as the editor's.
+  const edit: EditDeps | undefined =
+    deps.edit && live
+      ? {
+          ...deps.edit,
+          beforeWrite: (slug, version, etags) => {
+            deps.edit?.beforeWrite?.(slug, version, etags);
+            live.expect(slug, version, etags);
+          },
+        }
+      : deps.edit;
   const cli = deps.cli ?? {
     bin: join(PLUGIN_ROOT, 'bin', 'kitvas.ts'),
     cwd: process.cwd(),
@@ -193,6 +224,7 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       t,
       links,
       ...(deps.shutdown ? { shutdown: deps.shutdown } : {}),
+      ...(edit ? { edit } : {}),
     }),
   ];
   const studio = {
@@ -241,8 +273,10 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       await jobs.close();
       await keeper?.close();
       inbox.close();
+      await live?.close();
       events.close();
       await Promise.all([closeServer(studioServer), closeServer(frameServer)]);
+      await deps.edit?.dispose?.();
     },
   };
 }

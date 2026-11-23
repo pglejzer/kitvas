@@ -1,6 +1,7 @@
 // The prototype frames of a draft page, the checks every message from one must pass (shared
 // contract 1), and the messages the page sends them.
 
+import type { EditStudioBody } from '../channel/edit-protocol.ts';
 import {
   type FrameMessage,
   type Mark,
@@ -62,6 +63,11 @@ export function sendMarks(frame: Frame, marks: Mark[]): void {
 
 export function sendState(frame: Frame, state: string): void {
   post(frame, { kitvas: 1, channel: frame.channel, type: 'state', state });
+}
+
+/** One of the editor's messages (client/channel/edit-protocol.ts). */
+export function sendEdit(frame: Frame, body: EditStudioBody): void {
+  post(frame, { kitvas: 1, channel: frame.channel, ...body } as StudioMessage);
 }
 
 /** Only for asking the protocol whether a state id is valid; never sent. */

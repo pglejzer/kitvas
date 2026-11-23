@@ -11,7 +11,8 @@ export const NewNoteSchema = z.strictObject({
   /** The element id (`data-ks`) it points at, if any. */
   element: z
     .string()
-    .regex(/^[\w.:-]{1,200}$/)
+    // Element ids as the build makes them: `sections/Pricing:section/Stack.2`.
+    .regex(/^[\w.:/$-]{1,200}$/)
     .nullable(),
   text: z.string().trim().min(1).max(4_000),
 });

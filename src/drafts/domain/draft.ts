@@ -35,6 +35,11 @@ export const DraftSchema = z
         picked: z.enum(SKETCHES).nullable(),
       })
       .optional(),
+    /**
+     * The open editing session (spec 4a, decision 2): edits go into `version`. It is open only
+     * while `version` is the latest; a newer version ends it.
+     */
+    edit: z.strictObject({ version: z.number().int().min(1), startedAt: text }).optional(),
   })
   .superRefine((draft, issues) => {
     // Each kind carries its own block and no other.
