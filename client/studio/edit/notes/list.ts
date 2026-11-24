@@ -5,7 +5,7 @@
 
 import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
-import type { NoteRow } from './model.ts';
+import { MAX_NOTE_TEXT, type NoteRow } from './model.ts';
 
 export type ListHandlers = {
   select(row: NoteRow): void;
@@ -95,10 +95,11 @@ export function createNotesPane(
   head.append(bar);
   const scroll = el('div', 'k-scroll notes-scroll');
   const foot = el('form', 'k-actions notes-foot');
-  const field = el('input', 'k-field notes-field');
-  field.type = 'text';
-  field.maxLength = 2_000;
+  const field = el('textarea', 'k-field notes-field');
+  field.rows = 3;
+  field.maxLength = MAX_NOTE_TEXT;
   field.setAttribute('aria-label', text('notes.text'));
+  const hint = el('p', 'k-meta notes-hint', text('notes.hint'));
   const controls = el('div', 'notes-foot-row');
   const pick = el('div', 'k-seg');
   pick.setAttribute('role', 'group');
@@ -121,11 +122,19 @@ export function createNotesPane(
   submit.type = 'submit';
   submit.disabled = true;
   controls.append(pick, submit);
-  foot.append(field, controls);
+  foot.append(field, hint, controls);
   host.append(head, scroll, foot);
 
+  // The field grows with its words (`field-sizing` in the skin) up to a third of the pane.
   field.addEventListener('input', () => {
     submit.disabled = field.value.trim() === '';
+  });
+  // Ctrl+Enter (Cmd+Enter) adds the note, as it sends in the Claude tab; Enter is a new line.
+  field.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      foot.requestSubmit();
+    }
   });
   foot.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -135,6 +144,7 @@ export function createNotesPane(
     void add({ text: words, for: who }).then((saved) => {
       if (saved) field.value = '';
       submit.disabled = field.value.trim() === '';
+      field.focus();
     });
   });
 

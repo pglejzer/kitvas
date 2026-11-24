@@ -203,7 +203,8 @@ const GROUP_OF: readonly [property: RegExp, group: RegExp][] = [
   [/radius$/, /^(?:radius|rounded)/],
   [/^font-size$/, /^(?:font-?size|text)/],
   [/^line-height$/, /^(?:line-?height|leading)/],
-  [/^(?:width|height)$/, /^siz/],
+  // `min-width` and `min-height` read the size scale, not the border widths below (ADR 0061).
+  [/^(?:min-)?(?:width|height)$/, /^siz/],
   [/-width$/, /^(?:border|stroke|outline)/],
 ];
 

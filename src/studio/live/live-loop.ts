@@ -38,6 +38,8 @@ export type LiveLoopDeps = LiveTools & {
 export type LiveLoop = {
   /** The edit API's `beforeWrite`: these files of this version are about to get these ETags. */
   expect(slug: string, version: number, etags: Record<string, string>): void;
+  /** Lets the draft's running build end and drops the one waiting: its folder is about to move. */
+  settle(slug: string): Promise<void>;
   /** Stops the watch, waits for the running builds, then stops the tools. */
   close(): Promise<void>;
 };
@@ -73,6 +75,7 @@ export function startLiveLoop(deps: LiveLoopDeps): LiveLoop {
   let closing: Promise<void> | undefined;
   return {
     expect: (slug, version, etags) => watcher.expect(slug, version, etags),
+    settle: (slug) => builder.settle(slug),
     close() {
       closing ??= (async () => {
         watcher.close();

@@ -125,6 +125,26 @@ function keyAt(reader: Reader, k: number): string | null {
 }
 
 /**
+ * The token where the value of the property `field` of `item` starts, when the item is an object
+ * literal that writes it as `field: value`; the last one wins, as in JavaScript. `null` otherwise.
+ */
+export function fieldAt(reader: Reader, item: ItemView, field: string): number | null {
+  if (charAt(reader, item.first) !== '{' || closeOf(reader, item.first) !== item.last) return null;
+  let found: number | null = null;
+  let depth = 0;
+  for (let k = item.first + 1; k < item.last; k += 1) {
+    const char = charAt(reader, k);
+    const starts = k === item.first + 1 || charAt(reader, k - 1) === ',';
+    if (depth === 0 && starts && charAt(reader, k + 1) === ':' && keyAt(reader, k) === field) {
+      found = k + 2;
+    }
+    if (opens(char)) depth += 1;
+    else if (closes(char)) depth -= 1;
+  }
+  return found;
+}
+
+/**
  * The token of the string the element's text shows in `item`: the item itself, or the value of
  * its property `field` when the item is an object literal. `null` when it is anything else.
  */
@@ -133,22 +153,10 @@ export function valueToken(array: ArrayView, item: ItemView, field: string | nul
   if (field === null) {
     return item.first === item.last && isString(reader, item.first) ? item.first : null;
   }
-  if (charAt(reader, item.first) !== '{' || closeOf(reader, item.first) !== item.last) return null;
-  let found: number | null = null;
-  let depth = 0;
-  for (let k = item.first + 1; k < item.last; k += 1) {
-    const char = charAt(reader, k);
-    const starts = k === item.first + 1 || charAt(reader, k - 1) === ',';
-    if (depth === 0 && starts && charAt(reader, k + 1) === ':' && keyAt(reader, k) === field) {
-      // The last one wins, as in JavaScript.
-      const value = k + 2;
-      const ends = charAt(reader, value + 1) === ',' || value + 1 === item.last;
-      found = ends && isString(reader, value) ? value : null;
-    }
-    if (opens(char)) depth += 1;
-    else if (closes(char)) depth -= 1;
-  }
-  return found;
+  const value = fieldAt(reader, item, field);
+  if (value === null) return null;
+  const ends = charAt(reader, value + 1) === ',' || value + 1 === item.last;
+  return ends && isString(reader, value) ? value : null;
 }
 
 /**

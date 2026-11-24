@@ -9,9 +9,10 @@ import {
   runCli,
 } from '../../src/cli/index.ts';
 import { createFsDraftStore } from '../../src/drafts/adapters/fs-draft-store.ts';
+import { createDraft } from '../../src/drafts/index.ts';
 import { createFolderKitStore } from '../../src/kit/adapters/folder-store.ts';
 import { initWorkspace, PLUGIN_ROOT, workspaceDir } from '../../src/shared/index.ts';
-import { GOOD_LAYOUT } from '../helpers/drafts.ts';
+import { GOOD_LAYOUT, NOW, TINY } from '../helpers/drafts.ts';
 import { FIXTURE_KITS } from '../helpers/kits.ts';
 import { tempDir } from '../helpers/tmp.ts';
 
@@ -159,6 +160,30 @@ test('context --save writes the file and answers its path', async () => {
   rmSync(file);
   assert.equal(await h.run('context', 'shop', '--section', 'hero', '--json'), 0);
   assert.equal(existsSync(file), false);
+});
+
+test('context of a craft draft needs no section and is saved as craft.json', async () => {
+  const h = harness();
+  createDraft(createFsDraftStore(join(workspaceDir(h.io.cwd), 'drafts')), {
+    slug: 'spark',
+    title: 'Spark',
+    kit: TINY,
+    now: NOW,
+    kind: 'craft',
+    craft: { subject: 'logo', name: 'Spark', description: 'A mark for the Spark shop.' },
+  });
+  assert.equal(await h.run('context', 'spark', '--json'), 0);
+  const context = h.data<{ craft: { subject: string }; kit: { tokens: unknown[] } }>();
+  assert.equal(context.craft.subject, 'logo');
+  assert.equal(context.kit.tokens.length, 8);
+  const file = join(h.draftDir('spark'), 'v1', 'build', 'context', 'craft.json');
+  assert.equal(await h.run('context', 'spark', '--save', '--json'), 0);
+  assert.deepEqual(h.data(), { path: file });
+  assert.ok(existsSync(file));
+  assert.equal(await h.run('context', 'spark', '--save'), 0);
+  assert.equal(h.out.at(-1), `Saved the craft context to ${file}`);
+  // A craft draft has no sections to ask for.
+  assert.equal(await h.run('context', 'spark', '--section', 'hero', '--json'), 12);
 });
 
 test('without a workspace every command says to run init', async () => {

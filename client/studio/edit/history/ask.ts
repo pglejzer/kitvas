@@ -76,6 +76,35 @@ function propWords(value: { kind: string; value: string | number | boolean }): s
   return value.kind === 'string' ? `"${value.value}"` : String(value.value);
 }
 
+/** ADR 0060: a text written through its source, at the copy its path names. */
+function sourceWords(op: Extract<EditOp, { op: 'setItemText' }>, path: readonly number[]): string {
+  const places = path.map((place) => place + 1);
+  const where =
+    places.length === 0
+      ? ''
+      : places.length === 1
+        ? ` in item ${places[0]} of the list`
+        : ` in item ${places.join(' > ')} of the nested lists`;
+  const wanted = op.value === op.before ? '' : ` to "${op.value}"`;
+  return `change the text "${op.before}"${where}${wanted}`;
+}
+
+/** Text refusals the hint above Ask Claude words itself; every other one has the general hint. */
+const TEXT_REASONS: ReadonlySet<AskSubject['reason']> = new Set<AskSubject['reason']>([
+  'computed',
+  'ambiguous',
+  'no-text',
+  'not-found',
+  'list-item-gone',
+]);
+
+/** The hint above Ask Claude (a key): why a text cannot be typed in place, else the general one. */
+export function hintKey(subject: AskSubject): string {
+  const op = subject.gesture.ops[subject.index];
+  const isText = op?.op === 'setText' || op?.op === 'setItemText';
+  return isText && TEXT_REASONS.has(subject.reason) ? `ask.text.${subject.reason}` : 'ask.hint';
+}
+
 /** The wanted change of one op, in words. */
 export function opWords(op: EditOp): string {
   switch (op.op) {
@@ -104,7 +133,9 @@ export function opWords(op: EditOp): string {
     case 'removeItem':
       return `delete item ${op.item + 1} of the list`;
     case 'setItemText':
-      return `change the text of item ${op.item + 1} of the list to "${op.value}"`;
+      return op.path === undefined
+        ? `change the text of item ${op.item + 1} of the list to "${op.value}"`
+        : sourceWords(op, op.path);
     case 'moveElement':
       return `move the element ${op.place} ${op.anchor}`;
     case 'insertElement':
@@ -240,7 +271,7 @@ export function mountAsk(ctx: EditorContext): void {
     if (next?.gesture !== current?.gesture) status.textContent = '';
     current = next;
     box.hidden = next === null;
-    hint.textContent = next ? text('ask.hint') : '';
+    hint.textContent = next ? text(hintKey(next)) : '';
     button.disabled = false;
   };
 

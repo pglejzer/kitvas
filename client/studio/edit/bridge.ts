@@ -6,8 +6,9 @@
 // the tree request, the forced state and the structure messages go to every card; `inspect` and
 // `edit-text` go to the edit card, whose answers are the only ones heard. A pick (or any gesture)
 // in another card makes that card the edit card first. A preview shows only in the cards it
-// applies to: from the edit context's width up. A card that loads (a new card, or after a build)
-// gets what the others were told last, so every card shows the same editor.
+// applies to: from the edit context's width up. A card that says `ready` (a new card, a frame
+// loaded again, or a build its page took in place, ADR 0058) gets what the others were told last,
+// so every card shows the same editor.
 
 import type {
   EditFrameMessage,
@@ -72,7 +73,7 @@ const BROADCAST = new Set([
 const REPLAYED = ['edit', 'structure', 'tokens', 'hide', 'lock', 'handles', 'select'] as const;
 
 /** A gesture in a card: the card becomes the edit card before anyone hears it. */
-const GESTURES = new Set(['pick', 'rect', 'menu', 'drop', 'handle']);
+const GESTURES = new Set(['pick', 'rect', 'menu', 'drop', 'reorder', 'handle']);
 
 /** Heard from any card; everything else only from the edit card. */
 const FROM_ANY = new Set(['hovered', 'key']);
@@ -124,8 +125,9 @@ export function createBridge(lead: Frame, cards: CardSource = cardsOf(lead)): Br
     if (force && edit?.type === 'edit' && edit.on) sendLive(frame, force);
   }
 
-  // A card that loads knows nothing: the frames say `ready` to the page, which every listener of
-  // the window hears (as `live-frame.ts` and `structure.ts` do for the current frame).
+  // A card that loads knows nothing, and one that took a build in place draws over a new render.
+  // Both say `ready` to the page, which every listener of the window hears (as `live-frame.ts` and
+  // `structure.ts` do for the current frame).
   if (typeof window !== 'undefined') {
     window.addEventListener('message', (event) => {
       const heard = frameMessage(cards.frames(), event);

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
 import { createDraft, type DraftStore } from '../../src/drafts/index.ts';
 import { createEsbuildCompiler } from '../../src/edit/adapters/esbuild-compiler.ts';
-import { classNameOf, inspectElement } from '../../src/edit/app/inspect.ts';
+import { classNameOf, inspectElement, textSourceOf } from '../../src/edit/app/inspect.ts';
 import type { KitStore } from '../../src/kit/index.ts';
 import { KitvasError, PLUGIN_ROOT } from '../../src/shared/index.ts';
 import { etagOf } from '../../src/studio/http/etag.ts';
@@ -312,6 +312,84 @@ test('the answer lists the image files of the version, sorted, and only plain na
   );
   assert.deepEqual(answer.images, ['a.webp', 'b.png', 'logo.SVG']);
   assert.deepEqual(asked, [['shop', 1]]);
+});
+
+/** Texts in a condition and in a nested list of a `.map`, and a card's `className` in code. */
+const PLANS = {
+  'md/layout.md': '# Layout: Shop\n\n## plans\nPurpose: Show the plans.\nComponents: Card\n',
+  'src/tsx/sections/Plans.tsx': [
+    "import { Button, Card, Stack, Text } from '@kit';",
+    '',
+    'const plans = [',
+    "  { name: 'Starter', free: true, action: 'Start for free', features: ['Up to 3 projects'] },",
+    "  { name: 'Pro', featured: true, action: 'Try Pro free', features: ['Unlimited', 'SSO'] },",
+    '];',
+    '',
+    'export function Plans({ state }: { state: string }) {',
+    "  const loading = state === 'loading';",
+    '  return (',
+    '    <section className="plans">',
+    '      {plans.map((plan) => (',
+    "        <Card key={plan.name} className={plan.featured ? 'plans__card plans__card--featured' : 'plans__card'}>",
+    '          <Stack gap="lg">',
+    '            {loading ? (',
+    '              <Text>Loading prices…</Text>',
+    '            ) : (',
+    '              <>',
+    "                <Text>{plan.free ? 'free forever' : 'billed monthly'}</Text>",
+    '                <Button>{plan.action}</Button>',
+    '                <ul>',
+    '                  {plan.features.map((feature) => (',
+    '                    <li key={feature}>',
+    '                      <Text as="span">{feature}</Text>',
+    '                    </li>',
+    '                  ))}',
+    '                </ul>',
+    '              </>',
+    '            )}',
+    '          </Stack>',
+    '        </Card>',
+    '      ))}',
+    '    </section>',
+    '  );',
+    '}',
+    '',
+  ].join('\n'),
+  'src/scss/sections/plans.scss': '.plans__card {\n  padding: var(--kit-space-lg);\n}\n',
+};
+
+const CARD = 'sections/Plans:section/Card';
+const STACK = `${CARD}/Stack`;
+
+test('a text in code names the list roots around it, outer first, by their ids', async () => {
+  const drafts = draftWith(PLANS);
+  const button = await inspectIn(drafts, `${STACK}/Button`);
+  assert.equal(button.text, null);
+  assert.deepEqual(button.expression, { roots: [CARD] });
+  const feature = await inspectIn(drafts, `${STACK}/ul/li/Text`);
+  assert.deepEqual(feature.expression, { roots: [CARD, `${STACK}/ul/li`] });
+  // Plain text, and elements as children, are no text in code.
+  assert.equal((await inspectIn(drafts, `${STACK}/Text`)).expression, null);
+  assert.equal((await inspectIn(drafts, STACK)).expression, null);
+});
+
+test('textSourceOf says whether one literal of the file renders the text of a copy', async () => {
+  const deps = { drafts: draftWith(PLANS), compiler };
+  const feature = `${STACK}/ul/li/Text`;
+  assert.equal(await textSourceOf(deps, 'shop', `${STACK}/Button`, 'Try Pro free', [1]), null);
+  assert.equal(await textSourceOf(deps, 'shop', feature, 'SSO', [1, 1]), null);
+  assert.equal(await textSourceOf(deps, 'shop', feature, 'SSO', [0, 0]), 'computed');
+  assert.equal(await textSourceOf(deps, 'shop', feature, 'SSO', [1, 4]), 'list-item-gone');
+  assert.equal(await textSourceOf(deps, 'shop', `${STACK}/Text.2`, 'free forever', [0]), null);
+  assert.equal(await textSourceOf(deps, 'shop', STACK, 'Pro', [1]), 'no-text');
+  assert.equal(await textSourceOf(deps, 'shop', `${STACK}/Gone`, 'Pro', [1]), 'not-found');
+});
+
+test('a className in code whose values share a first class has it as its style class', async () => {
+  const card = await inspectIn(draftWith(PLANS), CARD);
+  assert.equal(card.className?.kind, 'expr');
+  assert.deepEqual(card.styleClass, { className: 'plans__card', exists: true });
+  assert.equal(card.scss?.rule, true);
 });
 
 test('a new class name is the tag in kebab case', () => {

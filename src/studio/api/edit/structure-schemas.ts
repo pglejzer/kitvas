@@ -27,6 +27,11 @@ export const StructureEntrySchema = z.strictObject({
   component: z.string().nullable(),
   /** Why it cannot be moved, deleted or duplicated as an element; `null` when it can. */
   movable: z.enum(REFUSALS).nullable(),
+  /**
+   * It is what a `.map` over a literal array of the file returns, one copy per item: a drag in
+   * the frame reorders the items of the data (ADR 0059). Left out means `false`.
+   */
+  item: z.boolean().optional(),
   /** It takes an element dropped inside: `children: node` in the catalog, or a non-void element. */
   accepts: z.boolean(),
   /** Its children mix text and elements: no drop slots between them (decision 6). */

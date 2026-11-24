@@ -11,7 +11,7 @@ You draw three sketches of one small thing. You have no shell: you cannot run co
 
 ## Input
 
-Your prompt holds the draft folder and its version folder, the subject (`component`, `icon` or `logo`), the name, a one-line description, the path of the sketcher rules, a note on the person's example, and the paths of the example images. Read the rules first. Look at each example image with the Read tool. Then read the kit facts the prompt names (the board's kit row, the kit's icon grid and stroke, the kit's tokens and components). Do not open kit files to find out what exists.
+Your prompt holds the draft folder and its version folder, the subject (`component`, `icon` or `logo`), the name, a one-line description, the path of the sketcher rules, the path of the craft context, a note on the person's example, and the paths of the example images. Read the rules first. Look at each example image with the Read tool. Then read the craft context, a JSON file: `brief` is the brief, `kit.tokens` the custom properties you may use with their values, `kit.icons` what the kit says of its icons, `kit.components` the catalog entries the subject builds on, `files` the paths you write, `locked` the element ids you never change. Do not open kit files to find out what exists. A fact you need and the context lacks (for an icon, the kit's `viewBox` and stroke when no entry says them) goes into your report as missing; do not guess it.
 
 ## Write
 

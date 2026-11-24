@@ -11,6 +11,7 @@ import {
   inverse,
   inverseAll,
 } from '../../../../../client/studio/edit/history/history.ts';
+import { readGesture, readList } from '../../../../../client/studio/edit/history/keep-shape.ts';
 import { createStore, elementOf, type Gesture } from '../../../../../client/studio/edit/store.ts';
 import {
   type EditOp,
@@ -89,7 +90,7 @@ const conflictAnswer = (reason: 'changed' | 'gone' = 'changed'): Answer<EditOutc
   },
 });
 
-function setup(answers: Answer<EditOutcome>[]) {
+function setup(answers: Answer<EditOutcome>[], state?: HistoryIo['state']) {
   const store = createStore('demo');
   store.set({
     edit: { slug: 'demo', version: 1, session: null, format: 'scss', etags: {}, tokens: [] },
@@ -105,6 +106,7 @@ function setup(answers: Answer<EditOutcome>[]) {
       return next ?? { ok: false, status: 0, code: null };
     },
     now: () => clock,
+    ...(state ? { state } : {}),
   };
   const stub = {} as unknown as HTMLElement;
   const flashed: string[][] = [];
@@ -440,6 +442,74 @@ test('a lost request takes the preview back and keeps the stacks', async () => {
   assert.equal(store.get().undo.length, 1);
   assert.equal(store.get().busy, false);
   assert.equal(sent.at(-1)?.type, 'unpreview');
+});
+
+test('a failed save keeps the stacks and the change list, says so, and the next answer clears it', async () => {
+  const failure: Answer<EditOutcome> = { ok: false, status: 500, code: null };
+  const { store, history } = setup([applied(), failure, failure, applied()]);
+  await history.apply(gesture(gap('13px', '8px')));
+  const { undo, redo, changes } = store.get();
+  assert.equal(store.get().failed, null);
+  await history.undo();
+  assert.equal(store.get().undo, undo);
+  assert.equal(store.get().redo, redo);
+  assert.equal(store.get().changes, changes);
+  assert.equal(store.get().failed?.kind, 'undo');
+  assert.equal(store.get().failed?.status, 500);
+  await history.apply(gesture({ ...gap('4px', '2px'), property: 'padding' }));
+  assert.equal(store.get().failed?.kind, 'apply');
+  assert.equal(store.get().undo, undo);
+  assert.equal(store.get().busy, false);
+  await history.undo();
+  assert.equal(store.get().failed, null);
+  assert.equal(store.get().undo.length, 0);
+  assert.equal(store.get().redo.length, 1);
+});
+
+test("the first edit of a session takes the server's start of it, which names the kept history", async () => {
+  const startedAt = '2026-11-24T09:00:00.000Z';
+  const { store, history } = setup([applied(true)], async () => ({
+    ok: true,
+    status: 200,
+    body: {
+      slug: 'demo',
+      version: 2,
+      session: { version: 2, startedAt },
+      format: 'scss',
+      etags: {},
+      tokens: [],
+    },
+  }));
+  await history.apply(gesture(gap('13px', '8px')));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(store.get().edit?.session, { version: 2, startedAt });
+});
+
+test('a step keeps its own renames, so one read back after a reload undoes a move right', async () => {
+  const { store: before, history: first } = setup([
+    applied(false, { inverse: [hunk('b', 'a')], renames: swap }),
+  ]);
+  await first.apply({ ops: [move], label: 'Move' });
+  assert.deepEqual(before.get().undo[0]?.renames, swap);
+  const kept = readList(JSON.parse(JSON.stringify(before.get().undo)), readGesture) ?? [];
+  assert.equal(kept.length, 1);
+  // The page loaded again: the steps come from the kept history, the selection follows the move.
+  const { store, history, requests } = setup([applied()]);
+  store.set({ undo: kept, selection: [CARD] });
+  await history.undo();
+  assert.deepEqual(requests[0]?.ops, [hunk('b', 'a')]);
+  assert.deepEqual(store.get().selection, [id]);
+});
+
+test('a kept step that no longer fits the file meets a conflict and stays on the stack', async () => {
+  const { store, history } = setup([conflictAnswer()]);
+  const step = readGesture(JSON.parse(JSON.stringify(gesture(gap('13px', '8px')))));
+  assert.ok(step);
+  store.set({ undo: [step] });
+  await history.undo();
+  assert.equal(store.get().conflict?.outcome.reason, 'changed');
+  assert.equal(store.get().undo.length, 1);
+  assert.equal(store.get().failed, null);
 });
 
 test('requests wait for each other', async () => {

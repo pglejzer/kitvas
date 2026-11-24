@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  HANDLE_PROPERTIES,
+  handleLimits,
   opsForHandle,
   pxOf,
   readHandleNote,
@@ -180,4 +182,92 @@ test('a property that is no row and a prop that lists no such value give notes',
   assert.deepEqual(opsForHandle(view, 'gap', { raw: '13px' }, 'scss'), {
     note: 'handles.notWritten',
   });
+});
+
+test('a free value from a handle is written as pixels off the kit, a keyword as it is', () => {
+  const view = inspected({ styleClass: { className: 'plans', exists: true } });
+  const writtenFor = (property: string, raw: string): unknown => {
+    const made = opsForHandle(view, property, { raw }, 'scss');
+    const set = 'ops' in made ? made.ops[0] : undefined;
+    return set?.op === 'setStyle' ? [set.property, set.value] : null;
+  };
+  // Pixels where no step holds the handle: marked as a value off the kit.
+  assert.deepEqual(writtenFor('padding-top', '37px'), ['padding-top', { raw: '37px' }]);
+  // `100%` and `auto` are the size scale's own: written without the mark.
+  assert.deepEqual(writtenFor('width', '100%'), ['width', { raw: '100%', mark: false }]);
+  assert.deepEqual(writtenFor('width', 'auto'), ['width', { raw: 'auto', mark: false }]);
+});
+
+// What the frame is told of the selected element's handles.
+
+const ALL = [...HANDLE_PROPERTIES];
+
+test('every handle is a row of the editor', () => {
+  for (const property of HANDLE_PROPERTIES) assert.equal(styleOfHandle(property), property);
+});
+
+test('a plain element with a style file takes every handle, at any value', () => {
+  assert.deepEqual(handleLimits(inspected(), 'scss'), { blocked: [], stepped: [] });
+});
+
+test('no handle in a Tailwind draft, nor before the element and the draft are read', () => {
+  assert.deepEqual(handleLimits(inspected(), 'tailwind'), { blocked: ALL, stepped: [] });
+  assert.deepEqual(handleLimits(null, 'scss'), { blocked: ALL, stepped: [] });
+  assert.deepEqual(handleLimits(inspected(), null), { blocked: ALL, stepped: [] });
+});
+
+test('no handle on an element the properties panel cannot style', () => {
+  // No style file for its section.
+  assert.deepEqual(handleLimits(inspected({ scss: null }), 'scss').blocked, ALL);
+  // A kit component that takes no class.
+  const closed = inspected({ component: { name: 'Input', takesClassName: false, props: [] } });
+  assert.deepEqual(handleLimits(closed, 'scss').blocked, ALL);
+});
+
+test('only the handles of read-only properties go: the others stay', () => {
+  // The section's rule sets its padding in a nested block the editor does not read.
+  const scss = {
+    file: 'src/scss/sections/pricing.scss',
+    etag: ETAG,
+    rule: true,
+    declarations: [{ property: 'padding-top', value: '4px', offKit: true }],
+    nested: ['padding-top', 'padding-left', 'width'],
+  };
+  const view = inspected({ styleClass: { className: 'plans', exists: true }, scss });
+  // `padding-top` is also set in the rule itself, which is what a handle writes.
+  const limits = handleLimits(view, 'scss');
+  assert.deepEqual(limits, { blocked: ['width', 'padding-left'], stepped: [] });
+});
+
+const STACK = {
+  name: 'Stack',
+  takesClassName: true,
+  props: [{ name: 'gap', type: 'enum', values: ['none', 'xs', 'sm', 'md', 'lg'] }],
+};
+
+test('a property a kit prop covers takes steps only: its handle is never free', () => {
+  const styles = { ...inspected().styles, gap: { kind: 'prop' as const, prop: 'gap' } };
+  const written = inspected({
+    tag: 'Stack',
+    component: STACK,
+    props: [{ name: 'gap', kind: 'literal', value: { kind: 'string', value: 'xs' } }],
+    styles,
+  });
+  assert.deepEqual(handleLimits(written, 'scss'), { blocked: [], stepped: ['gap'] });
+  // The prop is not written yet: the handle writes it.
+  const bare = inspected({ tag: 'Stack', component: STACK, styles });
+  assert.deepEqual(handleLimits(bare, 'scss'), { blocked: [], stepped: ['gap'] });
+});
+
+test('a covering prop written as an expression or lost in a spread blocks its handle', () => {
+  const styles = { ...inspected().styles, gap: { kind: 'prop' as const, prop: 'gap' } };
+  const computed = inspected({
+    tag: 'Stack',
+    component: STACK,
+    props: [{ name: 'gap', kind: 'expr', source: 'wide ? "lg" : "sm"' }],
+    styles,
+  });
+  assert.deepEqual(handleLimits(computed, 'scss'), { blocked: ['gap'], stepped: [] });
+  const spread = inspected({ tag: 'Stack', component: STACK, spread: true, styles });
+  assert.deepEqual(handleLimits(spread, 'scss'), { blocked: ['gap'], stepped: [] });
 });

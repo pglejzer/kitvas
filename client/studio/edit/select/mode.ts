@@ -1,16 +1,19 @@
-// Edit mode: the top bar's Preview | Edit switch, selection by click, Shift-click and keys (plan
-// 13, task F; plan 15, task A). It talks to the frame through the bridge and to the other panels
-// only through the store and the history. `store.on` is the truth; `main.dataset.mode` follows
-// it, so the screen outside the editor reads the mode there, and `main[data-selected]` marks the
-// rails while something is selected. The session's controls are `session.ts`.
+// Edit mode: the top bar's Preview | Edit switch, selection by click, Shift-, Ctrl- or Cmd-click
+// and keys (plan 13, task F; plan 15, task A). It talks to the frame through the bridge and to the
+// other panels only through the store and the history. `store.on` is the truth;
+// `main.dataset.mode` follows it, so the screen outside the editor reads the mode there, and
+// `main[data-selected]` marks the rails while something is selected. A double click edits a text
+// in place: a plain one here, one through its source in `source-text.ts` (ADR 0060). The
+// session's controls are `session.ts`.
 
-import type { EditFrameMessage } from '../../../channel/edit-protocol.ts';
+import { type EditFrameMessage, textEditOf } from '../../../channel/edit-protocol.ts';
 import type { Mode } from '../../shell/layout.ts';
 import { inspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { firstChildOf, nextSelection, parentOf } from './selection.ts';
+import { createSourceText, doubleKind } from './source-text.ts';
 
 const sameIds = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((id, index) => id === b[index]);
@@ -35,17 +38,21 @@ export function mountMode(ctx: EditorContext): void {
   /** Answers of the API to an older selection are dropped by this number. */
   let inspectToken = 0;
   let frameRequest = -1;
-  /** A double click waits here for the source view of its element. */
-  let pendingDouble: string | null = null;
+  /** A double click waits here for the source view of its element, with the copy it was on. */
+  let pendingDouble: { id: string; item: number | null } | null = null;
+  const source = createSourceText(ctx);
 
   function sendInspectToFrame(id: string): void {
     frameRequest = bridge.nextRequest();
     bridge.send({ type: 'inspect', request: frameRequest, id });
   }
 
-  function editTextOf(id: string): void {
-    const inspected = store.get().inspected;
-    if (inspected?.id === id && inspected.text !== null) bridge.send({ type: 'edit-text', id });
+  /** A double click on copy `item` of `id`, once its source view is in. */
+  function editTextOf(id: string, item: number | null): void {
+    const kind = doubleKind(store.get(), id, item);
+    if (kind === 'text') bridge.send({ type: 'edit-text', id });
+    else if (kind === 'source') source.open(id, item);
+    // `item`: `lists.ts` opens the field of a literal list item; `none`: nothing to type in.
   }
 
   function load(id: string, keep: boolean): void {
@@ -55,9 +62,10 @@ export function mountMode(ctx: EditorContext): void {
     inspect(store.get().slug, id).then((answer) => {
       if (token !== inspectToken || store.get().selection[0] !== id) return;
       store.set({ inspected: answer.ok ? answer.body : null });
-      if (pendingDouble === id) {
+      const waiting = pendingDouble;
+      if (waiting?.id === id) {
         pendingDouble = null;
-        editTextOf(id);
+        editTextOf(id, waiting.item);
       }
     });
   }
@@ -139,9 +147,13 @@ export function mountMode(ctx: EditorContext): void {
     const inspected = store.get().inspected;
     if (value === null || inspected?.id !== id || inspected.text === null) return;
     if (value === inspected.text) return;
-    void history.apply({
-      ops: [{ op: 'setText', id, value, before: inspected.text }],
+    const gesture = {
+      ops: [{ op: 'setText' as const, id, value, before: inspected.text }],
       label: text('label.text'),
+    };
+    // A write that did not happen takes the typed text back out of the frame.
+    void history.apply(gesture).then((outcome) => {
+      if (outcome?.outcome !== 'applied') bridge.send({ type: 'text-back', id });
     });
   }
 
@@ -164,16 +176,18 @@ export function mountMode(ctx: EditorContext): void {
     switch (message.type) {
       case 'pick': {
         pendingDouble = null;
-        const selection = nextSelection(state.selection, {
-          id: message.id,
-          add: message.add && !message.double,
-        });
-        if (message.double && message.id !== null) {
-          pendingDouble = message.id;
-          if (state.inspected?.id === message.id) editTextOf(message.id);
-          if (state.inspected?.id === message.id) pendingDouble = null;
-        }
+        // A double click with Shift, Ctrl or Cmd held: its first click added or took the element
+        // out, and it starts no text edit.
+        if (message.double && message.add) break;
+        const selection = nextSelection(state.selection, { id: message.id, add: message.add });
         if (!sameIds(selection, state.selection)) store.set({ selection });
+        const edited = textEditOf(message);
+        if (edited !== null) {
+          // Edited once the element's source view is in: another selection reads it first.
+          const item = message.item ?? null;
+          if (store.get().inspected?.id === edited) editTextOf(edited, item);
+          else pendingDouble = { id: edited, item };
+        }
         break;
       }
       case 'hovered':

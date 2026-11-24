@@ -58,9 +58,14 @@ function button(label: string, onClick: () => void, line = false): HTMLButtonEle
 
 /**
  * "Accept…" for one finding, or "Accepted: <reason>" with Withdraw when `store.waivers` has it.
- * The element follows the store: it draws itself again when the waivers change.
+ * The element follows the store: it draws itself again when the waivers change. `quiet`: a live
+ * finding's Accept… sits beside its Apply or Ask Claude, so it is the quiet button (ADR 0061).
  */
-export function waiverControl(ctx: EditorContext, finding: WaiverKey): HTMLElement {
+export function waiverControl(
+  ctx: EditorContext,
+  finding: WaiverKey,
+  options: { quiet?: boolean } = {},
+): HTMLElement {
   const { store, slug } = ctx;
   const root = document.createElement('span');
   root.className = CONTROL;
@@ -145,7 +150,7 @@ export function waiverControl(ctx: EditorContext, finding: WaiverKey): HTMLEleme
               asking = true;
               render();
             },
-            true,
+            options.quiet !== true,
           ),
     );
   }

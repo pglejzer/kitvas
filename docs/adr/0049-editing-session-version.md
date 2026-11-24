@@ -1,6 +1,6 @@
 # 0049. Editing session and version
 
-Date: 2026-11-23. Status: accepted. Spec: `docs/specs/2026-11-23-kitvas-stage-4a-editor-core-design.md`, decisions 2, 7 and 10.
+Date: 2026-11-23. Status: accepted, changed in part by ADR 0058. Spec: `docs/specs/2026-11-23-kitvas-stage-4a-editor-core-design.md`, decisions 2, 7 and 10.
 
 ## Context
 

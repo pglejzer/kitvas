@@ -1,9 +1,9 @@
 // Distance guides (spec 4b, decision 12; plan 14, task C3): the distance between the selected
 // element and the one under the pointer, in px and as the nearest step of the kit's spacing
 // scale. Distances are measured from the elements' boxes: `distances`, `nearestStep` and `labelOf`
-// are pure, and so is where the handles go on an element (`spotsFor`). The lines and labels sit
-// in an overlay of the frame's own at the end of `body`, inside a closed shadow root like the
-// marks: nothing of the page is changed, and the overlay takes no pointer events.
+// are pure. The lines and labels sit in an overlay of the frame's own at the end of `body`, inside
+// a closed shadow root like the marks: nothing of the page is changed, and the overlay takes no
+// pointer events. Where the handles go on an element is in `spots.ts`.
 
 import type { ScaleStep } from '../../channel/structure-protocol.ts';
 import { elementsWith } from '../edit/tree.ts';
@@ -100,122 +100,6 @@ export function distances(from: Box, to: Box): Measure[] {
   return measures;
 }
 
-// Where the handles of `handles.ts` go: the same geometry over boxes, kept here beside the
-// distances so that file holds only the snapping and the drag.
-
-export type Side = 'top' | 'right' | 'bottom' | 'left';
-export type HandleKind = 'width' | 'height' | 'size' | `padding-${Side}` | 'gap';
-/** One handle: its box in viewport pixels, and how a pointer movement changes its value. */
-export type Spot = { kind: HandleKind; box: Box; axis: 'x' | 'y' | 'both'; sign: 1 | -1 };
-export type SpotsInput = {
-  box: Box;
-  padding: Record<Side, number>;
-  display: string;
-  /** The boxes of the element's children, in document order. */
-  children: readonly Box[];
-};
-
-const THICK = 6;
-const LONG = 24;
-const CORNER = 10;
-const BAR = 16;
-/** A padding handle stays this far inside the edge, clear of the size handle on it. */
-const INSET = 9;
-/** Smaller elements get no padding handles on that axis: they would cover the element. */
-const MIN_HEIGHT = 48;
-const MIN_WIDTH = 64;
-export const MAX_GAPS = 24;
-/** Rounding slack when asking whether one child starts where the other ends. */
-const SLACK = 0.5;
-
-/** Gap handles only on a flex or grid container with two or more children. */
-export function showsGap(display: string, children: number): boolean {
-  return children >= 2 && /^(inline-)?(flex|grid)$/.test(display.trim());
-}
-
-const centred = (x: number, y: number, width: number, height: number): Box => ({
-  left: x - width / 2,
-  top: y - height / 2,
-  width,
-  height,
-});
-
-/** The handle between two neighbours, when one follows the other along a row or a column. */
-function between(a: Box, b: Box): Spot | undefined {
-  const [aRight, aBottom] = [a.left + a.width, a.top + a.height];
-  const [bRight, bBottom] = [b.left + b.width, b.top + b.height];
-  const shareY = Math.min(aBottom, bBottom) - Math.max(a.top, b.top);
-  const shareX = Math.min(aRight, bRight) - Math.max(a.left, b.left);
-  // `after`: `b` comes later along the axis; a reversed direction puts it before `a`.
-  if (shareY > 0 && (b.left >= aRight - SLACK || bRight <= a.left + SLACK)) {
-    const after = b.left >= aRight - SLACK;
-    const x = after ? (aRight + b.left) / 2 : (bRight + a.left) / 2;
-    const y = Math.max(a.top, b.top) + shareY / 2;
-    const box = centred(x, y, THICK, Math.min(LONG, shareY));
-    return { kind: 'gap', box, axis: 'x', sign: after ? 1 : -1 };
-  }
-  if (shareX > 0 && (b.top >= aBottom - SLACK || bBottom <= a.top + SLACK)) {
-    const after = b.top >= aBottom - SLACK;
-    const x = Math.max(a.left, b.left) + shareX / 2;
-    const y = after ? (aBottom + b.top) / 2 : (bBottom + a.top) / 2;
-    const box = centred(x, y, Math.min(LONG, shareX), THICK);
-    return { kind: 'gap', box, axis: 'y', sign: after ? 1 : -1 };
-  }
-  // The end of one line and the start of the next: no gap to take hold of.
-  return undefined;
-}
-
-/** A gap handle between each pair of neighbouring children that share a row or a column. */
-export function gapSpots(children: readonly Box[]): Spot[] {
-  const spots: Spot[] = [];
-  for (let index = 0; index + 1 < children.length && spots.length < MAX_GAPS; index += 1) {
-    const [a, b] = [children[index], children[index + 1]];
-    const spot = a && b ? between(a, b) : undefined;
-    if (spot) spots.push(spot);
-  }
-  return spots;
-}
-
-/** Every handle of an element. The corner comes first, so it wins where handles meet. */
-export function spotsFor({ box, padding, display, children }: SpotsInput): Spot[] {
-  const [right, bottom] = [box.left + box.width, box.top + box.height];
-  const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
-  const inset = (side: Side): number => Math.max(padding[side] / 2, INSET);
-  const edge = centred(right, y, THICK, Math.min(LONG, box.height));
-  const base = centred(x, bottom, Math.min(LONG, box.width), THICK);
-  const spots: Spot[] = [
-    { kind: 'size', box: centred(right, bottom, CORNER, CORNER), axis: 'both', sign: 1 },
-    { kind: 'width', box: edge, axis: 'x', sign: 1 },
-    { kind: 'height', box: base, axis: 'y', sign: 1 },
-  ];
-  // A padding grows when its handle moves into the element: down for the top, up for the bottom.
-  if (box.height >= MIN_HEIGHT) {
-    const top = centred(x, box.top + inset('top'), BAR, THICK);
-    const low = centred(x, bottom - inset('bottom'), BAR, THICK);
-    spots.push({ kind: 'padding-top', box: top, axis: 'y', sign: 1 });
-    spots.push({ kind: 'padding-bottom', box: low, axis: 'y', sign: -1 });
-  }
-  if (box.width >= MIN_WIDTH) {
-    const left = centred(box.left + inset('left'), y, THICK, BAR);
-    const far = centred(right - inset('right'), y, THICK, BAR);
-    spots.push({ kind: 'padding-left', box: left, axis: 'x', sign: 1 });
-    spots.push({ kind: 'padding-right', box: far, axis: 'x', sign: -1 });
-  }
-  if (showsGap(display, children.length)) spots.push(...gapSpots(children));
-  return spots;
-}
-
-/** The first handle whose box holds the point. */
-export function spotAt(point: Point, spots: readonly Spot[]): Spot | undefined {
-  return spots.find(
-    ({ box }) =>
-      point.x >= box.left &&
-      point.x <= box.left + box.width &&
-      point.y >= box.top &&
-      point.y <= box.top + box.height,
-  );
-}
-
 // The DOM part: an overlay like the marks', shared with the handles.
 
 export type Overlay = {
@@ -296,6 +180,11 @@ export type Guides = {
    */
   measure(id: string, point: Point, space: readonly ScaleStep[]): void;
   hide(): void;
+  /**
+   * Frame pixels per pixel on the screen (the inverse of the canvas zoom): the lines and the
+   * labels keep their size on the screen.
+   */
+  scale(value: number): void;
   /** Removes the overlay. A later `measure` makes it again. */
   dispose(): void;
 };
@@ -320,6 +209,7 @@ type Part = { line: HTMLElement; label: HTMLElement };
 export function createGuides(): Guides {
   let overlay: Overlay | undefined;
   let parts: Part[] = [];
+  let zoom = 1;
 
   function partsOf(layer: Overlay): Part[] {
     while (parts.length < MAX_MEASURES) {
@@ -347,10 +237,12 @@ export function createGuides(): Guides {
       const along = measure.axis === 'x';
       line.style.left = `${measure.from.x + shiftX}px`;
       line.style.top = `${measure.from.y + shiftY}px`;
-      line.style.width = `${along ? measure.to.x - measure.from.x : 1}px`;
-      line.style.height = `${along ? 1 : measure.to.y - measure.from.y}px`;
+      line.style.width = `${along ? measure.to.x - measure.from.x : zoom}px`;
+      line.style.height = `${along ? zoom : measure.to.y - measure.from.y}px`;
       label.style.left = `${(measure.from.x + measure.to.x) / 2 + shiftX}px`;
       label.style.top = `${(measure.from.y + measure.to.y) / 2 + shiftY}px`;
+      // Of the overlay's own label, never of a page element: it keeps its size on the screen.
+      label.style.transform = `translate(-50%, -50%) scale(${zoom})`;
       // Text only: a step's name is never read as markup.
       label.textContent = labelOf(measure.px, space);
     }
@@ -374,6 +266,9 @@ export function createGuides(): Guides {
       draw(distances(boxOf(selected), boxOf(other)).slice(0, MAX_MEASURES), space);
     },
     hide,
+    scale(value) {
+      zoom = value > 0 && Number.isFinite(value) ? value : 1;
+    },
     dispose() {
       overlay?.remove();
       overlay = undefined;

@@ -5,25 +5,38 @@
 import type { Box, Point, Slot } from '../drag/slots.ts';
 import { toned } from '../tones/tones.ts';
 
-/** The indicator line's thickness. */
+/** The indicator line's thickness, in pixels on the screen. */
 const LINE = 2;
 
-/** Where the indicator's parts go inside the overlay, whose own corner is at `host`. */
-export function placeIndicator(slot: Slot, host: Point): { line: Box | null; box: Box | null } {
+/**
+ * Where the indicator's parts go inside the overlay, whose own corner is at `host`. `scale`:
+ * frame pixels per pixel on the screen, so the line keeps its thickness at any canvas zoom.
+ */
+export function placeIndicator(
+  slot: Slot,
+  host: Point,
+  scale = 1,
+): { line: Box | null; box: Box | null } {
   const { line, box } = slot;
+  const thick = LINE * scale;
   return {
     line: line && {
-      left: line.x - host.x - (line.axis === 'y' ? LINE / 2 : 0),
-      top: line.y - host.y - (line.axis === 'x' ? LINE / 2 : 0),
-      width: line.axis === 'x' ? line.length : LINE,
-      height: line.axis === 'y' ? line.length : LINE,
+      left: line.x - host.x - (line.axis === 'y' ? thick / 2 : 0),
+      top: line.y - host.y - (line.axis === 'x' ? thick / 2 : 0),
+      width: line.axis === 'x' ? line.length : thick,
+      height: line.axis === 'y' ? line.length : thick,
     },
     box: box && { ...box, left: box.left - host.x, top: box.top - host.y },
   };
 }
 
 /** The indicator in the frame's overlay (not part of the page, like the marks). */
-export type Indicator = { show(slot: Slot | null): void; dispose(): void };
+export type Indicator = {
+  show(slot: Slot | null): void;
+  /** Frame pixels per pixel on the screen: the inverse of the canvas zoom. */
+  scale(value: number): void;
+  dispose(): void;
+};
 
 // The studio's selection colour (`toned`; custom properties reach into a shadow root); the
 // system colour stands in until the studio has said its tones.
@@ -87,6 +100,7 @@ function setBox(node: HTMLElement, box: Box | null): void {
  */
 export function createIndicator(document: Document): Indicator {
   let layer: Layer | undefined;
+  let zoom = 1;
   return {
     show(slot) {
       if (!slot) {
@@ -99,9 +113,16 @@ export function createIndicator(document: Document): Indicator {
       // A page that replaced its body's content took the overlay out with it.
       if (!layer.host.isConnected) document.body.append(layer.host);
       const corner = layer.host.getBoundingClientRect();
-      const placed = placeIndicator(slot, { x: corner.left, y: corner.top });
+      const placed = placeIndicator(slot, { x: corner.left, y: corner.top }, zoom);
+      const thick = LINE * zoom;
+      layer.line.style.borderRadius = `${thick / 2}px`;
+      layer.box.style.outlineWidth = `${thick}px`;
+      layer.box.style.outlineOffset = `${-thick}px`;
       setBox(layer.line, placed.line);
       setBox(layer.box, placed.box);
+    },
+    scale(value) {
+      zoom = value > 0 && Number.isFinite(value) ? value : 1;
     },
     dispose() {
       layer?.host.remove();

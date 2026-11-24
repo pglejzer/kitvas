@@ -234,7 +234,7 @@ test('unknown paths are 404, other methods 405 with Allow', async () => {
     assertSecured(missing.headers, '404');
     const put = await call(studio.port, { method: 'PUT', path: '/api/v1/drafts/shop', headers });
     assert.equal(put.status, 405);
-    assert.equal(put.headers.allow, 'GET');
+    assert.equal(put.headers.allow, 'DELETE, GET');
     const bad = await call(studio.port, { path: '/api/v1/drafts/NOT_A_SLUG', headers });
     assert.equal(bad.status, 404);
     assert.equal(problem(bad.text).code, 'ROUTE_NOT_FOUND');
@@ -334,6 +334,7 @@ test('status and the generated OpenAPI document', async () => {
       '/api/v1/drafts/{slug}/restore',
       '/api/v1/drafts/{slug}/structure',
       '/api/v1/drafts/{slug}/subtree',
+      '/api/v1/drafts/{slug}/text-source',
       '/api/v1/drafts/{slug}/versions',
       '/api/v1/drafts/{slug}/versions/{number}',
       '/api/v1/drafts/{slug}/view',
@@ -357,6 +358,9 @@ test('status and the generated OpenAPI document', async () => {
       '/api/v1/settings/view',
       '/api/v1/shutdown',
       '/api/v1/status',
+      '/api/v1/trash',
+      '/api/v1/trash/{slug}',
+      '/api/v1/trash/{slug}/restore',
     ]);
   } finally {
     await studio.close();

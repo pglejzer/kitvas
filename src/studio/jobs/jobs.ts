@@ -27,6 +27,8 @@ export type Jobs = {
   list(): Job[];
   /** Asks a running job to stop; a finished one stays as it is. */
   cancel(id: string): Job;
+  /** Stops the running build and check of a draft and waits for them to end (a delete needs it). */
+  stopFor(slug: string): Promise<void>;
   /** Whether a job runs now; the idle stop waits for it. */
   busy(): boolean;
   /** Stops every running job and waits for it to end. */
@@ -110,6 +112,14 @@ export function createJobs(deps: JobsDeps): Jobs {
       const job = find(id);
       running.get(id)?.cancel();
       return job;
+    },
+    async stopFor(slug) {
+      const handles = [...jobs.values()].flatMap((job) => {
+        const handle = running.get(job.id);
+        return job.slug === slug && job.kind !== 'catalog' && handle ? [handle] : [];
+      });
+      for (const handle of handles) handle.cancel();
+      await Promise.all(handles.map((handle) => handle.done.catch(() => undefined)));
     },
     busy: () => running.size > 0,
     async close() {

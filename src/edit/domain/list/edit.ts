@@ -6,6 +6,7 @@ import type { EditOp } from '../ops.ts';
 import type { ApplyOptions, Refusal } from '../types.ts';
 import { findList, type MappedList } from './find.ts';
 import { duplicateItemText, type ListEdit, moveItemText, removeItemText } from './items.ts';
+import { writeTextSource } from './source.ts';
 import { encodeString, stringAt, textField, tokenSpan, valueToken } from './text.ts';
 
 export type ListOp = Extract<
@@ -48,6 +49,8 @@ function retext(
 /**
  * `op` on the list that renders the element whose `<` is at `at`. A list over anything but a
  * literal array of this file is `list-not-literal`; an index past its end is `list-item-gone`.
+ * A `setItemText` with a `path` (ADR 0060) writes the one string literal that renders its
+ * `before` at that copy (`source.ts`), in or outside any list.
  */
 export function applyListEdit(
   text: string,
@@ -55,6 +58,9 @@ export function applyListEdit(
   op: ListOp,
   options: ApplyOptions,
 ): ListResult {
+  if (op.op === 'setItemText' && op.path !== undefined) {
+    return writeTextSource(text, at, { value: op.value, before: op.before, path: op.path });
+  }
   const list = findList(text, at);
   if (list === null || list.kind !== 'literal') return { refused: 'list-not-literal' };
   const { array } = list;

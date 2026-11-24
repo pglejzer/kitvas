@@ -56,6 +56,11 @@ export async function runCli(argv: string[], commands: Command[], io: Io): Promi
       t,
     });
     io.out(json ? JSON.stringify({ ok: true, data }) : command.render(data, t));
+    const failure = command.failure?.(data);
+    if (failure) {
+      if (!json) io.err(t(`error.${failure.code}`, failure.params));
+      return exitCodeOf(failure.code);
+    }
     return 0;
   } catch (cause) {
     const error = toKitvasError(cause);

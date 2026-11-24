@@ -24,6 +24,7 @@ import {
   createCheckCommand,
   createContextCommand,
   createCraftCommand,
+  createDoctorCommand,
   createDraftCommand,
   createInboxCommand,
   createKitCommand,
@@ -39,6 +40,7 @@ import {
   runCli,
   statusCommand,
 } from './cli/index.ts';
+import { createNodeMachine } from './doctor/adapters/node-machine.ts';
 import { createFsDraftStore } from './drafts/adapters/fs-draft-store.ts';
 import { createEsbuildCompiler } from './edit/adapters/esbuild-compiler.ts';
 import { createImageFiles, createImageStore } from './edit/adapters/image-files.ts';
@@ -102,6 +104,7 @@ export function main(argv: string[]): Promise<number> {
           'channel/live-protocol.ts',
           'channel/protocol.ts',
           'channel/structure-protocol.ts',
+          'frame/page/busy.ts',
           'frame/page/canvas.ts',
           'frame/edit/edit.ts',
           'frame/drag/preview.ts',
@@ -113,6 +116,10 @@ export function main(argv: string[]): Promise<number> {
           'frame/live/force.ts',
           'frame/drag/guides.ts',
           'frame/drag/handles.ts',
+          'frame/drag/item-slots.ts',
+          'frame/drag/magnet.ts',
+          'frame/drag/measure.ts',
+          'frame/drag/spots.ts',
           'frame/edit/hide.ts',
           'frame/edit/label.ts',
           'frame/live/live.ts',
@@ -123,6 +130,7 @@ export function main(argv: string[]): Promise<number> {
           'frame/live/specificity.ts',
           'frame/live/pins.ts',
           'frame/edit/indicator.ts',
+          'frame/edit/inline.ts',
           'frame/edit/items.ts',
           'frame/edit/keys.ts',
           'frame/page/marks.ts',
@@ -135,6 +143,7 @@ export function main(argv: string[]): Promise<number> {
           'frame/tones/tones.ts',
           'frame/drag/slots.ts',
           'frame/page/snapshot.ts',
+          'frame/page/swap.ts',
           'frame/edit/structure.ts',
           'frame/edit/tree.ts',
         ].map((file) => join(PLUGIN_ROOT, 'client', file)),
@@ -305,6 +314,16 @@ export function main(argv: string[]): Promise<number> {
     createBuildCommand({ ...drafts, render }),
     createCheckCommand({ ...drafts, render, types, browser }),
     createBrowserCommand({ browser, installer, browsersDir }),
+    createDoctorCommand({
+      kits,
+      projectFiles: createProjectFiles,
+      browser,
+      browsersDir,
+      lifecycle: studio.lifecycle,
+      dataDir,
+      machine: createNodeMachine({ roots: defaultDepRoots() }),
+      now: () => new Date(),
+    }),
     createStudioCommand(studio),
     createInboxCommand({ lifecycle: studio.lifecycle }),
     createRequestCommand({ lifecycle: studio.lifecycle }),

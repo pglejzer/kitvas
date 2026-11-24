@@ -57,11 +57,22 @@ export type ElementSnapshot = {
   style: string;
 };
 
+/**
+ * How a frame answers a `swap` whose build is not in its page (ADR 0058). `held`: a gesture runs,
+ * and the frame says `free` when it ends. `free`: the studio may ask again. `failed`: the frame
+ * cannot take the build in place, so the studio loads the page again.
+ */
+export const SWAP_STEPS = ['held', 'free', 'failed'] as const;
+export type SwapStep = (typeof SWAP_STEPS)[number];
+
 export type FrameMessage =
-  | { kitvas: 1; channel: string; type: 'ready'; state: string }
+  /** `live`: the build a `swap` asked for is in the page now; absent after a load. */
+  | { kitvas: 1; channel: string; type: 'ready'; state: string; live?: number }
   | { kitvas: 1; channel: string; type: 'elements'; request: number; items: ElementSnapshot[] }
   | { kitvas: 1; channel: string; type: 'shown'; state: string }
   | { kitvas: 1; channel: string; type: 'example'; shown: boolean; height: number }
+  /** The answer to a `swap` that did not end in `ready`. */
+  | { kitvas: 1; channel: string; type: 'swap'; live: number; step: SwapStep }
   | EditFrameMessage
   | CanvasFrameMessage
   | LiveFrameMessage;
@@ -82,6 +93,11 @@ export type StudioMessage =
   | { kitvas: 1; channel: string; type: 'flash'; ids: string[] }
   | { kitvas: 1; channel: string; type: 'state'; state: string }
   | { kitvas: 1; channel: string; type: 'marks'; marks: Mark[] }
+  /**
+   * Take the build on disk into the page as it is, without loading the page again (ADR 0058).
+   * `live` numbers the build; the frame answers `ready` with it, or `swap` with a step.
+   */
+  | { kitvas: 1; channel: string; type: 'swap'; live: number }
   | EditStudioMessage
   | CanvasStudioMessage
   | LiveStudioMessage;
@@ -144,9 +160,18 @@ export function parseFrameMessage(data: unknown, channel: string): FrameMessage 
     return parseLiveFrame(message, channel);
   }
   if (message.type === 'ready' || message.type === 'shown') {
-    const { state } = message;
+    const { state, live } = message;
     if (typeof state !== 'string' || !STATE_ID.test(state)) return undefined;
+    // Only a `ready` that answers a `swap` names a build.
+    if (message.type === 'ready' && live !== undefined) {
+      return isCount(live) ? { kitvas: 1, channel, type: 'ready', state, live } : undefined;
+    }
     return { kitvas: 1, channel, type: message.type, state };
+  }
+  if (message.type === 'swap') {
+    const { live } = message;
+    const step = SWAP_STEPS.find((name) => name === message.step);
+    return isCount(live) && step ? { kitvas: 1, channel, type: 'swap', live, step } : undefined;
   }
   if (message.type === 'elements') {
     const { request, items } = message;
@@ -191,6 +216,11 @@ export function parseStudioMessage(data: unknown, channel: string): StudioMessag
     const theme = FRAME_THEMES.find((name) => name === message.theme);
     const accent = FRAME_ACCENTS.find((name) => name === message.accent);
     return theme && accent ? { kitvas: 1, channel, type: 'tones', theme, accent } : undefined;
+  }
+  if (message.type === 'swap') {
+    return isCount(message.live)
+      ? { kitvas: 1, channel, type: 'swap', live: message.live }
+      : undefined;
   }
   if (message.type === 'flash') {
     const { ids } = message;

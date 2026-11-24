@@ -8,8 +8,9 @@ import { RequestError } from '../http/problem.ts';
 /**
  * `requests` (spec 4d): a draft's requests or the listening session changed, data `{slug}`.
  * `locks` (spec 4d): another writer changed a locked element, data `{slug, changed: string[]}`.
+ * `drafts` (ADR 0064): a draft was deleted, restored or removed for good, data `{slug, change}`.
  */
-export type EventType = 'job' | 'inbox' | 'source' | 'build' | 'requests' | 'locks';
+export type EventType = 'job' | 'inbox' | 'source' | 'build' | 'requests' | 'locks' | 'drafts';
 
 export type StudioEvent = { id: number; type: EventType | 'reset'; data: unknown };
 

@@ -4,9 +4,14 @@ import { mountSource } from '../../src/render/domain/mount.ts';
 import { pageHtml } from '../../src/render/domain/page.ts';
 import { buildFiles } from '../../src/render/domain/report.ts';
 
-test('the entry hands the frame runtime the states and a render that commits at once', () => {
+test('the entry hands the frame runtime the states, its stamp and a way to mount the draft', () => {
   assert.equal(
-    mountSource({ providers: [], states: ['filled', 'empty'], defaultState: 'filled' }),
+    mountSource({
+      providers: [],
+      states: ['filled', 'empty'],
+      defaultState: 'filled',
+      runtime: 'abc123',
+    }),
     [
       "import { flushSync } from 'react-dom';",
       "import { createRoot } from 'react-dom/client';",
@@ -16,20 +21,41 @@ test('the entry hands the frame runtime the states and a render that commits at 
       '',
       '(globalThis as { __KITVAS_KIT__?: unknown }).__KITVAS_KIT__ = Kit;',
       'const STATES: string[] = ["filled","empty"];',
+      'const RUNTIME = "abc123";',
       "const asked = new URLSearchParams(window.location.search).get('state');",
       'const state = asked !== null && STATES.includes(asked) ? asked : "filled";',
       "const element = document.getElementById('root');",
       'if (element) {',
-      '  const root = createRoot(element);',
-      '  const render = (shown: string): void => {',
-      '    document.documentElement.dataset.state = shown;',
-      '    flushSync(() => root.render(<Draft state={shown} />));',
+      '  const mount = () => {',
+      '    const root = createRoot(element);',
+      '    return {',
+      '      render(shown: string): void {',
+      '        document.documentElement.dataset.state = shown;',
+      '        flushSync(() => root.render(<Draft state={shown} />));',
+      '      },',
+      '      unmount(): void {',
+      '        root.unmount();',
+      '      },',
+      '    };',
       '  };',
-      '  startFrame({ states: STATES, initial: state, render });',
+      '  startFrame({ states: STATES, initial: state, mount, runtime: RUNTIME });',
       '}',
       '',
     ].join('\n'),
   );
+});
+
+test('the entry makes no root itself: only `mount` does, when the runtime calls it', () => {
+  const source = mountSource({ providers: [], states: ['a'], defaultState: 'a', runtime: 'r' });
+  const body = source.slice(source.indexOf('if (element) {'));
+  assert.equal(body.match(/createRoot\(/g)?.length, 1);
+  assert.ok(body.indexOf('const mount = () => {') < body.indexOf('createRoot('));
+  assert.ok(!/^ {2}(mount\(\)|const root)/m.test(body), 'nothing is mounted by the entry');
+});
+
+test('the stamp of the runtime is written as a string, whatever it holds', () => {
+  const source = mountSource({ providers: [], states: ['a'], defaultState: 'a', runtime: '"x' });
+  assert.ok(source.includes('const RUNTIME = "\\"x";'));
 });
 
 test('the providers of the kit wrap the draft, the first outermost', () => {
@@ -40,6 +66,7 @@ test('the providers of the kit wrap the draft, the first outermost', () => {
     ],
     states: ['filled'],
     defaultState: 'filled',
+    runtime: 'abc123',
   });
   assert.match(source, /^import \{ Theme as Provider0 \} from "@kit";$/m);
   assert.match(source, /^import Provider1 from "some-lib";$/m);
@@ -63,6 +90,7 @@ test('a provider bound to a theme export gets it as a prop, its import after the
     ],
     states: ['filled'],
     defaultState: 'filled',
+    runtime: 'abc123',
   });
   assert.ok(
     source.includes(

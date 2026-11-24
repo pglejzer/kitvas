@@ -104,7 +104,7 @@ function endsValue(reader: Reader, close: number): boolean {
 }
 
 /** The callback's first parameter, as `setItemText` reads the element's text through it. */
-function paramOf(reader: Reader, callback: Callback): Param {
+export function paramOf(reader: Reader, callback: Callback): Param {
   const names = patternNames(reader, callback.params.from, callback.params.to);
   const first = names.filter((bound) => bound.param === 0);
   const [only] = first;
@@ -120,7 +120,7 @@ function paramOf(reader: Reader, callback: Callback): Param {
  * The receiver `a.b.c` ending at token `end`: the first name and the length of the chain;
  * `null` when it reads anything but names (a call, an index, `this`).
  */
-function chainAt(reader: Reader, end: number): { root: number; length: number } | null {
+export function chainAt(reader: Reader, end: number): { root: number; length: number } | null {
   if (!IDENTIFIER.test(wordAt(reader, end))) return null;
   let root = end;
   let length = 1;
@@ -135,7 +135,7 @@ function chainAt(reader: Reader, end: number): { root: number; length: number } 
 }
 
 /** What the `.map` of `callback` in the last region maps over. */
-function receiverOf(regions: readonly Region[], callback: Callback): MappedList {
+export function receiverOf(regions: readonly Region[], callback: Callback): MappedList {
   const last = regions[regions.length - 1];
   if (last === undefined) return COMPUTED;
   let end = callback.dot - 1;

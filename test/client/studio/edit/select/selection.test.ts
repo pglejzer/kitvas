@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { TreeNode } from '../../../../../client/channel/edit-protocol.ts';
+import { addsToSelection, type TreeNode } from '../../../../../client/channel/edit-protocol.ts';
 import {
   filterTree,
   firstChildOf,
@@ -33,6 +33,18 @@ test('shift adds an element that is not selected', () => {
 
 test('shift removes an element that is selected', () => {
   assert.deepEqual(nextSelection(['a', 'b'], { id: 'a', add: true }), ['b']);
+});
+
+test('Ctrl+click adds, a second Ctrl+click removes', () => {
+  const add = addsToSelection({ shiftKey: false, ctrlKey: true, metaKey: false });
+  const once = nextSelection(['a'], { id: 'b', add });
+  assert.deepEqual(once, ['a', 'b']);
+  assert.deepEqual(nextSelection(once, { id: 'b', add }), ['a']);
+});
+
+test('Cmd+click adds as Shift+click does', () => {
+  const add = addsToSelection({ shiftKey: false, ctrlKey: false, metaKey: true });
+  assert.deepEqual(nextSelection(['a'], { id: 'b', add }), ['a', 'b']);
 });
 
 test('a click outside any element clears the selection', () => {

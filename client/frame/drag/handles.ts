@@ -1,13 +1,14 @@
-// Magnetic handles and distance guides on the selected element (spec 4b, decision 12; plan 14,
-// task C3): size handles snap to the `size` scale (plus 100% and auto), padding and gap handles
-// to the `space` scale; Shift releases the snap (a raw value). A handle previews on the element
-// and posts `handle` while it moves and once with `done` when let go. Alt+hover, a handle drag
-// and a move drag show the distance to the element under the pointer, in px and the nearest step.
+// Handles and distance guides on the selected element (ADR 0059): a size, padding or gap handle
+// follows the pointer pixel by pixel, and a step of the kit's scale takes it over only when the
+// value comes near it (`magnet.ts`); Shift switches that off. A handle previews on the element and
+// posts `handle` while it moves and once with `done` when let go. Alt+hover, a handle drag and a
+// move drag show the distance to the element under the pointer, in px and the nearest step.
 //
-// The handles sit in an overlay of the frame's own (a closed shadow root at the end of `body`).
-// The only thing ever set on a page element is the inline preview of the dragged property, taken
-// back before the release is posted; never a position, an offset or a transform. What a drag
-// snaps to is pure and here; where the handles go is pure and in `guides.ts`.
+// The handles sit in an overlay of the frame's own (a closed shadow root at the end of `body`),
+// at one size on the screen whatever the canvas zoom is: a small bar that is drawn inside a larger
+// zone that takes the pointer (`spots.ts`, read off the page by `measure.ts`). The only thing ever
+// set on a page element is the inline preview of the dragged property, taken back before the
+// release is posted; never a position, an offset or a transform.
 
 import type { PreviewChange } from '../../channel/edit-protocol.ts';
 import type {
@@ -17,22 +18,29 @@ import type {
 } from '../../channel/structure-protocol.ts';
 import { createPreview } from '../edit/preview.ts';
 import { elementsWith } from '../edit/tree.ts';
+import { hold } from '../page/busy.ts';
+import { createGuides, createOverlay, type Overlay } from './guides.ts';
 import {
-  createGuides,
-  createOverlay,
-  MAX_GAPS,
-  type Overlay,
-  type Side,
-  type Spot,
-  spotAt,
-  spotsFor,
-} from './guides.ts';
+  type Candidate,
+  candidatesFor,
+  type Extras,
+  propertyOf,
+  pxAfter,
+  reachOf,
+  resolve,
+  type Scales,
+  type Track,
+  tracksOf,
+} from './magnet.ts';
+import { aroundOf, px, readSpots } from './measure.ts';
+import { boxOf } from './preview.ts';
 import type { Box, Point } from './slots.ts';
+import { allowedSpots, MAX_GAPS, type Spot, spotAt } from './spots.ts';
 
 export type HandlesDeps = {
   post(message: StructureFrameMessage): void;
   channel: string;
-  scales(): { space: readonly ScaleStep[]; size: readonly ScaleStep[] };
+  scales(): Scales;
 };
 
 export type Handles = {
@@ -40,103 +48,45 @@ export type Handles = {
   enable(on: boolean): void;
   /** The element the handles sit on; `null` or several selected: none. */
   show(id: string | null): void;
+  /** Frame pixels per pixel on the screen: the inverse of the canvas zoom. */
+  scale(value: number): void;
+  /**
+   * What the selected element takes: no handle is drawn for a `blocked` CSS property, and a
+   * `stepped` one (a kit prop covers it) goes from step to step.
+   */
+  limit(blocked: readonly string[], stepped: readonly string[]): void;
 };
 
 /** The overlay's host element: a pointer event whose target it is belongs to a handle. */
 export const HANDLES_HOST = 'kitvas-handles';
 
-export type Scales = ReturnType<HandlesDeps['scales']>;
-/** One property a drag changes: `sign` 1 when moving right or down makes the value larger. */
-export type Track = { property: string; axis: 'x' | 'y'; sign: 1 | -1 };
-/** A value a handle snaps to, with its size in the element's own pixels. */
-export type Candidate = { value: HandleValue; px: number; label: string };
-/** What `width: auto` and `width: 100%` come to on the element, measured by the frame. */
-export type Extras = { auto?: number; full?: number };
-export type Resolved = { value: HandleValue; css: string; label: string };
-
-/** A press that moves less than this is no drag and writes nothing. */
+/** A press that moves less than this, in pixels on the screen, is no drag and writes nothing. */
 const THRESHOLD = 3;
+/** How far from the pointer the value label sits, in pixels on the screen. */
+const LABEL_OFFSET = 14;
+/** The shield and the label lie over every handle, however many there are. */
+const ABOVE = MAX_GAPS + 16;
 
-/** What a handle can snap to: the kit's scale, and for a width also `auto` and `100%`. */
-export function candidatesFor(property: string, scales: Scales, extras: Extras = {}): Candidate[] {
-  const sized = property === 'width' || property === 'height';
-  const candidates = (sized ? scales.size : scales.space).map(
-    (step): Candidate => ({ value: { token: step.var }, px: step.px, label: step.name }),
-  );
-  if (property !== 'width') return candidates;
-  if (extras.auto !== undefined) {
-    candidates.push({ value: { raw: 'auto' }, px: extras.auto, label: 'auto' });
-  }
-  if (extras.full !== undefined) {
-    candidates.push({ value: { raw: '100%' }, px: extras.full, label: '100%' });
-  }
-  return candidates;
-}
-
-/** The candidate nearest to `px`; the earlier one of two equally near. */
-export function snapTo(px: number, candidates: readonly Candidate[]): Candidate | undefined {
-  let best: Candidate | undefined;
-  for (const candidate of candidates) {
-    if (!best || Math.abs(candidate.px - px) < Math.abs(best.px - px)) best = candidate;
-  }
-  return best;
-}
-
-/** The value a handle at `px` stands for: the nearest candidate, or with Shift the raw pixels. */
-export function resolve(px: number, shift: boolean, candidates: readonly Candidate[]): Resolved {
-  const snapped = shift ? undefined : snapTo(px, candidates);
-  if (!snapped) {
-    const raw = `${Math.round(Math.max(0, px))}px`;
-    return { value: { raw }, css: raw, label: raw };
-  }
-  if ('raw' in snapped.value) {
-    return { value: snapped.value, css: snapped.value.raw, label: snapped.label };
-  }
-  const label = `${snapped.label} · ${Math.round(snapped.px)}px`;
-  return { value: snapped.value, css: `var(${snapped.value.token})`, label };
-}
-
-/** The properties a handle changes: the corner changes two. */
-export function tracksOf(spot: Spot): Track[] {
-  if (spot.kind === 'size' || spot.axis === 'both') {
-    return [
-      { property: 'width', axis: 'x', sign: 1 },
-      { property: 'height', axis: 'y', sign: 1 },
-    ];
-  }
-  return [{ property: spot.kind, axis: spot.axis, sign: spot.sign }];
-}
-
-/** With Alt a padding handle moves both sides of its axis together. */
-export function propertyOf(property: string, alt: boolean): string {
-  if (!alt) return property;
-  if (property === 'padding-top' || property === 'padding-bottom') return 'padding-block';
-  if (property === 'padding-left' || property === 'padding-right') return 'padding-inline';
-  return property;
-}
-
-/** The value in pixels after the pointer went from `from` to `to`; never under zero. */
-export function pxAfter(start: number, track: Track, from: Point, to: Point): number {
-  const moved = track.axis === 'x' ? to.x - from.x : to.y - from.y;
-  return Math.max(0, start + track.sign * moved);
-}
-
-// The DOM part. Tones come from `toned` (`guides.ts`); system colours stand in before the studio's.
+// Tones come from `toned` (`guides.ts`); system colours stand in before the studio's.
 const FOCUS = 'var(--kv-select, Highlight)';
 const SHEET = `
-.handle, .value { position: absolute; left: 0; top: 0; box-sizing: border-box; }
-.handle {
-  pointer-events: auto; touch-action: none; border-radius: 3px;
-  background: var(--kv-on-select, Canvas); border: 1px solid ${FOCUS};
+.handle, .bar, .value { position: absolute; left: 0; top: 0; box-sizing: border-box; }
+.handle { pointer-events: auto; touch-action: none; }
+.bar {
+  pointer-events: none; border-style: solid; border-color: ${FOCUS};
+  background: var(--kv-on-select, Canvas);
 }
-.handle[data-kind^="padding"], .handle[data-kind="gap"] {
+.handle[data-kind^="padding"] .bar, .handle[data-kind="gap"] .bar {
   background: ${FOCUS}; border-color: var(--kv-on-select, Canvas);
 }
-.shield { position: fixed; inset: 0; pointer-events: auto; touch-action: none; }
+.shield {
+  position: fixed; inset: 0; z-index: ${ABOVE}; pointer-events: auto; touch-action: none;
+}
 [data-axis="x"] { cursor: ew-resize; }
 [data-axis="y"] { cursor: ns-resize; }
 [data-axis="both"] { cursor: nwse-resize; }
 .value {
+  z-index: ${ABOVE + 1}; transform-origin: 0 0;
   pointer-events: none; padding: 2px 5px; border-radius: 3px; white-space: nowrap;
   font: 600 11px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums; letter-spacing: 0;
@@ -144,7 +94,7 @@ const SHEET = `
 }
 .off { display: none; }
 @media (forced-colors: active) {
-  .handle { background: Canvas; border-color: Highlight; }
+  .bar { background: Canvas; border-color: Highlight; }
   .value { background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
 }
 `;
@@ -156,7 +106,9 @@ const WIDTH_EXTRAS = [
 /** Presses and clicks on a handle that must not reach the page or the picking of `edit.ts`. */
 const GUARDED = ['mousedown', 'mouseup', 'click', 'dblclick', 'auxclick'] as const;
 
-type Layer = { overlay: Overlay; nodes: HTMLElement[]; shield: HTMLElement; value: HTMLElement };
+/** One handle in the overlay: the zone that takes the pointer and the bar drawn inside it. */
+type HandleNode = { zone: HTMLElement; bar: HTMLElement };
+type Layer = { overlay: Overlay; nodes: HandleNode[]; shield: HTMLElement; value: HTMLElement };
 type Sent = { property: string; value: HandleValue };
 type Live = Track & { start: number; candidates: Candidate[] };
 type Drag = {
@@ -168,43 +120,18 @@ type Drag = {
   sent: Sent[];
   moved: boolean;
   space: readonly ScaleStep[];
+  /** Ends the hold on the page's swaps (`busy.ts`). */
+  free(): void;
 };
 
-const px = (value: string): number => {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-const boxOf = (element: Element): Box => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left, top, width, height };
-};
 const pointOf = (event: PointerEvent): Point => ({ x: event.clientX, y: event.clientY });
 
-/** What a content-box element's CSS size leaves out on one axis: its padding and borders. */
-function aroundOf(style: CSSStyleDeclaration, sides: readonly [Side, Side]): number {
-  if (style.boxSizing === 'border-box') return 0;
-  let sum = 0;
-  for (const side of sides) {
-    sum += px(style.getPropertyValue(`padding-${side}`));
-    sum += px(style.getPropertyValue(`border-${side}-width`));
-  }
-  return sum;
-}
-
-function readSpots(element: Element): Spot[] {
-  const style = getComputedStyle(element);
-  const side = (name: Side): number => px(style.getPropertyValue(`padding-${name}`));
-  const padding = {
-    top: side('top'),
-    right: side('right'),
-    bottom: side('bottom'),
-    left: side('left'),
-  };
-  const children = [...element.children]
-    .map(boxOf)
-    .filter((box) => box.width > 0 || box.height > 0)
-    .slice(0, MAX_GAPS + 1);
-  return spotsFor({ box: boxOf(element), padding, display: style.display, children });
+/** Puts an overlay part at `box`, moved by `shift`. */
+function place(node: HTMLElement, box: Box, shift: Point): void {
+  node.style.left = `${box.left + shift.x}px`;
+  node.style.top = `${box.top + shift.y}px`;
+  node.style.width = `${box.width}px`;
+  node.style.height = `${box.height}px`;
 }
 
 export function createHandles(deps: HandlesDeps): Handles {
@@ -213,6 +140,9 @@ export function createHandles(deps: HandlesDeps): Handles {
   const guides = createGuides();
   let on = false;
   let id: string | null = null;
+  let zoom = 1;
+  let blocked: ReadonlySet<string> = new Set();
+  let stepped: ReadonlySet<string> = new Set();
   let layer: Layer | undefined;
   let drag: Drag | undefined;
   /** The click that ends a drag is not a pick. */
@@ -223,6 +153,8 @@ export function createHandles(deps: HandlesDeps): Handles {
   let observers: { disconnect(): void }[] = [];
   const current = (): Element | undefined =>
     on && id !== null ? elementsWith(new Set([id]))[0] : undefined;
+  /** The handles the element shows now: none for a property it cannot take. */
+  const spotsOf = (element: Element): Spot[] => allowedSpots(readSpots(element, zoom), blocked);
 
   function createLayer(): Layer {
     const overlay = createOverlay(HANDLES_HOST, SHEET, Z_INDEX);
@@ -235,29 +167,37 @@ export function createHandles(deps: HandlesDeps): Handles {
     return { overlay, nodes: [], shield, value };
   }
 
+  function addNode(to: Layer): void {
+    const zone = document.createElement('kitvas-handle');
+    const bar = document.createElement('kitvas-bar');
+    bar.className = 'bar';
+    zone.append(bar);
+    to.overlay.root.insertBefore(zone, to.shield);
+    to.nodes.push({ zone, bar });
+  }
+
   /** Puts every handle where the element is now. */
   function draw(): void {
     frame = 0;
     const element = current();
     if (!element && !layer) return;
     layer ??= createLayer();
-    const spots = element ? readSpots(element) : [];
+    const spots = element ? spotsOf(element) : [];
     const origin = layer.overlay.origin();
-    while (layer.nodes.length < spots.length) {
-      const node = document.createElement('kitvas-handle');
-      layer.overlay.root.insertBefore(node, layer.shield);
-      layer.nodes.push(node);
-    }
-    for (const [index, node] of layer.nodes.entries()) {
+    const shift = { x: scrollX - origin.x, y: scrollY - origin.y };
+    while (layer.nodes.length < spots.length) addNode(layer);
+    for (const [index, { zone, bar }] of layer.nodes.entries()) {
       const spot = spots[index];
-      node.className = spot ? 'handle' : 'handle off';
+      zone.className = spot ? 'handle' : 'handle off';
       if (!spot) continue;
-      node.dataset.kind = spot.kind;
-      node.dataset.axis = spot.axis;
-      node.style.left = `${spot.box.left + scrollX - origin.x}px`;
-      node.style.top = `${spot.box.top + scrollY - origin.y}px`;
-      node.style.width = `${spot.box.width}px`;
-      node.style.height = `${spot.box.height}px`;
+      zone.dataset.kind = spot.kind;
+      zone.dataset.axis = spot.axis;
+      // Where zones meet, the pointer gets the first one, the one `spotAt` answers with.
+      zone.style.zIndex = String(spots.length - index);
+      place(zone, spot.hit, shift);
+      place(bar, spot.box, { x: -spot.hit.left, y: -spot.hit.top });
+      bar.style.borderWidth = `${zoom}px`;
+      bar.style.borderRadius = `${2 * zoom}px`;
     }
   }
 
@@ -297,8 +237,8 @@ export function createHandles(deps: HandlesDeps): Handles {
     const moving = drag;
     if (!moving || !layer) return;
     moving.at = point;
-    const far = Math.hypot(point.x - moving.from.x, point.y - moving.from.y) >= THRESHOLD;
-    moving.moved ||= far;
+    const far = Math.hypot(point.x - moving.from.x, point.y - moving.from.y);
+    moving.moved ||= far >= THRESHOLD * zoom;
     if (!moving.moved) return;
     const changes: PreviewChange[] = [];
     const next: Sent[] = [];
@@ -306,7 +246,10 @@ export function createHandles(deps: HandlesDeps): Handles {
     for (const track of moving.tracks) {
       const property = propertyOf(track.property, alt);
       const size = pxAfter(track.start, track, moving.from, point);
-      const result = resolve(size, shift, track.candidates);
+      const reach = reachOf(track.property, stepped, zoom);
+      // A property a kit prop covers has no free value, so Shift does not free it either.
+      const free = shift && !stepped.has(track.property);
+      const result = resolve(size, free, track.candidates, reach);
       changes.push({ id: moving.id, kind: 'style', property, value: result.css });
       next.push({ property, value: result.value });
       labels.push(result.label);
@@ -320,10 +263,13 @@ export function createHandles(deps: HandlesDeps): Handles {
     }
     moving.sent = next;
     const origin = layer.overlay.origin();
-    layer.value.textContent = labels.join(' × ');
-    layer.value.style.left = `${point.x + scrollX - origin.x + 14}px`;
-    layer.value.style.top = `${point.y + scrollY - origin.y + 14}px`;
-    layer.value.classList.remove('off');
+    const { value } = layer;
+    value.textContent = labels.join(' × ');
+    value.style.left = `${point.x + scrollX - origin.x + LABEL_OFFSET * zoom}px`;
+    value.style.top = `${point.y + scrollY - origin.y + LABEL_OFFSET * zoom}px`;
+    // Of the overlay's own label, never of a page element: it keeps its size on the screen.
+    value.style.transform = `scale(${zoom})`;
+    value.classList.remove('off');
     guides.measure(moving.id, point, moving.space);
     draw();
   }
@@ -342,6 +288,7 @@ export function createHandles(deps: HandlesDeps): Handles {
       const { host } = layer.overlay;
       if (host.hasPointerCapture(ending.pointer)) host.releasePointerCapture(ending.pointer);
     }
+    ending.free();
     if (commit && ending.moved) {
       for (const item of ending.sent) {
         deps.post({ ...head, type: 'handle', id: ending.id, ...item, done: true });
@@ -363,13 +310,23 @@ export function createHandles(deps: HandlesDeps): Handles {
     const element = current();
     const elementId = id;
     const from = pointOf(event);
-    const spot = element ? spotAt(from, readSpots(element)) : undefined;
+    const spot = element ? spotAt(from, spotsOf(element)) : undefined;
     if (!element || !spot || elementId === null || event.button !== 0) return;
     const scales = deps.scales();
     const tracks = tracksOf(spot).map((track) => begin(element, track, scales, elementId));
     const pointer = event.pointerId;
-    const { space } = scales;
-    drag = { id: elementId, pointer, from, at: from, tracks, sent: [], moved: false, space };
+    drag = {
+      id: elementId,
+      pointer,
+      from,
+      at: from,
+      tracks,
+      sent: [],
+      moved: false,
+      space: scales.space,
+      // From the press to the release: the page is not swapped under a handle that is held.
+      free: hold(),
+    };
     layer.shield.dataset.axis = spot.axis;
     layer.shield.classList.remove('off');
     try {
@@ -493,6 +450,18 @@ export function createHandles(deps: HandlesDeps): Handles {
       id = next;
       guiding = false;
       guides.hide();
+      if (on) draw();
+    },
+
+    scale(value) {
+      zoom = value > 0 && Number.isFinite(value) ? value : 1;
+      guides.scale(zoom);
+      if (on) draw();
+    },
+
+    limit(nextBlocked, nextStepped) {
+      blocked = new Set(nextBlocked);
+      stepped = new Set(nextStepped);
       if (on) draw();
     },
   };

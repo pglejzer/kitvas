@@ -11,7 +11,7 @@ export const ELEMENT_ID =
 /** A prop name as JSX writes it: `variant`, `aria-label`, `data-x`. Never `className`, `key`, `ref`. */
 export const PROP_NAME = /^(?!className$|key$|ref$|style$)[A-Za-z_][A-Za-z0-9_-]{0,63}$/;
 /** A CSS class name kitvas may read or write. */
-export const CLASS_NAME = /^[a-z][a-z0-9-]{0,63}$/;
+export const CLASS_NAME = /^[a-z][a-z0-9_-]{0,63}$/;
 /** A CSS property in the editor's set: lower-case, hyphens. Custom properties are never edited. */
 export const CSS_PROPERTY = /^[a-z][a-z-]{0,47}$/;
 /** A kit token variable: `--kit-space-md`. */
@@ -65,6 +65,8 @@ export type StyleContext = Zod.infer<typeof StyleContextSchema>;
 export const UTILITY = /^[A-Za-z0-9:_\-[\]/.#%(),]{1,120}$/;
 /** The place of an item in a `.map`: 0 for the first rendered element of that id. */
 const ItemSchema = z.number().int().min(0).max(10_000);
+/** The most `.map` lists around one element that a text's path names (ADR 0060). */
+export const MAX_LIST_DEPTH = 8;
 
 /** A literal prop value: `name="v"`, `name={3}`, `name` (true) or `name={false}`. */
 export const PropValueSchema = z.discriminatedUnion('kind', [
@@ -250,6 +252,13 @@ export const EditOpSchema = z.discriminatedUnion('op', [
     item: ItemSchema,
     value: z.string().max(MAX_TEXT),
     before: z.string().max(MAX_TEXT),
+    /**
+     * ADR 0060: the copy's place in each `.map` around the element, outer first (`[]` in none).
+     * With it the op writes the one string literal of the file that renders `before` in that copy
+     * (a branch of a condition, a field of the item, of an outer item's list too), in its own
+     * quotes; `item` is then the last place, for the change list.
+     */
+    path: z.array(ItemSchema).max(MAX_LIST_DEPTH).optional(),
   }),
   /**
    * Server-made inverses (decision 4). `patch`: each hunk's `find` occurs exactly once in the

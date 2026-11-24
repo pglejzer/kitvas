@@ -8,6 +8,7 @@ import type {
   EditState,
   Inspect,
   OffKit,
+  TextSource,
 } from '../../../src/studio/api/edit/edit-schemas.ts';
 import type { SessionReopen } from '../../../src/studio/api/edit/session-schemas.ts';
 import type {
@@ -52,6 +53,18 @@ export const getEditState = (slug: string): Promise<Answer<EditState>> =>
 
 export const inspect = (slug: string, id: string): Promise<Answer<Inspect>> =>
   call('GET', `${base(slug)}/inspect?id=${encodeURIComponent(id)}`);
+
+/**
+ * ADR 0060: whether the text copy `path` of the element shows has one string literal of its file
+ * behind it (`reason: null`), so a double click may open the inline editor. Reads only.
+ */
+export const getTextSource = (
+  slug: string,
+  asked: { id: string; text: string; path: readonly number[] },
+): Promise<Answer<TextSource>> => {
+  const query = `id=${encodeURIComponent(asked.id)}&text=${encodeURIComponent(asked.text)}`;
+  return call('GET', `${base(slug)}/text-source?${query}&path=${asked.path.join(',')}`);
+};
 
 export const postEdits = (slug: string, request: EditRequest): Promise<Answer<EditOutcome>> =>
   call('POST', `${base(slug)}/edits`, request);

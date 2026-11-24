@@ -13,6 +13,7 @@ import type { EditorContext } from './context.ts';
 import { mountAsk } from './history/ask.ts';
 import { mountChanges } from './history/changes.ts';
 import { createHistory } from './history/history.ts';
+import { mountKeep } from './history/keep.ts';
 import { mountSession } from './history/session.ts';
 import { mountFrameDrop } from './insert/frame-drop.ts';
 import { mountImages } from './insert/images.ts';
@@ -26,9 +27,11 @@ import { mountProps } from './props/panel.ts';
 import { mountStateHeld } from './props/state-held.ts';
 import { mountKeys } from './select/keys.ts';
 import { mountMode } from './select/mode.ts';
+import { mountRect } from './select/rect.ts';
 import { createStore, type Store } from './store.ts';
 import { mountLists } from './structure/lists.ts';
 import { mountMenu } from './structure/menu.ts';
+import { mountReorder } from './structure/reorder.ts';
 import { mountStructure } from './structure/structure.ts';
 import { mountHandleWrites } from './style/handle-writes.ts';
 import { mountConflict } from './sync/conflict.ts';
@@ -67,6 +70,9 @@ export function startEditor(main: HTMLElement, frame: Frame): Editor | undefined
   mountStructure(ctx);
   mountPalette(ctx);
   mountFrameDrop(ctx);
+  // The frame's pointer gestures (ADR 0059): the selection rectangle and a reordered list item.
+  mountRect(ctx);
+  mountReorder(ctx);
   mountMenu(ctx);
   mountKeys(ctx);
   // The zoom is the canvas's (`client/studio/canvas/`), which works without the editor too.
@@ -86,6 +92,8 @@ export function startEditor(main: HTMLElement, frame: Frame): Editor | undefined
   mountLists(ctx);
   mountImages(ctx);
   mountWaivers(ctx);
+  // The undo history kept across a reload is read once the edit state below is known (ADR 0061).
+  mountKeep(ctx);
   getEditState(slug).then((answer) => {
     if (answer.ok) store.set({ edit: answer.body, etags: answer.body.etags });
   });

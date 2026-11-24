@@ -22,6 +22,8 @@ import type { StateHeld } from './props/state-held.ts';
  * `selectCreated`: select the elements the answer created (insert, paste, duplicate, wrap).
  * `flash`: a button made the change, not the person's hand on the element (a variant, a
  * suggestion, "Bring back"): once it is applied a ring flashes on what it touched (ADR 0057).
+ * `renames`: what the step's own answer renamed (old id → new id), so its undo turns them round;
+ * kept on the step, so the history kept across a reload has them too (ADR 0061).
  */
 export type Gesture = {
   ops: EditOp[];
@@ -29,6 +31,7 @@ export type Gesture = {
   undoOps?: EditOp[];
   selectCreated?: boolean;
   flash?: boolean;
+  renames?: Readonly<Record<string, string>>;
 };
 
 /** What copy and cut keep (task D4): each element's source and the TSX file it came from. */
@@ -64,6 +67,11 @@ export type ChangeEntry = {
 
 export type Conflict = { gesture: Gesture; outcome: Extract<EditOutcome, { outcome: 'conflict' }> };
 export type Refused = { gesture: Gesture; index: number; reason: Refusal };
+/**
+ * A change, an undo or a redo the studio did not save: the request got no answer, or an error
+ * (ADR 0061). Both stacks stay as they were; the next answered request clears it.
+ */
+export type Failed = { kind: 'apply' | 'undo' | 'redo'; gesture: Gesture; status: number };
 
 export type EditorState = {
   slug: string;
@@ -130,6 +138,9 @@ export type EditorState = {
   /** The frame box's scale, 0.25 to 2 (task D7). */
   zoom: number;
   menu: Menu | null;
+  // Plan 18b (ADR 0061).
+  /** The last change, undo or redo the studio did not save; `null` once a request is answered. */
+  failed: Failed | null;
 };
 
 /** The element an op is about, for the change list and "Ask Claude"; `null` for section and file ops. */
@@ -186,6 +197,7 @@ export function initialState(slug: string): EditorState {
     variant: null,
     zoom: 1,
     menu: null,
+    failed: null,
   };
 }
 

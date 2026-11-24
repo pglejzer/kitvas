@@ -24,6 +24,8 @@ export type WarmBuilder = {
    * change was in: the event names it when the build throws before it knows its own.
    */
   request(slug: string, version: number): void;
+  /** Drops a build waiting after the running one, and resolves once the running one has ended. */
+  settle(slug: string): Promise<void>;
   /** Starts no more builds; resolves once the running ones have ended. */
   close(): Promise<void>;
 };
@@ -70,6 +72,12 @@ export function createWarmBuilder(deps: WarmBuilderDeps): WarmBuilder {
       const run: Run = { done: Promise.resolve(), again: false, version };
       runs.set(slug, run);
       run.done = loop(slug, run).catch((error: unknown) => deps.onError?.(error));
+    },
+    async settle(slug) {
+      const running = runs.get(slug);
+      if (!running) return;
+      running.again = false;
+      await running.done;
     },
     async close() {
       closed = true;

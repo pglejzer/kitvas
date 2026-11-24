@@ -1,14 +1,21 @@
-// `kitvas draft …`: create a draft, list drafts, show one, start its next version.
+// `kitvas draft …`: create a draft, list drafts, show one, start its next version, delete one into
+// the trash and bring it back or remove it for good (ADR 0064).
 
 import {
   addVersion,
   createDraft,
+  type DeletedDraft,
   type Draft,
   type DraftListItem,
   type DraftStore,
+  deleteDraft,
   latestVersion,
+  listDeleted,
   listDrafts,
   loadDraft,
+  purgeAllDeleted,
+  purgeDeleted,
+  restoreDraft,
 } from '../../drafts/index.ts';
 import { type KitStore, requireKit } from '../../kit/index.ts';
 import { KitvasError, loadSettings, type Translate } from '../../shared/index.ts';
@@ -21,7 +28,20 @@ export type DraftView =
   | { view: 'new'; draft: Draft; path: string }
   | { view: 'list'; drafts: DraftListItem[] }
   | { view: 'show'; draft: Draft }
-  | { view: 'version'; slug: string; version: number };
+  | { view: 'version'; slug: string; version: number }
+  | { view: 'delete'; deleted: DeletedDraft; path: string; restore: string }
+  | { view: 'restore'; restored: DeletedDraft }
+  | { view: 'deleted'; drafts: DeletedDraft[] }
+  | { view: 'purge'; purged: DeletedDraft[] };
+
+/** The command that brings a deleted draft back. */
+const restoreCommand = (slug: string): string => `kitvas draft restore ${slug}`;
+
+const deletedRow = (item: DeletedDraft, t: Translate): string[] => [
+  item.slug,
+  item.title,
+  t('drafts.deleted.when', { at: item.deletedAt }),
+];
 
 /** The drafts of the project in `ctx.cwd`. Fails when the project has no workspace yet. */
 export function openDrafts(deps: DraftDeps, ctx: CommandContext): DraftStore {
@@ -64,6 +84,22 @@ function renderView(data: DraftView, t: Translate): string {
     }
     case 'version':
       return t('drafts.version.created', { slug: data.slug, version: data.version });
+    case 'delete':
+      return [
+        t('drafts.delete.done', { slug: data.deleted.slug, path: data.path }),
+        t('drafts.delete.undo', { command: data.restore }),
+      ].join('\n');
+    case 'restore':
+      return t('drafts.restore.done', { slug: data.restored.slug });
+    case 'deleted':
+      if (data.drafts.length === 0) return t('drafts.deleted.empty');
+      return columns(data.drafts.map((item) => deletedRow(item, t))).join('\n');
+    case 'purge':
+      if (data.purged.length === 0) return t('drafts.purge.none');
+      return [
+        t('drafts.purge.done', { count: data.purged.length }),
+        ...columns(data.purged.map((item) => deletedRow(item, t))),
+      ].join('\n');
   }
 }
 
@@ -88,11 +124,33 @@ export function createDraftCommand(deps: DraftDeps): Command {
           return { view: 'new', draft, path: drafts.dir(slug) };
         }
         case 'list':
+          if (ctx.flags.deleted) return { view: 'deleted', drafts: listDeleted(drafts) };
           return { view: 'list', drafts: listDrafts(drafts) };
         case 'show':
           return { view: 'show', draft: loadDraft(drafts, slugAt(ctx, 1)) };
         case 'version':
           return { view: 'version', ...addVersion(drafts, slugAt(ctx, 1), new Date()) };
+        case 'delete': {
+          const deleted = deleteDraft(drafts, slugAt(ctx, 1), new Date());
+          return {
+            view: 'delete',
+            deleted,
+            path: drafts.trash.dir(deleted.entry),
+            restore: restoreCommand(deleted.slug),
+          };
+        }
+        case 'restore':
+          return { view: 'restore', restored: restoreDraft(drafts, slugAt(ctx, 1)) };
+        case 'purge': {
+          const slug = ctx.positionals[1];
+          if (ctx.flags.all === (slug !== undefined)) {
+            throw new KitvasError('USAGE', { detail: ctx.t('drafts.usage.purge') });
+          }
+          return {
+            view: 'purge',
+            purged: slug === undefined ? purgeAllDeleted(drafts) : purgeDeleted(drafts, slug),
+          };
+        }
         default:
           throw new KitvasError('USAGE', { detail: ctx.t('drafts.usage.unknown', { name: sub }) });
       }

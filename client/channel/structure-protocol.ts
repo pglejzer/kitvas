@@ -3,9 +3,9 @@
 // `edit-protocol.ts` hands these types to the parsers here.
 //
 // The frame owns the pointer while a drag, a handle or a selection rectangle is on it: it finds the
-// drop slot from the real layout and reports the drop. The page owns the writes: it turns a drop or
-// a handle into ops. A drag that starts on the page (the palette, the tree) is forwarded into the
-// frame as `drag` messages in the frame's own CSS pixels.
+// drop slot from the real layout and reports the drop. The page owns the writes: it turns a drop, a
+// reordered list item or a handle into ops. A drag that starts on the page (the palette, the tree)
+// is forwarded into the frame as `drag` messages in the frame's own CSS pixels.
 
 const ELEMENT_ID = /^[A-Za-z0-9_.:/$-]{1,200}$/;
 const PROPERTY = /^[a-z][a-z-]{0,47}$/;
@@ -18,6 +18,10 @@ export const MAX_LABEL = 80;
 export const MAX_RAW = 200;
 /** Frame coordinates and token sizes stay inside this, in CSS pixels. */
 export const MAX_PX = 100_000;
+/** A list item's place: the same bound as the edit ops' `item`. */
+export const MAX_ITEM = 10_000;
+/** The most properties a `handles` message names in one of its lists. */
+export const MAX_HANDLE_PROPERTIES = 16;
 
 export const PLACES = ['before', 'after', 'first', 'last'] as const;
 export type Place = (typeof PLACES)[number];
@@ -27,6 +31,11 @@ export type FrameEntry = {
   id: string;
   /** It can be dragged: no refusal for a move. */
   movable: boolean;
+  /**
+   * It is what a `.map` over a literal array returns, one copy per item: a drag reorders the
+   * items of the data (`reorder`) instead of moving the element.
+   */
+  item: boolean;
   /** It takes an element dropped inside. */
   accepts: boolean;
   /** Its children mix text and elements: no slots between them. */
@@ -54,23 +63,32 @@ export type StructureStudioMessage = Head &
     | { type: 'hide'; ids: string[] }
     /** Locked elements: the canvas cannot select or drag them, while editing only. */
     | { type: 'lock'; ids: string[] }
-    /** Handles on the selected element; off while a drag or an inline text edit runs. */
-    | { type: 'handles'; on: boolean }
+    /**
+     * Handles on the selected element; off while a drag or an inline text edit runs. `blocked`:
+     * the CSS properties no handle can write on it, whose handles are not drawn. `stepped`: the
+     * ones a kit prop covers, which take a step of the scale and never free pixels.
+     */
+    | { type: 'handles'; on: boolean; blocked: string[]; stepped: string[] }
   );
 
 export type StructureFrameMessage = Head &
   /** A drag ended on a slot. A drag that ends on no slot sends nothing. */
   (
     | { type: 'drop'; source: DragSource; anchor: string; place: Place }
+    /**
+     * A list item was dropped among its copies: copy `item` of `id` (document order, from 0) goes
+     * to index `to`, the others shift. A drop on its own place sends nothing.
+     */
+    | { type: 'reorder'; id: string; item: number; to: number }
     /** A handle moved (`done: false`, previewed in the frame) or was let go (`done: true`, to write). */
     | { type: 'handle'; id: string; property: string; value: HandleValue; done: boolean }
-    /** The elements a selection rectangle took; `add` with Shift. */
+    /** The elements a selection rectangle took; `add` with Shift, Ctrl or Cmd held. */
     | { type: 'rect'; ids: string[]; add: boolean }
     /** A context menu was asked for, on an element or on none, at frame pixels. */
     | { type: 'menu'; id: string | null; x: number; y: number }
   );
 
-export const STRUCTURE_FRAME_TYPES = new Set(['drop', 'handle', 'rect', 'menu']);
+export const STRUCTURE_FRAME_TYPES = new Set(['drop', 'reorder', 'handle', 'rect', 'menu']);
 export const STRUCTURE_STUDIO_TYPES = new Set([
   'structure',
   'tokens',
@@ -93,14 +111,21 @@ const isPx = (value: unknown): value is number =>
 const isPlace = (value: unknown): value is Place => PLACES.some((place) => place === value);
 const isRoot = (value: unknown): value is FrameEntry['root'] =>
   value === null || value === 'section' || value === 'slot';
+const isItem = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MAX_ITEM;
+const isProperties = (value: unknown): value is string[] =>
+  Array.isArray(value) &&
+  value.length <= MAX_HANDLE_PROPERTIES &&
+  value.every((name) => typeof name === 'string' && PROPERTY.test(name));
 
 function entry(value: unknown): FrameEntry | undefined {
   if (!isObject(value)) return undefined;
-  const { id, movable, accepts, mixed, interactive, root } = value;
+  const { id, movable, item, accepts, mixed, interactive, root } = value;
   if (!isId(id) || !isRoot(root)) return undefined;
   if (typeof movable !== 'boolean' || typeof accepts !== 'boolean') return undefined;
   if (typeof mixed !== 'boolean' || typeof interactive !== 'boolean') return undefined;
-  return { id, movable, accepts, mixed, interactive, root };
+  if (typeof item !== 'boolean') return undefined;
+  return { id, movable, item, accepts, mixed, interactive, root };
 }
 
 function step(value: unknown): ScaleStep | undefined {
@@ -154,6 +179,11 @@ export function parseStructureFrame(
       const { anchor, place } = message;
       if (!from || !isId(anchor) || !isPlace(place)) return undefined;
       return { ...head, type: 'drop', source: from, anchor, place };
+    }
+    case 'reorder': {
+      const { id, item, to } = message;
+      if (!isId(id) || !isItem(item) || !isItem(to)) return undefined;
+      return { ...head, type: 'reorder', id, item, to };
     }
     case 'handle': {
       const { id, property, done } = message;
@@ -210,10 +240,13 @@ export function parseStructureStudio(
       return isIds(message.ids) ? { ...head, type: 'hide', ids: [...message.ids] } : undefined;
     case 'lock':
       return isIds(message.ids) ? { ...head, type: 'lock', ids: [...message.ids] } : undefined;
-    case 'handles':
-      return typeof message.on === 'boolean'
-        ? { ...head, type: 'handles', on: message.on }
-        : undefined;
+    case 'handles': {
+      const { on, blocked, stepped } = message;
+      if (typeof on !== 'boolean' || !isProperties(blocked) || !isProperties(stepped)) {
+        return undefined;
+      }
+      return { ...head, type: 'handles', on, blocked: [...blocked], stepped: [...stepped] };
+    }
     default:
       return undefined;
   }

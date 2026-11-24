@@ -4,6 +4,7 @@ import {
   type AskSubject,
   askText,
   elementOf,
+  hintKey,
   MAX_NOTE,
   noteOf,
   subjectOf,
@@ -102,6 +103,31 @@ test('every reason has its own words', () => {
   const op: EditOp = { op: 'addClass', id: ID, className: 'hero' };
   const seen = new Set(reasons.map((reason) => askText(subject(op, reason), null)));
   assert.equal(seen.size, reasons.length);
+});
+
+test('a text written through its source says which copy of which lists it is', () => {
+  const base = { op: 'setItemText' as const, id: ID, item: 0, before: 'SSO' };
+  const nested = askText(subject({ ...base, item: 1, path: [1, 1], value: 'SAML' }), null);
+  assert.match(nested, /change the text "SSO" in item 2 > 2 of the nested lists to "SAML"/);
+  const one = askText(subject({ ...base, path: [0], value: 'SSO' }), null);
+  // The text as it is, when no new text was typed yet.
+  assert.match(one, /change the text "SSO" in item 1 of the list(?! to)/);
+  assert.match(askText(subject({ ...base, path: [], value: 'Go' }), null), /"SSO" to "Go"/);
+  // Without a path it is the list op of before.
+  const old = askText(subject({ ...base, value: 'Go' }), null);
+  assert.match(old, /change the text of item 1 of the list to "Go"/);
+});
+
+test('a text that cannot be typed in place is told why, other refusals keep the hint', () => {
+  const text: EditOp = { op: 'setItemText', id: ID, item: 0, path: [0], value: 'a', before: 'a' };
+  assert.equal(hintKey(subject(text, 'computed')), 'ask.text.computed');
+  assert.equal(hintKey(subject(text, 'ambiguous')), 'ask.text.ambiguous');
+  assert.equal(hintKey(subject(text, 'list-item-gone')), 'ask.text.list-item-gone');
+  const plain: EditOp = { op: 'setText', id: ID, value: 'b', before: 'a' };
+  assert.equal(hintKey(subject(plain, 'no-text')), 'ask.text.no-text');
+  assert.equal(hintKey(subject(text, 'locked')), 'ask.hint');
+  const style: EditOp = { op: 'addClass', id: ID, className: 'a' };
+  assert.equal(hintKey(subject(style, 'computed')), 'ask.hint');
 });
 
 test('the note stays under the inbox limit', () => {

@@ -1,6 +1,6 @@
 # 0053. Canvas tools
 
-Date: 2026-11-23. Status: accepted. Spec: `docs/specs/2026-11-23-kitvas-stage-4b-editor-structure-design.md`, decisions 11, 12, 13 and 14. Builds on ADR 0050.
+Date: 2026-11-23. Status: accepted, changed in part by ADR 0059. Spec: `docs/specs/2026-11-23-kitvas-stage-4b-editor-structure-design.md`, decisions 11, 12, 13 and 14. Builds on ADR 0050.
 
 ## Context
 

@@ -1,7 +1,7 @@
 // The frame side of the structure editor (spec 4b; plan 14, task C4): it hears every page message
 // of the editor, keeps the structure entries, the scales, the selection and edit mode, and drives
 // the drag (C2), the handles (C3), hiding and the context menu request. The runtime hands it every
-// editor message, the same ones `edit.ts` gets.
+// editor message, the same ones `edit.ts` gets, and the canvas zoom as `scale` (ADR 0059).
 //
 // The drag and the handles are made with the structure, before edit mode ever goes on: each adds
 // its window listeners when made, and they must run before the ones `edit.ts` adds on every turn
@@ -9,12 +9,8 @@
 // would also pick. They do nothing while edit mode is off. The indicator draws its overlay only
 // when a drag first shows a slot, so a prototype nobody edits never gets one.
 
-import type { EditStudioMessage } from '../../channel/edit-protocol.ts';
-import type {
-  FrameEntry,
-  ScaleStep,
-  StructureFrameMessage,
-} from '../../channel/structure-protocol.ts';
+import type { EditFrameMessage, EditStudioMessage } from '../../channel/edit-protocol.ts';
+import type { FrameEntry, ScaleStep } from '../../channel/structure-protocol.ts';
 import { createDrag, type Drag } from '../drag/drag.ts';
 import { createHandles, type Handles } from '../drag/handles.ts';
 import { createIndicator, type Indicator, slotAt } from '../drag/slots.ts';
@@ -30,7 +26,11 @@ export type MenuEvent = {
 
 /** The parts the structure drives; the defaults are the real ones, a test passes fakes. */
 export type StructureParts = {
-  drag(input: { entries(): ReadonlyMap<string, FrameEntry>; selection(): readonly string[] }): Drag;
+  drag(input: {
+    entries(): ReadonlyMap<string, FrameEntry>;
+    selection(): readonly string[];
+    locked(): readonly string[];
+  }): Drag;
   handles(scales: () => { space: readonly ScaleStep[]; size: readonly ScaleStep[] }): Handles;
   hide: Hide;
   /** The element id around a context menu's target, or `null` outside any marked element. */
@@ -39,7 +39,8 @@ export type StructureParts = {
 
 export type StructureDeps = {
   channel: string;
-  post(message: StructureFrameMessage): void;
+  /** The structure's own messages, and the `pick` of the element a drag takes. */
+  post(message: EditFrameMessage): void;
   /** Where `contextmenu` is heard; the window unless a test says otherwise. */
   listener?: {
     add(handler: (event: MenuEvent) => void): void;
@@ -48,7 +49,14 @@ export type StructureDeps = {
   parts?: StructureParts;
 };
 
-export type FrameStructure = { handle(message: EditStudioMessage): void };
+export type FrameStructure = {
+  handle(message: EditStudioMessage): void;
+  /**
+   * The inverse of the canvas zoom: how many pixels of the frame one pixel on the screen is. The
+   * drag's threshold, the indicator and the handles keep their size on the screen with it.
+   */
+  scale(value: number): void;
+};
 
 const MARKED = '[data-ks]';
 
@@ -62,21 +70,30 @@ function windowListener(): NonNullable<StructureDeps['listener']> {
 
 function realParts(deps: StructureDeps): StructureParts {
   let real: Indicator | undefined;
+  let zoom = 1;
   const indicator: Indicator = {
     show: (slot) => {
       if (slot === null && real === undefined) return;
-      real ??= createIndicator(document);
+      if (!real) {
+        real = createIndicator(document);
+        real.scale(zoom);
+      }
       real.show(slot);
+    },
+    scale: (value) => {
+      zoom = value;
+      real?.scale(value);
     },
     dispose: () => real?.dispose(),
   };
   return {
-    drag: ({ entries, selection }) =>
+    drag: ({ entries, selection, locked }) =>
       createDrag({
         post: deps.post,
         channel: deps.channel,
         entries,
         selection,
+        locked,
         slots: slotAt,
         indicator,
       }),
@@ -99,7 +116,11 @@ export function createStructure(deps: StructureDeps): FrameStructure {
   /** Locked while editing; Preview takes the pointer as the page would. */
   let locked: string[] = [];
   let handlesOn = false;
-  const drag: Drag = parts.drag({ entries: () => entries, selection: () => selection });
+  const drag: Drag = parts.drag({
+    entries: () => entries,
+    selection: () => selection,
+    locked: () => locked,
+  });
   const handles: Handles = parts.handles(() => ({ space, size }));
 
   const onMenu = (event: MenuEvent): void => {
@@ -159,6 +180,8 @@ export function createStructure(deps: StructureDeps): FrameStructure {
           break;
         case 'handles':
           handlesOn = message.on;
+          // Before they are placed: no handle of a property the element cannot take is drawn.
+          handles.limit(message.blocked, message.stepped);
           placeHandles();
           break;
         case 'hide':
@@ -173,6 +196,12 @@ export function createStructure(deps: StructureDeps): FrameStructure {
           if (editing) drag.forward(message);
           break;
       }
+    },
+
+    scale(value) {
+      const zoom = value > 0 && Number.isFinite(value) ? value : 1;
+      drag.scale(zoom);
+      handles.scale(zoom);
     },
   };
 }

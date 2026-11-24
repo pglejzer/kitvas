@@ -16,7 +16,9 @@ export const SKIN_EDITOR_STAGE = `
   min-height: 0;
   overflow: hidden;
   background: none;
+  user-select: none;
 }
+.stage-canvas input, .stage-canvas textarea { user-select: text; }
 .stage-scroll {
   position: absolute;
   inset: 0;

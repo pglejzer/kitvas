@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { EditStudioMessage } from '../../../../client/channel/edit-protocol.ts';
 import type {
-  FrameEntry,
-  ScaleStep,
-  StructureFrameMessage,
-} from '../../../../client/channel/structure-protocol.ts';
+  EditFrameMessage,
+  EditStudioMessage,
+} from '../../../../client/channel/edit-protocol.ts';
+import type { FrameEntry, ScaleStep } from '../../../../client/channel/structure-protocol.ts';
 import type { Drag } from '../../../../client/frame/drag/drag.ts';
 import type { Handles } from '../../../../client/frame/drag/handles.ts';
 import { hideCss, lockCss } from '../../../../client/frame/edit/hide.ts';
@@ -20,18 +19,22 @@ const head = { kitvas: 1 as const, channel: 'c1' };
 const entry = (id: string): FrameEntry => ({
   id,
   movable: true,
+  item: false,
   accepts: true,
   mixed: false,
   interactive: false,
   root: null,
 });
 const step = (name: string, px: number): ScaleStep => ({ name, var: `--kit-space-${name}`, px });
+/** A `handles` message for an element that takes every handle. */
+const open = { blocked: [], stepped: [] };
 
 type Calls = {
   log: string[];
-  posted: StructureFrameMessage[];
+  posted: EditFrameMessage[];
   entries: () => ReadonlyMap<string, FrameEntry>;
   selection: () => readonly string[];
+  locked: () => readonly string[];
   scales: () => { space: readonly ScaleStep[]; size: readonly ScaleStep[] };
   menu: ((event: MenuEvent) => void) | undefined;
   structure: ReturnType<typeof createStructure>;
@@ -43,15 +46,20 @@ function setup(): Calls {
   const drag: Drag = {
     enable: (on) => calls.log.push(`drag.enable ${on}`),
     forward: (message) => calls.log.push(`drag.forward ${message.phase}`),
+    scale: (value) => calls.log.push(`drag.scale ${value}`),
   };
   const handles: Handles = {
     enable: (on) => calls.log.push(`handles.enable ${on}`),
     show: (id) => calls.log.push(`handles.show ${id}`),
+    scale: (value) => calls.log.push(`handles.scale ${value}`),
+    limit: (blocked, stepped) =>
+      calls.log.push(`handles.limit ${blocked.join(',')}|${stepped.join(',')}`),
   };
   const parts: StructureParts = {
     drag: (input) => {
       calls.entries = input.entries;
       calls.selection = input.selection;
+      calls.locked = input.locked;
       return drag;
     },
     handles: (scales) => {
@@ -108,6 +116,8 @@ test('locks apply while editing only: kept from a message, lifted in Preview', (
   calls.log.length = 0;
   send(calls, { ...head, type: 'lock', ids: ['a', 'b'] });
   assert.deepEqual(calls.log, ['lock a,b']);
+  // The drag reads them too: a rectangle takes nothing that is locked.
+  assert.deepEqual(calls.locked(), ['a', 'b']);
   calls.log.length = 0;
   send(calls, { ...head, type: 'edit', on: false });
   assert.equal(calls.log[0], 'lock ');
@@ -149,7 +159,7 @@ test('the scales from tokens reach the handles', () => {
 test('handles show on a single selected element when the page asks for them', () => {
   const calls = setup();
   send(calls, { ...head, type: 'edit', on: true });
-  send(calls, { ...head, type: 'handles', on: true });
+  send(calls, { ...head, type: 'handles', on: true, ...open });
   calls.log.length = 0;
   send(calls, { ...head, type: 'select', ids: ['a'] });
   assert.deepEqual(calls.log, ['handles.enable true', 'handles.show a']);
@@ -157,8 +167,34 @@ test('handles show on a single selected element when the page asks for them', ()
   send(calls, { ...head, type: 'select', ids: ['a', 'b'] });
   assert.deepEqual(calls.log, ['handles.enable true', 'handles.show null']);
   calls.log.length = 0;
-  send(calls, { ...head, type: 'handles', on: false });
-  assert.deepEqual(calls.log, ['handles.enable false', 'handles.show null']);
+  send(calls, { ...head, type: 'handles', on: false, ...open });
+  assert.deepEqual(calls.log, ['handles.limit |', 'handles.enable false', 'handles.show null']);
+});
+
+test('the handles hear what the element cannot take before they are placed', () => {
+  const calls = setup();
+  send(calls, { ...head, type: 'edit', on: true });
+  send(calls, { ...head, type: 'select', ids: ['a'] });
+  calls.log.length = 0;
+  const limits = { blocked: ['width', 'height'], stepped: ['gap'] };
+  send(calls, { ...head, type: 'handles', on: true, ...limits });
+  assert.deepEqual(calls.log, [
+    'handles.limit width,height|gap',
+    'handles.enable true',
+    'handles.show a',
+  ]);
+});
+
+test('the canvas zoom reaches the drag and the handles as one scale', () => {
+  const calls = setup();
+  calls.structure.scale(1 / 0.5);
+  assert.deepEqual(calls.log, ['drag.scale 2', 'handles.scale 2']);
+  // Nothing a size can be multiplied by: no zoom at all.
+  for (const bad of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    calls.log.length = 0;
+    calls.structure.scale(bad);
+    assert.deepEqual(calls.log, ['drag.scale 1', 'handles.scale 1'], `scale ${bad}`);
+  }
 });
 
 test('a forwarded drag goes to the drag only in edit mode', () => {
@@ -205,7 +241,7 @@ test('a context menu in edit mode posts the element under it and is not shown by
 test('turning edit mode off drops the selection and removes the handles', () => {
   const calls = setup();
   send(calls, { ...head, type: 'edit', on: true });
-  send(calls, { ...head, type: 'handles', on: true });
+  send(calls, { ...head, type: 'handles', on: true, ...open });
   send(calls, { ...head, type: 'select', ids: ['a'] });
   calls.log.length = 0;
   send(calls, { ...head, type: 'edit', on: false });

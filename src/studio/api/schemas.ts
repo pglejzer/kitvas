@@ -7,6 +7,7 @@ import { InboxItemSchema } from '../inbox/inbox.ts';
 import { JobSchema } from '../jobs/job.ts';
 import { PAGE_PATH } from '../security/open-links.ts';
 import { BuildEventSchema, SourceEventSchema } from './edit/edit-schemas.ts';
+import { DraftsEventSchema } from './trash/trash-schemas.ts';
 
 export const NoParams = z.strictObject({});
 export const SlugParams = z.strictObject({ slug: z.string().regex(SLUG) });
@@ -73,6 +74,7 @@ export const StudioEventSchema = z.discriminatedUnion('event', [
   }),
   z.strictObject({ event: z.literal('source'), id: z.string(), data: SourceEventSchema }),
   z.strictObject({ event: z.literal('build'), id: z.string(), data: BuildEventSchema }),
+  z.strictObject({ event: z.literal('drafts'), id: z.string(), data: DraftsEventSchema }),
   z.strictObject({ event: z.literal('reset'), id: z.string(), data: z.strictObject({}) }),
 ]);
 

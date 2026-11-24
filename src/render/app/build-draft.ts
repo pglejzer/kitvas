@@ -60,7 +60,7 @@ export type RenderDeps = {
 };
 
 /** Bump when the shape of the build output changes, so old outputs are rebuilt. */
-const OUTPUT_FORMAT = 3;
+const OUTPUT_FORMAT = 4;
 
 /** What the entry imports as `kitvas-frame`: the prototype's end of the studio channel. */
 const FRAME_RUNTIME = join(PLUGIN_ROOT, 'client', 'frame', 'runtime.ts');
@@ -152,6 +152,13 @@ export async function buildDraft(deps: RenderDeps, slug: string): Promise<BuildR
         providers: mountProviders(fs, kit),
         states: states.states.map((state) => state.id),
         defaultState: states.default,
+        // A page takes a later build in place only from the runtime that runs it (ADR 0058).
+        runtime: sourceHash(fs, {
+          format: OUTPUT_FORMAT,
+          kitHash: '',
+          dirs: [],
+          files: deps.runtimeFiles,
+        }).slice(0, 16),
       }),
     },
     alias: {

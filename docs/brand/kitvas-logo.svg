@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 64" width="245" height="64" fill="#1d2025" role="img" aria-label="kitvas">
+  <path d="M0 0H44V33.46L27.2 27.2L33.46 44H0Z"/>
+  <path d="M0 0H9L16 15.3L23 0H32L16 35Z" transform="translate(34 34) rotate(135) scale(0.83) translate(-16 -35)"/>
+  <g transform="translate(76 1)">
+    <path d="M0 8H8V31L19 20H30L13 37L30 54H19L8 43V54H0Z"/>
+    <path d="M0 8H8V16H0ZM0 20H8V54H0Z" transform="translate(35 0)"/>
+    <path d="M6 8H14V20H20V28H14V54H6V28H0V20H6Z" transform="translate(47 0)"/>
+    <path d="M0 0H9L16 15.3L23 0H32L16 35Z" transform="translate(70 20)"/>
+    <path d="M28 20H36V54H28V51.97A18 18 0 1 1 28 22.03ZM28 37A10 10 0 1 0 8 37A10 10 0 1 0 28 37Z" fill-rule="evenodd" transform="translate(101 0)"/>
+    <path d="M27 19H11A11 11 0 0 0 11 41H17A3 3 0 0 1 17 47H1V55H17A11 11 0 0 0 17 33H11A3 3 0 0 1 11 27H27Z" transform="translate(141 0)"/>
+  </g>
+</svg>

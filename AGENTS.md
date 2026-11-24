@@ -27,7 +27,7 @@ claude plugin eval . --allow-tools Bash Write Edit --tag smoke   # skill evals (
 - Text for people comes from `locales/en.json` through `t()`. English only.
 - Every CLI command supports `--json`: `{"ok":true,"data":…}` or `{"ok":false,"error":{"code","message"}}`.
 - New dependency: exact version, at least 14 days old unless it fixes a vulnerability, `npm audit` clean.
-- Changing a decision in `docs/adr/` needs a new ADR, not an edit.
+- An ADR records a decision, not a feature: write one only when it names an alternative that was turned down, or the earlier ADR it changes. Changing a decision in `docs/adr/` needs a new ADR, not an edit: in the older ADR only the status changes (`replaced by ADR NNNN` or `accepted, changed in part by ADR NNNN`). `npm run adr` writes the index `docs/adr/README.md`; a guard test fails when it is stale.
 - Do not repeat in this file what the code already shows.
 
 ## Where things are
@@ -40,10 +40,13 @@ claude plugin eval . --allow-tools Bash Write Edit --tag smoke   # skill evals (
 - Project kits (`.kitvas/kits/<id>/`, sources `npm` and `repo`, `kit new | verify | use`): `src/kit/`; verified by `src/checks/app/verify-kit.ts`; learned by `/kitvas:learn` (`skills/learn/`, `agents/learner.md`, `reference/learn.md`). ADRs 0030 to 0034.
 - Written kits (sources `figma`, `web`, `images`; components in `<kit>/components/`): written by `agents/tailor.md` under `reference/write-kit.md`. `kit scan` (`src/checks/app/scan-kit.ts`) reads a website, `kit crop` (`src/checks/app/crop-kit.ts`) cuts references, and the sixth verify step `look` scores each example against its reference. Figma is read only by the skill through the person's own MCP. ADRs 0035 to 0039.
 - Rework and craft (`/kitvas:rework`, `/kitvas:craft`, `agents/sketcher.md`, `reference/craft.md`): draft kinds, `before/`, additions layer, `kit detect`. ADRs 0045 to 0047.
+- Doctor (`kitvas doctor`, the report with nothing private): `src/doctor/`, `src/cli/commands/doctor.ts`. ADR 0063.
+- Web research (`kitvas:scout`, `agents/scout.md`, rules in `reference/scout.md`): one agent with `WebSearch` and `WebFetch` that writes `<draft>/v<N>/md/research.md`; called by the compose and craft skills. ADR 0062.
 - The editor's write-back (operations, TSX and SCSS apply, style source, off-kit values): `src/edit/`, rules in `src/edit/AGENTS.md`; its panels are `client/studio/edit/`. ADRs 0048 to 0050.
-- The editor's structure (move, insert, delete, wrap, sections, element ids across edits, drag, handles, zoom): `src/edit/`, `src/drafts/` (layout edits, rename log), frame tools in `client/frame/`, panels in `client/studio/edit/`. ADRs 0051 to 0053.
+- The editor's structure (move, insert, delete, wrap, sections, element ids across edits, drag, handles, zoom): `src/edit/`, `src/drafts/` (layout edits, rename log), frame tools in `client/frame/`, panels in `client/studio/edit/`. ADRs 0051 to 0053; press and drag, list item drag, the rectangle and the handles' magnet: ADR 0059.
 - The editor with Claude (requests and the listening session, variants, notes, locks, timeline, suggestions, why): `src/studio/requests/`, `skills/edit/`, `src/edit/app/{locks,suggest,history}/`, `client/studio/edit/{ai,notes,view,timeline,why}/`, and `why/<Section>.json` beside a version's `src/` (`src/drafts/app/why.ts`). ADR 0056.
 - Drafts (versions, layout, section context): `src/drafts/`, rules in `src/drafts/AGENTS.md`.
+- Deleting a draft (`kitvas draft delete | restore | purge`, the trash in `.kitvas/trash/`): `src/drafts/app/trash.ts`, `src/studio/api/trash/`, `client/studio/trash/`. ADR 0064.
 - Building a draft (bundle, styles, element ids): `src/render/`, rules in `src/render/AGENTS.md`. Code bundled into prototypes lives in the top-level `client/` folder.
 - Checks of a draft (findings, rules, `checks.json`): `src/checks/`, rules in `src/checks/AGENTS.md`.
 - The local studio (servers, API routes, security checks, pages): `src/studio/`, rules in `src/studio/AGENTS.md`.

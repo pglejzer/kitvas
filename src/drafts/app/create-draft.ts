@@ -11,7 +11,12 @@ import {
 } from '../domain/draft.ts';
 import { isSlug, versionFolder } from '../domain/names.ts';
 import { DEFAULT_STATES } from '../domain/states.ts';
-import { briefTemplate, layoutTemplate, sketchTemplate } from '../domain/templates.ts';
+import {
+  briefTemplate,
+  craftBriefTemplate,
+  layoutTemplate,
+  sketchTemplate,
+} from '../domain/templates.ts';
 import type { DraftStore } from '../ports/draft-store.ts';
 
 export type NewDraftInput = {
@@ -55,7 +60,8 @@ export function createDraft(store: DraftStore, input: NewDraftInput): Draft {
 
   const base = versionFolder(1);
   store.writeText(slug, 'draft.json', serializeJson(draft));
-  store.writeText(slug, `${base}/md/brief.md`, briefTemplate(title));
+  const brief = draft.craft ? craftBriefTemplate(title, draft.craft.subject) : briefTemplate(title);
+  store.writeText(slug, `${base}/md/brief.md`, brief);
   if (draft.craft) {
     for (const sketch of SKETCHES) {
       store.writeText(

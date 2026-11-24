@@ -6,7 +6,7 @@ import { initWorkspace, KitvasError, PLUGIN_ROOT } from '../../shared/index.ts';
 import { defineCommand } from '../registry.ts';
 
 /** True when `folder` is the plugin folder or inside it, by real path. */
-function insidePlugin(folder: string): boolean {
+export function insidePlugin(folder: string): boolean {
   const real = realpathSync(folder);
   const way = relative(realpathSync(PLUGIN_ROOT), real);
   return way === '' || (!way.startsWith('..') && !isAbsolute(way));

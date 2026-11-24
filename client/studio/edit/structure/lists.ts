@@ -7,7 +7,7 @@
 
 import type { EditOp, Refusal } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import type { EditStudioBody } from '../../../channel/edit-protocol.ts';
+import { type EditStudioBody, textEditOf } from '../../../channel/edit-protocol.ts';
 import type { EditorContext } from '../context.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
@@ -236,7 +236,10 @@ export function mountLists(ctx: EditorContext): void {
     editing = null;
     if (value === null || value === open.before) return;
     const op: EditOp = { op: 'setItemText', id, item: open.item, value, before: open.before };
-    void history.apply({ ops: [op], label: text('lists.label.text') });
+    // A write that did not happen takes the typed text back out of the frame.
+    void history.apply({ ops: [op], label: text('lists.label.text') }).then((outcome) => {
+      if (outcome?.outcome !== 'applied') bridge.send({ type: 'text-back', id });
+    });
   }
 
   bridge.on((message) => {
@@ -245,7 +248,8 @@ export function mountLists(ctx: EditorContext): void {
       // The selection panel has taken the pick already; this says which copy it was.
       const item = pickedItem(store.get().selection, message);
       if (item !== store.get().item) store.set({ item });
-      pendingText = message.double && message.id !== null ? message.id : null;
+      // A double click with Shift, Ctrl or Cmd held starts no text edit.
+      pendingText = textEditOf(message);
       tryText();
     } else if (message.type === 'text') {
       onText(message.id, message.value);

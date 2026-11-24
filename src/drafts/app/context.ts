@@ -8,6 +8,7 @@ import {
   formatTokenValue,
   type KitComponent,
   type KitStore,
+  type LoadedKit,
 } from '../../kit/index.ts';
 import { KitvasError } from '../../shared/index.ts';
 import { pascalCase, versionFolder } from '../domain/names.ts';
@@ -61,6 +62,16 @@ export type SectionContext = {
    */
   locked: string[];
 };
+
+/** The kit's tokens as a context gives them: the CSS name, the value CSS reads, the group. */
+export function contextTokens(kit: LoadedKit): ContextToken[] {
+  return kit.tokens.map((token) => ({
+    name: cssVarName(token.path),
+    type: token.type,
+    value: formatTokenValue(token),
+    group: token.path[0] ?? '',
+  }));
+}
 
 /**
  * Writes the section's context to `<version>/build/context/<id>.json`, so the agent that writes the
@@ -125,12 +136,7 @@ export function sectionContext(
     kit: {
       id: kit.kit.id,
       components,
-      tokens: kit.tokens.map((token) => ({
-        name: cssVarName(token.path),
-        type: token.type,
-        value: formatTokenValue(token),
-        group: token.path[0] ?? '',
-      })),
+      tokens: contextTokens(kit),
       references,
       icons,
     },
