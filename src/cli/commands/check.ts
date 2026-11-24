@@ -58,6 +58,18 @@ export function createCheckCommand(deps: CheckCommandDeps): Command {
           indent(finding.hint),
         );
       }
+      // Accepted findings (spec 4c, goal 6): listed, counted apart, and not in what must be fixed.
+      if (data.waived !== undefined && data.waived.length > 0) {
+        lines.push(t('check.report.waived', { count: data.waived.length }));
+        for (const finding of data.waived) {
+          const place = finding.file ? `${finding.file}:${finding.line}:${finding.column}` : '';
+          lines.push(
+            ['  ', finding.rule, place, finding.element ?? ''].filter(Boolean).join('  '),
+            indent(finding.message),
+            indent(t('check.report.waivedReason', { reason: finding.reason })),
+          );
+        }
+      }
       const skipped = CHECKS.filter((name) => data.checks[name] === 'skipped');
       if (skipped.length > 0) lines.push(t('check.report.skipped', { checks: skipped.join(', ') }));
       lines.push(...data.notes);

@@ -10,8 +10,8 @@ import {
   readRule,
   type ScssOp,
   type ScssOptions,
-} from '../../src/edit/domain/apply-scss.ts';
-import { applyTsx, openingTags, readTag, type TsxOp } from '../../src/edit/domain/apply-tsx.ts';
+} from '../../src/edit/domain/style/apply-scss.ts';
+import { applyTsx, openingTags, readTag, type TsxOp } from '../../src/edit/domain/tsx/apply-tsx.ts';
 import {
   type ApplyResult,
   type EditOp,

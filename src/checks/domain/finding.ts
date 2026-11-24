@@ -29,6 +29,9 @@ export type RawFinding = {
 
 export type Finding = Omit<RawFinding, 'message' | 'hint'> & { message: string; hint: string };
 
+/** A finding the person accepted on purpose, with the reason (spec 4c, goal 6; `waived.ts`). */
+export type WaivedFinding = Finding & { reason: string };
+
 /** A full-page screenshot, relative to the draft version: `build/shots/filled-390.png`. */
 export type Shot = { state: string; width: number; file: string };
 
@@ -45,13 +48,16 @@ export type ChecksFile = {
    * gone and how many are left in this version (ADR 0045).
    */
   rework?: { fixed: number; left: number } | undefined;
-  summary: { fix: number; review: number };
+  /** `waived`: how many accepted findings are listed apart; absent when there are none. */
+  summary: { fix: number; review: number; waived?: number | undefined };
   /** The browser the page checks ran in; null when they did not run. */
   browser: string | null;
   /** Why checks did not run, in words. */
   notes: string[];
   shots: Shot[];
   findings: Finding[];
+  /** Findings a waiver accepts (spec 4c): not in `findings` and not in `summary`'s fix or review. */
+  waived?: WaivedFinding[] | undefined;
 };
 
 /** Text written by a tool (esbuild, Sass, tsc) is passed on as it is. */

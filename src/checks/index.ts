@@ -22,6 +22,7 @@ export * from './domain/guidelines/index.ts';
 export * from './domain/ids.ts';
 export * from './domain/inventory.ts';
 export * from './domain/kit-verify.ts';
+export * from './domain/live-code.ts';
 export * from './domain/look-score.ts';
 export * from './domain/page.ts';
 export * from './domain/rework.ts';

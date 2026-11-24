@@ -181,6 +181,11 @@ export const KitSchema = z.strictObject({
   tokens: tokensSchema,
   components: z.array(componentSchema).min(1),
   icons: iconsSchema.optional(),
+  /**
+   * The widths (CSS px, ascending) from which the kit's layout changes, for per-width values
+   * (spec 4c). Without them the editor uses 768 and 1280, the studio's preset widths.
+   */
+  breakpoints: z.array(z.number().int().min(200).max(4000)).min(1).max(4).optional(),
   gaps: z
     .array(z.strictObject({ path: text, reason: z.enum(['missing', 'unsupported', 'unverified']) }))
     .default([]),

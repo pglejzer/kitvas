@@ -71,8 +71,12 @@ type Head = { kitvas: 1; channel: string };
 export type EditFrameMessage =
   | StructureFrameMessage
   | (Head &
+      /**
+       * `item` (spec 4c, goal 9): which rendered copy of `id` was picked when several elements
+       * carry it (a `.map`), counted in document order from 0; absent when only one does.
+       */
       (
-        | { type: 'pick'; id: string | null; add: boolean; double: boolean }
+        | { type: 'pick'; id: string | null; add: boolean; double: boolean; item?: number }
         | { type: 'hovered'; id: string | null }
         | { type: 'key'; key: EditKey }
         | { type: 'tree'; request: number; nodes: TreeNode[] }
@@ -92,7 +96,8 @@ export type EditStudioMessage =
   | (Head &
       (
         | { type: 'edit'; on: boolean }
-        | { type: 'select'; ids: string[] }
+        /** `item`: only that rendered copy of `ids[0]` is outlined (a list item, spec 4c). */
+        | { type: 'select'; ids: string[]; item?: number }
         | { type: 'hover'; id: string | null }
         | { type: 'tree'; request: number }
         | { type: 'inspect'; request: number; id: string }
@@ -131,6 +136,9 @@ const isObject = (value: unknown): value is Loose =>
 const isId = (value: unknown): value is string =>
   typeof value === 'string' && ELEMENT_ID.test(value);
 const isIdOrNull = (value: unknown): value is string | null => value === null || isId(value);
+/** A list item's place (spec 4c): the same bound as the edit ops' `item`. */
+const isItem = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 10_000;
 const isText = (value: unknown, max: number): value is string =>
   typeof value === 'string' && value.length <= max;
 const isCount = (value: unknown): value is number =>
@@ -182,7 +190,10 @@ export function parseEditFrame(message: Loose, channel: string): EditFrameMessag
       const { id, add, double } = message;
       if (!isIdOrNull(id) || typeof add !== 'boolean' || typeof double !== 'boolean')
         return undefined;
-      return { ...head, type: 'pick', id, add, double };
+      const { item } = message;
+      if (item === undefined) return { ...head, type: 'pick', id, add, double };
+      if (!isItem(item)) return undefined;
+      return { ...head, type: 'pick', id, add, double, item };
     }
     case 'hovered':
       return isIdOrNull(message.id) ? { ...head, type: 'hovered', id: message.id } : undefined;
@@ -224,7 +235,10 @@ export function parseEditStudio(message: Loose, channel: string): EditStudioMess
     case 'select': {
       const { ids } = message;
       if (!Array.isArray(ids) || ids.length > MAX_SELECTED || !ids.every(isId)) return undefined;
-      return { ...head, type: 'select', ids: [...ids] };
+      const { item } = message;
+      if (item === undefined) return { ...head, type: 'select', ids: [...ids] };
+      if (!isItem(item)) return undefined;
+      return { ...head, type: 'select', ids: [...ids], item };
     }
     case 'hover':
       return isIdOrNull(message.id) ? { ...head, type: 'hover', id: message.id } : undefined;

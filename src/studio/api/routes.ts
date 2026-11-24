@@ -16,8 +16,11 @@ import { type ApiRoute, apiRoute } from '../http/router.ts';
 import type { Inbox } from '../inbox/inbox.ts';
 import type { Jobs } from '../jobs/jobs.ts';
 import type { OpenLinks } from '../security/open-links.ts';
-import { type EditDeps, editRoutes } from './edit-routes.ts';
+import { type EditDeps, editRoutes } from './edit/edit-routes.ts';
+import { structureRoutes } from './edit/structure-routes.ts';
 import { eventRoutes } from './event-routes.ts';
+import { imageRoutes } from './images/image-routes.ts';
+import type { ImageStore } from './images/image-rules.ts';
 import { inboxRoutes } from './inbox-routes.ts';
 import { jobRoutes } from './job-routes.ts';
 import { linkRoutes } from './link-routes.ts';
@@ -34,7 +37,7 @@ import {
   VersionParams,
   VersionSchema,
 } from './schemas.ts';
-import { structureRoutes } from './structure-routes.ts';
+import { waiverRoutes } from './waivers/waiver-routes.ts';
 
 export type ApiDeps = {
   drafts: DraftStore;
@@ -56,6 +59,8 @@ export type ApiDeps = {
   shutdown?: () => void;
   /** The editor's compiler and write hooks; without them inspect and edits answer 500. */
   edit?: EditDeps;
+  /** Where an uploaded image is stored (`src/main.ts` gives it); without it uploads answer 500. */
+  imageStore?: ImageStore;
 };
 
 const draftPath = (slug: string): string => `/api/v1/drafts/${slug}`;
@@ -168,6 +173,8 @@ export function apiRoutes(deps: ApiDeps): ApiRoute[] {
     ...linkRoutes(deps),
     ...editRoutes(deps),
     ...structureRoutes(deps),
+    ...imageRoutes(deps),
+    ...waiverRoutes(deps),
   ];
   routes.push(
     apiRoute({

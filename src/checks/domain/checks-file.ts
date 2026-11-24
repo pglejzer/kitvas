@@ -19,6 +19,8 @@ const FindingSchema = z.object({
   widths: z.array(z.number().int()),
 });
 
+const WaivedSchema = FindingSchema.extend({ reason: z.string() });
+
 /** Not strict: a file written by a newer kitvas may carry more fields, which are dropped. */
 export const ChecksFileSchema: Zod.ZodType<ChecksFile> = z.object({
   schemaVersion: z.literal(1),
@@ -34,11 +36,12 @@ export const ChecksFileSchema: Zod.ZodType<ChecksFile> = z.object({
           'ran' | 'skipped'
         >,
     ),
-  summary: z.object({ fix: count, review: count }),
+  summary: z.object({ fix: count, review: count, waived: count.optional() }),
   browser: z.string().nullable(),
   notes: z.array(z.string()),
   shots: z.array(z.object({ state: z.string(), width: z.number().int(), file: z.string() })),
   findings: z.array(FindingSchema),
+  waived: z.array(WaivedSchema).optional(),
   deep: z.boolean().optional(),
   rework: z.object({ fixed: count, left: count }).optional(),
 });

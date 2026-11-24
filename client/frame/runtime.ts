@@ -4,14 +4,17 @@
 // open prototypes that way, and so does a person opening the page on its own.
 
 import { isCanvasStudio } from '../channel/canvas-protocol.ts';
+import { isLiveStudio, MAX_LONGHANDS } from '../channel/live-protocol.ts';
 import { type FrameMessage, parseStudioMessage, readHash } from '../channel/protocol.ts';
-import { createCanvas } from './canvas.ts';
-import { createEdit } from './edit.ts';
-import { createMarks } from './marks.ts';
-import { measureElements, settle } from './measure.ts';
-import { createMotion } from './motion.ts';
-import { createPreview } from './preview.ts';
-import { createStructure } from './structure.ts';
+import { createMotion } from './drag/motion.ts';
+import { createEdit } from './edit/edit.ts';
+import { createPreview } from './edit/preview.ts';
+import { createStructure } from './edit/structure.ts';
+import { createForce } from './live/force.ts';
+import { createLive } from './live/live.ts';
+import { createCanvas } from './page/canvas.ts';
+import { createMarks } from './page/marks.ts';
+import { measureElements, settle } from './page/measure.ts';
 
 export type FrameInput = {
   states: string[];
@@ -47,6 +50,9 @@ export function startFrame({ states, initial, render }: FrameInput): void {
   const structure = createStructure({ channel, post });
   // The screen's canvas (plan 15): forwards the zoom wheel, Space and the screen's keys.
   const canvas = createCanvas({ channel, post });
+  // Stage 4c (plan 16): forced states, live measurements and the accessibility card.
+  const force = createForce();
+  const live = createLive({ channel, post });
   let current = initial;
   let heard = false;
 
@@ -76,14 +82,36 @@ export function startFrame({ states, initial, render }: FrameInput): void {
     if (message.type === 'measure') answer(message.request);
     else if (message.type === 'state') show(message.state);
     else if (message.type === 'marks') marks.draw(message.marks);
-    else if (isCanvasStudio(message)) {
+    else if (isLiveStudio(message)) {
+      if (message.type === 'force') force.set(message.ids, message.state);
+      else if (message.type === 'state-held') {
+        const { request, id } = message;
+        const longhands = force.held(id).slice(0, MAX_LONGHANDS);
+        post({
+          kitvas: 1,
+          channel,
+          type: 'state-held',
+          request,
+          id,
+          state: force.state(),
+          longhands,
+        });
+      } else {
+        // A live check measures the forced state as it is now (ADR 0055).
+        if (message.type === 'measure-live') force.flush();
+        live.handle(message);
+      }
+    } else if (isCanvasStudio(message)) {
       // The labels keep one size on the screen at any canvas zoom.
       if (message.type === 'zoom') edit.scale(1 / message.value);
       else canvas.handle(message);
     }
     // Every other message the parser lets through is one of the editor's.
     else {
-      if (message.type === 'edit') canvas.edit(message.on);
+      if (message.type === 'edit') {
+        canvas.edit(message.on);
+        if (!message.on) force.clear();
+      }
       edit.handle(message);
       structure.handle(message);
     }

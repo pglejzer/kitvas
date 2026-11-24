@@ -191,6 +191,81 @@ test('a Tailwind kit gives the utility class as the source of a style it sets', 
   assert.deepEqual(plain.styles.padding, { kind: 'kit' });
 });
 
+test("the answer lists the kit's breakpoints and every value of a width or a state", async () => {
+  const scss = [
+    '.pricing {',
+    '  padding: var(--kit-space-lg);',
+    '',
+    '  @media (min-width: 768px) {',
+    '    padding: 40px; /* off-kit */',
+    '',
+    '    &:hover {',
+    '      color: var(--kit-color-ink);',
+    '    }',
+    '  }',
+    '',
+    '  &:focus-visible {',
+    '    outline-width: var(--kit-space-xs);',
+    '  }',
+    '}',
+    '',
+  ].join('\n');
+  const drafts = draftWith({ ...PRICING, 'src/scss/sections/pricing.scss': scss });
+  const section = await inspectIn(drafts, 'sections/Pricing:section');
+  assert.deepEqual(section.breakpoints, [768, 1280]);
+  assert.deepEqual(section.overrides, [
+    {
+      context: { width: 768, state: null },
+      property: 'padding',
+      value: '40px',
+      offKit: true,
+      utility: null,
+    },
+    {
+      context: { width: 768, state: 'hover' },
+      property: 'color',
+      value: 'var(--kit-color-ink)',
+      offKit: false,
+      utility: null,
+    },
+    {
+      context: { width: null, state: 'focus-visible' },
+      property: 'outline-width',
+      value: 'var(--kit-space-xs)',
+      offKit: false,
+      utility: null,
+    },
+  ]);
+  // The base is still the rule's own declaration, and no block is `nested`.
+  assert.deepEqual(section.styles.padding, {
+    kind: 'scss',
+    className: 'pricing',
+    value: 'var(--kit-space-lg)',
+    offKit: false,
+  });
+  assert.deepEqual(section.scss?.nested, []);
+  // An element without a rule has none.
+  const stack = await inspectIn(drafts, 'sections/Pricing:section/Stack');
+  assert.deepEqual(stack.overrides, []);
+});
+
+test('a Tailwind draft lists its prefixed utilities as the overrides', async () => {
+  const hero = await inspectIn(draftWith(HERO), 'sections/Hero:div', tailwindKits());
+  assert.deepEqual(hero.styles.padding, { kind: 'utility', className: 'p-4' });
+  const padding = hero.overrides.filter((each) => each.property === 'padding');
+  assert.deepEqual(padding, [
+    {
+      context: { width: 768, state: null },
+      property: 'padding',
+      value: '6',
+      offKit: false,
+      utility: 'md:p-6',
+    },
+  ]);
+  // The same classes on an SCSS kit are no utilities at all.
+  assert.deepEqual((await inspectIn(draftWith(HERO), 'sections/Hero:div')).overrides, []);
+});
+
 test('an element that is not in the current text is not found', async () => {
   const drafts = draftWith(PRICING);
   await assert.rejects(

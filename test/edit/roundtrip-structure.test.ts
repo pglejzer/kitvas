@@ -7,21 +7,21 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import type { Place } from '../../src/edit/domain/ops.ts';
 import {
   applyStructure,
   type Located,
   type StructureResult,
   type TreeOp,
-} from '../../src/edit/domain/apply-structure.ts';
-import { openingTags } from '../../src/edit/domain/apply-tsx.ts';
-import type { Place } from '../../src/edit/domain/ops.ts';
+} from '../../src/edit/domain/structure/apply-structure.ts';
 import {
   type Child,
   childrenOf,
   elementSpan,
   isMixed,
   parentOf,
-} from '../../src/edit/domain/subtree.ts';
+} from '../../src/edit/domain/structure/subtree.ts';
+import { openingTags } from '../../src/edit/domain/tsx/apply-tsx.ts';
 import type { OffsetMap, Refusal } from '../../src/edit/domain/types.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));

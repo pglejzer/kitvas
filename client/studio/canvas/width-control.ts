@@ -39,7 +39,17 @@ export type WidthDeps = {
   onSettled(href: string, preset: boolean): void;
   /** Whether the marks are hidden may have changed. */
   onMarks(): void;
+  /** The cards of the width shown are `width` wide now, also during a drag (stage 4c). */
+  onApply?(width: number): void;
 };
+
+/**
+ * The size labels this control writes: the cards of the width shown. A width card of stage 4c
+ * (`data-card="width"`) keeps its own preset.
+ */
+const SIZE_LABELS = ['current', 'before']
+  .map((role) => `[data-card="${role}"] [data-card-size]`)
+  .join(', ');
 
 export type WidthControl = {
   /** The findings' marks do not belong to what the cards show now. */
@@ -106,7 +116,7 @@ export function mountWidth(deps: WidthDeps): WidthControl {
       frame.element.style.height = `${height}px`;
       frame.element.width = String(width);
     }
-    for (const size of main.querySelectorAll<HTMLElement>('[data-card-size]')) {
+    for (const size of main.querySelectorAll<HTMLElement>(SIZE_LABELS)) {
       size.textContent = sizeLabel(width);
     }
     main.dataset.width = String(shown.width);
@@ -118,6 +128,7 @@ export function mountWidth(deps: WidthDeps): WidthControl {
     handle?.setAttribute('aria-valuenow', String(width));
     markLinks();
     tellMarks();
+    deps.onApply?.(width);
   }
 
   /** The address follows, and a preset gets its checks and marks back. */

@@ -2,10 +2,14 @@
 // and changes it through `set`, and hears every change through `subscribe`. Panels never call each
 // other: they share this state, the bridge to the frame, and the history.
 
-import type { EditOp, Refusal } from '../../../src/edit/index.ts';
-import type { EditOutcome, EditState, Inspect } from '../../../src/studio/api/edit-schemas.ts';
-import type { Structure } from '../../../src/studio/api/structure-schemas.ts';
+import type { EditOp, Refusal, StyleContext } from '../../../src/edit/index.ts';
+import type { EditOutcome, EditState, Inspect } from '../../../src/studio/api/edit/edit-schemas.ts';
+import type { LiveCodeFinding } from '../../../src/studio/api/edit/live-schemas.ts';
+import type { Structure } from '../../../src/studio/api/edit/structure-schemas.ts';
+import type { Waiver } from '../../../src/studio/api/waivers/waiver-schemas.ts';
 import type { TreeNode } from '../../channel/edit-protocol.ts';
+import type { A11yCard } from '../../channel/live-protocol.ts';
+import type { StateHeld } from './props/state-held.ts';
 
 /**
  * One undo step: the ops of one gesture (task H), with the text the change list shows.
@@ -22,6 +26,19 @@ export type Clip = { items: { source: string; from: string }[]; text: string; at
 export type Menu = { id: string | null; x: number; y: number };
 
 /** One line of the session's change list (task J). */
+/**
+ * One live finding (spec 4c, goal 5). `source`: `frame` for a measurement in a card (`width` is the
+ * card's), `code` for a code check of a changed file (`width` null). `id`: the element, when known.
+ */
+export type LiveItem = {
+  id: string | null;
+  rule: string;
+  severity: 'fix' | 'review';
+  width: number | null;
+  message: string;
+  source: 'frame' | 'code';
+};
+
 export type ChangeEntry = {
   by: 'person' | 'claude';
   /** The element; `null` for a change by Claude to a whole file. */
@@ -65,6 +82,23 @@ export type EditorState = {
   hidden: string[];
   /** Elements the canvas cannot select or drag; Layers still can. For this page only. */
   locked: string[];
+  // Stage 4c (plan 16).
+  /** Which rendered copy of `selection[0]` was picked, for a `.map` item; `null` otherwise. */
+  item: number | null;
+  /** Where style edits go: the edit card's width (`null` all widths) and the state bar's state. */
+  context: StyleContext;
+  /** The session's live findings: the frame's measurements and the code checks of changed files. */
+  live: LiveItem[];
+  /** The draft's accepted findings (`waivers.json`). */
+  waivers: Waiver[];
+  /** The last applied request (edit, undo or redo): the elements it touched, after renames. */
+  applied: { count: number; ids: string[]; live: LiveCodeFinding[] } | null;
+  /** Builds the edit frames loaded since the editor started: live checks measure after each. */
+  builds: number;
+  /** The accessibility card of `selection[0]` from the edit card's frame (task C). */
+  a11y: A11yCard | null;
+  /** What the kit's own rules of the edited state hold on `selection[0]` (ADR 0055). */
+  stateHeld: StateHeld | null;
   /** The frame box's scale, 0.25 to 2 (task D7). */
   zoom: number;
   menu: Menu | null;
@@ -108,6 +142,14 @@ export function initialState(slug: string): EditorState {
     clipboard: null,
     hidden: [],
     locked: [],
+    item: null,
+    context: { width: null, state: null },
+    live: [],
+    waivers: [],
+    applied: null,
+    builds: 0,
+    a11y: null,
+    stateHeld: null,
     zoom: 1,
     menu: null,
   };

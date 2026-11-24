@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { KitvasError } from '../../../src/shared/index.ts';
-import type { BuildEvent } from '../../../src/studio/api/edit-schemas.ts';
+import type { BuildEvent } from '../../../src/studio/api/edit/edit-schemas.ts';
 import { type BuiltDraft, createWarmBuilder } from '../../../src/studio/live/builder.ts';
 
 /** Lets every promise that can settle now settle. */

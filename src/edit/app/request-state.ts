@@ -5,13 +5,19 @@
 // what is interactive, and its names are what the kit import lists (decision 8).
 
 import { type DraftStore, loadDraft, versionFolder } from '../../drafts/index.ts';
-import type { KitComponent, KitStore, LoadedKit } from '../../kit/index.ts';
+import {
+  DEFAULT_BREAKPOINTS,
+  type KitComponent,
+  type KitStore,
+  kitBreakpoints,
+  type LoadedKit,
+} from '../../kit/index.ts';
 import { elementIds, readSites } from '../../render/index.ts';
-import { offsetOf, openingTags, readTag } from '../domain/apply-tsx.ts';
-import { syncKitImports } from '../domain/kit-imports.ts';
 import { fileOfId } from '../domain/ops.ts';
-import type { SiteId } from '../domain/renames.ts';
-import { parentOf } from '../domain/subtree.ts';
+import type { SiteId } from '../domain/structure/renames.ts';
+import { parentOf } from '../domain/structure/subtree.ts';
+import { offsetOf, openingTags, readTag } from '../domain/tsx/apply-tsx.ts';
+import { syncKitImports } from '../domain/tsx/kit-imports.ts';
 import type { ApplyOptions, OffsetMap, Refusal, Span } from '../domain/types.ts';
 import type { EditCompiler } from '../ports/compiler.ts';
 import { editKit } from './edit-state.ts';
@@ -46,13 +52,19 @@ type Start = { sites: Site[]; moved: OffsetMap };
 
 type Kit = { loaded: LoadedKit | null; names: ReadonlySet<string> };
 
+/**
+ * How the request's ops are applied. `breakpoints`: the kit's widths, read when an op names one
+ * (spec 4c): a style at another width is refused.
+ */
+export type WorkOptions = ApplyOptions & { breakpoints?: (() => readonly number[]) | undefined };
+
 export type Work = {
   deps: WorkDeps;
   slug: string;
   /** The latest version: the one every text was read from. */
   version: number;
   kitId: string;
-  options: ApplyOptions;
+  options: WorkOptions;
   /** ETags of the files the ops were made from, as the editor sent them. */
   etags: Record<string, string>;
   files: Map<string, FileState>;
@@ -86,7 +98,7 @@ export function createWork(
   deps: WorkDeps,
   at: Pick<Work, 'slug' | 'version' | 'kitId' | 'options' | 'etags'>,
 ): Work {
-  return {
+  const work: Work = {
     deps,
     ...at,
     files: new Map<string, FileState>(),
@@ -95,6 +107,15 @@ export function createWork(
     created: [],
     dropped: [],
   };
+  // The kit is loaded only when an op asks for its widths.
+  work.options = { ...at.options, breakpoints: () => breakpointsOf(work) };
+  return work;
+}
+
+/** The widths a style may be written from: the kit's, or the presets when it cannot be read. */
+export function breakpointsOf(work: Work): readonly number[] {
+  const { loaded } = kitOf(work);
+  return loaded === null ? DEFAULT_BREAKPOINTS : kitBreakpoints(loaded.kit);
 }
 
 /** A file of the request, read once from the version; a missing one has `read: null`. */

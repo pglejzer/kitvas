@@ -6,7 +6,8 @@ import type { SharedBrowser } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
 import { type KitStore, loadKit } from '../../kit/index.ts';
 import { PLUGIN_ROOT, type Translate } from '../../shared/index.ts';
-import type { EditDeps } from '../api/edit-routes.ts';
+import type { EditDeps } from '../api/edit/edit-routes.ts';
+import type { ImageStore } from '../api/images/image-rules.ts';
 import { apiRoutes } from '../api/routes.ts';
 import { createEventHub, type EventLimits } from '../events/event-hub.ts';
 import { BODY_LIMIT } from '../http/body.ts';
@@ -69,6 +70,8 @@ export type StudioDeps = {
    * compiler. Without it the edit routes that read TSX answer 500.
    */
   edit?: EditDeps;
+  /** Where an uploaded image is written (`src/edit/adapters/image-files.ts`, wired in main). */
+  imageStore?: ImageStore;
   /** The live loop's watch and warm build (`live/`); without it nothing rebuilds by itself. */
   live?: LiveTools;
 };
@@ -225,6 +228,7 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       links,
       ...(deps.shutdown ? { shutdown: deps.shutdown } : {}),
       ...(edit ? { edit } : {}),
+      ...(deps.imageStore ? { imageStore: deps.imageStore } : {}),
     }),
   ];
   const studio = {

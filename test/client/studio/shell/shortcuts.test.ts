@@ -6,8 +6,8 @@ import {
   shellKeyOf,
 } from '../../../../client/channel/canvas-protocol.ts';
 import { EDIT_KEYS } from '../../../../client/channel/edit-protocol.ts';
-import { keyOf } from '../../../../client/frame/keys.ts';
-import { editKeyOf, historyKeyOf } from '../../../../client/studio/edit/keys.ts';
+import { keyOf } from '../../../../client/frame/edit/keys.ts';
+import { editKeyOf, historyKeyOf } from '../../../../client/studio/edit/select/keys.ts';
 import {
   isMac,
   keyNames,

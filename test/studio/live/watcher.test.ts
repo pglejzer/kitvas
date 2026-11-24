@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { SourceEvent } from '../../../src/studio/api/edit-schemas.ts';
+import type { SourceEvent } from '../../../src/studio/api/edit/edit-schemas.ts';
 import { etagOf } from '../../../src/studio/http/etag.ts';
 import {
   changeOf,

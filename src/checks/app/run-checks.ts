@@ -7,6 +7,7 @@ import {
   inspectLayout,
   StatesSchema,
   serializeJson,
+  waiversFor,
 } from '../../drafts/index.ts';
 import { cssVarName, type FlatToken, type LoadedKit } from '../../kit/index.ts';
 import { type BuildError, type BuildFs, buildDraft, type RenderDeps } from '../../render/index.ts';
@@ -32,6 +33,7 @@ import { sourceRuleFindings } from '../domain/source-rules.ts';
 import { type SizeToken, styleFindings } from '../domain/styles.ts';
 import { sheetClasses, tailwindFindings, tailwindUnknown } from '../domain/tailwind.ts';
 import { elementAt, typeFindings } from '../domain/tsc.ts';
+import { splitWaived } from '../domain/waived.ts';
 import type { Browser } from '../ports/browser.ts';
 import type { TypeChecker } from '../ports/type-checker.ts';
 import { readBefore, uncappedFindings } from './before.ts';
@@ -286,7 +288,12 @@ export async function runChecks(
   if (rework !== null) raw.push(...rework.findings);
   const browserRan = page.browser === null ? 'skipped' : 'ran';
 
-  const findings = sortFindings(mergeFindings(raw.map((item) => translateFinding(item, deps.t))));
+  const all = sortFindings(mergeFindings(raw.map((item) => translateFinding(item, deps.t))));
+  // Accepted findings (spec 4c, goal 6) are listed apart and never counted as something to fix. A
+  // waiver carries to this version only while its element is still one of the build's.
+  const known = new Set(ids.map((entry) => entry.id));
+  const waivers = waiversFor(drafts, slug, version, (element) => known.has(element));
+  const { kept: findings, waived } = splitWaived(all, waivers);
   const file: ChecksFile = {
     schemaVersion: 1,
     slug,
@@ -304,11 +311,12 @@ export async function runChecks(
     ...(deep && page.browser !== null ? { deep: true } : {}),
     // Only for a rework whose original has a problems list and whose version was measured.
     ...(rework?.score ? { rework: rework.score } : {}),
-    summary: summarize(findings),
+    summary: { ...summarize(findings), ...(waived.length > 0 ? { waived: waived.length } : {}) },
     browser: page.browser,
     notes: page.notes,
     shots: page.shots,
     findings,
+    ...(waived.length > 0 ? { waived } : {}),
   };
   const path = join(json, 'checks.json');
   fs.writeText(path, serializeJson(file));

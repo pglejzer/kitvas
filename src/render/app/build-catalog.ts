@@ -77,7 +77,7 @@ export type CatalogReport = {
 const CATALOG_FORMAT = 4;
 
 /** What the entry imports as `kitvas-example`: the example's end of the studio channel. */
-const EXAMPLE_RUNTIME = join(PLUGIN_ROOT, 'client', 'frame', 'example.ts');
+const EXAMPLE_RUNTIME = join(PLUGIN_ROOT, 'client', 'frame', 'page', 'example.ts');
 
 /** Inside the catalog folder: the examples alone, where a utility build reads their class names. */
 const EXAMPLES_SOURCE = join('build', 'json', 'examples.tsx');

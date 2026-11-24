@@ -4,13 +4,22 @@
 // and the version's images, for the panel's header and its background image picker.
 
 import { type DraftStore, latestVersion, loadDraft, versionFolder } from '../../drafts/index.ts';
-import type { KitComponent, KitStore, LoadedKit } from '../../kit/index.ts';
+import {
+  DEFAULT_BREAKPOINTS,
+  type KitComponent,
+  type KitStore,
+  kitBreakpoints,
+  type LoadedKit,
+} from '../../kit/index.ts';
 import { KitvasError } from '../../shared/index.ts';
-import { IMAGE_FILE, MAX_IMAGES, readRule } from '../domain/apply-scss.ts';
-import { readTag } from '../domain/apply-tsx.ts';
-import { CLASS_NAME, fileOfId, hashOf, type PropValue } from '../domain/ops.ts';
-import { type SourceInput, styleSource, tokenGroupsOf } from '../domain/source.ts';
-import { elementSpan } from '../domain/subtree.ts';
+import { itemTexts } from '../domain/list/edit.ts';
+import { type ListInfo, listInfo } from '../domain/list/find.ts';
+import { CLASS_NAME, fileOfId, hashOf, type PropValue, type StyleContext } from '../domain/ops.ts';
+import { elementSpan } from '../domain/structure/subtree.ts';
+import { IMAGE_FILE, MAX_IMAGES, readRule, scssOverrides } from '../domain/style/apply-scss.ts';
+import { type SourceInput, styleSource, tokenGroupsOf } from '../domain/style/source.ts';
+import { utilityOverrides } from '../domain/style/utilities.ts';
+import { readTag } from '../domain/tsx/apply-tsx.ts';
 import {
   type PropView,
   type Refusal,
@@ -23,8 +32,8 @@ import {
 import type { EditCompiler } from '../ports/compiler.ts';
 import { editKit, styleFormat, tokenOptions } from './edit-state.ts';
 import { locateElement } from './locate.ts';
-import { sectionScss } from './section-files.ts';
-import { movableAt } from './structure.ts';
+import { sectionScss } from './structure/section-files.ts';
+import { movableAt } from './structure/structure.ts';
 
 /** The file names in a version's `src/img` folder (`src/edit/adapters/image-files.ts`). */
 export type ImageFiles = (slug: string, version: number) => readonly string[];
@@ -50,7 +59,7 @@ type InspectProp =
   | { name: string; kind: 'literal'; value: PropValue }
   | { name: string; kind: 'expr'; source: string };
 
-/** The same shape as the studio's `InspectSchema` (`src/studio/api/edit-schemas.ts`). */
+/** The same shape as the studio's `InspectSchema` (`src/studio/api/edit/edit-schemas.ts`). */
 export type InspectView = {
   id: string;
   version: number;
@@ -80,7 +89,28 @@ export type InspectView = {
   line: number;
   /** The image files of the version a background image may name, sorted. */
   images: string[];
+  /** The kit's breakpoints, ascending (spec 4c, goal 1). */
+  breakpoints: number[];
+  /**
+   * Every value set for a width or a state: a context block of the class rule, or a prefixed
+   * utility of a Tailwind draft (`utility`; `null` in SCSS). The base values are in `styles`.
+   */
+  overrides: {
+    context: StyleContext;
+    property: StyleProperty;
+    value: string;
+    offKit: boolean;
+    utility: string | null;
+  }[];
+  /** Spec 4c, goal 9: the `.map` the element is rendered by; `null` when it is not in one. */
+  list: (ListInfo & { texts: (string | null)[] | null }) | null;
 };
+
+/** Spec 4c, goal 9: the `.map` the element is rendered by, with its items' texts when literal. */
+function listOf(text: string, at: number): InspectView['list'] {
+  const info = listInfo(text, at);
+  return info === null ? null : { ...info, texts: itemTexts(text, at) };
+}
 
 /** The 1-based line `at` is on. */
 function lineAt(text: string, at: number): number {
@@ -233,14 +263,23 @@ export async function inspectElement(
   // `className` has a field of its own; the props are the ones a prop control edits.
   const props = tag.props.filter((prop) => prop.name !== 'className');
 
+  const format = styleFormat(kit);
+  const tokens = tokenOptions(kit);
   const input: Omit<SourceInput, 'property'> = {
     component: catalog === null ? null : { props: catalog },
     written: props.map((prop) => prop.name),
     rule,
     classes: classesOf(tag),
-    format: styleFormat(kit),
-    tokenGroups: tokenGroupsOf(tokenOptions(kit)),
+    format,
+    tokenGroups: tokenGroupsOf(tokens),
   };
+  // The values of the widths and states: prefixed utilities, or the rule's context blocks.
+  const overrides: InspectView['overrides'] =
+    format === 'tailwind'
+      ? utilityOverrides(classesOf(tag), tokens)
+      : rule === null || scssText === undefined
+        ? []
+        : scssOverrides(scssText, rule.className).map((each) => ({ ...each, utility: null }));
   const styles = Object.fromEntries(
     STYLE_PROPERTIES.map((property) => [property, styleSource({ ...input, property })]),
   ) as Record<StyleProperty, StyleSource>;
@@ -288,5 +327,8 @@ export async function inspectElement(
     movable: span === null ? 'not-found' : movableAt(text, at),
     line: lineAt(text, at),
     images: imageNames(deps.images?.(slug, version) ?? []),
+    breakpoints: kit === null ? [...DEFAULT_BREAKPOINTS] : kitBreakpoints(kit.kit),
+    overrides,
+    list: listOf(text, at),
   };
 }

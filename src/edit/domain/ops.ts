@@ -43,6 +43,29 @@ export const EDIT_FILE =
 
 export const ElementIdSchema = z.string().max(200).regex(ELEMENT_ID);
 
+/**
+ * The states a style may be set for (spec 4c, goal 1): written as `&:hover`, `&:focus-visible`,
+ * `&:active` in SCSS, and as the `hover:`, `focus-visible:`, `active:` prefixes in Tailwind.
+ */
+export const STYLE_STATES = ['hover', 'focus-visible', 'active'] as const;
+export type StyleState = (typeof STYLE_STATES)[number];
+/** Widest breakpoint a context may name, in CSS px. */
+export const MAX_BREAKPOINT = 10_000;
+/**
+ * Where a style edit applies (spec 4c, goal 1). `width`: from this breakpoint up (a kit breakpoint,
+ * `@media (min-width: <width>px)`), `null` for all widths. `state`: `null` for the resting state.
+ * An op without a context is the base, as in 4a.
+ */
+export const StyleContextSchema = z.strictObject({
+  width: z.number().int().min(1).max(MAX_BREAKPOINT).nullable(),
+  state: z.enum(STYLE_STATES).nullable(),
+});
+export type StyleContext = Zod.infer<typeof StyleContextSchema>;
+/** One utility class of a Tailwind draft with its prefixes: `p-4`, `md:hover:bg-ink`, `w-[13px]`. */
+export const UTILITY = /^[A-Za-z0-9:_\-[\]/.#%(),]{1,120}$/;
+/** The place of an item in a `.map`: 0 for the first rendered element of that id. */
+const ItemSchema = z.number().int().min(0).max(10_000);
+
 /** A literal prop value: `name="v"`, `name={3}`, `name` (true) or `name={false}`. */
 export const PropValueSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('string'), value: z.string().max(MAX_TEXT) }),
@@ -128,6 +151,12 @@ export const EditOpSchema = z.discriminatedUnion('op', [
     value: StyleValueSchema,
     before: StyleValueSchema.nullable(),
     newRule: z.boolean(),
+    /**
+     * Spec 4c: the declaration goes into the rule's nested block for this context (`@media`,
+     * `&:hover`, both). `newBlock`: that block did not exist and this op creates it.
+     */
+    context: StyleContextSchema.optional(),
+    newBlock: z.boolean().optional(),
   }),
   /** `dropRule`: when the rule's body is empty afterwards, the rule goes too (the inverse of `newRule`). */
   z.strictObject({
@@ -135,6 +164,20 @@ export const EditOpSchema = z.discriminatedUnion('op', [
     ...style,
     before: StyleValueSchema,
     dropRule: z.boolean(),
+    /** Spec 4c: from the context's block; `dropBlock`: the block goes when its body is empty. */
+    context: StyleContextSchema.optional(),
+    dropBlock: z.boolean().optional(),
+  }),
+  /**
+   * Spec 4c, Tailwind drafts: one utility class in the element's literal `className`. `before: null`
+   * adds `value` at the end; `value: null` removes `before`; both set swaps `before` for `value` in
+   * its place.
+   */
+  z.strictObject({
+    op: z.literal('setUtility'),
+    ...target,
+    value: z.string().regex(UTILITY).nullable(),
+    before: z.string().regex(UTILITY).nullable(),
   }),
   /** Writes `className="…"` on an element that has no `className` (decision 3). */
   z.strictObject({ op: z.literal('addClass'), ...target, className: z.string().regex(CLASS_NAME) }),
@@ -193,6 +236,21 @@ export const EditOpSchema = z.discriminatedUnion('op', [
     after: SectionSchema.nullable(),
   }),
   z.strictObject({ op: z.literal('removeSection'), section: SectionSchema }),
+  // Data lists (spec 4c, goal 9): `id` is the element inside the `.map` callback, `item` which
+  // rendered copy of it, which is the array element at that index. Server-made inverses.
+  /** The array element at `item` to index `to` (the others shift). */
+  z.strictObject({ op: z.literal('moveItem'), ...target, item: ItemSchema, to: ItemSchema }),
+  /** A copy of the array element at `item`, right after it. */
+  z.strictObject({ op: z.literal('duplicateItem'), ...target, item: ItemSchema }),
+  z.strictObject({ op: z.literal('removeItem'), ...target, item: ItemSchema }),
+  /** The string literal field the element's text reads (`{plan.title}`) of the item at `item`. */
+  z.strictObject({
+    op: z.literal('setItemText'),
+    ...target,
+    item: ItemSchema,
+    value: z.string().max(MAX_TEXT),
+    before: z.string().max(MAX_TEXT),
+  }),
   /**
    * Server-made inverses (decision 4). `patch`: each hunk's `find` occurs exactly once in the
    * file and becomes `replace`; anything else is a conflict. `file`: the whole file becomes
@@ -228,7 +286,8 @@ export type SimpleOp = Extract<
       | 'setStyle'
       | 'removeStyle'
       | 'addClass'
-      | 'removeClass';
+      | 'removeClass'
+      | 'setUtility';
   }
 >;
 /** The ops of 4b: structure, sections, and the server-made inverses. */
@@ -242,6 +301,7 @@ const SIMPLE: ReadonlySet<EditOpKind> = new Set([
   'removeStyle',
   'addClass',
   'removeClass',
+  'setUtility',
 ]);
 
 export const isStructural = (op: EditOp): op is StructuralOp => !SIMPLE.has(op.op);
@@ -318,6 +378,9 @@ export function inverse(op: SimpleOp): SimpleOp {
             property: op.property,
             before: op.value,
             dropRule: op.newRule,
+            ...(op.context === undefined
+              ? {}
+              : { context: op.context, dropBlock: op.newBlock === true }),
           }
         : { ...op, value: op.before, before: op.value };
     case 'removeStyle':
@@ -329,11 +392,16 @@ export function inverse(op: SimpleOp): SimpleOp {
         value: op.before,
         before: null,
         newRule: op.dropRule,
+        ...(op.context === undefined
+          ? {}
+          : { context: op.context, newBlock: op.dropBlock === true }),
       };
     case 'addClass':
       return { op: 'removeClass', id: op.id, className: op.className };
     case 'removeClass':
       return { op: 'addClass', id: op.id, className: op.className };
+    case 'setUtility':
+      return { ...op, value: op.before, before: op.value };
   }
 }
 

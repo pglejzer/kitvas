@@ -15,8 +15,9 @@ import { tempDir } from '../helpers/tmp.ts';
 
 /** The fields of `check --json` these tests read. */
 type CheckData = {
-  summary: { fix: number; review: number };
+  summary: { fix: number; review: number; waived?: number };
   findings: { rule: string }[];
+  waived?: { rule: string; reason: string }[];
   built: boolean;
   deep?: boolean;
 };
@@ -80,6 +81,44 @@ test('findings are listed with their place, message and hint', async () => {
   assert.deepEqual(h.data().summary, { fix: 1, review: 0 });
   assert.equal(h.data().findings[0]?.rule, 'ds/raw-color');
   assert.equal(h.data().built, true);
+});
+
+test('an accepted finding is listed as accepted, counted apart and not left to fix', async () => {
+  const h = await harness();
+  writeFileSync(
+    join(h.draftDir, 'v1', 'src', 'scss', 'sections', 'hero.scss'),
+    '.hero {\n  color: #fff;\n}\n',
+  );
+  writeFileSync(
+    join(h.draftDir, 'waivers.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      waivers: [
+        {
+          rule: 'ds/raw-color',
+          element: null,
+          reason: 'brand white',
+          version: 1,
+          at: '2026-11-24T10:00:00.000Z',
+        },
+      ],
+    }),
+  );
+  assert.equal(await h.run('check', 'shop'), 0);
+  const lines = (h.out.at(-1) ?? '').split('\n');
+  assert.equal(lines[0], 'Checked "shop" version 1: nothing to fix or review.');
+  assert.equal(lines[1], 'Accepted on purpose (1):');
+  assert.equal(lines[2], '    ds/raw-color  src/scss/sections/hero.scss:2:10');
+  assert.equal(lines[3], '          "#fff" is a colour written by hand.');
+  assert.equal(lines[4], '          Reason: brand white');
+
+  assert.equal(await h.run('check', 'shop', '--json'), 0);
+  assert.deepEqual(h.data().summary, { fix: 0, review: 0, waived: 1 });
+  assert.deepEqual(h.data().findings, []);
+  assert.deepEqual(
+    h.data().waived?.map((one) => [one.rule, one.reason]),
+    [['ds/raw-color', 'brand white']],
+  );
 });
 
 test('check needs a slug and an existing draft', async () => {

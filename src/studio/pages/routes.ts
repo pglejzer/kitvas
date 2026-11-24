@@ -5,10 +5,10 @@ import type { KitStore } from '../../kit/index.ts';
 import type { Translate } from '../../shared/index.ts';
 import { KitParams, NoParams, SlugParams } from '../api/schemas.ts';
 import { type PageRoute, pageRoute } from '../http/router.ts';
-import { draftPage } from './draft-page.ts';
-import type { FrameOrigin } from './frame-src.ts';
+import { draftPage } from './draft/draft-page.ts';
+import type { FrameOrigin } from './draft/frame-src.ts';
 import { galleryPage } from './gallery.ts';
-import { kitListPage, kitPage } from './kit-page.ts';
+import { kitListPage, kitPage } from './kit/kit-page.ts';
 
 export type PageDeps = {
   drafts: DraftStore;

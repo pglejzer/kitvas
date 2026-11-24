@@ -3,7 +3,7 @@
 // a request while one runs makes one more run after it, so the last change is always built.
 
 import { KitvasError } from '../../shared/index.ts';
-import type { BuildEvent } from '../api/edit-schemas.ts';
+import type { BuildEvent } from '../api/edit/edit-schemas.ts';
 
 /** What a build of a draft's latest version gave: built or not, and which version it was. */
 export type BuiltDraft = { ok: boolean; version: number };

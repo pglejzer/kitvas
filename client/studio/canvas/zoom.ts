@@ -117,6 +117,16 @@ export function centreScroll(centre: number, axis: Axis, room: number): number {
   return Math.max(0, centre * axis.zoom + axis.offset - room / 2);
 }
 
+/** The smallest box around every one of `boxes` ("Every width"); `null` for none. */
+export function unionBox(boxes: readonly Box[]): Box | null {
+  if (boxes.length === 0) return null;
+  const left = Math.min(...boxes.map((box) => box.x));
+  const top = Math.min(...boxes.map((box) => box.y));
+  const right = Math.max(...boxes.map((box) => box.x + box.width));
+  const bottom = Math.max(...boxes.map((box) => box.y + box.height));
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
 /** How much of the room a selection fills after "zoom to selection". */
 const SELECTION_FILL = 0.8;
 

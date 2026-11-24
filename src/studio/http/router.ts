@@ -49,6 +49,8 @@ export type ApiRouteSpec<P, B> = Common<P> & {
   policy: 'read' | 'write';
   /** The JSON body; `null` when the route reads none. Every `write` route has one. */
   request: Zod.ZodType<B> | null;
+  /** Largest body in bytes for this route; the studio's own limit when absent (image upload). */
+  bodyLimit?: number;
   /** With `stream`, the response is `text/event-stream` and the schema is one event. */
   response: { status: number; schema: Zod.ZodType; stream?: true };
   handle(input: ApiInput<P, B>): ApiResult | Promise<ApiResult>;

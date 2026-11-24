@@ -4,30 +4,39 @@
 // canvas keeps the zoom in and reads the selection from. `undefined` when there is no editor.
 
 import type { EditFrameMessage } from '../../channel/edit-protocol.ts';
+import type { LiveFrameMessage } from '../../channel/live-protocol.ts';
 import type { Frame } from '../frames.ts';
 import { getEditState } from './api.ts';
-import { mountAsk } from './ask.ts';
 import { createBridge } from './bridge.ts';
-import { mountChanges } from './changes.ts';
-import { mountConflict } from './conflict.ts';
 import type { EditorContext } from './context.ts';
-import { mountFrameDrop } from './frame-drop.ts';
-import { mountHandleWrites } from './handle-writes.ts';
-import { createHistory } from './history.ts';
-import { mountKeys } from './keys.ts';
-import { mountLayers } from './layers.ts';
-import { watchSources } from './live-frame.ts';
-import { mountMenu } from './menu.ts';
-import { mountMode } from './mode.ts';
-import { mountPalette } from './palette.ts';
-import { mountProps } from './props-panel.ts';
-import { mountSession } from './session.ts';
+import { mountAsk } from './history/ask.ts';
+import { mountChanges } from './history/changes.ts';
+import { createHistory } from './history/history.ts';
+import { mountSession } from './history/session.ts';
+import { mountFrameDrop } from './insert/frame-drop.ts';
+import { mountImages } from './insert/images.ts';
+import { mountPalette } from './insert/palette.ts';
+import { mountLayers } from './layers/layers.ts';
+import { mountLive } from './live/live.ts';
+import { mountWaivers } from './live/waivers.ts';
+import { mountContextBar } from './props/context-bar.ts';
+import { mountProps } from './props/panel.ts';
+import { mountStateHeld } from './props/state-held.ts';
+import { mountKeys } from './select/keys.ts';
+import { mountMode } from './select/mode.ts';
 import { createStore, type Store } from './store.ts';
-import { mountStructure } from './structure.ts';
+import { mountLists } from './structure/lists.ts';
+import { mountMenu } from './structure/menu.ts';
+import { mountStructure } from './structure/structure.ts';
+import { mountHandleWrites } from './style/handle-writes.ts';
+import { mountConflict } from './sync/conflict.ts';
+import { watchSources } from './sync/live-frame.ts';
 
 export type Editor = {
   /** An edit message of the current frame. */
   receive(message: EditFrameMessage): void;
+  /** A live message of a card's frame (stage 4c). */
+  receiveLive(frame: Frame, message: LiveFrameMessage): void;
   store: Store;
 };
 
@@ -59,8 +68,19 @@ export function startEditor(main: HTMLElement, frame: Frame): Editor | undefined
   mountHandleWrites(ctx);
   // The editor screen (plan 15).
   mountSession(ctx);
+  // Stage 4c (plan 16).
+  mountContextBar(ctx);
+  mountStateHeld(ctx);
+  mountLive(ctx);
+  mountLists(ctx);
+  mountImages(ctx);
+  mountWaivers(ctx);
   getEditState(slug).then((answer) => {
     if (answer.ok) store.set({ edit: answer.body, etags: answer.body.etags });
   });
-  return { receive: (message) => bridge.receive(message), store };
+  return {
+    receive: (message) => bridge.receive(message),
+    receiveLive: (from, message) => bridge.receiveLive(from, message),
+    store,
+  };
 }

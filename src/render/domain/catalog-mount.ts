@@ -1,6 +1,6 @@
 // Source of the catalog bundle's entry: every example of a kit as a function, rendered one at a
 // time into #root when the studio's frame asks for it (`?example=<key>`). `kitvas-example`
-// (client/frame/example.ts) reads the key and reports the page's height to the studio.
+// (client/frame/page/example.ts) reads the key and reports the page's height to the studio.
 // Example code comes from kit.json and is inserted as JSX text, so only code that already passed
 // `exampleFunction` through the bundler's transform may be given to `catalogMountSource`.
 

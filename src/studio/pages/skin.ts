@@ -3,7 +3,7 @@
 // the focus ring, the 24 px targets).
 
 import { type FlatToken, tokensToCss } from '../../kit/index.ts';
-import { EDIT_SKIN_RULES } from './edit-skin/index.ts';
+import { EDIT_SKIN_RULES } from './editor/edit-skin/index.ts';
 
 export const SKIN_RULES = `
 *, *::before, *::after { box-sizing: border-box; }

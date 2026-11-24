@@ -4,7 +4,7 @@
 // the line in `build/json/ids.json`, which may be from an older text.
 
 import { elementIds, readSites } from '../../render/index.ts';
-import { offsetOf } from '../domain/apply-tsx.ts';
+import { offsetOf } from '../domain/tsx/apply-tsx.ts';
 import type { Refusal } from '../domain/types.ts';
 import type { EditCompiler } from '../ports/compiler.ts';
 

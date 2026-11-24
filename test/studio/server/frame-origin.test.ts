@@ -29,6 +29,9 @@ test('the framed address serves the page with the sandbox policy', async () => {
     assert.equal(page.text, '<!doctype html><title>Shop</title>');
     const css = await call(studio.framePort, { path: `/f/${key}/shop/v1/css/index.css` });
     assert.equal(css.headers['content-type'], 'text/css; charset=utf-8');
+    // Only a stylesheet may be read across origins: the frame makes forced-state twins of its rules.
+    assert.equal(css.headers['access-control-allow-origin'], '*');
+    assert.equal(page.headers['access-control-allow-origin'], undefined);
     const head = await call(studio.framePort, {
       method: 'HEAD',
       path: `/f/${key}/shop/v1/js/index.js`,
