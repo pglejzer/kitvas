@@ -98,7 +98,7 @@ function hasContent(): boolean {
   return (document.getElementById('root')?.childElementCount ?? 0) > 0;
 }
 
-/** Runs in the page: the mark `client/frame/example.ts` leaves after rendering an example. */
+/** Runs in the page: the mark `client/frame/page/example.ts` leaves after rendering an example. */
 function readExampleMark(): 'shown' | 'failed' | null {
   const mark = document.documentElement.dataset.example;
   return mark === 'shown' || mark === 'failed' ? mark : null;

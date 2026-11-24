@@ -1,5 +1,5 @@
 // The paused view (ADR 0042): every page behind the cookie carries it, hidden. Once the studio
-// has been gone for a while, the page's script (`client/studio/live.ts`) shows it in place of the
+// has been gone for a while, the page's script (`client/studio/live/live.ts`) shows it in place of the
 // page, so its texts come from the locale here, never from the script. Change both together.
 
 import type { Translate } from '../../shared/index.ts';

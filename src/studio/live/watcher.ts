@@ -5,7 +5,7 @@
 
 import { type FSWatcher, watch } from 'node:fs';
 import { isSlug } from '../../drafts/index.ts';
-import { SOURCE_PATH, type SourceEvent } from '../api/edit-schemas.ts';
+import { SOURCE_PATH, type SourceEvent } from '../api/edit/edit-schemas.ts';
 import { type IdleClock, SYSTEM_CLOCK } from '../server/idle-stop.ts';
 
 /** A draft is looked at once nothing changed in it for this long. */

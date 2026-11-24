@@ -99,8 +99,10 @@ async function serve(
     send(res, { ...reply, type: reply.type ?? HTML_TYPE }, headers);
     return;
   }
+  // A route may raise the limit for its own body (an image upload); never below the studio's.
+  const limit = Math.max(ctx.bodyLimit, route.bodyLimit ?? 0);
   const body = route.request
-    ? parseBody(route.request, await readJsonBody(req, ctx.bodyLimit, ctx.t))
+    ? parseBody(route.request, await readJsonBody(req, limit, ctx.t))
     : undefined;
   const result = await route.handle({ ...input, body });
   if (result.open) {

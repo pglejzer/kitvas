@@ -4,7 +4,7 @@ import { createDraft, type DraftStore } from '../../src/drafts/index.ts';
 import { createEsbuildCompiler } from '../../src/edit/adapters/esbuild-compiler.ts';
 import { hashOf } from '../../src/edit/index.ts';
 import { PLUGIN_ROOT } from '../../src/shared/index.ts';
-import type { EditDeps } from '../../src/studio/api/edit-routes.ts';
+import type { EditDeps } from '../../src/studio/api/edit/edit-routes.ts';
 import {
   type Palette,
   PaletteSchema,
@@ -12,7 +12,7 @@ import {
   StructureSchema,
   type Subtree,
   SubtreeSchema,
-} from '../../src/studio/api/structure-schemas.ts';
+} from '../../src/studio/api/edit/structure-schemas.ts';
 import { etagOf } from '../../src/studio/http/etag.ts';
 import { NOW, tempDrafts } from '../helpers/drafts.ts';
 import { call, studioOver } from '../helpers/studio.ts';

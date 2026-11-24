@@ -5,7 +5,8 @@ import type { SharedBrowser } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
 import { PLUGIN_ROOT, type Translate } from '../../shared/index.ts';
-import type { EditDeps } from '../api/edit-routes.ts';
+import type { EditDeps } from '../api/edit/edit-routes.ts';
+import type { ImageStore } from '../api/images/image-rules.ts';
 import type { LiveTools } from '../live/index.ts';
 import type { StudioAssets } from '../pages/asset-routes.ts';
 import type { IdleClock } from '../server/idle-stop.ts';
@@ -38,6 +39,8 @@ export type ServeDeps = {
   edit?: EditDeps;
   /** The live loop's watch and warm build, from `src/main.ts`. */
   live?: LiveTools;
+  /** Image uploads into a version's `src/img/` (stage 4c), from `src/main.ts`. */
+  imageStore?: ImageStore;
 };
 
 /**
@@ -71,6 +74,7 @@ export async function serveStudio(deps: ServeDeps): Promise<StudioState> {
       ...(deps.browser ? { browser: deps.browser } : {}),
       ...(deps.edit ? { edit: deps.edit } : {}),
       ...(deps.live ? { live: deps.live } : {}),
+      ...(deps.imageStore ? { imageStore: deps.imageStore } : {}),
       // The browser's pid goes into the state file: `kitvas studio stop` ends one that lingers.
       onBrowser: (browserPid) => {
         if (!state) return;

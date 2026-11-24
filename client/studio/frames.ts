@@ -2,6 +2,7 @@
 // contract 1), and the messages the page sends them.
 
 import type { EditStudioBody } from '../channel/edit-protocol.ts';
+import type { LiveStudioBody } from '../channel/live-protocol.ts';
 import {
   type FrameMessage,
   type Mark,
@@ -67,6 +68,11 @@ export function sendState(frame: Frame, state: string): void {
 
 /** One of the editor's messages (client/channel/edit-protocol.ts). */
 export function sendEdit(frame: Frame, body: EditStudioBody): void {
+  post(frame, { kitvas: 1, channel: frame.channel, ...body } as StudioMessage);
+}
+
+/** One of stage 4c's live messages (client/channel/live-protocol.ts). */
+export function sendLive(frame: Frame, body: LiveStudioBody): void {
   post(frame, { kitvas: 1, channel: frame.channel, ...body } as StudioMessage);
 }
 

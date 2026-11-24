@@ -65,6 +65,21 @@ export const REFUSALS = [
   'not-in-session',
   /** A move into the element itself or into one of its descendants. */
   'into-self',
+  // Stage 4c (plan 16).
+  /** A per-width or per-state value of a property a prop covers (spec 4c, goal 1). */
+  'prop-covered',
+  /** A width that is not one of the kit's breakpoints. */
+  'not-breakpoint',
+  /** A list item edit on a `.map` over anything but a literal array in the same file. */
+  'list-not-literal',
+  /** The list has no item at that index any more. */
+  'list-item-gone',
+  /** The item's text is not a string literal field of the item (`{item.title}`). */
+  'list-text-not-literal',
+  /** A utility class of a Tailwind draft that kitvas does not know how to swap. */
+  'utility-unknown',
+  /** The kit's own rule for this state weighs more than the editor's: the value would not show. */
+  'kit-state-wins',
 ] as const;
 export type Refusal = (typeof REFUSALS)[number];
 
@@ -136,7 +151,7 @@ export type StyleSource =
 /**
  * The style properties the panel shows for any element (R9). The first seventeen are stage 4a's,
  * in their order; plan 15 adds each side of padding and margin, the layout keywords, the outline
- * and the background image. `client/frame/tree.ts` keeps a copy in the same order.
+ * and the background image. `client/frame/edit/tree.ts` keeps a copy in the same order.
  */
 export const STYLE_PROPERTIES = [
   'padding',

@@ -1,6 +1,6 @@
 // What every panel of the editor gets (plan 13, client contract).
 
-import type { EditOutcome } from '../../../src/studio/api/edit-schemas.ts';
+import type { EditOutcome } from '../../../src/studio/api/edit/edit-schemas.ts';
 import type { Bridge } from './bridge.ts';
 import type { Gesture, Store } from './store.ts';
 
@@ -24,7 +24,7 @@ export type EditorContext = {
   slug: string;
   /** `main.draft-page`. */
   main: HTMLElement;
-  /** The screen, `main[data-edit-panel]` (src/studio/pages/draft-page.ts), with both side panels. */
+  /** The screen, `main[data-edit-panel]` (src/studio/pages/draft/draft-page.ts), with both side panels. */
   panel: HTMLElement;
   store: Store;
   bridge: Bridge;

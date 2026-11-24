@@ -27,7 +27,7 @@ function settle(): Promise<null> {
   );
 }
 
-/** Runs in the page: the mark `client/frame/example.ts` leaves after rendering an example. */
+/** Runs in the page: the mark `client/frame/page/example.ts` leaves after rendering an example. */
 function readMark(): string | null {
   return document.documentElement.dataset.example ?? null;
 }

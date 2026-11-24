@@ -16,8 +16,6 @@ import {
 } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
 import { KitvasError } from '../../shared/index.ts';
-import { applyScss, type ScssOp, scssBalanced } from '../domain/apply-scss.ts';
-import { applyTsx } from '../domain/apply-tsx.ts';
 import {
   type EditOp,
   ELEMENT_ID,
@@ -28,8 +26,10 @@ import {
   MAX_HUNK,
   type SimpleOp,
 } from '../domain/ops.ts';
-import { applyHunks, makeHunks } from '../domain/patch.ts';
-import { renameMap } from '../domain/renames.ts';
+import { applyHunks, makeHunks } from '../domain/structure/patch.ts';
+import { renameMap } from '../domain/structure/renames.ts';
+import { applyScss, type ScssOp, scssBalanced } from '../domain/style/apply-scss.ts';
+import { applyTsx } from '../domain/tsx/apply-tsx.ts';
 import type { OffsetMap, Refusal } from '../domain/types.ts';
 import type { EditCompiler } from '../ports/compiler.ts';
 import {
@@ -47,8 +47,9 @@ import {
   stateOf,
   type Work,
 } from './request-state.ts';
-import { applyStructural } from './structural.ts';
-import { imagesOf, undoableByOps } from './style-checks.ts';
+import { applyStructural } from './structure/structural.ts';
+import { contextRefusal } from './style/context-checks.ts';
+import { imagesOf, undoableByOps } from './style/style-checks.ts';
 
 /**
  * Called right before the files are written, with the version they go into and their new ETags,
@@ -195,6 +196,9 @@ function scssPlace(work: Work, op: ScssOp): Found | Stop {
  * where the request's earlier ops left it (4b decision 3).
  */
 async function applySimple(work: Work, index: number, op: SimpleOp): Promise<OpResult> {
+  // Spec 4c: a width or state the kit has no breakpoint for, or a property a prop covers.
+  const stop = await contextRefusal(work, op);
+  if (stop !== null) return { refused: stop };
   const at = isScss(op) ? scssPlace(work, op) : await locate(work, op.id);
   if (!('at' in at)) return at;
   const result = isScss(op)

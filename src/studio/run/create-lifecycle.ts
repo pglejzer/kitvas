@@ -4,7 +4,8 @@ import type { SharedBrowser } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
 import { KitvasError, loadSettings, type Translate } from '../../shared/index.ts';
-import type { EditDeps } from '../api/edit-routes.ts';
+import type { EditDeps } from '../api/edit/edit-routes.ts';
+import type { ImageStore } from '../api/images/image-rules.ts';
 import { LinkSchema } from '../api/schemas.ts';
 import type { InboxItem } from '../inbox/inbox.ts';
 import type { LiveTools } from '../live/index.ts';
@@ -124,6 +125,8 @@ export type ServeInput = {
   edit?: EditDeps;
   /** The live loop's watch and warm build. */
   live?: LiveTools;
+  /** Image uploads (stage 4c). */
+  imageStore?: ImageStore;
 };
 
 /** `kitvas studio serve`: errors go to stderr, which is the log file of a detached studio. */
@@ -138,6 +141,7 @@ export function serveProject(input: ServeInput): Promise<StudioState> {
     ...(input.browser ? { browser: input.browser } : {}),
     ...(input.edit ? { edit: input.edit } : {}),
     ...(input.live ? { live: input.live } : {}),
+    ...(input.imageStore ? { imageStore: input.imageStore } : {}),
     files: studioFiles(input.dataDir, input.project),
     // Read once at the start: a changed setting applies from the next start of the studio.
     idleMinutes: loadSettings({ home: input.home, cwd: input.project }).studioIdleMinutes,

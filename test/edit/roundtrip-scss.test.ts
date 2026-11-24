@@ -11,7 +11,8 @@ import {
   readRule,
   type ScssOp,
   scssBalanced,
-} from '../../src/edit/domain/apply-scss.ts';
+  scssOverrides,
+} from '../../src/edit/domain/style/apply-scss.ts';
 import {
   type ApplyResult,
   type Declaration,
@@ -20,6 +21,7 @@ import {
   keywordsOf,
   kindOf,
   plainValue,
+  type StyleContext,
   type StyleValue,
 } from '../../src/edit/index.ts';
 import { PLUGIN_ROOT } from '../../src/shared/env/paths.ts';
@@ -93,8 +95,9 @@ test('a new declaration and then its inverse leave every rule of every file as i
       assert.notEqual(applied, text, where);
       const added = readRule(applied, rule.className);
       assert.ok(added !== null && added !== 'ambiguous', where);
-      assert.deepEqual(added.declarations.at(-1)?.property, 'outline-offset', where);
-      assert.equal(added.declarations.at(-1)?.offKit, true, where);
+      // Last of the body, or above the rule's first width or state block (spec 4c).
+      const made = added.declarations.find((d) => d.property === 'outline-offset');
+      assert.equal(made?.offKit, true, where);
       assert.equal(textOf(applyScss(applied, scssOp(inverse(op)), PLAIN), where), text, where);
       tried += 1;
     }
@@ -145,6 +148,92 @@ test('a token on every existing declaration and then its inverse leave the file 
   assert.ok(plain >= 10, `only ${plain} plain declarations tried`);
   // Plan 15: the keyword words of the fixtures and the kit, each swapped for another of its list.
   assert.ok(keywords >= 5, `only ${keywords} keyword declarations tried`);
+});
+
+const CONTEXTS: StyleContext[] = [
+  { width: 768, state: null },
+  { width: 1280, state: null },
+  { width: null, state: 'hover' },
+  { width: null, state: 'focus-visible' },
+  { width: null, state: 'active' },
+  { width: 768, state: 'hover' },
+  { width: 1280, state: 'active' },
+];
+
+test('a value for a width or a state and then its inverse leave every rule as it was', () => {
+  let tried = 0;
+  for (const { path, text } of files) {
+    for (const rule of listRules(text)) {
+      if (readRule(text, rule.className) === 'ambiguous') continue;
+      for (const context of CONTEXTS) {
+        const where = `${path} .${rule.className} ${JSON.stringify(context)}`;
+        const here = (each: { context: StyleContext }): boolean =>
+          each.context.width === context.width && each.context.state === context.state;
+        // A context the rule already sets something in keeps its block; another gets a new one.
+        const op: ScssOp = {
+          op: 'setStyle',
+          id: ID,
+          className: rule.className,
+          property: 'outline-width',
+          value: { raw: '1px' },
+          before: null,
+          newRule: false,
+          context,
+          newBlock: !scssOverrides(text, rule.className).some(here),
+        };
+        const result = applyScss(text, op, PLAIN);
+        // A rule kitvas cannot add to is refused or a conflict: a block read twice, a last line
+        // without `;`, a block that sets the property already.
+        if (!('text' in result)) continue;
+        const applied = result.text;
+        assert.equal(scssBalanced(applied), true, where);
+        assert.deepEqual(
+          scssOverrides(applied, rule.className)
+            .filter((each) => each.property === 'outline-width' && here(each))
+            .map((each) => [each.value, each.offKit]),
+          [['1px', true]],
+          where,
+        );
+        // The base of the rule is what it was.
+        const after = readRule(applied, rule.className);
+        assert.ok(after !== null && after !== 'ambiguous', where);
+        assert.deepEqual(
+          after.declarations.map((d) => [d.property, d.value, d.offKit]),
+          rule.declarations.map((d) => [d.property, d.value, d.offKit]),
+          where,
+        );
+        assert.deepEqual(after.nested, rule.nested, where);
+        assert.equal(textOf(applyScss(applied, scssOp(inverse(op)), PLAIN), where), text, where);
+        tried += 1;
+      }
+    }
+  }
+  assert.ok(tried >= 30, `only ${tried} contexts tried`);
+});
+
+test('a new rule with a width and a state and then its inverse leave every file as it was', () => {
+  for (const { path, text } of files) {
+    for (const context of CONTEXTS) {
+      const op: ScssOp = {
+        op: 'setStyle',
+        id: ID,
+        className: 'rt-new',
+        property: 'gap',
+        value: { token: '--kit-space-md' },
+        before: null,
+        newRule: true,
+        context,
+        newBlock: true,
+      };
+      const applied = textOf(applyScss(text, op, PLAIN), path);
+      assert.ok(applied.startsWith(text), path);
+      assert.equal(scssBalanced(applied), true, path);
+      assert.deepEqual(scssOverrides(applied, 'rt-new'), [
+        { context, property: 'gap', value: 'var(--kit-space-md)', offKit: false },
+      ]);
+      assert.equal(textOf(applyScss(applied, scssOp(inverse(op)), PLAIN), path), text, path);
+    }
+  }
 });
 
 test('a new rule and then its inverse leave every file as it was', () => {

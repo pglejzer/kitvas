@@ -11,7 +11,7 @@ import {
 import type { Translate } from '../../shared/index.ts';
 import { type DraftStatus, needsAttention, statusLine, versionStatus } from '../views/status.ts';
 import { filterRow } from './controls.ts';
-import { type FrameOrigin, frameSrc } from './frame-src.ts';
+import { type FrameOrigin, frameSrc } from './draft/frame-src.ts';
 import { type Html, html } from './html.ts';
 import { page } from './shell.ts';
 

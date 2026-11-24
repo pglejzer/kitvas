@@ -3,6 +3,9 @@ import { test } from 'node:test';
 import { DEFAULT_STATES, type Draft, type States } from '../../../src/drafts/index.ts';
 import {
   draftHref,
+  extraWidths,
+  nearestPreset,
+  pickCards,
   pickCompare,
   pickState,
   pickVersion,
@@ -109,4 +112,55 @@ test('a link keeps the comparison when it is given one', () => {
     draftHref('shop', { version: 3, state: 'empty', width: 768, compare: 1 }),
     '/drafts/shop?version=3&state=empty&width=768&compare=1',
   );
+});
+
+test('the cards are 1, 2 or 3, and one for anything else', () => {
+  assert.equal(pickCards(query('cards=2')), 2);
+  assert.equal(pickCards(query('cards=3')), 3);
+  for (const asked of ['', '1', '0', '4', 'all', '2.5']) {
+    assert.equal(pickCards(query(`cards=${asked}`)), 1, asked);
+  }
+  assert.equal(pickCards(query('')), 1);
+});
+
+test('a link keeps more than one card last, and names none for one or while comparing', () => {
+  assert.equal(
+    draftHref('shop', { version: 3, state: 'empty', width: 768, view: 1000, cards: 3 }),
+    '/drafts/shop?version=3&state=empty&width=768&view=1000&cards=3',
+  );
+  assert.equal(
+    draftHref('shop', { version: 3, state: 'empty', width: 768, cards: 1 }),
+    '/drafts/shop?version=3&state=empty&width=768',
+  );
+  assert.equal(
+    draftHref('shop', { version: 3, state: 'empty', width: 768, compare: 1, cards: 2 }),
+    '/drafts/shop?version=3&state=empty&width=768&compare=1',
+  );
+});
+
+test('two cards add the next preset up, or the one below at the widest', () => {
+  assert.deepEqual(extraWidths(2, 390), [768]);
+  assert.deepEqual(extraWidths(2, 768), [1280]);
+  assert.deepEqual(extraWidths(2, 1280), [768]);
+  assert.deepEqual(extraWidths(2, 1000), [1280]);
+  assert.deepEqual(extraWidths(2, 2000), [1280]);
+  assert.deepEqual(extraWidths(2, 320), [390]);
+});
+
+test('three cards add the presets the width shown does not stand for', () => {
+  assert.deepEqual(extraWidths(3, 390), [768, 1280]);
+  assert.deepEqual(extraWidths(3, 768), [390, 1280]);
+  assert.deepEqual(extraWidths(3, 1280), [390, 768]);
+  // A custom width stands for its nearest preset.
+  assert.deepEqual(extraWidths(3, 700), [390, 1280]);
+  assert.deepEqual(extraWidths(3, 2400), [390, 768]);
+  assert.deepEqual(extraWidths(1, 768), []);
+});
+
+test('the nearest preset of a width; the narrower of two as near', () => {
+  assert.equal(nearestPreset(320), 390);
+  assert.equal(nearestPreset(579), 390);
+  assert.equal(nearestPreset(1024), 768);
+  assert.equal(nearestPreset(1100), 1280);
+  assert.equal(nearestPreset(579 + 0.5), 768);
 });

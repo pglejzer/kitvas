@@ -1,6 +1,6 @@
 // Entry of the draft page's script, served as `/assets/draft.js`. The page works without it.
 
-import { startDraftPage } from './draft-page.ts';
+import { startDraftPage } from './draft/page.ts';
 import { mountShell } from './shell/shell.ts';
 
 const main = document.querySelector('main.draft-page');

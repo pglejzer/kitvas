@@ -15,9 +15,9 @@ import {
   type Session,
   samePlace,
   THRESHOLD,
-} from '../../../client/frame/drag-session.ts';
-import { contains, outermost, type RectItem, rectOf } from '../../../client/frame/rect.ts';
-import type { Box, Point, Slot } from '../../../client/frame/slots.ts';
+} from '../../../client/frame/drag/session.ts';
+import type { Box, Point, Slot } from '../../../client/frame/drag/slots.ts';
+import { contains, outermost, type RectItem, rectOf } from '../../../client/frame/page/rect.ts';
 
 const at = (x: number, y: number): Point => ({ x, y });
 const box = (left: number, top: number, width: number, height: number): Box => ({

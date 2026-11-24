@@ -18,7 +18,7 @@ import {
 import { KitvasError } from '../../shared/index.ts';
 import { TOKEN_VAR } from '../domain/ops.ts';
 import type { TokenOption } from '../domain/types.ts';
-import { sourceFiles } from './section-files.ts';
+import { sourceFiles } from './structure/section-files.ts';
 
 export type EditStateDeps = {
   drafts: DraftStore;
@@ -27,7 +27,7 @@ export type EditStateDeps = {
   etag(text: string): string;
 };
 
-/** The same shape as the studio's `EditStateSchema` (`src/studio/api/edit-schemas.ts`). */
+/** The same shape as the studio's `EditStateSchema` (`src/studio/api/edit/edit-schemas.ts`). */
 export type EditStateView = {
   slug: string;
   version: number;

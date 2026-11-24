@@ -9,7 +9,7 @@ import {
   serializeJson,
 } from '../../../src/drafts/index.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
-import { readBeforeImage } from '../../../src/studio/pages/before-files.ts';
+import { readBeforeImage } from '../../../src/studio/pages/draft/before-files.ts';
 import { escapeHtml } from '../../../src/studio/pages/html.ts';
 import { pageRoutes } from '../../../src/studio/pages/routes.ts';
 import { originalView } from '../../../src/studio/views/rework-view.ts';

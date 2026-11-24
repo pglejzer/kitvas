@@ -14,11 +14,24 @@ import {
   placeWorld,
   selectionZoom,
   stepZoom,
+  unionBox,
   wheelPixels,
   wheelZoom,
 } from '../../../../client/studio/canvas/zoom.ts';
 
 const NO_PAD = { x: 0, top: 0, bottom: 0 };
+
+test('"Element at every width" zooms to the box around the element in every card', () => {
+  assert.equal(unionBox([]), null);
+  const one = { x: 10, y: 20, width: 30, height: 40 };
+  assert.deepEqual(unionBox([one]), one);
+  assert.deepEqual(unionBox([one, { x: 500, y: 0, width: 100, height: 10 }]), {
+    x: 10,
+    y: 0,
+    width: 590,
+    height: 60,
+  });
+});
 
 test('the zoom stays between 10 % and 400 %', () => {
   assert.equal(MIN_ZOOM, 0.1);

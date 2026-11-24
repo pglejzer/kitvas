@@ -1,5 +1,5 @@
 // The editor's calls to the studio API (plan 13, C3), with the page cookie. The shapes are the
-// server's schemas (`src/studio/api/edit-schemas.ts`); a network error answers as status 0.
+// server's schemas (`src/studio/api/edit/edit-schemas.ts`); a network error answers as status 0.
 
 import type {
   EditEnd,
@@ -8,9 +8,18 @@ import type {
   EditState,
   Inspect,
   OffKit,
-} from '../../../src/studio/api/edit-schemas.ts';
-import type { SessionReopen } from '../../../src/studio/api/session-schemas.ts';
-import type { Palette, Structure, Subtree } from '../../../src/studio/api/structure-schemas.ts';
+} from '../../../src/studio/api/edit/edit-schemas.ts';
+import type { SessionReopen } from '../../../src/studio/api/edit/session-schemas.ts';
+import type {
+  Palette,
+  Structure,
+  Subtree,
+} from '../../../src/studio/api/edit/structure-schemas.ts';
+import type {
+  ImageUpload,
+  ImageUploadRequest,
+} from '../../../src/studio/api/images/image-schemas.ts';
+import type { Waiver } from '../../../src/studio/api/waivers/waiver-schemas.ts';
 
 export type Answer<T> =
   | { ok: true; status: number; body: T }
@@ -68,3 +77,26 @@ export const getPalette = (slug: string): Promise<Answer<Palette>> =>
 
 export const getSubtree = (slug: string, id: string): Promise<Answer<Subtree>> =>
   call('GET', `${base(slug)}/subtree?id=${encodeURIComponent(id)}`);
+
+// Images and waivers (spec 4c, goals 6 and 10; plan 16, task E).
+/** Stores an image in the latest version's `src/img/`; the answer names the stored file. */
+export const postImage = (
+  slug: string,
+  request: ImageUploadRequest,
+): Promise<Answer<ImageUpload>> => call('POST', `${base(slug)}/images`, request);
+
+type WaiverList = { waivers: Waiver[] };
+
+export const getWaivers = (slug: string): Promise<Answer<WaiverList>> =>
+  call('GET', `${base(slug)}/waivers`);
+
+/** Accepts a finding of this rule on this element (`null`: a finding with no element). */
+export const postWaiver = (
+  slug: string,
+  request: { rule: string; element: string | null; reason: string },
+): Promise<Answer<WaiverList>> => call('POST', `${base(slug)}/waivers`, request);
+
+export const postWithdraw = (
+  slug: string,
+  request: { rule: string; element: string | null },
+): Promise<Answer<WaiverList>> => call('POST', `${base(slug)}/waivers/withdraw`, request);

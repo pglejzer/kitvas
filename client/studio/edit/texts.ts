@@ -1,4 +1,4 @@
-// The editor's texts, handed over by the page in `#edit-texts` (src/studio/pages/edit-panel.ts).
+// The editor's texts, handed over by the page in `#edit-texts` (src/studio/pages/editor/edit-panel.ts).
 // A key the page did not send shows as the key itself, so a missing text is easy to see.
 
 let texts: Record<string, string> | undefined;

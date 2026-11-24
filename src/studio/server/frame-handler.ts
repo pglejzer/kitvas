@@ -66,7 +66,11 @@ function serve(
   const buildDir = secretMatches(found.key, ctx.key) ? buildDirOf(ctx, found) : undefined;
   const file = buildDir === undefined ? undefined : frameFile(buildDir, found.relPath);
   if (!file) throw new RequestError('ROUTE_NOT_FOUND', { path: found.relPath });
-  send(res, { status: 200, type: file.type, body: readFileSync(file.file) }, headers, head);
+  // Stage 4c (ADR 0055): the frame reads its own stylesheets' rules to make the forced-state twins.
+  // Its opaque origin makes that a cross-origin read, so a sheet allows it; the key still guards it.
+  const sheet = file.type.startsWith('text/css');
+  const own = sheet ? { ...headers, 'access-control-allow-origin': '*' } : headers;
+  send(res, { status: 200, type: file.type, body: readFileSync(file.file) }, own, head);
 }
 
 export function handleFrame(ctx: FrameContext, req: IncomingMessage, res: ServerResponse): void {

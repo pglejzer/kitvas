@@ -9,6 +9,7 @@ export * from './app/new-kit.ts';
 export type { SkippedImage } from './app/new-written-kit.ts';
 export * from './app/project-checks.ts';
 export * from './domain/additions.ts';
+export * from './domain/breakpoints.ts';
 export * from './domain/contract.ts';
 export * from './domain/crop-boxes.ts';
 export * from './domain/css-vars.ts';

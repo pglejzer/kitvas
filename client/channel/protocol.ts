@@ -20,6 +20,14 @@ import {
   parseEditFrame,
   parseEditStudio,
 } from './edit-protocol.ts';
+import {
+  LIVE_FRAME_TYPES,
+  LIVE_STUDIO_TYPES,
+  type LiveFrameMessage,
+  type LiveStudioMessage,
+  parseLiveFrame,
+  parseLiveStudio,
+} from './live-protocol.ts';
 
 /** `#kitvas=<channel>&studio=<port>` at the end of a frame's address turns the channel on. */
 const HASH = /^#kitvas=([A-Za-z0-9_-]{16,64})&studio=([1-9][0-9]{0,4})$/;
@@ -48,14 +56,16 @@ export type FrameMessage =
   | { kitvas: 1; channel: string; type: 'shown'; state: string }
   | { kitvas: 1; channel: string; type: 'example'; shown: boolean; height: number }
   | EditFrameMessage
-  | CanvasFrameMessage;
+  | CanvasFrameMessage
+  | LiveFrameMessage;
 
 export type StudioMessage =
   | { kitvas: 1; channel: string; type: 'measure'; request: number }
   | { kitvas: 1; channel: string; type: 'state'; state: string }
   | { kitvas: 1; channel: string; type: 'marks'; marks: Mark[] }
   | EditStudioMessage
-  | CanvasStudioMessage;
+  | CanvasStudioMessage
+  | LiveStudioMessage;
 
 export function frameHash(channel: string, studioPort: number): string {
   return `#kitvas=${channel}&studio=${studioPort}`;
@@ -111,6 +121,9 @@ export function parseFrameMessage(data: unknown, channel: string): FrameMessage 
   if (typeof message.type === 'string' && CANVAS_FRAME_TYPES.has(message.type)) {
     return parseCanvasFrame(message, channel);
   }
+  if (typeof message.type === 'string' && LIVE_FRAME_TYPES.has(message.type)) {
+    return parseLiveFrame(message, channel);
+  }
   if (message.type === 'ready' || message.type === 'shown') {
     const { state } = message;
     if (typeof state !== 'string' || !STATE_ID.test(state)) return undefined;
@@ -140,6 +153,9 @@ export function parseStudioMessage(data: unknown, channel: string): StudioMessag
   }
   if (typeof message.type === 'string' && CANVAS_STUDIO_TYPES.has(message.type)) {
     return parseCanvasStudio(message, channel);
+  }
+  if (typeof message.type === 'string' && LIVE_STUDIO_TYPES.has(message.type)) {
+    return parseLiveStudio(message, channel);
   }
   if (message.type === 'measure') {
     return isCount(message.request)

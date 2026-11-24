@@ -50,6 +50,10 @@ export const ERROR_TABLE = {
   EDIT_STALE_VERSION: { exit: 47, http: 409 },
   EDIT_ELEMENT_NOT_FOUND: { exit: 48, http: 404 },
   EDIT_SESSION_TAKEN: { exit: 49, http: 409 },
+  IMAGE_TOO_LARGE: { exit: 50, http: 413 },
+  IMAGE_TYPE_UNSUPPORTED: { exit: 51, http: 415 },
+  IMAGE_CONTENT_MISMATCH: { exit: 52, http: 422 },
+  WAIVER_LIMIT: { exit: 53, http: 409 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;

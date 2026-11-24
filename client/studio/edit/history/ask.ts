@@ -1,0 +1,236 @@
+// The "Ask Claude" button on an edit kitvas cannot write itself (plan 13, task K): a refused edit,
+// or a conflict where the place is gone. It leaves a note in the inbox that `kitvas inbox` hands to
+// Claude. The note is written for Claude, in English, so its words are constants here and not
+// page texts; the button and its status lines come from `text()`.
+
+import type { EditOp, Refusal } from '../../../../src/edit/index.ts';
+import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
+import type { EditorContext } from '../context.ts';
+import type { Conflict, Gesture, Refused } from '../store.ts';
+import { elementOf as opElement } from '../store.ts';
+import { text } from '../texts.ts';
+
+/** What Claude is asked to do: a gesture the editor could not write, and why. */
+export type AskSubject = {
+  gesture: Gesture;
+  /** The op the reason is about. */
+  index: number;
+  reason: Refusal | 'gone' | 'changed';
+};
+
+/** The longest note the inbox takes (`NewNoteSchema`). */
+export const MAX_NOTE = 4_000;
+
+const REASONS: Record<AskSubject['reason'], string> = {
+  computed: 'the value is an expression in the source, not a plain literal',
+  spread: 'the tag spreads props, so the prop may be set elsewhere',
+  'not-found': 'the place in the source was not found',
+  ambiguous: 'more than one place in the source matches',
+  'no-text': 'the element has no single plain text child',
+  'has-class': 'the element already has a className',
+  'no-classname': 'the component does not take a className',
+  utility: 'the value comes from a utility class',
+  nested: 'the style is set in a nested block or a media query',
+  invalid: 'the result would not compile',
+  gone: 'the place was removed from the source by someone else',
+  changed: 'the place was changed by someone else',
+  'in-expression': 'the element is written inside an expression (a list or a condition)',
+  'section-root': 'the element is the root of a section, which moves as a section',
+  'slot-root': "the element is a prop's value, which can only be replaced",
+  scope: 'the code names a variable or a component that does not exist where it would go',
+  'class-clash': 'a class of the element has another rule of the same name in the target section',
+  'not-accepted': 'the target takes no children',
+  mixed: 'the target mixes text and elements',
+  'nested-interactive': 'it would put an interactive element inside another',
+  'not-siblings': 'the elements are not siblings of one parent',
+  'no-element-children': 'the element does not start and end with child elements',
+  'unknown-component': 'the code names a component the kit does not have',
+  'kit-mismatch': 'the section comes from a draft that uses another kit',
+  'not-in-session': 'the element did not exist when the session started',
+  'into-self': 'the element would go inside itself',
+  'prop-covered':
+    'a prop of the component sets this property, so it has one value for every width and state',
+  'not-breakpoint': 'the width is not one of the kit breakpoints',
+  'list-not-literal': 'the list does not map over a literal array in the same file',
+  'list-item-gone': 'the list has no item at that place any more',
+  'list-text-not-literal': 'the text is not a plain string field of the list item',
+  'utility-unknown': 'kitvas does not know how to change this utility class',
+  'kit-state-wins':
+    "the kit's own style for this state is more specific than a class rule, so a value set there would not show",
+};
+
+const tokenName = (token: string): string => token.replace(/^--kit-/, '').replace('-', '.');
+
+function styleWords(value: { token: string } | { raw: string }): string {
+  return 'token' in value ? tokenName(value.token) : value.raw;
+}
+
+function propWords(value: { kind: string; value: string | number | boolean }): string {
+  return value.kind === 'string' ? `"${value.value}"` : String(value.value);
+}
+
+/** The wanted change of one op, in words. */
+export function opWords(op: EditOp): string {
+  switch (op.op) {
+    case 'setProp':
+      return `set ${op.name} to ${propWords(op.value)}`;
+    case 'removeProp':
+      return `remove the ${op.name} prop`;
+    case 'setText':
+      return `change the text to "${op.value}"`;
+    case 'setStyle':
+      return `set ${op.property} to ${styleWords(op.value)} in the class "${op.className}"`;
+    case 'removeStyle':
+      return `remove ${op.property} from the class "${op.className}"`;
+    case 'addClass':
+      return `add the class "${op.className}"`;
+    case 'removeClass':
+      return `remove the class "${op.className}"`;
+    case 'setUtility':
+      return op.value === null
+        ? `remove the utility class "${op.before ?? ''}"`
+        : `use the utility class "${op.value}"${op.before === null ? '' : ` instead of "${op.before}"`}`;
+    case 'moveItem':
+      return `move item ${op.item + 1} of the list to place ${op.to + 1}`;
+    case 'duplicateItem':
+      return `duplicate item ${op.item + 1} of the list`;
+    case 'removeItem':
+      return `delete item ${op.item + 1} of the list`;
+    case 'setItemText':
+      return `change the text of item ${op.item + 1} of the list to "${op.value}"`;
+    case 'moveElement':
+      return `move the element ${op.place} ${op.anchor}`;
+    case 'insertElement':
+      return `insert ${op.source.slice(0, 200)} ${op.place} ${op.anchor}`;
+    case 'removeElement':
+      return 'delete the element';
+    case 'wrapElements':
+      return `wrap the elements from ${op.first} to ${op.last} in ${op.open}`;
+    case 'unwrapElement':
+      return 'replace the element with its children';
+    case 'replaceTag':
+      return `replace the element with a ${op.tag}`;
+    case 'replaceElement':
+      return `replace the element with ${op.source.slice(0, 200)}`;
+    case 'resetElement':
+      return 'put the element back as it was when the session started';
+    case 'moveSection':
+      return `move the section "${op.section}" ${op.after ? `after "${op.after}"` : 'to the top'}`;
+    case 'insertSection':
+      return `copy the section "${op.from.section}" of the draft "${op.from.slug}"`;
+    case 'removeSection':
+      return `delete the section "${op.section}"`;
+    case 'patch':
+    case 'file':
+      return `undo an earlier change in ${op.file}`;
+  }
+}
+
+/** The element a subject is about: the id of its op. */
+export function elementOf(subject: AskSubject): string | null {
+  const op = subject.gesture.ops[subject.index] ?? subject.gesture.ops[0];
+  return op ? opElement(op) : null;
+}
+
+/** The note's text: the element, the wanted change in words, and the reason. */
+export function askText(subject: AskSubject, inspected: Inspect | null): string {
+  const ops = subject.gesture.ops;
+  const first = ops[subject.index] ?? ops[0];
+  const id = first ? opElement(first) : null;
+  const where = id ? ` (element ${id})` : '';
+  const tag = inspected && inspected.id === id ? ` The element is a ${inspected.tag}.` : '';
+  const file = inspected && inspected.id === id ? ` Its file is ${inspected.file}.` : '';
+  const wanted = ops.map(opWords).join('; then ');
+  const lines = [
+    `Please make this change in the draft source${where}: ${wanted || 'a change'}.`,
+    `The studio could not write it itself because ${REASONS[subject.reason]}.${tag}${file}`,
+  ];
+  return lines.join(' ').slice(0, MAX_NOTE);
+}
+
+export type NoteBody = {
+  kind: 'note';
+  slug: string;
+  element: string | null;
+  text: string;
+};
+
+export function noteOf(slug: string, subject: AskSubject, inspected: Inspect | null): NoteBody {
+  return {
+    kind: 'note',
+    slug,
+    element: elementOf(subject),
+    text: askText(subject, inspected),
+  };
+}
+
+/** The subject to ask about now: a refused edit, else a conflict whose place is gone. */
+export function subjectOf(refused: Refused | null, conflict: Conflict | null): AskSubject | null {
+  if (refused) return { gesture: refused.gesture, index: refused.index, reason: refused.reason };
+  if (conflict && conflict.outcome.reason === 'gone') {
+    return { gesture: conflict.gesture, index: conflict.outcome.index, reason: 'gone' };
+  }
+  return null;
+}
+
+async function postNote(body: NoteBody): Promise<boolean> {
+  try {
+    const response = await fetch('/api/v1/inbox', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+export function mountAsk(ctx: EditorContext): void {
+  const box = document.createElement('div');
+  box.className = 'edit-ask';
+  box.dataset.edit = 'ask';
+  box.hidden = true;
+  const hint = document.createElement('span');
+  hint.className = 'edit-ask-hint';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = text('ask.button');
+  const status = document.createElement('span');
+  status.className = 'edit-ask-status';
+  status.setAttribute('role', 'status');
+  box.append(hint, button, status);
+  // In the right panel under the conflict box, outside the panes their renders replace.
+  const conflict = ctx.panel.querySelector('[data-edit="conflict"]');
+  if (conflict) conflict.after(box);
+  else ctx.panel.append(box);
+
+  let current: AskSubject | null = null;
+
+  const render = (): void => {
+    const { refused, conflict } = ctx.store.get();
+    const next = subjectOf(refused, conflict);
+    if (next?.gesture !== current?.gesture) status.textContent = '';
+    current = next;
+    box.hidden = next === null;
+    hint.textContent = next ? text('ask.hint') : '';
+    button.disabled = false;
+  };
+
+  button.addEventListener('click', () => {
+    const subject = current;
+    if (!subject) return;
+    button.disabled = true;
+    status.textContent = '';
+    void postNote(noteOf(ctx.slug, subject, ctx.store.get().inspected)).then((sent) => {
+      status.textContent = text(sent ? 'ask.sent' : 'ask.failed');
+      button.disabled = sent;
+    });
+  });
+
+  ctx.store.subscribe((state, previous) => {
+    if (state.refused !== previous.refused || state.conflict !== previous.conflict) render();
+  });
+  render();
+}

@@ -3,7 +3,7 @@
 // open draft pages follow. The studio starts it with its servers and closes it in `shutdown`.
 
 import type { DraftStore } from '../../drafts/index.ts';
-import type { BuildEvent, SourceEvent } from '../api/edit-schemas.ts';
+import type { BuildEvent, SourceEvent } from '../api/edit/edit-schemas.ts';
 import type { EventType } from '../events/event-hub.ts';
 import { type IdleClock, SYSTEM_CLOCK } from '../server/idle-stop.ts';
 import { type BuiltDraft, createWarmBuilder } from './builder.ts';

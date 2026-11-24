@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { applyTsx, openingTags, readTag, type TsxOp } from '../../src/edit/domain/apply-tsx.ts';
+import { applyTsx, openingTags, readTag, type TsxOp } from '../../src/edit/domain/tsx/apply-tsx.ts';
 import { type ApplyResult, type EditOp, inverse } from '../../src/edit/index.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));

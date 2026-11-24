@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { filterRow, optionRow } from '../../../src/studio/pages/controls.ts';
-import { studioPortOf, withChannel } from '../../../src/studio/pages/frame-channel.ts';
-import { frameSrc } from '../../../src/studio/pages/frame-src.ts';
+import { studioPortOf, withChannel } from '../../../src/studio/pages/draft/frame-channel.ts';
+import { frameSrc } from '../../../src/studio/pages/draft/frame-src.ts';
+import { notesSection } from '../../../src/studio/pages/draft/notes.ts';
 import { html } from '../../../src/studio/pages/html.ts';
 import { lockedPage } from '../../../src/studio/pages/locked.ts';
-import { notesSection } from '../../../src/studio/pages/notes.ts';
 import { page } from '../../../src/studio/pages/shell.ts';
 import { finding } from '../../helpers/findings.ts';
 import { t } from '../../helpers/translate.ts';

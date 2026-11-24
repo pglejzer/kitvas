@@ -2,13 +2,15 @@
 // room, pan, and "zoom to selection". It runs in Preview and in Edit, with or without the editor.
 //
 // The cards sit in one world (`[data-canvas="world"]`) that is scaled as a whole, so two compared
-// cards share one zoom. Nothing is moved in the DOM: moving an iframe reloads it. The sizer gets
-// the size of the scaled world, so the scroller (`[data-canvas="scroll"]`) is the only thing that
-// scrolls. The rules are in `zoom.ts`; this file applies them.
+// cards, and the width cards of stage 4c, share one zoom. Nothing is moved in the DOM: moving an
+// iframe reloads it. The sizer gets the size of the scaled world, so the scroller
+// (`[data-canvas="scroll"]`) is the only thing that scrolls. The rules are in `zoom.ts`; this
+// file applies them.
 
 import type { CanvasFrameMessage, CanvasStudioMessage } from '../../channel/canvas-protocol.ts';
 import type { Frame } from '../frames.ts';
 import { emitShellKey, onShellKey } from '../shell/bus.ts';
+import type { CardSource } from './card-list.ts';
 import { mountPan } from './pan.ts';
 import { mountStrip } from './strip.ts';
 import {
@@ -24,9 +26,13 @@ import {
   type Size,
   selectionZoom,
   stepZoom,
+  unionBox,
   wheelPixels,
   wheelZoom,
 } from './zoom.ts';
+
+/** "Every width" waits this long for the cards that are still loading, then zooms to the rest. */
+const EVERY_WAIT_MS = 4_000;
 
 export type Canvas = {
   zoom(): number;
@@ -37,9 +43,21 @@ export type Canvas = {
   /** A canvas message of one of the page's frames. */
   hear(frame: Frame, message: CanvasFrameMessage): void;
   /** A frame loaded again: what it held (Space) is gone with its page. */
-  frameReady(): void;
+  frameReady(frame?: Frame): void;
   /** Where "zoom to selection" reads the selected element's id; `undefined` for none. */
   selectionFrom(read: () => string | undefined): void;
+  /** "Every width" (spec 4c): zooms so the selection shows in every card; Fit without one. */
+  everyWidth(): void;
+};
+
+/** The answers "Every width" waits for: one `located` from each card. */
+type Gathering = {
+  request: number;
+  id: string;
+  waiting: Set<Frame>;
+  asked: Set<Frame>;
+  boxes: Box[];
+  timer: ReturnType<typeof setTimeout>;
 };
 
 /** A sandboxed frame has an opaque origin, so the target is `*`; nothing secret is sent. */
@@ -90,9 +108,20 @@ function partsOf(
   return scroll && sizer && world ? { scroll, sizer, world } : null;
 }
 
-export function mountCanvas(main: HTMLElement, frames: readonly Frame[]): Canvas | undefined {
+/**
+ * `frames`: the page's frames (the current one, and the compared one); `cards`: every width card,
+ * the edit card first (stage 4c). Compare scrolls only `frames` together.
+ */
+export function mountCanvas(
+  main: HTMLElement,
+  frames: readonly Frame[],
+  cards?: CardSource,
+): Canvas | undefined {
   const parts = partsOf(main);
   if (!parts) return undefined;
+  /** Every frame on the canvas, each once. */
+  const all = (): Frame[] => [...new Set([...frames, ...(cards?.frames() ?? [])])];
+  let gathering: Gathering | null = null;
   // Plain consts, so the functions below keep them non-null.
   const { scroll, sizer, world } = parts;
   const region = main.querySelector<HTMLElement>('[data-shell="canvas"]') ?? scroll;
@@ -130,7 +159,7 @@ export function mountCanvas(main: HTMLElement, frames: readonly Frame[]): Canvas
   function tell(changed: boolean): void {
     strip.show(zoom, fitted);
     if (!changed) return;
-    for (const frame of frames) sendZoom(frame, zoom);
+    for (const frame of all()) sendZoom(frame, zoom);
     for (const listener of [...listeners]) listener(zoom);
   }
 
@@ -184,25 +213,76 @@ export function mountCanvas(main: HTMLElement, frames: readonly Frame[]): Canvas
     follow();
   }
 
-  /** Asks the current frame where the selected element is; `located` answers. */
+  /** Asks the edit card (the current frame) where the selected element is; `located` answers. */
   function toSelection(): void {
     const id = readSelection();
-    const frame = frames.find((item) => item.role === 'current');
+    const frame = cards?.edit() ?? frames.find((item) => item.role === 'current');
     if (id === undefined || !frame) return;
+    gathering = null;
     locating += 1;
     sendLocate(frame, locating, id);
   }
 
-  /** The element is in view in its frame at `box`: zoom so that it fills most of the canvas. */
-  function onLocated(frame: Frame, box: Box): void {
+  /** A box of a frame's viewport in the world's own pixels. */
+  function inWorldOf(frame: Frame, box: Box): Box {
     const corner = contentCorner(frame, zoom);
     const origin = world.getBoundingClientRect();
-    const inWorld: Box = {
+    return {
       x: (corner.left - origin.left) / zoom + box.x,
       y: (corner.top - origin.top) / zoom + box.y,
       width: box.width,
       height: box.height,
     };
+  }
+
+  function endGathering(): void {
+    const done = gathering;
+    if (!done) return;
+    gathering = null;
+    clearTimeout(done.timer);
+    const union = unionBox(done.boxes);
+    if (union) zoomTo(union);
+    else fit();
+  }
+
+  /** "Every width": each card scrolls the element into view and answers; one zoom shows them all. */
+  function everyWidth(): void {
+    const id = readSelection();
+    const targets = cards?.frames() ?? [];
+    if (id === undefined || targets.length === 0) {
+      fit();
+      return;
+    }
+    if (gathering) clearTimeout(gathering.timer);
+    locating += 1;
+    const asked = new Set(targets.filter((frame) => frame.ready));
+    gathering = {
+      request: locating,
+      id,
+      waiting: new Set(targets),
+      asked,
+      boxes: [],
+      timer: setTimeout(endGathering, EVERY_WAIT_MS),
+    };
+    for (const frame of asked) sendLocate(frame, locating, id);
+  }
+
+  /** A card's answer to "Every width"; `null` when the element is not in it at that width. */
+  function gathered(frame: Frame, box: Box | null): void {
+    const now = gathering;
+    if (!now?.waiting.delete(frame)) return;
+    // The world moves while cards come: boxes are read when each answer is here.
+    if (box) now.boxes.push(inWorldOf(frame, box));
+    if (now.waiting.size === 0) endGathering();
+  }
+
+  /** The element is in view in its frame at `box`: zoom so that it fills most of the canvas. */
+  function onLocated(frame: Frame, box: Box): void {
+    zoomTo(inWorldOf(frame, box));
+  }
+
+  /** Zooms and scrolls so that `inWorld` fills most of the canvas. */
+  function zoomTo(inWorld: Box): void {
     const next = selectionZoom(room(), inWorld);
     if (next === null) return;
     const changed = next !== zoom;
@@ -277,25 +357,34 @@ export function mountCanvas(main: HTMLElement, frames: readonly Frame[]): Canvas
           emitShellKey(message.key);
           break;
         case 'located':
-          if (frame.role === 'current' && message.request === locating && message.box) {
-            onLocated(frame, message.box);
-          }
+          if (message.request !== locating) break;
+          if (gathering?.request === locating) gathered(frame, message.box);
+          else if (frame.role === 'current' && message.box) onLocated(frame, message.box);
           break;
         case 'scrolled':
-          // Compare: the other side follows, at the same place of its own page.
+          // Compare: the other side follows, at the same place of its own page. The width cards
+          // lay their pages out differently, so they scroll on their own.
+          if (!frames.includes(frame)) break;
           for (const other of frames) {
             if (other !== frame) sendScrollTo(other, message.ratio);
           }
           break;
       }
     },
-    frameReady() {
+    frameReady(frame) {
       pan.frameSpace(false);
       // A frame that loaded again starts at scale 1.
-      for (const frame of frames) sendZoom(frame, zoom);
+      for (const one of frame ? [frame] : all()) sendZoom(one, zoom);
+      // A card that came for "Every width" is asked once it can answer.
+      const now = gathering;
+      if (frame && now?.waiting.has(frame) && !now.asked.has(frame)) {
+        now.asked.add(frame);
+        sendLocate(frame, now.request, now.id);
+      }
     },
     selectionFrom(read) {
       readSelection = read;
     },
+    everyWidth,
   };
 }
