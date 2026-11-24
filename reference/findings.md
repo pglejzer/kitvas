@@ -33,6 +33,7 @@ Read by the `patcher` agent. A finding has `rule` (`<check>/<name>`), `severity`
 
 - R-FIND-10: `ds/foreign-import`: remove the import and build the part from kit components.
 - R-FIND-11: `ds/not-in-catalog`: replace the name with a listed component. If none fits, report it; do not add the name anywhere.
+- R-FIND-40: `ds/style-import`: delete the import line. The entry `index.scss` already includes the section's SCSS file (R-COMPOSE-43).
 - R-FIND-12: `ds/raw-control`: replace the plain element with the kit's component of that kind (the message names them). Keep its text and handlers.
 - R-FIND-13: `ds/unknown-prop`, `ds/bad-value`, `ds/missing-prop`: change the prop to one the catalog lists, with a listed value, and add required props.
 - R-FIND-14: `ds/raw-color`: replace the colour with a `var(--kit-…)` colour token of the same role.

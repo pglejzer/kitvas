@@ -40,6 +40,7 @@ import {
 } from './cli/index.ts';
 import { createFsDraftStore } from './drafts/adapters/fs-draft-store.ts';
 import { createEsbuildCompiler } from './edit/adapters/esbuild-compiler.ts';
+import { createImageFiles } from './edit/adapters/image-files.ts';
 import { createFolderKitStore } from './kit/adapters/folder-store.ts';
 import { createFolderKitWriter } from './kit/adapters/folder-writer.ts';
 import { createLayeredKitStore } from './kit/adapters/layered-store.ts';
@@ -95,9 +96,11 @@ export function main(argv: string[]): Promise<number> {
       runtimeFiles: [
         jsxRuntime,
         ...[
+          'channel/canvas-protocol.ts',
           'channel/edit-protocol.ts',
           'channel/protocol.ts',
           'channel/structure-protocol.ts',
+          'frame/canvas.ts',
           'frame/edit.ts',
           'frame/drag-preview.ts',
           'frame/drag-session.ts',
@@ -107,6 +110,7 @@ export function main(argv: string[]): Promise<number> {
           'frame/guides.ts',
           'frame/handles.ts',
           'frame/hide.ts',
+          'frame/label.ts',
           'frame/indicator.ts',
           'frame/keys.ts',
           'frame/marks.ts',
@@ -247,7 +251,11 @@ export function main(argv: string[]): Promise<number> {
           clientDir: join(PLUGIN_ROOT, 'client'),
         }),
         browser: () => browserHost().serve(),
-        edit: { compiler, dispose: () => compiler.dispose() },
+        edit: {
+          compiler,
+          images: createImageFiles(projectDrafts),
+          dispose: () => compiler.dispose(),
+        },
         live: {
           watch: fsWatchPort(join(workspaceDir(project), 'drafts')),
           build: async (slug) => {

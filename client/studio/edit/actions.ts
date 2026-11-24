@@ -11,17 +11,19 @@ import type {
 import type { Inspect } from '../../../src/studio/api/edit-schemas.ts';
 import type { StructureEntry } from '../../../src/studio/api/structure-schemas.ts';
 import { getSubtree, inspect as readInspect } from './api.ts';
-import { copyElements, pasteClip } from './clipboard.ts';
+import { copyElements, copyLocation, pasteClip } from './clipboard.ts';
 import type { EditorContext } from './context.ts';
 import { opsForProp, opsForStyle } from './props-panel.ts';
 import { PROPERTIES, styleValueOf } from './steps.ts';
 import type { EditorState, Gesture } from './store.ts';
 import { text } from './texts.ts';
+import { toast } from './toast.ts';
 
 export const ACTIONS = [
   'delete',
   'duplicate',
   'copy',
+  'copy-location',
   'cut',
   'paste',
   'move-up',
@@ -38,6 +40,8 @@ export const ACTIONS = [
   'select-similar',
   'hide',
   'show-all',
+  'lock',
+  'unlock',
 ] as const;
 export type ActionId = (typeof ACTIONS)[number];
 
@@ -200,9 +204,15 @@ function reasonOf(state: EditorState, id: ActionId, running: boolean): ActionRea
     case 'cut':
       return movableReason(topmost(ids, entries), entries);
     case 'copy':
+    case 'copy-location':
     case 'select-similar':
     case 'hide':
       return null;
+    // One of the two is offered: Lock while any selected element is free, else Unlock.
+    case 'lock':
+      return ids.every((one) => state.locked.includes(one)) ? 'no-selection' : null;
+    case 'unlock':
+      return ids.some((one) => state.locked.includes(one)) ? null : 'no-selection';
     case 'paste': {
       const last = entries.byId.get(ids.at(-1) ?? '');
       if (last?.movable === 'in-expression') return 'in-expression';
@@ -353,9 +363,16 @@ export async function runAction(
       return send(ctx, remove(outer), label('delete', { count: outer.length }));
     case 'duplicate':
       return duplicate(ctx, outer);
-    case 'copy':
-      await copyElements(ctx, outer);
+    case 'copy': {
+      const clip = await copyElements(ctx, outer);
+      toast(ctx.main, text(clip ? 'copy.done' : 'copy.failed'));
       return;
+    }
+    case 'copy-location': {
+      const copied = await copyLocation(ctx, ids);
+      toast(ctx.main, text(copied ? 'copy.locationDone' : 'copy.locationFailed'));
+      return;
+    }
     case 'cut': {
       if (await copyElements(ctx, outer)) {
         await send(ctx, remove(outer), label('cut', { count: outer.length }));
@@ -409,5 +426,15 @@ export async function runAction(
       ctx.store.set({ hidden: [] });
       ctx.bridge.send({ type: 'hide', ids: [] });
       return;
+    case 'lock':
+    case 'unlock': {
+      const locked =
+        id === 'lock'
+          ? [...new Set([...state.locked, ...ids])]
+          : state.locked.filter((one) => !ids.includes(one));
+      ctx.store.set({ locked });
+      ctx.bridge.send({ type: 'lock', ids: locked });
+      return;
+    }
   }
 }

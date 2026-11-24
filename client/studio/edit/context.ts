@@ -24,7 +24,7 @@ export type EditorContext = {
   slug: string;
   /** `main.draft-page`. */
   main: HTMLElement;
-  /** `aside[data-edit-panel]` with its sections (src/studio/pages/edit-panel.ts). */
+  /** The screen, `main[data-edit-panel]` (src/studio/pages/draft-page.ts), with both side panels. */
   panel: HTMLElement;
   store: Store;
   bridge: Bridge;

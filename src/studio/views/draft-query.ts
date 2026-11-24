@@ -2,12 +2,26 @@
 
 import { type Draft, latestVersion, type States } from '../../drafts/index.ts';
 
-/** Phone, tablet and desktop, in CSS pixels. */
+/** Phone, tablet and desktop, in CSS pixels: the widths the checks run at. */
 export const WIDTHS = [390, 768, 1280] as const;
 export type Width = (typeof WIDTHS)[number];
 
-/** `compare`: the other version shown beside this one, when comparing. */
-export type DraftChoice = { version: number; state: string; width: Width; compare?: number };
+/** Any other width the canvas can show (`?view=`), in CSS pixels. */
+export const MIN_VIEW = 320;
+export const MAX_VIEW = 2560;
+
+/**
+ * `compare`: the other version shown beside this one, when comparing.
+ * `view`: a width that is not one of `WIDTHS`, shown in the card; the checks' findings and marks
+ * stay on `width`.
+ */
+export type DraftChoice = {
+  version: number;
+  state: string;
+  width: Width;
+  compare?: number;
+  view?: number;
+};
 
 /** `?version=`: one the draft has, else the latest. */
 export function pickVersion(query: URLSearchParams, draft: Draft): number {
@@ -28,6 +42,18 @@ export function pickWidth(query: URLSearchParams): Width {
 }
 
 /**
+ * `?view=`: a whole width from 320 to 2560 that is not one of the three; `null` for anything else.
+ * A preset asked for as a view is no view: `width` names it.
+ */
+export function pickView(query: URLSearchParams): number | null {
+  const text = query.get('view') ?? '';
+  if (!/^[0-9]{3,4}$/.test(text)) return null;
+  const asked = Number(text);
+  if (asked < MIN_VIEW || asked > MAX_VIEW) return null;
+  return WIDTHS.some((width) => width === asked) ? null : asked;
+}
+
+/**
  * `?compare=`: a version the draft has, other than the one shown; `null` for anything else.
  * `0` is the original of a rework draft ("version 0").
  */
@@ -45,5 +71,6 @@ export function draftHref(slug: string, choice: DraftChoice): string {
     width: String(choice.width),
   });
   if (choice.compare !== undefined) query.set('compare', String(choice.compare));
+  if (choice.view !== undefined) query.set('view', String(choice.view));
   return `/drafts/${slug}?${query}`;
 }

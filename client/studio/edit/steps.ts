@@ -3,7 +3,8 @@
 //
 // The client may not import values from `src/`, so the property list and the token type table are
 // copies of `STYLE_PROPERTIES` and `PROPERTY_TOKEN_TYPE` in `src/edit/domain/types.ts`;
-// `test/client/studio/steps.test.ts` compares them.
+// `test/client/studio/steps.test.ts` compares them. Keyword and image properties (plan 15) take
+// no token: `props-kinds.ts` has their lists.
 
 import type { StyleProperty, StyleValue, TokenOption } from '../../../src/edit/index.ts';
 
@@ -27,9 +28,30 @@ export const PROPERTIES: readonly StyleProperty[] = [
   'border-width',
   'width',
   'height',
+  'padding-top',
+  'padding-right',
+  'padding-bottom',
+  'padding-left',
+  'margin-top',
+  'margin-right',
+  'margin-bottom',
+  'margin-left',
+  'display',
+  'flex-direction',
+  'flex-wrap',
+  'justify-content',
+  'align-items',
+  'align-self',
+  'text-align',
+  'border-style',
+  'outline-color',
+  'outline-width',
+  'outline-style',
+  'background-image',
+  'background-size',
 ];
 
-export const TOKEN_TYPE: Record<StyleProperty, TokenType> = {
+export const TOKEN_TYPE: Readonly<Partial<Record<StyleProperty, TokenType>>> = {
   padding: 'dimension',
   'padding-block': 'dimension',
   'padding-inline': 'dimension',
@@ -47,7 +69,19 @@ export const TOKEN_TYPE: Record<StyleProperty, TokenType> = {
   'border-width': 'dimension',
   width: 'dimension',
   height: 'dimension',
+  'padding-top': 'dimension',
+  'padding-right': 'dimension',
+  'padding-bottom': 'dimension',
+  'padding-left': 'dimension',
+  'margin-top': 'dimension',
+  'margin-right': 'dimension',
+  'margin-bottom': 'dimension',
+  'margin-left': 'dimension',
+  'outline-color': 'color',
+  'outline-width': 'dimension',
 };
+
+const SPACE = ['space', 'spacing'];
 
 const NUMBER = /^-?(?:\d+\.?\d*|\.\d+)$/;
 const LENGTH = /^-?(?:\d+\.?\d*|\.\d+)(?:px|rem|em|%|vh|vw|ch|pt)$/i;
@@ -81,16 +115,25 @@ function orderOf(css: string, type: TokenOption['type']): number | null {
  * `space`, a radius `radius`. A kit whose groups have other names gets every token of the type.
  */
 const GROUPS: Partial<Record<StyleProperty, readonly string[]>> = {
-  padding: ['space', 'spacing'],
-  'padding-block': ['space', 'spacing'],
-  'padding-inline': ['space', 'spacing'],
-  margin: ['space', 'spacing'],
-  'margin-block': ['space', 'spacing'],
-  'margin-inline': ['space', 'spacing'],
-  gap: ['space', 'spacing', 'gap'],
+  padding: SPACE,
+  'padding-block': SPACE,
+  'padding-inline': SPACE,
+  'padding-top': SPACE,
+  'padding-right': SPACE,
+  'padding-bottom': SPACE,
+  'padding-left': SPACE,
+  margin: SPACE,
+  'margin-block': SPACE,
+  'margin-inline': SPACE,
+  'margin-top': SPACE,
+  'margin-right': SPACE,
+  'margin-bottom': SPACE,
+  'margin-left': SPACE,
+  gap: [...SPACE, 'gap'],
   'font-size': ['font-size', 'text'],
   'border-radius': ['radius', 'rounded', 'border-radius'],
   'border-width': ['border-width', 'border', 'stroke'],
+  'outline-width': ['outline-width', 'outline', 'border-width', 'border', 'stroke'],
   width: ['size', 'sizes', 'width'],
   height: ['size', 'sizes', 'height'],
   'line-height': ['line-height', 'leading'],
@@ -102,9 +145,13 @@ const groupOf = (token: TokenOption): string =>
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
     .toLowerCase();
 
-/** The kit's tokens of the type the property takes; dimensions, weights and numbers by value. */
+/**
+ * The kit's tokens of the type the property takes; dimensions, weights and numbers by value. A
+ * keyword or image property takes none.
+ */
 export function tokensFor(tokens: readonly TokenOption[], property: StyleProperty): TokenOption[] {
   const type = TOKEN_TYPE[property];
+  if (type === undefined) return [];
   const typed = tokens.filter((token) => token.type === type);
   const groups = GROUPS[property] ?? [];
   const grouped = typed.filter((token) => groups.includes(groupOf(token)));

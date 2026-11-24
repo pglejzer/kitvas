@@ -96,11 +96,19 @@ test('the rework page offers the original and shows version 0 with its problem c
   reworkDraft(root, store, true);
   const view = pages(store);
   const plain = await view('draft', { params: { slug: 'landing' } });
-  assert.ok(plain.includes(escapeHtml(t('studio.draft.compareOriginal'))));
-  assert.ok(plain.includes('compare=0'));
+  // The compare menu offers the original, version 0, though the draft has one version.
+  const original = escapeHtml(t('studio.draft.original'));
+  assert.ok(
+    plain.includes(
+      `<a class="editor-pick-item" href="/drafts/landing?version=1&amp;state=filled&amp;width=390&amp;compare=0"><span>${original}</span></a>`,
+    ),
+  );
   assert.ok(!plain.includes('original-shot'));
   const text = await view('draft', { params: { slug: 'landing' }, query: 'compare=0' });
-  assert.ok(text.includes(escapeHtml(t('studio.draft.original'))));
+  assert.ok(text.includes(`<p class="caption">${original}</p>`));
+  assert.ok(text.includes(escapeHtml(t('studio.edit.shell.comparingOriginal'))));
+  // The original is a comparison: Edit is off.
+  assert.ok(text.includes(`disabled title="${escapeHtml(t('studio.edit.shell.reason.compare'))}"`));
   assert.ok(text.includes('<img class="original-shot" src="data:image/png;base64,iVBORw=="'));
   assert.ok(text.includes('data-original-problems="7"'));
   assert.ok(text.includes(escapeHtml(t('studio.rework.problems', { count: 7 }))));
@@ -241,6 +249,9 @@ test('the craft page shows three pick commands and none picked', async () => {
   assert.equal(text.match(/<li class="pick"/g)?.length, 3);
   assert.ok(text.includes(escapeHtml(t('studio.craft.pickHint'))));
   assert.ok(!text.includes(`<strong>${t('studio.craft.picked')}</strong>`));
+  // The pick has a tab of its own in the right panel.
+  assert.ok(text.includes('data-tab="sketches"'));
+  assert.match(text, /data-shell="sketches" data-pane="sketches"[^>]*><section class="craft-pick"/);
 });
 
 test('a picked sketch is named and marked', async () => {
@@ -280,16 +291,16 @@ test('the page of an old screen draft has no rework or craft markup', async () =
   const { store } = shopDraft();
   const view = pages(store);
   const text = await view('draft', { params: { slug: 'shop' } });
-  const stage = /<section class="stage">[\s\S]*?<\/section>/.exec(text)?.[0];
-  assert.equal(
-    stage,
-    `<section class="stage"><p>${escapeHtml(t('studio.page.notBuilt', { version: 1, slug: 'shop' }))}</p></section>`,
-  );
-  assert.ok(!text.includes('aria-label="Compare"'));
+  const canvas = /<section class="editor-canvas stage"[^>]*>([\s\S]*?)<\/section>/.exec(text)?.[1];
+  assert.ok(canvas?.includes(escapeHtml(t('studio.page.notBuilt', { version: 1, slug: 'shop' }))));
+  assert.ok(!text.includes('<details class="editor-pick" data-shell="compare">'));
+  assert.ok(text.includes('class="editor-pick-off" data-shell="compare" disabled'));
   assert.ok(!text.includes('craft-pick'));
+  assert.ok(!text.includes('data-tab="sketches"'));
   assert.ok(!text.includes('original'));
   build(store, 'shop');
   const built = await view('draft', { params: { slug: 'shop' } });
-  assert.ok(built.includes('</div><p class="caption">390 px wide</p></section>'));
+  assert.ok(built.includes('data-frame="current"'));
   assert.ok(!built.includes('craft-pick'));
+  assert.ok(!built.includes('data-shell="sketches"'));
 });

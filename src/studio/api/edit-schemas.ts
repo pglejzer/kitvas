@@ -9,6 +9,8 @@ import {
   EditOpSchema,
   ElementIdSchema,
   HASH,
+  IMAGE_FILE,
+  MAX_IMAGES,
   MAX_OPS,
   REFUSALS,
   STYLE_PROPERTIES,
@@ -138,6 +140,13 @@ export const InspectSchema = z.strictObject({
   hash: z.string().regex(HASH),
   /** Why the element cannot be moved or deleted as an element; `null` when it can. */
   movable: z.enum(REFUSALS).nullable(),
+  /** The 1-based line of the element's `<` in `file`, for the panel's header (plan 15). */
+  line: z.number().int().min(1).optional(),
+  /**
+   * The image files of the version's `src/img`, sorted: what a background image may name as
+   * `url(../img/<file>)` (plan 15). Optional so an answer of an older studio still reads.
+   */
+  images: z.array(z.string().regex(IMAGE_FILE)).max(MAX_IMAGES).optional(),
 });
 
 /** `POST /api/v1/drafts/{slug}/edits`. */

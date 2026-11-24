@@ -17,6 +17,8 @@ const CODE = [
   "import dayjs from 'dayjs';",
   "import 'normalize.css';",
   "// import { Nope } from 'nope';",
+  "import '../../scss/sections/hero.scss';",
+  "import styles from './hero.module.css';",
 ].join('\n');
 
 test('imports come from the kit, React or the draft; kit names are catalog components', () => {
@@ -38,8 +40,15 @@ test('imports come from the kit, React or the draft; kit names are catalog compo
       ['ds/not-in-catalog', 'fix', 7, 3, { name: 'Table' }],
       ['ds/foreign-import', 'fix', 9, 1, { source: 'dayjs' }],
       ['ds/foreign-import', 'fix', 10, 1, { source: 'normalize.css' }],
+      ['ds/style-import', 'fix', 12, 1, { source: '../../scss/sections/hero.scss' }],
+      ['ds/style-import', 'fix', 13, 1, { source: './hero.module.css' }],
     ],
   );
+  assert.deepEqual(findings[4]?.message, {
+    key: 'checkRule.styleImport',
+    params: { source: '../../scss/sections/hero.scss' },
+  });
+  assert.deepEqual(findings[4]?.hint, { key: 'checkHint.styleImport', params: {} });
   assert.deepEqual(findings[2]?.message, {
     key: 'checkRule.foreignImport',
     params: { source: 'dayjs' },

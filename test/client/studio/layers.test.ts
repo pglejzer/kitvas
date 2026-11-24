@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { TreeNode } from '../../../client/channel/edit-protocol.ts';
-import { badgeCount, moveOps, nestTree } from '../../../client/studio/edit/layers.ts';
+import {
+  badgeCount,
+  changedIds,
+  moveOps,
+  nestTree,
+  rowFacts,
+} from '../../../client/studio/edit/layers.ts';
 
 const node = (id: string, parent: string | null, count = 1): TreeNode => ({
   id,
@@ -57,4 +63,32 @@ test('nestTree makes a node a root when its parent was filtered out', () => {
     roots.map((item) => item.node.id),
     ['b', 'c'],
   );
+});
+
+test('changedIds lists the elements the person changed, not Claude whole-file lines', () => {
+  const entry = (by: 'person' | 'claude', id: string | null) => ({
+    by,
+    id,
+    label: 'x',
+    files: [],
+    offKit: false,
+    at: 0,
+  });
+  const ids = changedIds([entry('person', 'a'), entry('claude', 'b'), entry('person', null)]);
+  assert.deepEqual([...ids], ['a']);
+});
+
+test('a row shows the kit marker, the repeat count and the changed dot', () => {
+  const changed = new Set(['a']);
+  assert.deepEqual(rowFacts(node('a', null, 3), 'Stack', changed), {
+    kit: true,
+    count: 3,
+    changed: true,
+  });
+  assert.deepEqual(rowFacts(node('b', 'a'), null, changed), {
+    kit: false,
+    count: null,
+    changed: false,
+  });
+  assert.equal(rowFacts(node('c', 'a'), undefined, changed).kit, false);
 });

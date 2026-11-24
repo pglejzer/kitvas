@@ -1,14 +1,20 @@
-// The editor's routes (plan 13, C3): its state, one element as written, the edits, "Save version"
-// and the off-kit values. The rules are in the edit and drafts modules; a handler checks the input
+// The editor's routes (plan 13, C3): its state, one element as written, the edits, "Save version",
+// "Undo save" (plan 15) and the off-kit values. The rules are in the edit and drafts modules; a handler checks the input
 // and calls them. An edit answers 200 with an `outcome` for every well-formed request.
 
-import { type DraftStore, endEditSession, versionFolder } from '../../drafts/index.ts';
+import {
+  type DraftStore,
+  endEditSession,
+  reopenEditSession,
+  versionFolder,
+} from '../../drafts/index.ts';
 import {
   applyEdits,
   type EditCompiler,
   type EditOp,
   editState,
   fileOfId,
+  type ImageFiles,
   idsOf,
   inspectElement,
   offKitValues,
@@ -31,6 +37,7 @@ import {
   SOURCE_PATH,
 } from './edit-schemas.ts';
 import { EmptyBody, SlugParams } from './schemas.ts';
+import { SessionReopenRequestSchema, SessionReopenSchema } from './session-schemas.ts';
 
 /** A version's source files and their ETags, by path. */
 type Etags = Record<string, string>;
@@ -45,6 +52,8 @@ export type EditDeps = {
   afterWrite?: (slug: string, version: number, etags: Etags) => void;
   /** Stops the compiler; the studio calls it when it closes. */
   dispose?: () => Promise<void>;
+  /** Lists a version's image files for the background image picker; none without it. */
+  images?: ImageFiles | undefined;
 };
 
 export type EditRouteDeps = {
@@ -144,7 +153,13 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
           );
         }
         const inspected = await inspectElement(
-          { drafts: deps.drafts, kits: deps.kits, compiler: editor().compiler, etag: etagOf },
+          {
+            drafts: deps.drafts,
+            kits: deps.kits,
+            compiler: editor().compiler,
+            etag: etagOf,
+            images: editor().images,
+          },
           params.slug,
           parsed.data.id,
         );
@@ -199,6 +214,27 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
       request: EmptyBody,
       response: { status: 200, schema: EditEndSchema },
       handle: ({ params }) => ({ status: 200, body: endEditSession(deps.drafts, params.slug) }),
+    }),
+    apiRoute({
+      id: 'reopenEditSession',
+      summary: '"Undo save": opens the ended session again while its version is still the latest.',
+      method: 'POST',
+      path: '/api/v1/drafts/{slug}/edits/reopen',
+      policy: 'write',
+      params: SlugParams,
+      request: SessionReopenRequestSchema,
+      response: { status: 200, schema: SessionReopenSchema },
+      handle: ({ params, body }) => {
+        const result = reopenEditSession(deps.drafts, params.slug, body);
+        if (!result.reopened) {
+          throw new KitvasError('EDIT_SESSION_TAKEN', {
+            slug: params.slug,
+            version: body.version,
+            latest: result.version,
+          });
+        }
+        return { status: 200, body: { version: result.version, reopened: true } };
+      },
     }),
     apiRoute({
       id: 'listOffKit',

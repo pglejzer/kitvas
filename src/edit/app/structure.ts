@@ -37,6 +37,8 @@ export type StructureDeps = {
 export type StructureEntryView = {
   id: string;
   file: string;
+  line: number;
+  column: number;
   tag: string;
   parent: string | null;
   hash: string;
@@ -53,6 +55,7 @@ export type StructureEntryView = {
 /** The same shape as the studio's `StructureSchema`. */
 export type StructureView = {
   version: number;
+  folder: string;
   etags: Record<string, string>;
   elements: StructureEntryView[];
   sections: { id: string; element: string | null; purpose: string }[];
@@ -88,7 +91,7 @@ const INTERACTIVE_TAGS = new Set(['a', 'button', 'input', 'select', 'textarea'])
 /** Kit categories of the same kind (the contract's categories: `action`, `input`). */
 const INTERACTIVE_CATEGORIES: ReadonlySet<string> = new Set(['action', 'input']);
 
-type Site = { id: string; tag: string; at: number };
+type Site = { id: string; tag: string; at: number; line: number; column: number };
 type FileContext = {
   text: string;
   file: string;
@@ -190,7 +193,9 @@ async function sitesOf(compiler: EditCompiler, text: string, file: string): Prom
   if (sites === undefined) return [];
   return elementIds(file, sites).flatMap((entry) => {
     const at = offsetOf(text, entry.line, entry.column);
-    return at >= 0 && text[at] === '<' ? [{ id: entry.id, tag: entry.tag, at }] : [];
+    return at >= 0 && text[at] === '<'
+      ? [{ id: entry.id, tag: entry.tag, at, line: entry.line, column: entry.column }]
+      : [];
   });
 }
 
@@ -205,6 +210,8 @@ function entryOf(context: FileContext, site: Site): StructureEntryView | null {
   return {
     id: site.id,
     file,
+    line: site.line,
+    column: site.column,
     tag: site.tag,
     parent: parentIdOf(site.id),
     hash: hashOf(text.slice(span.start, span.end)),
@@ -291,6 +298,8 @@ export async function readStructure(deps: StructureDeps, slug: string): Promise<
   }
   return {
     version,
+    // Forward slashes on every system, so the path pastes into an editor or a terminal.
+    folder: `${deps.drafts.dir(slug).replaceAll('\\', '/')}/${base}`,
     etags,
     elements,
     sections: sectionElements(sections, elements),

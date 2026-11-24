@@ -2,6 +2,7 @@
 // `actions.ts`, off with its reason when it cannot run. It opens from the frame's `menu` message,
 // a right click in the tree (the `edit-menu` event of the layers panel), Shift+F10 and the menu key.
 
+import { isMac, shortcutHint } from '../shell/shortcuts.ts';
 import { type ActionId, type ActionState, actionsFor, runAction } from './actions.ts';
 import { getPalette } from './api.ts';
 import type { EditorContext } from './context.ts';
@@ -17,6 +18,8 @@ export type MenuItem = {
   label: string;
   enabled: boolean;
   reason: string | null;
+  /** Its key, as the list of shortcuts shows it (`Ctrl+D`); `null` for an action without one. */
+  hint: string | null;
   /** A divider is drawn before the item when its group differs from the one before. */
   group: number;
 };
@@ -26,6 +29,7 @@ const GROUPS: Record<ActionId, number> = {
   delete: 0,
   duplicate: 0,
   copy: 1,
+  'copy-location': 1,
   cut: 1,
   paste: 1,
   'move-up': 2,
@@ -42,21 +46,38 @@ const GROUPS: Record<ActionId, number> = {
   'select-similar': 5,
   hide: 6,
   'show-all': 6,
+  lock: 6,
+  unlock: 6,
 };
 
-/** The items for the actions of the moment. "Show all" only matters while something is hidden. */
-export function menuItems(actions: readonly ActionState[], hiddenCount: number): MenuItem[] {
-  return actions
-    .filter((action) => action.id !== 'show-all' || hiddenCount > 0)
-    .map((action) => ({
-      action: action.id,
-      tag: null,
-      label: text(`menu.${action.id}`),
-      enabled: action.enabled,
-      reason:
-        action.enabled || action.reason === null ? null : text(`menu.reason.${action.reason}`),
-      group: GROUPS[action.id],
-    }));
+/** The shortcut of an action whose id differs from its line in the list of shortcuts. */
+const SHORTCUT_OF: Partial<Record<ActionId, string>> = { 'wrap-stack': 'wrap' };
+
+/**
+ * The items for the actions of the moment. "Show all" only matters while something is hidden.
+ * The key hints come from the list of shortcuts, so the two never disagree.
+ */
+export function menuItems(
+  actions: readonly ActionState[],
+  hiddenCount: number,
+  mac = false,
+): MenuItem[] {
+  return (
+    actions
+      .filter((action) => action.id !== 'show-all' || hiddenCount > 0)
+      // Lock and Unlock: only the one that applies to the selection.
+      .filter((action) => (action.id !== 'lock' && action.id !== 'unlock') || action.enabled)
+      .map((action) => ({
+        action: action.id,
+        tag: null,
+        label: text(`menu.${action.id}`),
+        enabled: action.enabled,
+        reason:
+          action.enabled || action.reason === null ? null : text(`menu.reason.${action.reason}`),
+        hint: shortcutHint(SHORTCUT_OF[action.id] ?? action.id, mac, (key) => text(key)),
+        group: GROUPS[action.id],
+      }))
+  );
 }
 
 /** The list `replace` opens: one item per kit component (parts such as `Card.Header` are left out). */
@@ -72,6 +93,7 @@ export function componentItems(
       label: component.name,
       enabled: true,
       reason: null,
+      hint: null,
       group: 0,
     }));
 }
@@ -186,6 +208,12 @@ export function mountMenu(ctx: EditorContext): void {
       const label = document.createElement('span');
       label.textContent = item.label;
       button.append(label);
+      if (item.hint !== null) {
+        const hint = document.createElement('kbd');
+        hint.className = 'edit-menu-key';
+        hint.textContent = item.hint;
+        button.append(hint);
+      }
       if (item.reason !== null) {
         const reason = document.createElement('span');
         reason.className = 'edit-menu-reason';
@@ -215,7 +243,7 @@ export function mountMenu(ctx: EditorContext): void {
     const menu = state.menu;
     if (!menu) return;
     replacing = null;
-    items = menuItems(actionsFor(state), state.hidden.length);
+    items = menuItems(actionsFor(state), state.hidden.length, isMac(navigator.platform));
     draw();
     place(menu);
     focusItem(stepIndex(items, -1, 'ArrowDown'));
@@ -282,11 +310,25 @@ export function mountMenu(ctx: EditorContext): void {
     },
     true,
   );
+  // A click in the frame never reaches this page's listeners: the focus going into the frame, a pick
+  // or a key there closes the menu instead.
+  window.addEventListener('blur', close);
   document.addEventListener('edit-menu', (event) => {
-    if (isEventWithMenu(event)) openMenuAt(ctx, event.detail.id, event.detail.x, event.detail.y);
+    if (!isEventWithMenu(event)) return;
+    // A right click in Layers while previewing switches to Edit first, as the Edit button does.
+    if (!store.get().on) {
+      const edit = ctx.main.querySelector<HTMLButtonElement>('button[data-shell-mode="edit"]');
+      if (!edit || edit.disabled) return;
+      edit.click();
+    }
+    openMenuAt(ctx, event.detail.id, event.detail.x, event.detail.y);
   });
 
   bridge.on((message) => {
+    if (message.type === 'pick' || message.type === 'key') {
+      close();
+      return;
+    }
     if (message.type !== 'menu') return;
     const box = bridge.frame.element.getBoundingClientRect();
     const at = toPagePoint(box, store.get().zoom, message);

@@ -320,6 +320,7 @@ test('status and the generated OpenAPI document', async () => {
       '/api/v1/drafts/{slug}/checks',
       '/api/v1/drafts/{slug}/edits',
       '/api/v1/drafts/{slug}/edits/end',
+      '/api/v1/drafts/{slug}/edits/reopen',
       '/api/v1/drafts/{slug}/inspect',
       '/api/v1/drafts/{slug}/off-kit',
       '/api/v1/drafts/{slug}/palette',

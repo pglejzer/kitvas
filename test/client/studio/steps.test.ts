@@ -181,3 +181,40 @@ test('a spacing row offers the spacing scale, not every dimension of the kit', (
   const odd = [token('gutter.one', '4px', 'dimension'), token('gutter.two', '8px', 'dimension')];
   assert.equal(tokensFor(odd, 'padding').length, 2);
 });
+
+test('one side of padding and margin offers the spacing scale too (plan 15)', () => {
+  const kit = [...SPACE, token('radius.md', '10px', 'dimension')];
+  const sides = ['padding-top', 'padding-left', 'margin-right', 'margin-bottom'] as const;
+  for (const property of sides) {
+    assert.deepEqual(
+      tokensFor(kit, property).map((one) => one.path),
+      ['space.none', 'space.xs', 'space.sm', 'space.md', 'space.lg', 'space.xl'],
+      property,
+    );
+  }
+  const lines = [...kit, token('borderWidth.thin', '1px'), token('color.ink', '#111', 'color')];
+  assert.deepEqual(
+    tokensFor(lines, 'outline-width').map((one) => one.path),
+    ['borderWidth.thin'],
+  );
+  assert.deepEqual(
+    tokensFor(lines, 'outline-color').map((one) => one.path),
+    ['color.ink'],
+  );
+});
+
+test('a keyword or an image row takes no token at all', () => {
+  const kit = [...SPACE, token('color.ink', '#111', 'color')];
+  for (const property of ['display', 'justify-content', 'background-image'] as const) {
+    assert.deepEqual(tokensFor(kit, property), [], property);
+  }
+});
+
+test('a value written without the marker is read back plain, as the server finds it', () => {
+  assert.deepEqual(styleValueOf('flex', false), { raw: 'flex', mark: false });
+  assert.deepEqual(styleValueOf('url(../img/a.png)', false), {
+    raw: 'url(../img/a.png)',
+    mark: false,
+  });
+  assert.deepEqual(styleValueOf('var(--kit-space-md)', false), { token: '--kit-space-md' });
+});

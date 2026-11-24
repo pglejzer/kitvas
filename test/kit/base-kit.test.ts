@@ -29,7 +29,7 @@ test('the Base kit is valid and has its 12 components', () => {
       'Dialog',
     ],
   );
-  assert.equal(base.tokens.length, 45);
+  assert.equal(base.tokens.length, 47);
 });
 
 test('every catalog component has a source file, an export and an example that uses it', () => {

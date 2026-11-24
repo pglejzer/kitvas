@@ -24,6 +24,8 @@ function el(path: string, fields: Partial<StructureEntry> = {}): StructureEntry 
   return {
     id: `${ROOT}/${path}`,
     file: FILE,
+    line: 1,
+    column: 1,
     tag: (parts.at(-1) ?? '').replace(/\.\d+$/, ''),
     parent: parent === '' ? ROOT : `${ROOT}/${parent}`,
     hash: hash(1),

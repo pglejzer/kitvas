@@ -1,11 +1,12 @@
 // One element as its source writes it, for the properties panel (plan 13, task D2): the tag and
 // its props, the kit component it is, its text, the class a style edit writes and where each
-// style property's value comes from (spec decisions 3, 4 and 9).
+// style property's value comes from (spec decisions 3, 4 and 9). Plan 15 adds the element's line
+// and the version's images, for the panel's header and its background image picker.
 
 import { type DraftStore, latestVersion, loadDraft, versionFolder } from '../../drafts/index.ts';
 import type { KitComponent, KitStore, LoadedKit } from '../../kit/index.ts';
 import { KitvasError } from '../../shared/index.ts';
-import { readRule } from '../domain/apply-scss.ts';
+import { IMAGE_FILE, MAX_IMAGES, readRule } from '../domain/apply-scss.ts';
 import { readTag } from '../domain/apply-tsx.ts';
 import { CLASS_NAME, fileOfId, hashOf, type PropValue } from '../domain/ops.ts';
 import { type SourceInput, styleSource, tokenGroupsOf } from '../domain/source.ts';
@@ -25,12 +26,17 @@ import { locateElement } from './locate.ts';
 import { sectionScss } from './section-files.ts';
 import { movableAt } from './structure.ts';
 
+/** The file names in a version's `src/img` folder (`src/edit/adapters/image-files.ts`). */
+export type ImageFiles = (slug: string, version: number) => readonly string[];
+
 export type InspectDeps = {
   drafts: DraftStore;
   kits: KitStore;
   compiler: EditCompiler;
   /** The ETag of a file's text, as the studio's API writes it. */
   etag(text: string): string;
+  /** The draft store cannot list a folder: without this the answer lists no images. */
+  images?: ImageFiles | undefined;
 };
 
 type CatalogProp = {
@@ -70,7 +76,25 @@ export type InspectView = {
   hash: string;
   /** Why it cannot be moved or deleted as an element; `null` when it can. */
   movable: Refusal | null;
+  /** The 1-based line of the element's `<` in `file`. */
+  line: number;
+  /** The image files of the version a background image may name, sorted. */
+  images: string[];
 };
+
+/** The 1-based line `at` is on. */
+function lineAt(text: string, at: number): number {
+  let line = 1;
+  for (let i = text.indexOf('\n'); i >= 0 && i < at; i = text.indexOf('\n', i + 1)) line += 1;
+  return line;
+}
+
+/** The names a style may write as `url(../img/<file>)`: others are left out, never escaped. */
+const imageNames = (names: readonly string[]): string[] =>
+  names
+    .filter((name) => IMAGE_FILE.test(name))
+    .sort()
+    .slice(0, MAX_IMAGES);
 
 /** `Card.Header` is the part `Header` of `Card`: the catalog entry is `Card`. */
 function catalogComponent(kit: LoadedKit | null, tag: string): KitComponent | null {
@@ -262,5 +286,7 @@ export async function inspectElement(
     // nothing a structural op could check.
     hash: hashOf(span === null ? '' : text.slice(span.start, span.end)),
     movable: span === null ? 'not-found' : movableAt(text, at),
+    line: lineAt(text, at),
+    images: imageNames(deps.images?.(slug, version) ?? []),
   };
 }

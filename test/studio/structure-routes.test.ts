@@ -92,6 +92,13 @@ test('the structure route answers every element of the latest version', async ()
     assert.equal(structure.version, 1);
     assert.deepEqual(structure.etags, { [TSX_FILE]: etagOf(PRICING_TSX) });
     const byId = new Map(structure.elements.map((entry) => [entry.id, entry]));
+    assert.equal(structure.folder.endsWith('/shop/v1'), true);
+    assert.equal(structure.folder.includes('\\'), false);
+    // `<section` is on line 7 of the file, after four spaces.
+    assert.deepEqual(
+      [byId.get(SECTION)?.file, byId.get(SECTION)?.line, byId.get(SECTION)?.column],
+      [TSX_FILE, 7, 5],
+    );
     assert.equal(byId.get(SECTION)?.root, 'section');
     assert.equal(byId.get(SECTION)?.movable, 'section-root');
     assert.equal(byId.get(`${SECTION}/Stack`)?.accepts, true);

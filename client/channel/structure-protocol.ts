@@ -52,6 +52,8 @@ export type StructureStudioMessage = Head &
     | { type: 'drag'; phase: DragPhase; source: DragSource | null; x: number; y: number }
     /** Elements shown with `display: none` in the frame only (spec 4b, decision 14). */
     | { type: 'hide'; ids: string[] }
+    /** Locked elements: the canvas cannot select or drag them, while editing only. */
+    | { type: 'lock'; ids: string[] }
     /** Handles on the selected element; off while a drag or an inline text edit runs. */
     | { type: 'handles'; on: boolean }
   );
@@ -69,7 +71,14 @@ export type StructureFrameMessage = Head &
   );
 
 export const STRUCTURE_FRAME_TYPES = new Set(['drop', 'handle', 'rect', 'menu']);
-export const STRUCTURE_STUDIO_TYPES = new Set(['structure', 'tokens', 'drag', 'hide', 'handles']);
+export const STRUCTURE_STUDIO_TYPES = new Set([
+  'structure',
+  'tokens',
+  'drag',
+  'hide',
+  'lock',
+  'handles',
+]);
 
 type Loose = Record<string, unknown>;
 
@@ -199,6 +208,8 @@ export function parseStructureStudio(
     }
     case 'hide':
       return isIds(message.ids) ? { ...head, type: 'hide', ids: [...message.ids] } : undefined;
+    case 'lock':
+      return isIds(message.ids) ? { ...head, type: 'lock', ids: [...message.ids] } : undefined;
     case 'handles':
       return typeof message.on === 'boolean'
         ? { ...head, type: 'handles', on: message.on }

@@ -2,7 +2,8 @@
 // class rules and sets, adds or removes one declaration, or one whole rule. It is hand-written and
 // has no parser behind it, so it only ever cuts and pastes inside the span it names: every other
 // byte of the file, its line endings and its indentation stay as they were, and an operation
-// followed by its inverse gives the file back exactly.
+// followed by its inverse gives the file back exactly. A value a keyword or image property may
+// not take is refused before anything is cut (plan 15, `style-values.ts`).
 
 import { type EditOp, OFF_KIT_MARKER, type StyleValue, styleText } from './ops.ts';
 import {
@@ -18,11 +19,26 @@ import {
   readRules,
   scssBalanced,
 } from './scss-reader.ts';
+import { styleValueRefusal } from './style-values.ts';
 import type { ApplyOptions, ApplyResult, Span } from './types.ts';
 
+export {
+  IMAGE_FILE,
+  imageOfUrl,
+  imageUrl,
+  keywordOfWord,
+  MAX_IMAGES,
+  plainValue,
+  styleValueRefusal,
+} from './style-values.ts';
 export { listRules, readRule, scssBalanced };
 
 export type ScssOp = Extract<EditOp, { op: 'setStyle' | 'removeStyle' }>;
+/**
+ * `hasImage`: the version has this file in `src/img`. Without it no background image is written,
+ * since nothing says the file is there.
+ */
+export type ScssOptions = ApplyOptions & { hasImage?: ((file: string) => boolean) | undefined };
 type SetStyle = Extract<EditOp, { op: 'setStyle' }>;
 type RemoveStyle = Extract<EditOp, { op: 'removeStyle' }>;
 
@@ -161,8 +177,14 @@ function createRule(text: string, op: SetStyle): ApplyResult {
   };
 }
 
+const noImage = (): boolean => false;
+
 /** Applies one style operation to a section's SCSS text; never a part of it. */
-export function applyScss(text: string, op: ScssOp, options: ApplyOptions): ApplyResult {
+export function applyScss(text: string, op: ScssOp, options: ScssOptions): ApplyResult {
+  if (op.op === 'setStyle') {
+    const refusal = styleValueRefusal(op.property, op.value, options.hasImage ?? noImage);
+    if (refusal !== null) return { refused: refusal };
+  }
   const rules = readRules(text).filter((rule) => rule.view.className === op.className);
   if (rules.length > 1) return { refused: 'ambiguous' };
   const rule = rules[0];

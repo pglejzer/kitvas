@@ -1,8 +1,17 @@
 // Messages between a studio page and a prototype frame. Both sides check every message they get.
 // Nothing secret goes through here: the channel id only tells two frames on one page apart.
 // The example frames of the kit page only send `example`; the studio sends them nothing.
-// The editor's messages are in `edit-protocol.ts`; the two parsers here hand them over.
+// The editor's messages are in `edit-protocol.ts` and the editor screen's canvas messages in
+// `canvas-protocol.ts`; the two parsers here hand them over.
 
+import {
+  CANVAS_FRAME_TYPES,
+  CANVAS_STUDIO_TYPES,
+  type CanvasFrameMessage,
+  type CanvasStudioMessage,
+  parseCanvasFrame,
+  parseCanvasStudio,
+} from './canvas-protocol.ts';
 import {
   EDIT_FRAME_TYPES,
   EDIT_STUDIO_TYPES,
@@ -38,13 +47,15 @@ export type FrameMessage =
   | { kitvas: 1; channel: string; type: 'elements'; request: number; items: ElementSnapshot[] }
   | { kitvas: 1; channel: string; type: 'shown'; state: string }
   | { kitvas: 1; channel: string; type: 'example'; shown: boolean; height: number }
-  | EditFrameMessage;
+  | EditFrameMessage
+  | CanvasFrameMessage;
 
 export type StudioMessage =
   | { kitvas: 1; channel: string; type: 'measure'; request: number }
   | { kitvas: 1; channel: string; type: 'state'; state: string }
   | { kitvas: 1; channel: string; type: 'marks'; marks: Mark[] }
-  | EditStudioMessage;
+  | EditStudioMessage
+  | CanvasStudioMessage;
 
 export function frameHash(channel: string, studioPort: number): string {
   return `#kitvas=${channel}&studio=${studioPort}`;
@@ -97,6 +108,9 @@ export function parseFrameMessage(data: unknown, channel: string): FrameMessage 
   if (typeof message.type === 'string' && EDIT_FRAME_TYPES.has(message.type)) {
     return parseEditFrame(message, channel);
   }
+  if (typeof message.type === 'string' && CANVAS_FRAME_TYPES.has(message.type)) {
+    return parseCanvasFrame(message, channel);
+  }
   if (message.type === 'ready' || message.type === 'shown') {
     const { state } = message;
     if (typeof state !== 'string' || !STATE_ID.test(state)) return undefined;
@@ -123,6 +137,9 @@ export function parseStudioMessage(data: unknown, channel: string): StudioMessag
   if (!message) return undefined;
   if (typeof message.type === 'string' && EDIT_STUDIO_TYPES.has(message.type)) {
     return parseEditStudio(message, channel);
+  }
+  if (typeof message.type === 'string' && CANVAS_STUDIO_TYPES.has(message.type)) {
+    return parseCanvasStudio(message, channel);
   }
   if (message.type === 'measure') {
     return isCount(message.request)

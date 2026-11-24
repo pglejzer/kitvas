@@ -12,6 +12,9 @@ export const StructureEntrySchema = z.strictObject({
   id: ElementIdSchema,
   /** The path inside the version: `src/tsx/sections/Hero.tsx`. */
   file: z.string(),
+  /** Where its `<` is in `file`, 1-based, as the JSX runtime gives it: for "Copy code location". */
+  line: z.number().int().min(1),
+  column: z.number().int().min(1),
   tag: z.string(),
   /** The enclosing element's id; `null` for a root a function returns. */
   parent: ElementIdSchema.nullable(),
@@ -37,6 +40,11 @@ export const StructureEntrySchema = z.strictObject({
 /** `GET /api/v1/drafts/{slug}/structure`. */
 export const StructureSchema = z.strictObject({
   version: Version,
+  /**
+   * The latest version's folder on this machine, with forward slashes: a `file` joined to it is
+   * the path of the source. It is the person's own draft folder, shown only on their own studio.
+   */
+  folder: z.string(),
   etags: EtagsSchema,
   elements: z.array(StructureEntrySchema),
   /** The layout's sections in order, each with the element of `index.tsx` that renders it. */

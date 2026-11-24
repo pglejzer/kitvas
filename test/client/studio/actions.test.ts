@@ -7,6 +7,11 @@ import {
   forgetStyleClip,
   runAction,
 } from '../../../client/studio/edit/actions.ts';
+import {
+  copyLocation,
+  defaultClipboardIo,
+  locationLines,
+} from '../../../client/studio/edit/clipboard.ts';
 import type { EditorContext } from '../../../client/studio/edit/context.ts';
 import { createStore, type Gesture, type Store } from '../../../client/studio/edit/store.ts';
 import { type EditOp, STYLE_PROPERTIES } from '../../../src/edit/index.ts';
@@ -28,6 +33,8 @@ function entry(id: string, own: Partial<StructureEntry> = {}): StructureEntry {
   return {
     id,
     file: FILE,
+    line: 10,
+    column: 5,
     tag: id === ROOT ? 'section' : tag,
     parent: null,
     hash: HASH(1),
@@ -60,7 +67,7 @@ function fixture(select: string[], more: Partial<Parameters<Store['set']>[0]> = 
   store.set({
     on: true,
     selection: select,
-    structure: { version: 2, etags: {}, elements: ELEMENTS, sections: [] },
+    structure: { version: 2, folder: '/d/shop/v2', etags: {}, elements: ELEMENTS, sections: [] },
     ...more,
   });
   const gestures: Gesture[] = [];
@@ -139,6 +146,42 @@ test('nothing selected turns the element actions off but not show all', () => {
   assert.equal(stateOf(f, 'delete')?.reason, 'no-selection');
   assert.equal(stateOf(f, 'wrap-stack')?.enabled, false);
   assert.equal(stateOf(f, 'show-all')?.enabled, true);
+});
+
+test('copy location is on with one or more elements selected and off with none', () => {
+  assert.deepEqual(stateOf(fixture([CARD]), 'copy-location'), {
+    id: 'copy-location',
+    enabled: true,
+    reason: null,
+  });
+  assert.equal(stateOf(fixture([HEAD, CARD2]), 'copy-location')?.enabled, true);
+  assert.equal(stateOf(fixture([]), 'copy-location')?.reason, 'no-selection');
+});
+
+test('locationLines gives folder/file:line:column in page order, one line per element', () => {
+  const at = (id: string, line: number, column: number) => ({ id, file: FILE, line, column });
+  const elements = [at(HEAD, 3, 7), at(CARD, 8, 5), at(CARD2, 20, 5)];
+  assert.equal(
+    locationLines('/d/shop/v2', elements, [CARD2, HEAD]),
+    `/d/shop/v2/${FILE}:3:7\n/d/shop/v2/${FILE}:20:5`,
+  );
+  assert.equal(locationLines('/d/shop/v2', elements, ['unknown']), '');
+});
+
+test('copyLocation writes the lines to the clipboard, and says false when it is refused', async () => {
+  const f = fixture([CARD, HEAD]);
+  const written: string[] = [];
+  const io = {
+    ...defaultClipboardIo,
+    writeText: async (value: string) => {
+      written.push(value);
+    },
+  };
+  assert.equal(await copyLocation(f.ctx, [CARD, HEAD], io), true);
+  assert.deepEqual(written, [`/d/shop/v2/${FILE}:10:5\n/d/shop/v2/${FILE}:10:5`]);
+  const refused = { ...io, writeText: async () => Promise.reject(new Error('denied')) };
+  assert.equal(await copyLocation(f.ctx, [CARD], refused), false);
+  assert.equal(await copyLocation(f.ctx, [], io), false);
 });
 
 test('duplicate inserts each element source after it, from the file it was read in', async () => {
@@ -319,6 +362,22 @@ test('hide keeps the hidden ids in the store and tells the frame; show-all clear
   assert.deepEqual(f.sent, [
     { type: 'hide', ids: [CARD, HEAD] },
     { type: 'hide', ids: [] },
+  ]);
+});
+
+test('lock is offered while a selected element is free, unlock once all are locked', async () => {
+  const f = fixture([HEAD], { locked: [CARD] });
+  assert.equal(stateOf(f, 'lock')?.enabled, true);
+  assert.equal(stateOf(f, 'unlock')?.enabled, false);
+  await runAction(f.ctx, 'lock');
+  assert.deepEqual(f.store.get().locked, [CARD, HEAD]);
+  assert.equal(stateOf(f, 'lock')?.enabled, false);
+  assert.equal(stateOf(f, 'unlock')?.enabled, true);
+  await runAction(f.ctx, 'unlock');
+  assert.deepEqual(f.store.get().locked, [CARD]);
+  assert.deepEqual(f.sent, [
+    { type: 'lock', ids: [CARD, HEAD] },
+    { type: 'lock', ids: [CARD] },
   ]);
 });
 

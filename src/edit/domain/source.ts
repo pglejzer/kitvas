@@ -3,15 +3,18 @@
 // utility class in a Tailwind draft, or else the kit's own default. A wrong answer writes the
 // wrong layer: an SCSS override on top of a kit prop that sets the same thing, or a prop change
 // for a property the prop does not set. So the prop match asks for a name from the table and,
-// for a name that is only a hint (`p`, `size`), values that are a token scale of the property.
+// for a name that is only a hint (`p`, `size`, `align`), values that are a token scale of the
+// property, or for a keyword property values that each name one of its keywords (plan 15).
 
+import { keywordOfWord } from './style-values.ts';
 import {
   type Declaration,
-  PROPERTY_TOKEN_TYPE,
+  isKeywordProperty,
   type RuleView,
   type StyleProperty,
   type StyleSource,
   type TokenOption,
+  tokenTypeOf,
 } from './types.ts';
 
 export type SourceInput = {
@@ -41,7 +44,8 @@ export type SourceInput = {
 /**
  * The catalog prop names that may set each property, the property's own name (camel case) first.
  * A prop named exactly like the property sets it whatever its values (spec decision 9: "a prop
- * named like the property"); every other name is only a hint and needs values that name tokens.
+ * named like the property"); every other name is only a hint and needs values that name tokens,
+ * or for a keyword property values that name its keywords.
  */
 export const PROP_FOR: Record<StyleProperty, readonly string[]> = {
   padding: ['padding', 'p'],
@@ -61,7 +65,33 @@ export const PROP_FOR: Record<StyleProperty, readonly string[]> = {
   'border-width': ['borderWidth'],
   width: ['width', 'w'],
   height: ['height', 'h'],
+  'padding-top': ['paddingTop', 'pt'],
+  'padding-right': ['paddingRight', 'pr'],
+  'padding-bottom': ['paddingBottom', 'pb'],
+  'padding-left': ['paddingLeft', 'pl'],
+  'margin-top': ['marginTop', 'mt'],
+  'margin-right': ['marginRight', 'mr'],
+  'margin-bottom': ['marginBottom', 'mb'],
+  'margin-left': ['marginLeft', 'ml'],
+  // Base's Stack: `direction`, `wrap`, `justify` and `align` (kits/base/tsx/layout/Stack.tsx).
+  display: ['display'],
+  'flex-direction': ['flexDirection', 'direction'],
+  'flex-wrap': ['flexWrap', 'wrap'],
+  'justify-content': ['justifyContent', 'justify'],
+  'align-items': ['alignItems', 'align'],
+  'align-self': ['alignSelf'],
+  'text-align': ['textAlign'],
+  'border-style': ['borderStyle'],
+  'outline-color': ['outlineColor'],
+  'outline-width': ['outlineWidth'],
+  'outline-style': ['outlineStyle'],
+  'background-image': ['backgroundImage'],
+  'background-size': ['backgroundSize'],
 };
+
+/** Whole Tailwind classes from words: `('flex-', 'row col')` is `['flex-row', 'flex-col']`. */
+const whole = (prefix: string, names: string): string[] =>
+  names.split(' ').map((name) => `${prefix}${name}`);
 
 /**
  * The Tailwind utility prefixes that set each property, the one that wins first (Tailwind writes
@@ -86,6 +116,28 @@ export const UTILITY_PREFIXES: Record<StyleProperty, readonly string[]> = {
   'border-width': ['border-', 'border'],
   width: ['w-', 'size-'],
   height: ['h-', 'size-'],
+  'padding-top': ['pt-', 'py-', 'p-'],
+  'padding-right': ['pr-', 'pe-', 'px-', 'p-'],
+  'padding-bottom': ['pb-', 'py-', 'p-'],
+  'padding-left': ['pl-', 'ps-', 'px-', 'p-'],
+  'margin-top': ['mt-', 'my-', 'm-'],
+  'margin-right': ['mr-', 'me-', 'mx-', 'm-'],
+  'margin-bottom': ['mb-', 'my-', 'm-'],
+  'margin-left': ['ml-', 'ms-', 'mx-', 'm-'],
+  display: whole('', 'flex grid block inline-block inline-flex inline-grid inline hidden contents'),
+  'flex-direction': whole('flex-', 'row row-reverse col col-reverse'),
+  'flex-wrap': whole('flex-', 'wrap wrap-reverse nowrap'),
+  // `justify-items-` and `justify-self-` are other properties: whole classes only.
+  'justify-content': whole('justify-', 'start end center between around evenly stretch normal'),
+  'align-items': ['items-'],
+  'align-self': ['self-'],
+  'text-align': whole('text-', 'left center right justify start end'),
+  'border-style': whole('border-', 'solid dashed dotted double hidden none'),
+  'outline-color': ['outline-'],
+  'outline-width': ['outline-', 'outline'],
+  'outline-style': whole('outline-', 'solid dashed dotted double hidden none'),
+  'background-image': ['bg-'],
+  'background-size': [...whole('bg-', 'auto cover contain'), 'bg-size-'],
 };
 
 /** Where the value of `input.property` comes from, in the order of spec decision 9. */
@@ -150,25 +202,46 @@ function onScale(values: readonly string[], scales: readonly (readonly string[])
   });
 }
 
+type CatalogProp = NonNullable<SourceInput['component']>['props'][number];
+
 /**
- * The catalog prop that sets the property, or `null`. Only an enum counts: its values are what
- * the panel offers, and a free value (a number or a string) cannot take a kit token. Whether the
- * tag writes it does not matter, since the prop is the place; it only breaks a tie between two.
+ * The prop sets the property. Only an enum counts, with values: they are what the panel offers,
+ * and a free value (a number or a string) cannot take a kit token or a keyword. A prop named like
+ * the property counts whatever its values. Any other name of the table needs, for a token
+ * property, values that are a token scale of its type, and for a keyword property values that
+ * each name one of its keywords (`start` names `flex-start`). `flex-wrap` also takes a boolean
+ * (Base's Stack `wrap`).
+ */
+function covers(
+  property: StyleProperty,
+  prop: CatalogProp,
+  scales: readonly (readonly string[])[],
+): boolean {
+  if (prop.type === 'boolean') return property === 'flex-wrap';
+  const values = prop.values ?? [];
+  if (prop.type !== 'enum' || values.length === 0) return false;
+  if (prop.name === camel(property)) return true;
+  if (isKeywordProperty(property)) {
+    return values.every((value) => keywordOfWord(property, value) !== null);
+  }
+  // Tones are colour names in the kit's own words (`muted`, `danger`), never token names.
+  return property === 'color' || onScale(values, scales);
+}
+
+/**
+ * The catalog prop that sets the property, or `null`. Whether the tag writes it does not matter,
+ * since the prop is the place; it only breaks a tie between two.
  */
 function propFor(input: SourceInput): string | null {
   const { property, component, written } = input;
   if (component === null) return null;
   const names = PROP_FOR[property];
-  const own = camel(property);
-  const scales = Object.values(input.tokenGroups[PROPERTY_TOKEN_TYPE[property]] ?? {});
+  const type = tokenTypeOf(property);
+  const scales = type === null ? [] : Object.values(input.tokenGroups[type] ?? {});
   let best: { name: string; rank: number } | null = null;
   for (const prop of component.props) {
     const index = names.indexOf(prop.name);
-    const values = prop.values ?? [];
-    if (index < 0 || prop.type !== 'enum' || values.length === 0) continue;
-    // Tones are colour names in the kit's own words (`muted`, `danger`), never token names.
-    const named = prop.name === own || property === 'color';
-    if (!named && !onScale(values, scales)) continue;
+    if (index < 0 || !covers(property, prop, scales)) continue;
     // The prop the tag writes is the one in use; then the table's order, own name first.
     const rank = (written.includes(prop.name) ? 0 : names.length) + index;
     if (best === null || rank < best.rank) best = { name: prop.name, rank };
@@ -192,7 +265,7 @@ function declarationOf(rule: RuleView, property: StyleProperty): Declaration | u
 // Step 3: the utility class.
 
 /** What a utility's value holds, where one prefix serves two meanings (`text-sm`, `text-ink`). */
-type ValueKind = 'measure' | 'color' | 'other';
+type ValueKind = 'measure' | 'color' | 'image' | 'other';
 
 /** The kind each property wants from a prefix it shares with another meaning. */
 const SHARED_KIND: Partial<Record<StyleProperty, ValueKind>> = {
@@ -202,6 +275,9 @@ const SHARED_KIND: Partial<Record<StyleProperty, ValueKind>> = {
   'border-color': 'color',
   'border-width': 'measure',
   'background-color': 'color',
+  'background-image': 'image',
+  'outline-color': 'color',
+  'outline-width': 'measure',
 };
 
 const words = (...lists: string[]): string[] => lists.flatMap((list) => list.split(' '));
@@ -217,6 +293,8 @@ const TEXT_OTHER = oneOf(
   words('left center right justify start end', 'wrap nowrap balance pretty ellipsis clip shadow'),
   words('shadow opacity'),
 );
+/** `bg-` utilities that set the image: none, or a gradient. */
+const BG_IMAGE = oneOf(words('none'), words('linear radial conic gradient'));
 /** `bg-` utilities of the image, its size, place, repeat and clip: not the colour. */
 const BG_OTHER = oneOf(
   words(
@@ -263,12 +341,12 @@ function arbitraryKind(value: string, unsaid: ValueKind): ValueKind | null {
   }
   if (/^(?:-?\.?\d|(?:calc|clamp|min|max)\()/.test(inner)) return 'measure';
   if (/^(?:url|image-set|(?:repeating-)?(?:linear|radial|conic)-gradient)\(/.test(inner)) {
-    return 'other';
+    return 'image';
   }
   return unsaid;
 }
 
-/** The kind of value of a `text-`, `font-`, `bg-` or `border` utility, after its prefix. */
+/** The kind of value of a `text-`, `font-`, `bg-`, `outline` or `border` utility, after its prefix. */
 function valueKind(prefix: string, rest: string): ValueKind {
   // `text-sm/6` carries a line height and `bg-ink/50` an opacity after the slash.
   const value = rest.replace(/\/[^\])]*$/, '');
@@ -280,7 +358,14 @@ function valueKind(prefix: string, rest: string): ValueKind {
     return arbitraryKind(value, 'color') ?? (TEXT_OTHER.test(value) ? 'other' : 'color');
   }
   if (prefix === 'bg-') {
+    if (BG_IMAGE.test(value)) return 'image';
     return arbitraryKind(value, 'color') ?? (BG_OTHER.test(value) ? 'other' : 'color');
+  }
+  // `outline` and `outline-2` set the width, `outline-ink` the colour; `outline-offset-2` neither.
+  if (prefix === 'outline-' || prefix === 'outline') {
+    if (value === '' || /^\d+$/.test(value)) return 'measure';
+    if (/^offset(?:-|$)/.test(value)) return 'other';
+    return arbitraryKind(value, 'color') ?? (BORDER_OTHER.test(value) ? 'other' : 'color');
   }
   // `border`, `border-t`, `border-2` and `border-x-[3px]` set the width; `border-ink` the colour.
   const part = value.replace(BORDER_SIDE, '');

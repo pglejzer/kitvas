@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createDraft, type DraftStore } from '../../src/drafts/index.ts';
+import { addVersion, createDraft, type DraftStore } from '../../src/drafts/index.ts';
 import { createEsbuildCompiler } from '../../src/edit/adapters/esbuild-compiler.ts';
 import { PLUGIN_ROOT } from '../../src/shared/index.ts';
 import type { EditDeps } from '../../src/studio/api/edit-routes.ts';
@@ -204,6 +204,44 @@ test('the first edit starts a version, the next goes into it, and saving ends it
   assert.deepEqual(errors, []);
 });
 
+test('Undo save reopens the ended session only while its version is the latest', async () => {
+  const { drafts, studio, errors, get, post, auth } = await editStudio();
+  try {
+    const etags = { [TSX_FILE]: etagOf(PRICING_TSX) };
+    assert.equal((await post(EDITS, { version: 1, ops: [setGap('lg', 'md')], etags })).status, 200);
+    const session = json<EditState>((await get(EDITS)).text).session;
+    assert.ok(session);
+    // Still open: nothing to reopen.
+    const open = await post(`${EDITS}/reopen`, session);
+    assert.equal(open.status, 409);
+    assert.equal(json<Problem>(open.text).code, 'EDIT_SESSION_TAKEN');
+
+    await post(`${EDITS}/end`, {});
+    assert.equal(json<EditState>((await get(EDITS)).text).session, null);
+    const back = await post(`${EDITS}/reopen`, session);
+    assert.equal(back.status, 200, back.text);
+    assert.deepEqual(json<{ version: number; reopened: boolean }>(back.text), {
+      version: 2,
+      reopened: true,
+    });
+    assert.deepEqual(json<EditState>((await get(EDITS)).text).session, session);
+
+    // Another version, started by anyone, ends the chance.
+    await post(`${EDITS}/end`, {});
+    addVersion(drafts, 'shop', NOW);
+    const late = await post(`${EDITS}/reopen`, session);
+    assert.equal(late.status, 409);
+
+    const noOrigin = { ...auth, 'content-type': 'application/json' };
+    assert.equal((await post(`${EDITS}/reopen`, session, noOrigin)).status, 403);
+    const bad = await post(`${EDITS}/reopen`, { version: 0, startedAt: '' });
+    assert.equal(bad.status, 422);
+  } finally {
+    await studio.close();
+  }
+  assert.deepEqual(errors, []);
+});
+
 test('an edit of a version that is no longer the latest is refused as stale', async () => {
   const { studio, post } = await editStudio();
   try {
@@ -271,6 +309,7 @@ test('the API document lists the five edit routes', async () => {
     assert.equal(paths[`${base}/edits`]?.post?.operationId, 'applyEdits');
     assert.equal(paths[`${base}/inspect`]?.get?.operationId, 'inspectElement');
     assert.equal(paths[`${base}/edits/end`]?.post?.operationId, 'endEditSession');
+    assert.equal(paths[`${base}/edits/reopen`]?.post?.operationId, 'reopenEditSession');
     assert.equal(paths[`${base}/off-kit`]?.get?.operationId, 'listOffKit');
   } finally {
     await studio.close();

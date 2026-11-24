@@ -180,7 +180,10 @@ export function mountAsk(ctx: EditorContext): void {
   status.className = 'edit-ask-status';
   status.setAttribute('role', 'status');
   box.append(hint, button, status);
-  ctx.panel.append(box);
+  // In the right panel under the conflict box, outside the panes their renders replace.
+  const conflict = ctx.panel.querySelector('[data-edit="conflict"]');
+  if (conflict) conflict.after(box);
+  else ctx.panel.append(box);
 
   let current: AskSubject | null = null;
 

@@ -21,8 +21,8 @@ Write exactly two files, the absolute paths in `files` of the context: the TSX o
 
 ## Rules in short
 
-- Import only from `@kit`, `react` and the draft's own files.
-- Use only components, props and values the context lists. If the design needs something missing, use the nearest listed component and say so in your report.
+- Import only from `@kit`, `react` and the draft's own files. Never import a style file: `index.scss` already includes your SCSS.
+- Use only components, props and values the context lists. If the design needs something missing, use the nearest listed component, or plain HTML that is not a control (`<details>`, `<table>`, lists), and say so in your report.
 - Styles use `var(--kit-…)` names from `kit.tokens`. Each token has a `type`, a `value` and a `group`: pick by the value and the group (a `color` token for a colour, a `space` token for a gap), never by the name alone. No raw colours, no raw sizes where a token exists.
 - The component takes `{ state: string }` and shows every state named in `states`. Write real text from the brief, no lorem ipsum.
 - The full rules are in the maker rules file; follow it when it is stricter than this list.

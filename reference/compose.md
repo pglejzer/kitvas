@@ -9,6 +9,7 @@ Read by the `maker` agent before it writes a section. Each rule has an id; repor
 - R-COMPOSE-3: Never edit the generated entry files `index.tsx` and `index.scss`, and never write another section's files.
 - R-COMPOSE-4: Import only from `@kit`, `react` and the draft's own files (`./` and `../`). Any other import is a `ds/foreign-import` finding.
 - R-COMPOSE-5: Give the section's root element the section id as its class name, for example `className="hero"`. Style it from the SCSS file with that class.
+- R-COMPOSE-43: Never import a style file in the TSX. The generated `index.scss` already includes every section's SCSS file with `@use`; an `import './hero.scss'` loads it twice and is a `ds/style-import` finding.
 
 ## Kit components
 
@@ -16,6 +17,7 @@ Read by the `maker` agent before it writes a section. Each rule has an id; repor
 - R-COMPOSE-7: Use a kit component for every button, input, select and dialog. A plain `<button>`, `<input>`, `<select>`, `<textarea>` or `<dialog>` is a `ds/raw-control` finding.
 - R-COMPOSE-8: Icons come only from the names in `kit.icons`.
 - R-COMPOSE-9: If the design needs a component or prop the kit lacks, use the nearest listed one and say so in the report. Never invent a name.
+- R-COMPOSE-44: When the kit has no component for a part, plain HTML is fine for anything that is not a control from R-COMPOSE-7: `<details>` with `<summary>` for a question that opens, `<table>` with `<th scope="col">` for a comparison, `<ul>`, `<ol>`, `<dl>`, `<nav>`, `<a>`. Style it with tokens in the section's SCSS, keep its focus ring, and name it in the report as something the kit lacks.
 
 ## Tokens and styles
 
@@ -23,7 +25,7 @@ Read by the `maker` agent before it writes a section. Each rule has an id; repor
 - R-COMPOSE-11: No hex, `rgb()`, `hsl()` or colour names in styles. No pixel or rem value that equals a spacing, radius or font-size token: write the token.
 - R-COMPOSE-12: Lay out with the kit's `Stack` and `Grid` when the context lists them; use SCSS only for what they cannot do (widths, alignment, responsive changes).
 - R-COMPOSE-13: Never address elements by tag or class from another section. Each section styles only its own class.
-- R-COMPOSE-14: Make the layout work at 390 px and at 1280 px wide.
+- R-COMPOSE-14: Make the layout work at 390 px and at 1280 px wide. Prefer the kit's own responsive props (such as a `Grid` that collapses); a width inside `@media` is written in px, because `var()` does not work there.
 
 ## States
 
@@ -42,6 +44,7 @@ Read by the `maker` agent before it writes a section. Each rule has an id; repor
 
 - R-COMPOSE-19: Do not add `data-ks` yourself. The build stamps every host element; findings point to elements by those ids.
 - R-COMPOSE-20: Keep the JSX tree stable between versions: do not wrap or reorder elements without a reason, so ids do not shift.
+- R-COMPOSE-45: For an in-page link, put `id` with the section id on the section's root element and link to it as `href="#<id>"`. To name a region by its heading, give the heading an `id` and the region `aria-labelledby`. No other `id` attributes. `id`, `aria-*` and `title` are HTML attributes, not listed props: the `base` kit's components pass them to their element; with another kit put them only on plain elements or where the context lists them.
 
 ## Accessibility
 
@@ -60,7 +63,7 @@ Read by the `maker` agent before it writes a section. Each rule has an id; repor
 - R-COMPOSE-34: No placeholder copy: no lorem ipsum, "Title here", "Click me" or "Item 1" (`ux/placeholder-text`).
 - R-COMPOSE-35: A heading sits closer to its own content than to the block above it. Set the gap above a heading larger than the gap below it, with spacing tokens.
 - R-COMPOSE-36: No card inside a card. Separate parts of a card with spacing or a divider (`ui/nested-frame`).
-- R-COMPOSE-37: Long text stays at about 80 characters per line or less: set a `max-width` from a token (`ui/line-length`).
+- R-COMPOSE-37: Long text stays at about 80 characters per line or less: set a `max-width` from a `size` token, such as the base kit's `--kit-size-measure` for text and `--kit-size-page` for the whole content (`ui/line-length`).
 - R-COMPOSE-38: Body text is at least 14 px on phones. Use the kit's body size token and never shrink it for density.
 
 ## Rework
