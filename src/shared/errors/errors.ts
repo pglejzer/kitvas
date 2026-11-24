@@ -62,6 +62,8 @@ export const ERROR_TABLE = {
   // Stage 4d (plan 17, task C): notes on elements.
   NOTE_NOT_FOUND: { exit: 58, http: 404 },
   NOTE_LIMIT: { exit: 59, http: 409 },
+  // Plan 18b: `kitvas doctor` found a failing check.
+  DOCTOR_FAILED: { exit: 60, http: 500 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;

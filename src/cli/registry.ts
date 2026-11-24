@@ -1,6 +1,6 @@
 // What a kitvas command is.
 
-import type { Translate } from '../shared/index.ts';
+import type { KitvasError, Translate } from '../shared/index.ts';
 import type { Flags } from './args.ts';
 
 export type CommandContext = {
@@ -17,6 +17,8 @@ export type Command = {
   summary: string;
   run(ctx: CommandContext): Promise<unknown> | unknown;
   render(data: unknown, t: Translate): string;
+  /** An error for the exit code when the answer says something failed; the answer is still printed. */
+  failure?(data: unknown): KitvasError | undefined;
 };
 
 type TypedCommand<T> = {
@@ -24,6 +26,7 @@ type TypedCommand<T> = {
   summary: string;
   run(ctx: CommandContext): Promise<T> | T;
   render(data: T, t: Translate): string;
+  failure?(data: T): KitvasError | undefined;
 };
 
 export function defineCommand<T>(command: TypedCommand<T>): Command {

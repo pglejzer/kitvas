@@ -52,6 +52,8 @@ export type Flags = {
   message: string | undefined;
   /** `request fail --reason <text>`. */
   reason: string | undefined;
+  /** `doctor --report`: print the text to paste into an issue. */
+  report: boolean;
 };
 
 export type ParsedArgs = {
@@ -96,6 +98,7 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         file: { type: 'string' },
         message: { type: 'string' },
         reason: { type: 'string' },
+        report: { type: 'boolean' },
       },
     });
     const [command, ...rest] = positionals;
@@ -130,6 +133,7 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         file: values.file,
         message: values.message,
         reason: values.reason,
+        report: values.report === true,
       },
     };
   } catch (cause) {

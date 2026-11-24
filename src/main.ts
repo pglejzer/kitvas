@@ -24,6 +24,7 @@ import {
   createCheckCommand,
   createContextCommand,
   createCraftCommand,
+  createDoctorCommand,
   createDraftCommand,
   createInboxCommand,
   createKitCommand,
@@ -39,6 +40,7 @@ import {
   runCli,
   statusCommand,
 } from './cli/index.ts';
+import { createNodeMachine } from './doctor/adapters/node-machine.ts';
 import { createFsDraftStore } from './drafts/adapters/fs-draft-store.ts';
 import { createEsbuildCompiler } from './edit/adapters/esbuild-compiler.ts';
 import { createImageFiles, createImageStore } from './edit/adapters/image-files.ts';
@@ -312,6 +314,16 @@ export function main(argv: string[]): Promise<number> {
     createBuildCommand({ ...drafts, render }),
     createCheckCommand({ ...drafts, render, types, browser }),
     createBrowserCommand({ browser, installer, browsersDir }),
+    createDoctorCommand({
+      kits,
+      projectFiles: createProjectFiles,
+      browser,
+      browsersDir,
+      lifecycle: studio.lifecycle,
+      dataDir,
+      machine: createNodeMachine({ roots: defaultDepRoots() }),
+      now: () => new Date(),
+    }),
     createStudioCommand(studio),
     createInboxCommand({ lifecycle: studio.lifecycle }),
     createRequestCommand({ lifecycle: studio.lifecycle }),
