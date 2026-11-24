@@ -1,9 +1,25 @@
-// A card's caption keeps its size on the screen, so a narrow card at a small zoom has little room:
-// the "Editing" mark must never push the card's name out (spec 4d, goal 8). The rule is pure over
-// the widths of the caption's parts; the DOM part measures them and shows or hides the mark.
+// A card's label above it (spec 4d, goal 8; plan 18, task A): the draft's name, then the width the
+// card shows ("Desktop 1280" at a preset, "1000 px" at any other width). The label keeps its size
+// on the screen, so a narrow card at a small zoom has little room: the "Editing" mark must never
+// push the card's name out. The rules are pure; the DOM part measures and shows or hides the mark.
+
+import { presetOf } from './width.ts';
 
 /** The room the card's name keeps beside the mark and the size, at least (px, caption units). */
 export const MIN_NAME = 48;
+
+/** Says a text key with its values (`text` of `edit/texts.ts`; a plain function in tests). */
+export type Say = (key: string, params?: Record<string, string | number>) => string;
+
+/**
+ * The width a card's label names: the preset's name and its width, or the width alone in pixels.
+ * The server writes the same words (`cardSize` in `src/studio/pages/draft/draft-stage.ts`).
+ */
+export function cardSize(width: number, say: Say): string {
+  const preset = presetOf(width);
+  if (preset === null) return say('canvas.size.custom', { width });
+  return say('canvas.size.preset', { name: say(`canvas.width.${preset}`), width });
+}
 
 export type CaptionWidths = {
   /** The caption's own width. */

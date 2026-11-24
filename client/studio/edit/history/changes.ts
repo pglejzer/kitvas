@@ -1,13 +1,20 @@
-// The session change list and the off-kit counter (plan 13, task J). The logic is in pure
-// functions over plain data; `mountChanges` only draws it and wires the clicks.
+// The Changes tab (plan 13, task J; plan 18, task D): the session's steps as a rail of nodes, each
+// with who made it, what changed as chips and, on the newest of the person's, its undo; the last
+// saved version at the rail's end; the values outside the kit; and the foot with Undo all and
+// Save version, always in view. The logic is in pure functions over plain data (`rail.ts`,
+// `chips.ts`); `mountChanges` only draws it and wires the clicks.
 
 import type { EditOp } from '../../../../src/edit/index.ts';
 import type { OffKit } from '../../../../src/studio/api/edit/edit-schemas.ts';
+import { iconButton } from '../../ui/icon.ts';
 import { getOffKit } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { mismatchedIds } from '../live/items.ts';
 import type { ChangeEntry } from '../store.ts';
 import { text } from '../texts.ts';
+import { chipRow } from './chip-view.ts';
+import { chipsOf, type StepEntry } from './chips.ts';
+import { footNote, isFresh, savedVersion, undoableIndex } from './rail.ts';
 
 export type OffKitItem = OffKit['items'][number];
 
@@ -46,7 +53,7 @@ export function entryParts(entry: ChangeEntry): EntryParts {
 }
 
 /** Newest first; entries of the same instant keep the later one first. */
-export function newestFirst(changes: ChangeEntry[]): ChangeEntry[] {
+export function newestFirst<T extends ChangeEntry>(changes: readonly T[]): T[] {
   return changes
     .map((entry, index) => ({ entry, index }))
     .sort((a, b) => b.entry.at - a.entry.at || b.index - a.index)
@@ -92,68 +99,131 @@ function element(tag: string, className?: string, content?: string): HTMLElement
   return node;
 }
 
-function renderEntry(
-  ctx: EditorContext,
-  entry: ChangeEntry,
-  mismatched: ReadonlySet<string>,
-): HTMLElement {
+function button(className: string, words: string): HTMLButtonElement {
+  const node = document.createElement('button');
+  node.type = 'button';
+  node.className = className;
+  node.textContent = words;
+  return node;
+}
+
+function chip(words: string, tone?: 'review'): HTMLElement {
+  const node = element('span', 'k-chip', words);
+  if (tone !== undefined) node.dataset.tone = tone;
+  return node;
+}
+
+/** The dot of a step on the rail; a version's is a square (`changes.ts` of the skin). */
+const node = (): HTMLElement => {
+  const dot = element('span', 'changes-node');
+  dot.setAttribute('aria-hidden', 'true');
+  return dot;
+};
+
+type StepView = { undo: boolean; flash: boolean; mismatched: ReadonlySet<string> };
+
+function renderStep(ctx: EditorContext, entry: StepEntry, view: StepView): HTMLElement {
   const parts = entryParts(entry);
-  const row = element('li');
-  const line = element('button', 'edit-change');
-  (line as HTMLButtonElement).type = 'button';
-  const who = text(parts.who === 'claude' ? 'changes.claude' : 'changes.you');
-  line.append(
-    element('span', 'edit-change-who', who),
-    element('span', 'edit-change-element', parts.element),
-    element('span', 'edit-change-label', parts.label),
-  );
-  if (parts.offKit) line.append(element('span', 'edit-change-flag', text('changes.entryOffKit')));
+  const row = element('li', 'changes-step');
+  row.dataset.by = parts.who;
+  if (view.flash) row.classList.add('k-flash');
+  const head = element('div', 'changes-row');
   const id = parts.id;
-  // Spec 4c, goal 8: the build shows another value than the editor did for this element.
-  if (id !== null && mismatched.has(id)) {
-    line.append(element('span', 'edit-change-flag', text('live.mismatchFlag')));
+  if (parts.element !== '') {
+    const name = button('changes-element k-clip', parts.element);
+    name.title = parts.element;
+    if (id === null) name.setAttribute('aria-disabled', 'true');
+    else name.addEventListener('click', () => ctx.store.set({ selection: [id] }));
+    head.append(name);
   }
-  if (id === null) line.setAttribute('aria-disabled', 'true');
-  else line.addEventListener('click', () => ctx.store.set({ selection: [id] }));
-  row.append(line);
+  head.append(chip(text(parts.who === 'claude' ? 'changes.claude' : 'changes.you')));
+  if (view.undo) {
+    const undo = iconButton('undo', text('changes.undoStep'));
+    undo.dataset.changesUndo = '';
+    undo.disabled = ctx.store.get().busy;
+    undo.addEventListener('click', () => void ctx.history.undo());
+    head.append(undo);
+  }
+  row.append(node(), head);
+  const chips = chipRow(chipsOf(entry));
+  if (chips) row.append(chips);
+  row.append(element('p', 'changes-label', parts.label));
+  const flags: HTMLElement[] = [];
+  if (parts.offKit) flags.push(chip(text('changes.entryOffKit'), 'review'));
+  // Spec 4c, goal 8: the build shows another value than the editor did for this element.
+  if (id !== null && view.mismatched.has(id)) flags.push(chip(text('live.mismatchFlag'), 'review'));
+  if (flags.length > 0) {
+    const line = element('div', 'changes-chips');
+    line.append(...flags);
+    row.append(line);
+  }
+  return row;
+}
+
+/** The rail's end: the last saved version, and whether the steps above are in it. */
+function renderSaved(version: number, above: boolean): HTMLElement {
+  const row = element('li', 'changes-step changes-saved');
+  row.dataset.by = 'version';
+  const head = element('div', 'changes-row');
+  head.append(element('strong', undefined, text('changes.version', { version })));
+  row.append(
+    node(),
+    head,
+    element('p', 'k-meta', text(above ? 'changes.notInVersion' : 'changes.lastSaved')),
+  );
   return row;
 }
 
 function renderOffKit(ctx: EditorContext, items: OffKitItem[]): HTMLElement {
-  const box = element('div', 'edit-offkit');
+  const box = element('section', 'changes-offkit');
   const title = text(items.length === 0 ? 'changes.offKitNone' : 'changes.offKit', {
     n: items.length,
   });
-  box.append(element('h4', undefined, title));
-  const list = element('ul');
+  box.append(element('h3', 'changes-offkit-title', title));
+  if (items.length === 0) return box;
+  const list = element('ul', 'k-stack');
   for (const item of items) {
-    const row = element('li', 'edit-offkit-item');
-    row.append(
-      element('span', 'edit-offkit-class', `.${item.className}`),
+    const row = element('li', 'k-item changes-offkit-item');
+    const what = element('p', 'changes-offkit-what');
+    what.append(
+      element('code', 'k-mono', `.${item.className}`),
       element('span', undefined, item.property),
-      element('span', 'edit-offkit-value', item.value),
+      element('code', 'k-mono changes-offkit-value', item.value),
     );
     const op = mapToNearestOp(item);
-    const button = element(
-      'button',
-      undefined,
+    const map = button(
+      'k-btn k-btn-line',
       item.nearest === null
         ? text('changes.noNearest')
         : text('changes.map', { token: item.nearest.path }),
-    ) as HTMLButtonElement;
-    button.type = 'button';
-    button.disabled = op === null;
+    );
+    map.disabled = op === null;
     if (op !== null && item.nearest !== null) {
       const label = text('changes.mapLabel', { property: item.property, token: item.nearest.path });
-      button.addEventListener('click', () => {
-        void ctx.history.apply({ ops: [op], label });
+      map.addEventListener('click', () => {
+        void ctx.history.apply({ ops: [op], label, flash: true });
       });
     }
-    row.append(button);
+    row.append(what, map);
     list.append(row);
   }
   box.append(list);
   return box;
+}
+
+/**
+ * Undo all: every step of the undo stack, one after another through the history (each one a
+ * request, so a change by someone else is met as any undo meets it). A conflict, a refusal or a
+ * request that did not go through stops it; redo brings the steps back.
+ */
+async function undoAll(ctx: EditorContext): Promise<void> {
+  let left = ctx.store.get().undo.length;
+  while (left > 0) {
+    await ctx.history.undo();
+    const state = ctx.store.get();
+    if (state.conflict !== null || state.refused !== null || state.undo.length >= left) return;
+    left = state.undo.length;
+  }
 }
 
 export function mountChanges(ctx: EditorContext): void {
@@ -161,18 +231,65 @@ export function mountChanges(ctx: EditorContext): void {
   if (!(section instanceof HTMLElement)) return;
   let items: OffKitItem[] = [];
   let reads = 0;
+  /** How many lines the rail showed last: a new one flashes once. */
+  let shown = ctx.store.get().changes.length;
+  let undoing = false;
+
+  // Drawn once: the part that scrolls, and the foot that stays in view (C8). The rail and the
+  // values outside the kit are drawn apart, so a read of the one leaves the other as it is.
+  const steps = element('div', 'changes-steps');
+  const offKit = element('div');
+  const body = element('div', 'k-pad changes-body');
+  body.append(steps, offKit);
+  const scroll = element('div', 'k-scroll');
+  scroll.append(body);
+  const foot = element('div', 'k-actions changes-foot');
+  const note = element('span', 'k-meta changes-foot-note');
+  const all = button('k-btn', text('changes.undoAll'));
+  // Session (`session.ts`) runs every Save version button: the bar's and this one.
+  const save = button('k-btn k-btn-primary', text('save'));
+  save.dataset.changesSave = '';
+  foot.append(note, all, save);
+  section.replaceChildren(scroll, foot);
+
+  all.addEventListener('click', () => {
+    if (undoing) return;
+    undoing = true;
+    renderFoot();
+    void undoAll(ctx).finally(() => {
+      undoing = false;
+      renderFoot();
+    });
+  });
+
+  /** What follows `busy` and the stacks without drawing the rail again (focus stays put). */
+  function renderFoot(): void {
+    const state = ctx.store.get();
+    const said = footNote(state.undo, (state.edit?.session ?? null) !== null);
+    note.textContent = said === null ? '' : text(said.key, said.params);
+    all.disabled = undoing || state.busy || state.undo.length === 0;
+    const undo = steps.querySelector<HTMLButtonElement>('button[data-changes-undo]');
+    if (undo) undo.disabled = undoing || state.busy;
+  }
 
   const draw = (): void => {
-    const heading = element('h3', undefined, text('changes.title'));
-    const entries = newestFirst(ctx.store.get().changes);
-    const list = element('ol');
-    const mismatched = mismatchedIds(ctx.store.get().live);
-    for (const entry of entries) list.append(renderEntry(ctx, entry, mismatched));
-    section.replaceChildren(
-      heading,
-      entries.length === 0 ? element('p', 'edit-empty', text('changes.empty')) : list,
-      renderOffKit(ctx, items),
-    );
+    const state = ctx.store.get();
+    const entries: StepEntry[] = newestFirst(state.changes);
+    const mismatched = mismatchedIds(state.live);
+    const undoAt = undoableIndex(entries, state.undo[state.undo.length - 1]);
+    const fresh = isFresh(shown, state.changes.length);
+    shown = state.changes.length;
+    const rail = element('ol', 'changes-rail');
+    rail.setAttribute('aria-label', text('changes.title'));
+    entries.forEach((entry, index) => {
+      const flash = fresh && index === 0;
+      rail.append(renderStep(ctx, entry, { undo: index === undoAt, flash, mismatched }));
+    });
+    const version = savedVersion(state.edit);
+    if (version !== null) rail.append(renderSaved(version, entries.length > 0));
+    const empty = entries.length === 0 ? element('p', 'k-quiet', text('changes.empty')) : null;
+    steps.replaceChildren(...(empty ? [empty] : []), ...(rail.childElementCount > 0 ? [rail] : []));
+    renderFoot();
   };
 
   // The newest read wins: an answer for an older request is dropped.
@@ -181,18 +298,21 @@ export function mountChanges(ctx: EditorContext): void {
     const answer = await getOffKit(ctx.store.get().slug);
     if (mine !== reads || !answer.ok) return;
     items = answer.body.items;
-    draw();
+    offKit.replaceChildren(renderOffKit(ctx, items));
   };
 
   // Every applied edit and every `source` event adds an entry, so a new list means new files.
   ctx.store.subscribe((state, previous) => {
     if (state.changes === previous.changes) {
-      if (state.live !== previous.live) draw();
+      const stacks = state.undo !== previous.undo || state.edit !== previous.edit;
+      if (state.live !== previous.live || stacks) draw();
+      else if (state.busy !== previous.busy) renderFoot();
       return;
     }
     draw();
     void refresh();
   });
   draw();
+  offKit.replaceChildren(renderOffKit(ctx, items));
   void refresh();
 }

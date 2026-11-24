@@ -44,10 +44,10 @@ export function mountFileDrop(ctx: EditorContext): void {
   if (!canvas) return;
 
   const shield = document.createElement('div');
-  shield.className = 'drop-shield';
+  shield.className = 'insert-shield';
   shield.hidden = true;
   const hint = document.createElement('p');
-  hint.className = 'drop-hint';
+  hint.className = 'k-pop insert-shield-hint';
   hint.textContent = text('upload.dropHint');
   shield.append(hint);
   canvas.append(shield);

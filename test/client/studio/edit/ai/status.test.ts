@@ -1,9 +1,11 @@
-// The AI tab's listening line (spec 4d, goal 1; plan 17, task B): its words for each state, the
-// command only while no session listens, and the read again while one is seen.
+// The Claude tab's listening line (spec 4d, goal 1; plan 17, task B): its words for each state,
+// the command only while no session listens, and the read again while one is seen. Plan 18: the
+// bar's dot and short words.
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  barStatus,
   commandOf,
   LISTEN_RECHECK_MS,
   recheckLater,
@@ -41,4 +43,16 @@ test('the tab reads again while a session is seen, after the listening grace is 
   assert.equal(recheckLater({ state: 'working', since: SINCE }), true);
   assert.equal(recheckLater({ state: 'off', since: null }), false);
   assert.ok(LISTEN_RECHECK_MS > LISTEN_GRACE_MS);
+});
+
+test("the bar's status: a dot for listening and for working, none when off, and its words", () => {
+  assert.deepEqual(barStatus({ state: 'listening', since: SINCE }), {
+    dot: 'listening',
+    key: 'ai.bar.listening',
+  });
+  assert.deepEqual(barStatus({ state: 'working', since: SINCE }), {
+    dot: 'working',
+    key: 'ai.bar.working',
+  });
+  assert.deepEqual(barStatus({ state: 'off', since: null }), { dot: null, key: 'ai.bar.off' });
 });

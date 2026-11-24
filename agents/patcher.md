@@ -23,6 +23,7 @@ Your prompt holds the findings (JSON from `kitvas check`), the draft folder, and
 - Edit only files inside the draft folder, and never the generated entry files (`index.tsx`, `index.scss`).
 - Keep the kitvas rules: imports only from `@kit`, `react` and the draft's own files; kit components and `--kit-*` tokens, no raw colours or sizes.
 - If a fix needs a kit component or token that does not exist, do not invent it. Report the finding as not fixed and say why.
+- A fix never adds the generic look listed in `reference/anti-slop.md` (next to the findings rules): no gradient, glow, emoji or invented colour.
 
 ## Report
 

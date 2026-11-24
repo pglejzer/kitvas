@@ -18,8 +18,18 @@ import type { StateHeld } from './props/state-held.ts';
  * `undoOps`: the exact inverse the server answered with (spec 4b, decision 4); undo and redo send
  * it, and the stack entry moved to the other stack carries the next answer's inverse (task D1).
  */
-/** `selectCreated`: select the elements the answer created (insert, paste, duplicate, wrap). */
-export type Gesture = { ops: EditOp[]; label: string; undoOps?: EditOp[]; selectCreated?: boolean };
+/**
+ * `selectCreated`: select the elements the answer created (insert, paste, duplicate, wrap).
+ * `flash`: a button made the change, not the person's hand on the element (a variant, a
+ * suggestion, "Bring back"): once it is applied a ring flashes on what it touched (ADR 0057).
+ */
+export type Gesture = {
+  ops: EditOp[];
+  label: string;
+  undoOps?: EditOp[];
+  selectCreated?: boolean;
+  flash?: boolean;
+};
 
 /** What copy and cut keep (task D4): each element's source and the TSX file it came from. */
 export type Clip = { items: { source: string; from: string }[]; text: string; at: number };

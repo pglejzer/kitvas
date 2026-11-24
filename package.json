@@ -20,6 +20,7 @@
     "check": "npm run lint && npm run types && npm run test:coverage && npm audit --audit-level=high"
   },
   "dependencies": {
+    "@fontsource-variable/figtree": "5.3.0",
     "@types/react": "19.3.0",
     "axe-core": "4.14.0",
     "esbuild": "0.28.2",

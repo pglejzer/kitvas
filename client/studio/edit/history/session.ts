@@ -9,6 +9,7 @@ import type { EditorContext } from '../context.ts';
 import { requestFullCheck } from '../live/check.ts';
 import type { EditorState, Gesture } from '../store.ts';
 import { text } from '../texts.ts';
+import { sayFor } from './said.ts';
 
 /** How long "Undo save" stays after a save. */
 export const UNDO_SAVE_MS = 8000;
@@ -92,6 +93,9 @@ export function reopenOutcome(answer: {
   return answer.status === 409 ? 'refused' : 'failed';
 }
 
+/** Every Save version button: the bar's, and the one in the Changes tab's foot (plan 18). */
+const SAVE = 'button[data-edit-save], button[data-changes-save]';
+
 export function mountSession(ctx: EditorContext): void {
   const { store, main, history } = ctx;
   const query = <T extends Element>(selector: string, kind: new () => T): T | null => {
@@ -100,7 +104,9 @@ export function mountSession(ctx: EditorContext): void {
   };
   const undoButton = query('button[data-edit-undo]', HTMLButtonElement);
   const redoButton = query('button[data-edit-redo]', HTMLButtonElement);
-  const saveButton = query('button[data-edit-save]', HTMLButtonElement);
+  const saveButtons = (): HTMLButtonElement[] => [
+    ...main.querySelectorAll<HTMLButtonElement>(SAVE),
+  ];
   const unsaveButton = query('button[data-edit-unsave]', HTMLButtonElement);
   const line = main.querySelector('[data-edit-session]');
 
@@ -114,7 +120,7 @@ export function mountSession(ctx: EditorContext): void {
     const disabled = disabledButtons(state);
     if (undoButton) undoButton.disabled = disabled.undo;
     if (redoButton) redoButton.disabled = disabled.redo;
-    if (saveButton) saveButton.disabled = disabled.save;
+    for (const save of saveButtons()) save.disabled = disabled.save;
     if (line) {
       line.textContent =
         note ??
@@ -154,7 +160,7 @@ export function mountSession(ctx: EditorContext): void {
     const before = store.get();
     const open = before.edit?.session ?? null;
     if (open === null || before.busy) return;
-    if (saveButton) saveButton.disabled = true;
+    for (const save of saveButtons()) save.disabled = true;
     const ended = await endSession(before.slug);
     const stacks = { undo: before.undo, redo: before.redo };
     const read = await refresh({ undo: [], redo: [] });
@@ -168,6 +174,8 @@ export function mountSession(ctx: EditorContext): void {
       hideTimer = setTimeout(forget, UNDO_SAVE_MS);
       // Smart validation (spec 4c): only now does the full check run, in the background.
       requestFullCheck(main);
+      // Spec goal 7: each Save version button says "Saved" for a moment.
+      for (const save of saveButtons()) sayFor(save, text('saved'));
     }
     render();
   }
@@ -186,7 +194,11 @@ export function mountSession(ctx: EditorContext): void {
 
   undoButton?.addEventListener('click', () => void history.undo());
   redoButton?.addEventListener('click', () => void history.redo());
-  saveButton?.addEventListener('click', () => void save());
+  // On `main`, so a Save version button drawn later (a pane's foot) needs no listener of its own.
+  main.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target.closest(SAVE) : null;
+    if (target instanceof HTMLButtonElement && !target.disabled) void save();
+  });
   unsaveButton?.addEventListener('click', () => void unsave());
 
   store.subscribe((state, previous) => {

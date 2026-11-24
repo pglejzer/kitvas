@@ -136,12 +136,12 @@ export function createStructureSync(
 export function mountStructure(ctx: EditorContext): void {
   const { panel, store, bridge, slug } = ctx;
   const note = document.createElement('p');
-  note.className = 'edit-note';
+  note.className = 'k-pop structure-note';
   note.dataset.editNote = 'structure';
   note.setAttribute('role', 'status');
   note.hidden = true;
   note.textContent = text('structure.lost');
-  // The screen floats it over the canvas (edit-skin/screen.ts).
+  // It floats over the canvas, at its top, where the toast at the foot never covers it.
   panel.prepend(note);
 
   const sync = createStructureSync(ctx, {

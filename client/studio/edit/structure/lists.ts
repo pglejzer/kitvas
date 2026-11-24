@@ -196,13 +196,20 @@ export function mountLists(ctx: EditorContext): void {
   let editing: TextTarget | null = null;
 
   const note = document.createElement('p');
-  note.className = 'edit-list';
+  note.className = 'k-meta list-note';
   note.dataset.edit = 'list';
-  note.hidden = true;
-  // Beside the properties, never inside them: their panel draws its own section again.
-  const props = ctx.panel.querySelector('section[data-edit="props"]');
-  if (props) props.before(note);
-  else ctx.panel.append(note);
+  note.dataset.off = '';
+  // Beside the properties, never inside them: their panel draws its own section again. It takes
+  // the pane's name, so the screen shows and hides it with the Properties tab; `data-off` is its
+  // own state, as the live blocks have theirs.
+  const props = ctx.panel.querySelector<HTMLElement>('section[data-edit="props"]');
+  if (props) {
+    if (props.dataset.pane !== undefined) note.dataset.pane = props.dataset.pane;
+    note.hidden = props.hidden;
+    props.before(note);
+  } else {
+    ctx.panel.append(note);
+  }
 
   function select(state: EditorState): void {
     if (state.on && state.selection.length > 0) bridge.send(selectBody(state));
@@ -210,7 +217,7 @@ export function mountLists(ctx: EditorContext): void {
 
   function render(state: EditorState): void {
     const line = state.on ? noteText(itemTarget(state), keyFieldOf(state.inspected)) : null;
-    note.hidden = line === null;
+    note.toggleAttribute('data-off', line === null);
     note.textContent = line ?? '';
   }
 

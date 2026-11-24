@@ -8,7 +8,7 @@ import { parseFrameMessage } from '../../channel/protocol.ts';
 export const MIN_HEIGHT = 48;
 export const MAX_HEIGHT = 1200;
 
-const FRAMES = 'iframe.example-frame[data-example][data-channel]';
+const FRAMES = 'iframe.kit-frame[data-example][data-channel]';
 const PREVIEW_NOTES = '[data-preview-note]';
 
 /** What the checks need of a frame element: its window, to compare with a message's source. */
@@ -59,7 +59,7 @@ export function exampleReport<Frame extends ExampleFrame<FrameHost>>(
     : { frame, shown: false };
 }
 
-/** `iframe.example-frame` with a key and a channel, inside the page's `main`. */
+/** `iframe.kit-frame` with a key and a channel, inside the page's `main`. */
 export function findExampleFrames(main: HTMLElement): ExampleFrame[] {
   const frames: ExampleFrame[] = [];
   for (const element of main.querySelectorAll<HTMLIFrameElement>(FRAMES)) {
@@ -78,7 +78,7 @@ export function applyReport(main: HTMLElement, report: ExampleReport<ExampleFram
     return;
   }
   element.hidden = true;
-  // The skin makes the frame a block, which beats the `hidden` attribute on its own.
+  // The skin makes the frame a block, which can beat the `hidden` attribute on its own.
   element.style.display = 'none';
   // Compared as text, never built into a selector.
   for (const note of main.querySelectorAll<HTMLElement>(PREVIEW_NOTES)) {

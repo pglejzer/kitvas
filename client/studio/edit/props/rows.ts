@@ -57,25 +57,36 @@ export type Env = {
 
 type Row = { root: HTMLElement; label: HTMLElement; body: HTMLElement; meta: HTMLElement };
 
+/**
+ * A row (`.k-row`): the label, the control, and under the control its marks, notes and actions.
+ * A long label is clipped and says itself in full as its tooltip.
+ */
 export function makeRow(env: Env, key: string, aliases: string[], label: string): Row {
-  const root = el('div', 'props-row');
+  const root = el('div', 'k-row props-entry');
   root.dataset.row = key;
-  const name = el('span', 'props-label', label);
-  const body = el('div', 'props-body');
-  const meta = el('div', 'props-meta');
+  const name = el('span', 'k-label props-key', label);
+  name.title = label;
+  const body = el('div', 'props-control');
+  const meta = el('div', 'props-extra');
   root.append(name, body, meta);
   const note = env.notes.get(key);
-  if (note) meta.append(el('span', 'props-note', text(note)));
+  if (note) meta.append(el('span', 'props-hint', text(note)));
   if (env.refusal && [key, ...aliases].includes(env.refusal.key)) {
-    const problem = el('span', 'props-problem', text(`props.reason.${env.refusal.reason}`));
+    const problem = el('span', 'props-error', text(`props.reason.${env.refusal.reason}`));
     problem.setAttribute('role', 'status');
     meta.append(problem);
   }
   return { root, label: name, body, meta };
 }
 
+/** A value that cannot be edited here, as the source or the frame has it. */
+export function staticValue(value: string): HTMLElement {
+  return el('code', 'k-mono props-static', value);
+}
+
+/** Reset: a small quiet action under the row's control, as the context's actions are. */
 export function resetButton(label: string, onClick: () => void): HTMLButtonElement {
-  const button = el('button', 'props-reset', text('props.reset'));
+  const button = el('button', 'k-btn props-act', text('props.reset'));
   button.type = 'button';
   button.setAttribute('aria-label', label);
   button.addEventListener('click', onClick);
@@ -117,7 +128,7 @@ function propControl(
     const onCommit = (value: number): void => set({ kind: 'number', value });
     return numberControl({ label, value: typeof raw === 'number' ? raw : null, onCommit });
   }
-  return el('code', 'props-code', String(raw ?? ''));
+  return staticValue(String(raw ?? ''));
 }
 
 /**
@@ -149,10 +160,8 @@ export function propRows(env: Env): HTMLElement[] {
     const set = (value: PropValue): void =>
       commit(key, (now) => opsForPropAll(now, name, value), text('props.label.prop', { name }));
     if (written?.kind === 'expr') {
-      row.body.append(
-        el('code', 'props-code', text('props.expr.source', { source: written.source })),
-      );
-      row.meta.append(el('span', 'props-note', text('props.reason.computed')));
+      row.body.append(staticValue(text('props.expr.source', { source: written.source })));
+      row.meta.append(el('span', 'props-hint', text('props.reason.computed')));
       rows.push(row.root);
       continue;
     }
@@ -160,9 +169,9 @@ export function propRows(env: Env): HTMLElement[] {
     const value = written?.kind === 'literal' ? written.value : shared;
     const raw = value ? value.value : absent ? def?.default : undefined;
     if (fixed) {
-      row.body.append(el('code', 'props-code', String(raw ?? '')));
+      row.body.append(staticValue(String(raw ?? '')));
       if (noteOnce(env, 'propOnce')) {
-        row.meta.append(el('span', 'props-note', text('context.propOnce')));
+        row.meta.append(el('span', 'props-hint', text('context.propOnce')));
       }
       rows.push(row.root);
       continue;
@@ -177,7 +186,7 @@ export function propRows(env: Env): HTMLElement[] {
     } else {
       row.body.append(propControl(kind, name, raw, set));
     }
-    if (single && !written) row.meta.append(el('span', 'props-note', text('props.default')));
+    if (single && !written) row.meta.append(el('span', 'props-hint', text('props.default')));
     else if (def) {
       const clear = (): void =>
         commit(key, (now) => opsForPropAll(now, name, null), text('props.label.reset', { name }));

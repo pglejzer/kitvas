@@ -1,7 +1,9 @@
-// The zoom strip in the dock (`div[data-dock="zoom"]`; plan 15, task B): −, a typed percent, +,
-// and a menu with Fit, Selection, 50 %, 100 % and 200 %. It only asks; `canvas.ts` zooms.
+// The zoom pill at the canvas's bottom right (`div[data-dock="zoom"]`; plan 15, task B; plan 18,
+// task A): −, a typed percent, +, and a menu with Fit, Selection, 50 %, 100 % and 200 % that opens
+// upwards. It only asks; `canvas.ts` zooms.
 
 import { text } from '../edit/texts.ts';
+import { icon, iconButton } from '../ui/icon.ts';
 import { MAX_ZOOM, MIN_ZOOM, parsePercent, percentOf } from './zoom.ts';
 
 export type StripActions = {
@@ -27,24 +29,16 @@ function commandKey(): string {
   return /mac|iphone|ipad/i.test(platform) ? 'Cmd' : 'Ctrl';
 }
 
-function button(label: string, shown: string, onClick: () => void): HTMLButtonElement {
-  const node = document.createElement('button');
-  node.type = 'button';
-  node.textContent = shown;
-  node.setAttribute('aria-label', label);
-  node.addEventListener('click', onClick);
-  return node;
-}
-
 function menuItem(label: string, keys: string | null, onClick: () => void): HTMLButtonElement {
   const node = document.createElement('button');
   node.type = 'button';
-  node.className = 'zoom-menu-item';
+  node.className = 'k-menu-item';
   const name = document.createElement('span');
   name.textContent = label;
   node.append(name);
   if (keys !== null) {
     const hint = document.createElement('kbd');
+    hint.className = 'k-kbd';
     hint.textContent = keys;
     node.append(hint);
   }
@@ -56,12 +50,14 @@ export function mountStrip(host: HTMLElement | null, actions: StripActions): Str
   if (!host) return { show() {} };
   let shown = 1;
 
-  const out = button(text('zoom.out'), '−', () => actions.step(-1));
-  const more = button(text('zoom.in'), '+', () => actions.step(1));
+  const out = iconButton('minus', text('zoom.out'));
+  out.addEventListener('click', () => actions.step(-1));
+  const more = iconButton('plus', text('zoom.in'));
+  more.addEventListener('click', () => actions.step(1));
 
   const level = document.createElement('input');
   level.type = 'text';
-  level.className = 'zoom-level';
+  level.className = 'k-field pill-level';
   level.inputMode = 'decimal';
   level.autocomplete = 'off';
   level.spellcheck = false;
@@ -91,11 +87,14 @@ export function mountStrip(host: HTMLElement | null, actions: StripActions): Str
   });
 
   const menu = document.createElement('details');
-  menu.className = 'zoom-menu';
+  menu.className = 'pill-menu';
   const summary = document.createElement('summary');
+  summary.className = 'k-icon-btn';
   summary.setAttribute('aria-label', text('zoom.menu'));
+  summary.title = text('zoom.menu');
+  summary.append(icon('chevron-up'));
   const list = document.createElement('div');
-  list.className = 'zoom-menu-list';
+  list.className = 'k-pop k-menu pill-list';
   const choose = (run: () => void) => (): void => {
     menu.open = false;
     summary.focus();

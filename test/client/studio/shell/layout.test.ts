@@ -1,23 +1,32 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  CHROME,
   clampSide,
   DEFAULT_WIDTH,
   dragWidth,
+  FOLDED,
   fitSides,
   foldBoth,
   foldOnSwitch,
+  GAP,
   GRIP_STEP,
   gripKey,
   LAYOUT_KEY,
+  LEFT_PANES,
   MAX_SIDE,
   MIN_SIDE,
   nextTab,
   noSettings,
   openingSide,
+  RAIL,
+  type RailView,
+  railClick,
+  railPressed,
   readSettings,
   type Settings,
   type StorageLike,
+  sideOfPane,
   tabFor,
   writeSettings,
 } from '../../../../client/studio/shell/layout.ts';
@@ -61,8 +70,26 @@ test('both panels fit the window, the left first, a folded one counting as its r
   // The left leaves the canvas 320 beside the right's 700; the right then gets 45 %.
   assert.deepEqual(fitSides(open, 1400), { left: 380, right: 630 });
   const folded = { ...open, right: { width: 700, folded: true } };
-  // Beside a 40 px rail the left gets 45 %; the right, opened again, gets what is left.
+  // Beside a 52 px rail the left gets 45 %; the right, opened again, gets what is left.
   assert.deepEqual(fitSides(folded, 1400), { left: 630, right: 450 });
+});
+
+test('a folded left panel takes no room: the rail beside it stays, the right one keeps a rail', () => {
+  assert.deepEqual(FOLDED, { left: 0, right: RAIL });
+  const both = { left: { width: 700, folded: false }, right: { width: 700, folded: false } };
+  // Beside an open left panel of 220 the right gets 900 - 220 - 320.
+  assert.deepEqual(fitSides(both, 900), { left: MIN_SIDE, right: 360 });
+  // Beside a folded one it gets 45 % of the room.
+  const left = { ...both, left: { width: 700, folded: true } };
+  assert.equal(fitSides(left, 900).right, 405);
+});
+
+test('the panels start at the studio sizes, and the body keeps the rail and the gaps', () => {
+  assert.deepEqual(DEFAULT_WIDTH, { left: 248, right: 312 });
+  assert.equal(RAIL, 52);
+  assert.equal(GAP, 10);
+  // The rail, and in Cards a gap at each edge and between the four columns.
+  assert.equal(CHROME, RAIL + 5 * GAP);
 });
 
 test('a grip steps 16 px outwards and inwards, and Home and End go to the ends', () => {
@@ -104,6 +131,25 @@ test('missing, broken or foreign storage gives no settings, and the screen still
     storage.items.set(LAYOUT_KEY, raw);
     assert.deepEqual(readSettings(storage), noSettings(), raw);
   }
+});
+
+test('a layout stored before the rail loads as it was: the same key and the same shape', () => {
+  const storage = memory();
+  // What the screen of plan 15 wrote: its old default widths, the right panel folded.
+  storage.items.set(
+    'kitvas.editor.layout',
+    JSON.stringify({ left: { width: 272, folded: false }, right: { width: 320, folded: true } }),
+  );
+  const settings = readSettings(storage);
+  assert.deepEqual(settings, {
+    left: { width: 272, folded: false },
+    right: { width: 320, folded: true },
+  });
+  assert.deepEqual(openingSide(settings.left, 'left', 'preview'), { width: 272, folded: false });
+  assert.deepEqual(openingSide(settings.right, 'right', 'edit'), { width: 320, folded: true });
+  // Only the defaults moved to the new sizes.
+  const none = readSettings(memory());
+  assert.equal(openingSide(none.left, 'left', 'edit').width, 248);
 });
 
 test('a stored width outside 220 to 720 or a fold that is not a boolean is dropped', () => {
@@ -184,4 +230,52 @@ test('the arrow keys move along the tabs and wrap around; Home and End go to the
   assert.equal(nextTab(tabs, 'changes', 'End'), 'checks');
   assert.equal(nextTab(tabs, 'changes', 'Enter'), null);
   assert.equal(nextTab([], 'changes', 'ArrowRight'), null);
+});
+
+test('the rail holds the left panel panes in order, Notes among them', () => {
+  assert.deepEqual([...LEFT_PANES], ['layers', 'insert', 'why', 'notes']);
+  assert.equal(tabFor('left', 'edit', 'notes', LEFT_PANES), 'notes');
+});
+
+test('one rail button is pressed at a time: the pane shown in the open panel', () => {
+  const open: RailView = { tab: 'notes', open: true };
+  const pressed = LEFT_PANES.filter((pane) => railPressed(pane, open));
+  assert.deepEqual(pressed, ['notes']);
+  // A folded panel shows no pane: none is pressed.
+  const folded: RailView = { tab: 'notes', open: false };
+  assert.deepEqual(
+    LEFT_PANES.filter((pane) => railPressed(pane, folded)),
+    [],
+  );
+});
+
+test('a rail click opens its pane, and a click on the pane shown folds the panel', () => {
+  // Folded: the click opens the panel on that pane.
+  assert.deepEqual(railClick('insert', { tab: 'layers', open: false }), {
+    tab: 'insert',
+    open: true,
+  });
+  // Open on another pane: it switches, the panel stays open.
+  assert.deepEqual(railClick('notes', { tab: 'layers', open: true }), { tab: 'notes', open: true });
+  // Open on this pane: the panel folds and keeps the pane for the next time.
+  assert.deepEqual(railClick('notes', { tab: 'notes', open: true }), {
+    tab: 'notes',
+    open: false,
+  });
+  // Folded on this pane: it opens again.
+  assert.deepEqual(railClick('notes', { tab: 'notes', open: false }), { tab: 'notes', open: true });
+});
+
+test('a [data-open-pane] button finds the side that holds its pane', () => {
+  const panes = {
+    left: LEFT_PANES,
+    right: ['properties', 'changes', 'checks', 'ai'],
+  };
+  assert.equal(sideOfPane('notes', panes), 'left');
+  assert.equal(sideOfPane('checks', panes), 'right');
+  assert.equal(sideOfPane('layers', panes), 'left');
+  // A pane the page lacks (Sketches outside a craft draft), or none named: nothing opens.
+  assert.equal(sideOfPane('sketches', panes), null);
+  assert.equal(sideOfPane(undefined, panes), null);
+  assert.equal(sideOfPane('', panes), null);
 });

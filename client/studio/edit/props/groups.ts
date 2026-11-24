@@ -3,6 +3,7 @@
 // kept per viewer in `localStorage`, every read and write guarded: the panel works without it.
 
 import type { StyleProperty } from '../../../../src/edit/index.ts';
+import { icon } from '../../ui/icon.ts';
 import { el } from './controls.ts';
 
 export const GROUPS = [
@@ -126,7 +127,8 @@ export function toggleFold(folds: ReadonlySet<GroupId>, id: GroupId): Set<GroupI
 
 /**
  * One group: a heading button that folds it and a body with its rows. `data-row` and
- * `data-control` let the panel give the button its focus back after a redraw.
+ * `data-control` let the panel give the button its focus back after a redraw. Plan 18: the
+ * shared foldable group (`.k-group`, `.k-group-head` with its chevron).
  */
 export function groupView(options: {
   id: GroupId;
@@ -135,15 +137,16 @@ export function groupView(options: {
   rows: readonly HTMLElement[];
   onToggle(): void;
 }): HTMLElement {
-  const section = el('section', 'props-group');
+  const section = el('section', 'k-group props-block');
   section.dataset.group = options.id;
-  const heading = el('h4', 'props-group-head');
+  const heading = el('h4', 'props-block-title');
   heading.dataset.row = `group:${options.id}`;
-  const button = el('button', 'props-fold', options.title);
+  const button = el('button', 'k-group-head');
   button.type = 'button';
   button.dataset.control = 'fold';
   button.setAttribute('aria-expanded', String(!options.folded));
-  const body = el('div', 'props-group-body');
+  button.append(icon('chevron-down'), el('span', 'k-clip', options.title));
+  const body = el('div', 'props-block-rows');
   body.id = `props-group-${options.id}`;
   button.setAttribute('aria-controls', body.id);
   body.hidden = options.folded;

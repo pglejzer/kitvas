@@ -20,28 +20,29 @@ import {
 import { text } from '../texts.ts';
 import { el } from './controls.ts';
 
-/** The bar above the rows: where edits go, and the state they go to. */
+/**
+ * The line under the header: the width edits go to as a chip, and the state they go to as a
+ * segmented control (plan 18: the context bar of stage 4c in the new look).
+ */
 export function contextBarView(options: {
   context: StyleContext;
   pick(state: StyleState | null): void;
 }): HTMLElement {
   const { context } = options;
-  const bar = el('div', 'ctx-bar');
+  const bar = el('div', 'props-where');
   // A row key, so the panel puts the focus back on the same state after a redraw.
   bar.dataset.row = 'context';
-  const where = el('p', 'ctx-where');
-  where.title = text('context.where.hint');
   const words = widthWords(context.width);
-  where.append(
-    el('span', 'ctx-label', text('context.where')),
-    el('strong', 'ctx-width', text(words.key, words.params)),
-  );
-  const states = el('div', 'ctx-states');
+  const width = el('span', 'k-chip props-width', text(words.key, words.params));
+  width.title = text('context.where.hint');
+  // Heard before the chip: "Edits apply to All widths". On screen the chip says enough.
+  const where = el('span', 'k-sr', text('context.where'));
+  const states = el('div', 'k-seg props-states');
   states.setAttribute('role', 'group');
   states.setAttribute('aria-label', text('context.states'));
   for (const state of BAR_STATES) {
     const name = stateName(state);
-    const button = el('button', 'ctx-state', text(`context.state.${name}`));
+    const button = el('button', undefined, text(`context.state.${name}`));
     button.type = 'button';
     button.dataset.control = `state-${name}`;
     button.setAttribute('aria-pressed', String(state === context.state));
@@ -50,7 +51,7 @@ export function contextBarView(options: {
     });
     states.append(button);
   }
-  bar.append(where, states);
+  bar.append(where, width, states);
   return bar;
 }
 

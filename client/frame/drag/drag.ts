@@ -18,6 +18,7 @@ import {
 } from '../../channel/structure-protocol.ts';
 import { elementsWith } from '../edit/tree.ts';
 import { outermost, type RectItem } from '../page/rect.ts';
+import { toned } from '../tones/tones.ts';
 import { boxOf, dim, placeholderOf, showDrop } from './preview.ts';
 import { createSession, type Family, pressOf } from './session.ts';
 import type { Box, Indicator, Point, Slot, slotAt } from './slots.ts';
@@ -55,16 +56,16 @@ const HOST_RULES = [
 /** Inline and important, so no rule of the prototype moves or hides the overlay itself. */
 const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
 
-// The colour comes from the kit's variable (custom properties reach into a shadow root); the
-// system colour stands in for a kit that has no such variable.
+// The colour is the studio's selection colour (`toned`; custom properties reach into a shadow
+// root); the system colour stands in until the studio has said its tones.
 const SHEET = `
 .rect {
   position: absolute; box-sizing: border-box; pointer-events: none;
-  border: 1px solid var(--kit-color-focus, Highlight);
+  border: 1px solid var(--kv-select, Highlight);
 }
 .rect::before {
   content: ''; position: absolute; inset: 0; opacity: 0.1;
-  background: var(--kit-color-focus, Highlight);
+  background: var(--kv-select, Highlight);
 }
 `;
 
@@ -124,6 +125,7 @@ function createLayer(): Layer {
   const host = document.createElement('kitvas-drag');
   host.setAttribute('aria-hidden', 'true');
   host.style.cssText = HOST_STYLE;
+  toned(host);
   const sheet = document.createElement('style');
   sheet.textContent = SHEET;
   const rect = document.createElement('div');

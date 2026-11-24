@@ -7,12 +7,10 @@
 
 import type { Mark, Tone } from '../../channel/protocol.ts';
 import { DOT, placeDots, placeRing, type Rect } from '../drag/place.ts';
+import { toned } from '../tones/tones.ts';
 
-// Studio tokens do not exist inside a prototype. These are Base's ink and white, the only
-// literal colours in `client/frame/`.
-const INK = '#1d2025';
-const WHITE = '#ffffff';
-
+// Studio tokens do not exist inside a prototype: the colours are the studio's tones (`toned`, set
+// on the host), with system colours until the studio has said them. No literal colour here.
 const SHEET = `
 .dot, .ring { position: absolute; left: 0; top: 0; box-sizing: border-box; pointer-events: none; }
 .dot {
@@ -20,14 +18,17 @@ const SHEET = `
   display: flex; align-items: center; justify-content: center; white-space: nowrap;
   font: 700 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums; letter-spacing: 0;
-  background: ${WHITE}; color: ${INK}; box-shadow: inset 0 0 0 2px ${INK}, 0 0 0 1px ${WHITE};
+  background: var(--kv-review, Canvas); color: var(--kv-on-tone, CanvasText);
+  box-shadow: inset 0 0 0 2px var(--kv-on-tone, CanvasText);
 }
-.dot[data-tone="fix"] { background: ${INK}; color: ${WHITE}; box-shadow: 0 0 0 2px ${WHITE}; }
+.dot[data-tone="fix"] {
+  background: var(--kv-fix, CanvasText); color: var(--kv-on-tone, Canvas); box-shadow: none;
+}
 .ring {
-  outline: 2px solid ${INK}; outline-offset: 0;
-  box-shadow: 0 0 0 3px ${WHITE}, inset 0 0 0 1px ${WHITE};
+  outline: 2px solid var(--kv-select, CanvasText); outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--kv-on-select, Canvas), inset 0 0 0 1px var(--kv-on-select, Canvas);
 }
-.ring[data-tone="added"] { outline-style: dashed; }
+.ring[data-tone="added"] { outline-color: var(--kv-good, CanvasText); outline-style: dashed; }
 .off { display: none; }
 @media (forced-colors: active) {
   .dot { border: 2px solid CanvasText; }
@@ -92,6 +93,7 @@ function createLayer(): Layer {
   const host = document.createElement('kitvas-marks');
   host.setAttribute('aria-hidden', 'true');
   host.style.cssText = HOST_STYLE;
+  toned(host);
   const shadow = host.attachShadow({ mode: 'closed' });
   const sheet = document.createElement('style');
   sheet.textContent = SHEET;

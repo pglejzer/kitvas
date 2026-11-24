@@ -1,7 +1,9 @@
 // What the properties panel shows for its selection (plan 15, task C; spec goal 8): the header,
 // the edit context's bar (stage 4c: the width edits go to and the state bar), the notes, then the
 // groups in their fixed order. One element shows every row; several show the rows they share, and
-// a group without one is left out. The box model holds Spacing's sides.
+// a group without one is left out. The box model holds Spacing's sides. Plan 18 (task C): the
+// header and the context are the pane's head, which stays in view; the suggestion, the notes and
+// the groups are what scrolls under it.
 
 import type { StyleProperty } from '../../../../src/edit/index.ts';
 import { sharedProperties } from '../style/ops.ts';
@@ -20,7 +22,7 @@ import { GROUPS, type GroupId, groupView, STYLE_GROUPS, type StyleGroup } from '
 import { headerView } from './header.ts';
 import { type Env, propRows, textRow } from './rows.ts';
 import { styleRow } from './style.ts';
-import { suggestActions } from './suggest.ts';
+import { suggestActions, suggestView } from './suggest.ts';
 
 /** The panel's own state the view reads and changes: the folds and the box. */
 export type PanelUi = {
@@ -29,6 +31,17 @@ export type PanelUi = {
   toggle(id: GroupId): void;
   pickSide(layer: BoxLayer, side: BoxSide): void;
   link(link: BoxLink): void;
+};
+
+/**
+ * The panel's parts: `head` stays in view; under it scroll the suggestion (`offer`), the `notes`
+ * that hold for every row, and the `groups`.
+ */
+export type PropsView = {
+  head: HTMLElement[];
+  offer: HTMLElement | null;
+  notes: HTMLElement[];
+  groups: HTMLElement[];
 };
 
 /** The box's rows: the box itself, the row of the side it edits now, and gap. */
@@ -45,7 +58,7 @@ function spacingRows(env: Env, ui: PanelUi, shared: ReadonlySet<StyleProperty>):
   );
   const editing = boxProperty(ui.box);
   if (shared.has(editing)) rows.push(styleRow(env, editing));
-  else rows.push(el('p', 'props-note', text('props.many.notShared')));
+  else rows.push(el('p', 'props-hint', text('props.many.notShared')));
   if (shared.has('gap')) rows.push(styleRow(env, 'gap'));
   return rows;
 }
@@ -77,7 +90,7 @@ function styleRows(
 function notes(env: Env): HTMLElement[] {
   const out: HTMLElement[] = [];
   const note = (key: string): void => {
-    out.push(el('p', 'props-note', text(key)));
+    out.push(el('p', 'props-hint', text(key)));
   };
   const { inspected, state } = env;
   if ((state.tree.find((node) => node.id === inspected.id)?.count ?? 1) > 1) note('props.mapped');
@@ -87,19 +100,20 @@ function notes(env: Env): HTMLElement[] {
   return out;
 }
 
-export function propsView(env: Env, ui: PanelUi): HTMLElement[] {
+export function propsView(env: Env, ui: PanelUi): PropsView {
   const single = env.views.length === 1;
-  const out: HTMLElement[] = [
+  const head = [
     headerView({
       state: env.state,
       inspected: env.inspected,
       count: env.views.length,
       select: (id) => env.select(id),
-      suggest: suggestActions(env),
     }),
     contextBarView({ context: env.state.context, pick: (state) => env.pickState(state) }),
-    ...notes(env),
   ];
+  // Spec 4d, goal 6: a plain element a kit component covers; one element only.
+  const offer = single ? suggestView(env.inspected, suggestActions(env)) : null;
+  const groups: HTMLElement[] = [];
   // One element: every row, read-only ones with their reason. Several: the rows they share.
   const all = Object.values(STYLE_GROUPS).flat();
   const shared = new Set(single ? all : sharedProperties(env.views, all, env.format));
@@ -111,7 +125,7 @@ export function propsView(env: Env, ui: PanelUi): HTMLElement[] {
       rows = row === null ? [] : [row];
     } else rows = styleRows(env, ui, id, shared);
     if (rows.length === 0) continue;
-    out.push(
+    groups.push(
       groupView({
         id,
         title: groupTitle(env, id),
@@ -121,5 +135,5 @@ export function propsView(env: Env, ui: PanelUi): HTMLElement[] {
       }),
     );
   }
-  return out;
+  return { head, offer, notes: notes(env), groups };
 }

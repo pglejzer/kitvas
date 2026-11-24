@@ -324,9 +324,11 @@ export function mountCanvas(
 
   // The skin places the world by the script from here on.
   scroll.setAttribute('data-live', '');
+  // The room: a panel or the window was resized. The world: a width, or a card, changed. A panel
+  // that folds or opens resizes the room on every frame of its motion (`shell/move.ts`), and the
+  // canvas follows each one: the draft glides with the panel, and nothing jumps when the move ends.
   if (typeof ResizeObserver === 'function') {
-    // The room: a panel or the window was resized. The world: a width, or a card, changed.
-    const sizes = new ResizeObserver(() => follow());
+    const sizes = new ResizeObserver(follow);
     sizes.observe(scroll);
     sizes.observe(world);
   } else {

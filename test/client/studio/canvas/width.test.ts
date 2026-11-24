@@ -15,7 +15,6 @@ import {
   SNAP,
   sameShown,
   shownWidth,
-  sizeLabel,
   snapToPreset,
   stepView,
   widthAddress,
@@ -134,8 +133,6 @@ test('the card has the shape of a phone, a tablet or a desktop window', () => {
   assert.equal(frameHeight(1000), 1024);
   assert.equal(frameHeight(1280), 800);
   assert.equal(frameHeight(2560), 800);
-  assert.equal(sizeLabel(390), '390 × 844');
-  assert.equal(sizeLabel(1000), '1000 × 1024');
 });
 
 test('the address names the preset, and the view only at another width', () => {

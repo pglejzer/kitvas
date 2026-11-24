@@ -36,7 +36,8 @@ export type ApiResult = {
 /** A page answer other than plain HTML: a redirect, or a page with another status. */
 export type PageReply = {
   status: number;
-  body: string;
+  /** Text, or the bytes of a file (a font). */
+  body: string | Buffer;
   headers?: Record<string, string>;
   /** The content type; HTML when absent. */
   type?: string;

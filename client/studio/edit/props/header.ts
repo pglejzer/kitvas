@@ -1,15 +1,16 @@
-// The header of the properties panel (plan 15, task C; spec goal 8): the element's name and a
-// kind chip (kit component or HTML element), its file and line, the path of its parents as
-// crumbs that select on click, and buttons for the parent and the first child. With several
-// elements selected it says how many and that the rows are the ones they share. The paths are
-// pure over the editor's state; the DOM part is thin.
+// The header of the properties panel (plan 15, task C; spec goal 8): the path of the element's
+// parents as crumbs that select on click, its name with a chip when it is a kit component,
+// buttons for the parent and the first child, and its file and line. With several elements
+// selected it says how many and that the rows are the ones they share. Plan 18 (task C): the path
+// is one quiet clipped line; the suggestion is under the header (`view.ts`). The paths are pure
+// over the editor's state; the DOM part is thin.
 
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
+import { iconButton } from '../../ui/icon.ts';
 import { firstChildOf, parentOf, tagOfId } from '../select/selection.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { el } from './controls.ts';
-import { type SuggestActions, suggestView } from './suggest.ts';
 
 export type Crumb = { id: string; label: string };
 
@@ -66,20 +67,48 @@ export const kindOf = (view: Pick<Inspect, 'component'>): 'kit' | 'html' =>
 export const placeOf = (view: Pick<Inspect, 'file' | 'line'>): string =>
   view.line === undefined ? view.file : `${view.file}:${view.line}`;
 
+/** Parent and First child: icon buttons whose name and tooltip say what they select. */
 function navButton(
   control: 'parent' | 'child',
   target: string | null,
   select: (id: string) => void,
 ): HTMLButtonElement {
-  const button = el('button', 'props-nav-button', text(`props.${control}`));
-  button.type = 'button';
+  const glyph = control === 'parent' ? 'arrow-up' : 'arrow-down';
+  const button = iconButton(glyph, text(`props.${control}.label`));
   button.dataset.control = control;
-  button.title = text(`props.${control}.label`);
   button.disabled = target === null;
   button.addEventListener('click', () => {
     if (target !== null) select(target);
   });
   return button;
+}
+
+/** The name line: a title, and what sits at its end (`.k-head`). */
+function nameLine(name: string, after: HTMLElement[], end: HTMLElement | null): HTMLElement {
+  const line = el('div', 'k-head props-named');
+  const ident = el('div', 'props-ident');
+  const title = el('h3', 'props-tag k-clip', name);
+  title.title = name;
+  ident.append(title, ...after);
+  line.append(ident);
+  if (end !== null) line.append(end);
+  return line;
+}
+
+/** The parents as one line of crumbs; `null` for an element without any. */
+function pathView(crumbs: readonly Crumb[], select: (id: string) => void): HTMLElement | null {
+  if (crumbs.length === 0) return null;
+  const nav = el('nav', 'props-path');
+  nav.setAttribute('aria-label', text('props.crumbs'));
+  for (const crumb of crumbs) {
+    const button = el('button', 'props-path-step', crumb.label);
+    button.type = 'button';
+    button.dataset.control = `crumb-${crumb.id}`;
+    button.title = text('props.crumb.label', { name: crumb.label });
+    button.addEventListener('click', () => select(crumb.id));
+    nav.append(button);
+  }
+  return nav;
 }
 
 /** The header of one element, or of several. */
@@ -88,47 +117,34 @@ export function headerView(options: {
   inspected: Inspect;
   count: number;
   select(id: string): void;
-  /** Spec 4d, goal 6: what Replace and Ask Claude do; without it no suggestion shows. */
-  suggest?: SuggestActions | undefined;
 }): HTMLElement {
   const { inspected, count, select } = options;
-  const head = el('header', 'props-head');
+  const head = el('header', 'props-element');
   head.dataset.row = 'head';
   if (count > 1) {
     head.append(
-      el('h3', 'props-name', text('props.many', { count })),
-      el('p', 'props-note', text('props.many.note')),
+      nameLine(text('props.many', { count }), [], null),
+      el('p', 'props-hint', text('props.many.note')),
     );
     return head;
   }
-  const title = el('div', 'props-title');
+  const path = pathView(crumbsOf(options.state, inspected.id), select);
+  if (path !== null) head.append(path);
+  // A chip only on a kit component: a plain element needs no mark.
+  const after: HTMLElement[] = [];
   const kind = kindOf(inspected);
-  const chip = el('span', 'props-chip', text(`props.kind.${kind}`));
-  chip.dataset.kind = kind;
-  title.append(el('h3', 'props-name', inspected.tag), chip);
-  const place = el('p', 'props-place');
-  place.append(el('code', undefined, placeOf(inspected)));
-  head.append(title, place);
-  const offer = suggestView(inspected, options.suggest);
-  if (offer !== null) head.append(offer);
-
-  const crumbs = crumbsOf(options.state, inspected.id);
-  if (crumbs.length > 0) {
-    const nav = el('nav', 'props-crumbs');
-    nav.setAttribute('aria-label', text('props.crumbs'));
-    for (const crumb of crumbs) {
-      const button = el('button', 'props-crumb', crumb.label);
-      button.type = 'button';
-      button.dataset.control = `crumb-${crumb.id}`;
-      button.title = text('props.crumb.label', { name: crumb.label });
-      button.addEventListener('click', () => select(crumb.id));
-      nav.append(button);
-    }
-    head.append(nav);
+  if (kind === 'kit') {
+    const chip = el('span', 'k-chip props-kind', text('props.kind.kit'));
+    chip.dataset.kind = kind;
+    after.push(chip);
   }
   const near = neighboursOf(options.state, inspected.id);
-  const buttons = el('div', 'props-nav');
-  buttons.append(navButton('parent', near.parent, select), navButton('child', near.child, select));
-  head.append(buttons);
+  const jump = el('div', 'props-jump');
+  jump.append(navButton('parent', near.parent, select), navButton('child', near.child, select));
+  const where = placeOf(inspected);
+  const place = el('p', 'k-meta k-clip props-file');
+  place.title = where;
+  place.append(el('code', undefined, where));
+  head.append(nameLine(inspected.tag, after, jump), place);
   return head;
 }

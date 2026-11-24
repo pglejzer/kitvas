@@ -1,27 +1,38 @@
-// The editor screen's panel rules (plan 15, task A): widths, folds and tabs over plain numbers and
-// strings, so they are tested without a DOM. `panels.ts` applies them to the page.
+// The editor screen's panel rules (plan 15, task A; plan 18, task A): widths, folds, the rail of
+// the left panel and the tabs of the right one, over plain numbers and strings, so they are tested
+// without a DOM. `panels.ts` applies them to the page.
 
 export type Side = 'left' | 'right';
 export const SIDES: readonly Side[] = ['left', 'right'];
 export type Mode = 'preview' | 'edit';
 
-export const DEFAULT_WIDTH: Readonly<Record<Side, number>> = { left: 272, right: 320 };
+/** The studio's `--st-size-left` and `--st-size-right`. */
+export const DEFAULT_WIDTH: Readonly<Record<Side, number>> = { left: 248, right: 312 };
 export const MIN_SIDE = 220;
 export const MAX_SIDE = 720;
 /** A panel takes at most this share of the window. */
 export const MAX_SHARE = 0.45;
 /** The canvas keeps at least this much between the panels. */
 export const MIN_CANVAS = 320;
-/** A folded panel's rail. */
-export const RAIL = 40;
+/** The rail (`--st-size-rail`): the left panel's icons, and what a folded right panel becomes. */
+export const RAIL = 52;
+/** The gap around the islands in Cards (`--st-size-gap`). */
+export const GAP = 10;
+/** What the body holds besides the panels and the canvas: the rail, and in Cards five gaps. */
+export const CHROME = RAIL + 5 * GAP;
+/** What a folded panel keeps: the left one nothing (the rail stays beside it), the right a rail. */
+export const FOLDED: Readonly<Record<Side, number>> = { left: 0, right: RAIL };
 /** One arrow key on a grip. */
 export const GRIP_STEP = 16;
 /** Below 1100 px the panels open over the canvas; the same line as the skin's media queries. */
 export const NARROW_QUERY = '(max-width: 1099.98px)';
 
+/** The left panel's panes, in the rail's order (C8). */
+export const LEFT_PANES = ['layers', 'insert', 'why', 'notes'] as const;
+
 /**
- * A panel's width in a window `room` wide, beside the other panel's `other`: 220 at least; at most
- * 720, 45 % of the window, and what leaves the canvas 320. The minimum wins in a window too small.
+ * A panel's width in a room `room` wide, beside the other panel's `other`: 220 at least; at most
+ * 720, 45 % of the room, and what leaves the canvas 320. The minimum wins in a room too small.
  */
 export function clampSide(width: number, room: number, other: number): number {
   const wanted = Number.isFinite(width) ? Math.round(width) : MIN_SIDE;
@@ -34,11 +45,17 @@ export function clampSide(width: number, room: number, other: number): number {
 
 export type SideFold = { width: number; folded: boolean };
 
-/** Both open widths in a window `room` wide, the left first; a folded panel counts as its rail. */
+/**
+ * Both open widths in a room `room` wide (the window without the rail and the gaps, `CHROME`),
+ * the left first; a folded panel counts as what it keeps (`FOLDED`).
+ */
 export function fitSides(sides: Record<Side, SideFold>, room: number): Record<Side, number> {
-  const right = sides.right.folded ? RAIL : sides.right.width;
+  const right = sides.right.folded ? FOLDED.right : sides.right.width;
   const left = clampSide(sides.left.width, room, right);
-  return { left, right: clampSide(sides.right.width, room, sides.left.folded ? RAIL : left) };
+  return {
+    left,
+    right: clampSide(sides.right.width, room, sides.left.folded ? FOLDED.left : left),
+  };
 }
 
 /**
@@ -71,6 +88,7 @@ export type StorageLike = {
   setItem(key: string, value: string): void;
 };
 
+/** The same key and the same shape as the screen before plan 18, so a stored layout still loads. */
 export const LAYOUT_KEY = 'kitvas.editor.layout';
 
 export function noSettings(): Settings {
@@ -144,7 +162,7 @@ export function foldOnSwitch(
   return MODE_DEFAULTS[mode][side].folded ? folded : false;
 }
 
-/** The tab a panel shows in `mode`: the one last picked there, else the mode's; only real tabs. */
+/** The pane a panel shows in `mode`: the one last picked there, else the mode's; only real ones. */
 export function tabFor(
   side: Side,
   mode: Mode,
@@ -170,4 +188,33 @@ export function nextTab(tabs: readonly string[], current: string, key: string): 
   if (key === 'ArrowRight') return tabs[(at + 1) % tabs.length] ?? null;
   if (key === 'ArrowLeft') return tabs[(at - 1 + tabs.length) % tabs.length] ?? null;
   return null;
+}
+
+/** The left panel as the rail shows it: the pane it holds, and whether it is open. */
+export type RailView = { tab: string; open: boolean };
+
+/** A rail button is pressed when its pane is the one shown in an open panel: one at a time. */
+export function railPressed(pane: string, view: RailView): boolean {
+  return view.open && view.tab === pane;
+}
+
+/**
+ * What a click on a rail button asks for: the panel open on its pane. A click on the pane already
+ * shown folds the panel, as an editor's activity bar does.
+ */
+export function railClick(pane: string, view: RailView): RailView {
+  if (railPressed(pane, view)) return { tab: pane, open: false };
+  return { tab: pane, open: true };
+}
+
+/**
+ * The side whose panel holds `pane` (`[data-open-pane]` in the bar, C8), the left first; `null`
+ * for a pane the page lacks (Sketches outside a craft draft).
+ */
+export function sideOfPane(
+  pane: string | undefined,
+  panes: Readonly<Record<Side, readonly string[]>>,
+): Side | null {
+  if (pane === undefined || pane === '') return null;
+  return SIDES.find((side) => panes[side].includes(pane)) ?? null;
 }

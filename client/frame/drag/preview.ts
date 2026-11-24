@@ -4,6 +4,7 @@
 // only until the build replaces the page: nothing here is written to the draft.
 
 import type { Place } from '../../channel/structure-protocol.ts';
+import { toned } from '../tones/tones.ts';
 import {
   EASING,
   type Entry,
@@ -31,13 +32,13 @@ const PLACEHOLDER_RULES = [
 /** Inline and important, so no rule of the prototype restyles the placeholder. */
 const PLACEHOLDER_STYLE = PLACEHOLDER_RULES.map((rule) => `${rule} !important;`).join(' ');
 
-// Colours come from the kit's variables (custom properties reach into a shadow root); the
-// system colour stands in for a kit that has no such variable.
+// Colours are the studio's tones (`toned`; custom properties reach into a shadow root); the
+// system colour stands in until the studio has said them.
 const PLACEHOLDER_SHEET = `
 .new {
   box-sizing: border-box; min-height: 32px; padding: 6px 10px;
-  border: 1px dashed var(--kit-color-ink-mid, GrayText);
-  color: var(--kit-color-ink-mid, GrayText);
+  border: 1px dashed var(--kv-select, GrayText);
+  color: var(--kv-select, GrayText);
   font: 12px/1.5 system-ui, sans-serif;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -53,6 +54,7 @@ export function placeholderOf(label: string): HTMLElement {
   const host = document.createElement('kitvas-placeholder');
   host.setAttribute('aria-hidden', 'true');
   host.style.cssText = PLACEHOLDER_STYLE;
+  toned(host);
   const sheet = document.createElement('style');
   sheet.textContent = PLACEHOLDER_SHEET;
   const box = document.createElement('div');

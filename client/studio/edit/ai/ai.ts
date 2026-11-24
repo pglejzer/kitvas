@@ -1,27 +1,29 @@
-// The AI tab (spec 4d, goals 1 and 2; plan 17, task B): "What should change?", Improve, the
+// The Claude tab (spec 4d, goals 1 and 2; plan 17, task B): "What should change?", Improve, the
 // listening status, the draft's requests and their variants (preview on hover, checks, apply as
 // one gesture). Fills `store.requests` and `store.listening`: read on start, on each `requests`
 // event of this draft, after a change of its files (a request goes out of date) and, while a
 // session is seen, now and then (`status.ts`). The decisions are in the pure files beside it:
 // `requests.ts` (data and order), `variants.ts` (changes to ops), `preview.ts` (preview and
-// checks), `status.ts` and `tab.ts` (what is drawn).
+// checks), `names.ts`, `status.ts`, `tab.ts` and `foot.ts` (what is drawn). Plan 18, task D: the
+// pane scrolls between its content and the foot, where Apply and Discard act on the chosen card.
 
 import type {
   NewRequest,
   RequestView,
 } from '../../../../src/studio/api/requests/request-schemas.ts';
-import type { TreeNode } from '../../../channel/edit-protocol.ts';
 import type { Frame } from '../../frames.ts';
 import { sourceOf } from '../../live/job-events.ts';
 import { onStudioEvent } from '../../live/live.ts';
 import { inspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
-import { elementName } from '../history/changes.ts';
+import { changeChips, opChips } from '../history/chips.ts';
 import { el } from '../props/controls.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 import { dropRequest, getRequests, postRequest } from './api.ts';
+import { chosenOf, createFoot } from './foot.ts';
+import { blockedOf, missing, namesOf, presenceOf } from './names.ts';
 import {
   createVariantPreview,
   measuringFrame,
@@ -49,37 +51,10 @@ import {
 } from './tab.ts';
 import { type BuiltVariant, buildVariant, type ElementView, variantIds } from './variants.ts';
 
-/** The longest layer name a request's line shows. */
-const MAX_NAME = 40;
+export { blockedOf, namesOf, presenceOf } from './names.ts';
+
 /** Inspect answers that come close together are drawn once. */
 const DRAW_MS = 16;
-
-/** Names by the layers tree, else by the id's own parts (`Hero / Button`). */
-export function namesOf(tree: readonly TreeNode[]): (id: string) => string {
-  const names = new Map(tree.map((node) => [node.id, node.name]));
-  return (id) => {
-    const name = names.get(id)?.trim() ?? '';
-    if (name === '') return elementName(id);
-    return name.length > MAX_NAME ? `${name.slice(0, MAX_NAME - 1)}…` : name;
-  };
-}
-
-/** Whether an element is in the draft now; until the tree is read, every one counts as there. */
-export function presenceOf(tree: readonly TreeNode[]): (id: string) => boolean {
-  if (tree.length === 0) return () => true;
-  const ids = new Set(tree.map((node) => node.id));
-  return (id) => ids.has(id);
-}
-
-/** Why no variant can be tried now (a text key); `null` when one can. */
-export function blockedOf(state: Pick<EditorState, 'on' | 'viewing'>): string | null {
-  if (state.viewing !== null) return 'ai.blocked.viewing';
-  return state.on ? null : 'ai.blocked.edit';
-}
-
-/** An inspect answer that is not one: a 404 or 400 is an element not in the draft now. */
-const missing = (status: number): ElementView =>
-  status === 404 || status === 400 ? 'gone' : 'unread';
 
 type Drawn = { model: CardModel; parts: CardParts; request: string; index: number };
 
@@ -95,19 +70,27 @@ export function mountAi(ctx: EditorContext): void {
   /** The variant applied from this page, by request: its card says Applied, the others not. */
   const applied = new Map<string, number>();
   let applying: string | null = null;
+  /** The card the foot acts on: the last one clicked, or chosen with Enter or Space. */
+  let chosen: string | null = null;
   let sending = false;
   let said = '';
   let dragging = false;
   let cards = new Map<string, Drawn>();
   let drawTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const root = el('div', 'ai');
+  const root = el('div', 'k-pad claude');
   const status = createStatus(slug, main);
   const form = createForm({ send, improve });
-  const list = el('div', 'ai-list');
+  const list = el('div', 'claude-list');
   root.append(status.element, form.element, list);
-  // Task C puts the Notes section after this one, inside the same pane.
-  section.append(root);
+  const scroll = el('div', 'k-scroll');
+  scroll.append(root);
+  const foot = createFoot({
+    apply: (key) => void apply(key),
+    discard: () => choose(null),
+  });
+  // C8: the part that scrolls, then the foot that stays in view.
+  section.append(scroll, foot.element);
 
   const preview: VariantPreview = createVariantPreview({
     show: (changes, width) => {
@@ -237,6 +220,7 @@ export function mountAi(ctx: EditorContext): void {
         key: variantKey(request.id, index),
         label: variant.label,
         changes: variant.changes.length,
+        chips: made.kind === 'ready' ? opChips(made.ops) : changeChips(variant.changes),
         built: made,
         outdated: outdated && done !== index,
         applied: done === index,
@@ -253,12 +237,17 @@ export function mountAi(ctx: EditorContext): void {
     return { request, names: request.elements.map(nameOf).join(', '), cards: models, again };
   }
 
-  /** Apply follows the store's `busy` without drawing the cards again. */
+  /** The foot and the chosen card's ring follow the store's `busy` without drawing the cards. */
   function syncButtons(): void {
     const { busy } = store.get();
-    for (const { model, parts } of cards.values()) {
-      if (parts.apply) parts.apply.disabled = busy || applying !== null || model.blocked !== null;
-    }
+    for (const [key, { parts }] of cards) parts.card.toggleAttribute('data-on', key === chosen);
+    const some = cards.size > 0;
+    foot.render({ chosen: chosenOf(chosen, cards), busy: busy || applying !== null, some });
+  }
+
+  function choose(key: string | null): void {
+    chosen = key;
+    syncButtons();
   }
 
   /** What has focus in the list, so the same control has it again after a redraw. */
@@ -291,6 +280,8 @@ export function mountAi(ctx: EditorContext): void {
       }),
     );
     cards = next;
+    // A chosen card that is gone, or can no longer be applied, is chosen no more.
+    if (chosenOf(chosen, cards) === null) chosen = null;
     for (const [key, drawn] of cards) {
       drawCheck(drawn.parts.check, drawn.model, preview.check(key));
     }
@@ -350,16 +341,17 @@ export function mountAi(ctx: EditorContext): void {
     // The history shows the same edits while it sends them; the build then replaces them.
     preview.handOver(key);
     const label = text('ai.variant.label', { label: model.label });
-    const outcome = await history.apply({ ops: model.built.ops, label });
+    const outcome = await history.apply({ ops: model.built.ops, label, flash: true });
     applying = null;
-    if (outcome?.outcome === 'applied') applied.set(request, index);
+    if (outcome?.outcome === 'applied') {
+      applied.set(request, index);
+      foot.applied();
+    }
     draw();
   }
 
   const handlers = {
-    apply: (key: string): void => {
-      void apply(key);
-    },
+    choose: (key: string): void => choose(key),
     drop: (id: string): void => {
       void dropRequest(slug, id).then((dropped) => {
         if (dropped) read();

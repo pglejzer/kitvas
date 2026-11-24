@@ -1,7 +1,7 @@
 // The "Ask Claude" button on an edit kitvas cannot write itself (plan 13, task K): a refused edit,
 // or a conflict where the place is gone. Since stage 4d (plan 17, task B) it sends an `ask`
 // request of the draft, with the edit the person wanted (its ops) and its words: the request is
-// kept on disk until a listening Claude Code session takes it, and the AI tab shows its status
+// kept on disk until a listening Claude Code session takes it, and the Claude tab shows its status
 // and answer. The words are written for Claude, in English, so they are constants here and not
 // page texts; the button and its status lines come from `text()`.
 
@@ -209,19 +209,24 @@ export function subjectOf(refused: Refused | null, conflict: Conflict | null): A
 }
 
 export function mountAsk(ctx: EditorContext): void {
+  // A refused edit (plan 18): a note above the panes, beside the conflict note, that rises in.
   const box = document.createElement('div');
-  box.className = 'edit-ask';
+  box.className = 'conflict-ask k-rise';
   box.dataset.edit = 'ask';
   box.hidden = true;
-  const hint = document.createElement('span');
-  hint.className = 'edit-ask-hint';
+  const hint = document.createElement('p');
+  hint.className = 'conflict-ask-hint';
   const button = document.createElement('button');
   button.type = 'button';
+  button.className = 'k-btn k-btn-line';
   button.textContent = text('ask.button');
   const status = document.createElement('span');
-  status.className = 'edit-ask-status';
+  status.className = 'k-meta conflict-ask-status';
   status.setAttribute('role', 'status');
-  box.append(hint, button, status);
+  const actions = document.createElement('div');
+  actions.className = 'conflict-actions';
+  actions.append(button, status);
+  box.append(hint, actions);
   // In the right panel under the conflict box, outside the panes their renders replace.
   const conflict = ctx.panel.querySelector('[data-edit="conflict"]');
   if (conflict) conflict.after(box);
@@ -248,7 +253,7 @@ export function mountAsk(ctx: EditorContext): void {
     void postRequest(ctx.slug, askRequestOf(subject, inspected, context)).then((sent) => {
       status.textContent = text(sent ? 'ask.sent' : 'ask.requestFailed');
       button.disabled = sent;
-      // The answer comes in the AI tab, where the request shows with its status.
+      // The answer comes in the Claude tab, where the request shows with its status.
       if (sent) toast(ctx.main, text('ask.sentAi'));
     });
   });

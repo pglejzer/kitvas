@@ -47,6 +47,10 @@ What craft adds goes to `.kitvas/additions/<kit-id>/`, next to the kit, never in
 
 Notes you leave in the studio reach Claude. The studio keeps its address (`http://kitvas.localhost:<port>/`), and your browser stays signed in for 30 days, so a bookmark works after a restart.
 
+### Look
+
+The View button in the bar of every page sets how the studio looks: the theme (system, light or dark), the panels (Cards, as islands, or Flush, with hairlines) and the accent (Copper, Teal, Coral or Rose). The choice is yours, not the project's: it is kept in `~/.kitvas/config.json`, holds in every project and after a restart, and applies at once without reloading a prototype. The studio has its own colours and typeface (Figtree, served by the studio itself); your kit and your drafts are never touched by them.
+
 ## Edit in the studio
 
 A draft opens as one screen that never scrolls: a bar on top, layers and the insert palette on the left, the prototype in the middle, and properties, changes, checks (and sketches, for a craft draft) on the right. The bar switches Preview and Edit, picks a version or one to compare, and holds undo, redo and "Save version". For 8 seconds after a save, "Undo save" brings the session back.

@@ -6,9 +6,10 @@ import {
   idIn,
   MAX_ASK,
   markOf,
-  pointAt,
+  newVersions,
   pointsOf,
   type RestorePreview,
+  versionRows,
 } from '../../../../../client/studio/edit/timeline/points.ts';
 
 const ID = 'sections/Hero:section/Stack/Text';
@@ -56,16 +57,37 @@ test('an unsure step that did not change draws no mark', () => {
   assert.equal(markOf(undefined), 'none');
 });
 
-test('a drag is over the nearest point of an evenly spread track', () => {
-  assert.equal(pointAt(0, 300, 4), 0);
-  assert.equal(pointAt(49, 300, 4), 0);
-  assert.equal(pointAt(51, 300, 4), 1);
-  assert.equal(pointAt(300, 300, 4), 3);
-  assert.equal(pointAt(-40, 300, 4), 0);
-  assert.equal(pointAt(900, 300, 4), 3);
-  assert.equal(pointAt(120, 300, 1), 0);
-  assert.equal(pointAt(120, 0, 3), 0);
-  assert.equal(pointAt(120, 300, 0), -1);
+test('the list shows now first, then the older versions, newest first', () => {
+  const rows = versionRows([2, 1, 3], null, null);
+  assert.deepEqual(
+    rows.map((row) => [row.version, row.now, row.shown]),
+    [
+      [3, true, true],
+      [2, false, false],
+      [1, false, false],
+    ],
+  );
+  assert.deepEqual(versionRows([], null, null), []);
+});
+
+test('the list rows carry the marks of the selected element and the version being viewed', () => {
+  const steps = [step(1, { id: null }), step(2, { changed: true }), step(3)];
+  const rows = versionRows([1, 2, 3], 2, steps);
+  assert.deepEqual(
+    rows.map((row) => [row.version, row.mark, row.shown]),
+    [
+      [3, 'none', false],
+      [2, 'changed', true],
+      [1, 'absent', false],
+    ],
+  );
+});
+
+test('a version saved while the page is open is new, the first read has none', () => {
+  assert.deepEqual(newVersions([], [1, 2]), []);
+  assert.deepEqual(newVersions([1, 2], [1, 2]), []);
+  assert.deepEqual(newVersions([1, 2], [1, 2, 3]), [3]);
+  assert.deepEqual(newVersions([1], [1, 2, 3]), [2, 3]);
 });
 
 test('the element can be brought back only from a version it was in', () => {

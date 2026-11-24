@@ -2,15 +2,18 @@
 // the Checks pane, grouped by element with the widths each finding was seen at, and the selected
 // element's live findings with its accessibility card above the Properties pane. Each is a block
 // of its own beside its pane, never inside it (the pane's own script redraws its content, and a
-// state switch swaps the Checks pane's), shown with the pane's tab through `data-pane`.
+// state switch swaps the Checks pane's), shown with the pane's tab through `data-pane`. A finding
+// is a `.k-item` with its short name, the evidence it carries and its actions (plan 18, task D).
 
 import type { A11yCard } from '../../../channel/live-protocol.ts';
+import { icon } from '../../ui/icon.ts';
 import type { EditorContext } from '../context.ts';
 import { elementName } from '../history/changes.ts';
 import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
 import { renderCard } from './card.ts';
 import type { FullCheckStatus } from './check.ts';
+import { type Evidence, evidenceName, ratioWords } from './evidence.ts';
 import type { LiveGroup, LiveRow } from './items.ts';
 import { waiverControl } from './waivers.ts';
 
@@ -26,6 +29,9 @@ export type LiveView = { render(model: LiveModel): void };
 
 /** Whether the accessibility card is open: a convenience of this viewer only. */
 const CARD_KEY = 'kitvas.edit.a11yOpen';
+
+/** A row of a finding; the accessibility card links its problems to them. */
+export const LIVE_ROW = 'checks-live-row';
 
 function readOpen(): boolean {
   try {
@@ -53,7 +59,7 @@ const STATUS_KEYS: Record<FullCheckStatus, string | null> = {
 /** A block in front of `pane`, shown with the pane's tab. */
 function blockBefore(pane: Element | null, region: string, label: string): HTMLElement | null {
   if (!(pane instanceof HTMLElement) || pane.parentElement === null) return null;
-  const block = el('section', region === 'live-checks' ? 'live' : 'live-props');
+  const block = el('section', region === 'live-checks' ? 'checks-live' : 'checks-here');
   block.dataset.edit = region;
   if (pane.dataset.pane !== undefined) block.dataset.pane = pane.dataset.pane;
   block.setAttribute('aria-label', label);
@@ -67,44 +73,107 @@ function whereOf(row: LiveRow): string {
   return text('live.at', { widths: row.widths.join(', ') });
 }
 
+/** The measured part of a finding: the number in its tone, and what it is held against. */
+export function evidenceLine(evidence: Evidence, tone: 'fix' | 'review'): HTMLElement | null {
+  const line = el('p', 'checks-evidence');
+  const strong = (words: string): HTMLElement => el('strong', `k-${tone}`, words);
+  const quiet = (words: string): HTMLElement => el('span', 'k-meta', words);
+  const code = (words: string): HTMLElement => el('code', 'k-mono', words);
+  const arrow = (): Node[] => [icon('arrow-right'), el('span', 'k-sr', text('changes.chip.to'))];
+  switch (evidence.kind) {
+    case 'contrast':
+      line.append(
+        strong(text('checks.ratio', { ratio: ratioWords(evidence.ratio) })),
+        quiet(text('checks.needs', { needed: ratioWords(evidence.needed) })),
+      );
+      break;
+    case 'target':
+      line.append(
+        strong(text('checks.size', { width: evidence.width, height: evidence.height })),
+        quiet(text('checks.needsSize', { min: evidence.min })),
+      );
+      break;
+    case 'overflow':
+      line.append(
+        strong(text('checks.px', { value: evidence.content })),
+        quiet(text('checks.inBox', { width: evidence.width })),
+      );
+      break;
+    case 'mismatch':
+      line.append(
+        code(evidence.property),
+        code(evidence.expected),
+        ...arrow(),
+        strong(evidence.actual),
+      );
+      break;
+    case 'token':
+      line.append(
+        code(evidence.value),
+        ...arrow(),
+        code(evidence.token),
+        quiet(text('checks.nearest')),
+      );
+      break;
+    case 'heading':
+      line.append(strong(text('checks.level', { level: evidence.level })));
+      break;
+    case 'message':
+      return null;
+  }
+  return line;
+}
+
 function rowOf(ctx: EditorContext, element: string | null, row: LiveRow): HTMLElement {
-  const item = el('li', 'live-row');
+  const item = el('li', `k-item ${LIVE_ROW}`);
   item.dataset.tone = row.severity;
   item.dataset.liveRule = row.rule;
   if (row.waived) item.dataset.accepted = '';
   // A problem of the accessibility card moves the focus here.
   item.tabIndex = -1;
-  item.append(el('span', 'live-message', row.message), el('small', 'live-where', whereOf(row)));
-  item.append(waiverControl(ctx, { rule: row.rule, element }));
+  const head = el('div', 'checks-finding-head');
+  const dot = el('span', 'k-dot');
+  dot.dataset.state = row.waived ? 'good' : row.severity;
+  dot.setAttribute('aria-hidden', 'true');
+  const name = evidenceName(row.evidence);
+  head.append(dot, el('span', 'checks-finding-title', name === null ? row.message : text(name)));
+  item.append(head);
+  const evidence = evidenceLine(row.evidence, row.severity);
+  if (evidence) item.append(evidence);
+  item.append(el('small', 'k-meta', whereOf(row)));
+  const actions = el('div', 'checks-actions');
+  actions.append(waiverControl(ctx, { rule: row.rule, element }));
+  item.append(actions);
   return item;
 }
 
 function rowsOf(ctx: EditorContext, group: LiveGroup): HTMLElement {
-  const list = el('ul', 'live-rows');
+  const list = el('ul', 'k-stack checks-live-rows');
   for (const row of group.rows) list.append(rowOf(ctx, group.id, row));
   return list;
 }
 
 function labelOf(group: LiveGroup): HTMLElement | null {
   if (group.label === null) return null;
-  const tag = el('span', 'live-label', group.label);
+  const tag = el('span', 'checks-num', group.label);
   tag.dataset.tone = group.tone;
   return tag;
 }
 
 function groupOf(ctx: EditorContext, group: LiveGroup): HTMLElement {
-  const item = el('li', 'live-group');
+  const item = el('li', 'checks-live-group');
   const id = group.id;
   if (id === null) {
-    item.append(el('p', 'live-element live-element-none', text('live.other')));
+    item.append(el('p', 'k-meta checks-live-element', text('live.other')));
   } else {
     const name = elementName(id);
-    const button = el('button', 'live-element');
+    const button = el('button', 'checks-live-element');
     button.type = 'button';
     button.setAttribute('aria-label', text('live.select', { name }));
+    button.title = text('live.select', { name });
     const tag = labelOf(group);
     if (tag) button.append(tag);
-    button.append(el('span', 'live-name', name));
+    button.append(el('span', 'k-clip', name));
     button.addEventListener('click', () => ctx.store.set({ selection: [id] }));
     item.append(button);
   }
@@ -125,17 +194,17 @@ export function mountLiveView(ctx: EditorContext): LiveView {
   let shownProps = '';
 
   // The title and the status line stay, so a screen reader hears the status change.
-  const title = el('h2', 'live-title', text('live.title'));
-  const status = el('p', 'live-status');
+  const title = el('h2', 'checks-live-title', text('live.title'));
+  const status = el('p', 'k-meta checks-live-status');
   status.setAttribute('role', 'status');
-  const head = el('div', 'live-head');
+  const head = el('div', 'checks-live-head');
   head.append(title, status);
-  const body = el('div', 'live-body');
+  const body = el('div', 'checks-live-body');
   checks?.append(head, body);
 
   function renderChecks(model: LiveModel): void {
     if (!checks) return;
-    checks.classList.toggle('live-off', !model.on);
+    checks.toggleAttribute('data-off', !model.on);
     const key = STATUS_KEYS[model.status];
     const said = key === null ? '' : text(key);
     if (status.textContent !== said) status.textContent = said;
@@ -147,10 +216,10 @@ export function mountLiveView(ctx: EditorContext): LiveView {
       return;
     }
     if (model.groups.length === 0) {
-      body.replaceChildren(el('p', 'live-none', text('live.none')));
+      body.replaceChildren(el('p', 'k-quiet checks-live-none', text('live.none')));
       return;
     }
-    const list = el('ol', 'live-groups');
+    const list = el('ol', 'k-stack checks-live-groups');
     for (const group of model.groups) list.append(groupOf(ctx, group));
     body.replaceChildren(list);
   }
@@ -160,7 +229,7 @@ export function mountLiveView(ctx: EditorContext): LiveView {
     const group = model.groups.find((one) => one.id !== null && one.id === model.selected);
     const something = group !== undefined || model.card !== null;
     const shown = model.on && model.selected !== null && something;
-    props.classList.toggle('live-off', !shown);
+    props.toggleAttribute('data-off', !shown);
     const next = keyOf([shown, model.selected, group, model.card]);
     if (next === shownProps) return;
     shownProps = next;
@@ -169,11 +238,11 @@ export function mountLiveView(ctx: EditorContext): LiveView {
       return;
     }
     const parts: HTMLElement[] = [];
-    const findings = el('div', 'live-here');
+    const findings = el('div', 'checks-here-findings');
     if (group) {
-      const heading = el('h3', 'live-subtitle', text('live.here'));
+      const heading = el('h3', 'checks-live-title', text('live.here'));
       const tag = labelOf(group);
-      if (tag) heading.prepend(tag, ' ');
+      if (tag) heading.prepend(tag);
       findings.append(heading, rowsOf(ctx, group));
       parts.push(findings);
     }
@@ -185,7 +254,7 @@ export function mountLiveView(ctx: EditorContext): LiveView {
           writeOpen(value);
         },
         findingOf: (rule) => {
-          for (const row of findings.querySelectorAll<HTMLElement>('.live-row')) {
+          for (const row of findings.querySelectorAll<HTMLElement>(`.${LIVE_ROW}`)) {
             if (row.dataset.liveRule === rule && row.dataset.accepted === undefined) return row;
           }
           return null;

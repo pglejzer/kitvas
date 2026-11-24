@@ -354,6 +354,7 @@ test('status and the generated OpenAPI document', async () => {
       '/api/v1/requests/{id}/answer',
       '/api/v1/requests/{id}/done',
       '/api/v1/requests/{id}/fail',
+      '/api/v1/settings/view',
       '/api/v1/shutdown',
       '/api/v1/status',
     ]);

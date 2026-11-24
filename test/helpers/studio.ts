@@ -29,8 +29,11 @@ export function writeFakeBuild(store: DraftStore): void {
   store.writeText('shop', 'v1/build/json/ids.json', '{}');
 }
 
-/** Scripts that need no bundler: every page script is an empty module. */
-export const fakeAssets: StudioAssets = { script: () => Promise.resolve('export {};') };
+/** Scripts that need no bundler: every page script is an empty module, every font a few bytes. */
+export const fakeAssets: StudioAssets = {
+  script: () => Promise.resolve('export {};'),
+  font: () => Promise.resolve(Buffer.from('wOF2-fake')),
+};
 
 /** A studio over `drafts`; errors kitvas did not raise are collected in `errors`. */
 export async function studioOver(

@@ -1,8 +1,12 @@
 // The context menu on the prototype and in the tree (spec 4b, R4; plan 14, task D3): every action of
 // `actions.ts`, off with its reason when it cannot run. It opens from the frame's `menu` message,
 // a right click in the tree (the `edit-menu` event of the layers panel), Shift+F10 and the menu key.
+// A `.k-pop.k-menu` that rises in; an item has an icon only where its action has one in
+// `MENU_ICONS`, its key as a `.k-kbd` (plan 18, task D).
 
+import type { IconName } from '../../../../src/studio/pages/icons/paths.ts';
 import { isMac, shortcutHint } from '../../shell/shortcuts.ts';
+import { icon } from '../../ui/icon.ts';
 import { getPalette } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { NOTE_EVENT } from '../notes/model.ts';
@@ -68,6 +72,29 @@ const GROUPS: Record<ActionId, number> = {
 
 /** The shortcut of an action whose id differs from its line in the list of shortcuts. */
 const SHORTCUT_OF: Partial<Record<ActionId, string>> = { 'wrap-stack': 'wrap' };
+
+/**
+ * The actions drawn with an icon: only those the studio's icons show plainly. Every other item
+ * keeps the icon's place empty, so the labels line up.
+ */
+export const MENU_ICONS: Partial<Record<ActionId | 'note', IconName>> = {
+  delete: 'trash',
+  duplicate: 'duplicate',
+  copy: 'copy',
+  'move-up': 'arrow-up',
+  'move-down': 'arrow-down',
+  hide: 'eye-off',
+  'show-all': 'eye',
+  lock: 'lock',
+  unlock: 'unlock',
+  note: 'note',
+};
+
+/** The icon of an item; `null` for an item without one (a component of `replace` among them). */
+export function menuIcon(item: Pick<MenuItem, 'action' | 'note'>): IconName | null {
+  if (item.note === true) return MENU_ICONS.note ?? null;
+  return item.action === null ? null : (MENU_ICONS[item.action] ?? null);
+}
 
 /**
  * The items for the actions of the moment. "Show all" only matters while something is hidden.
@@ -191,6 +218,7 @@ export function mountMenu(ctx: EditorContext): void {
   const root = ctx.main.querySelector('div[data-edit="menu"]');
   if (!(root instanceof HTMLElement)) return;
   const element = root;
+  element.classList.add('k-pop', 'k-menu', 'menu-root');
   let items: MenuItem[] = [];
   let focused = -1;
   /** The kit's components once `replace` was chosen; `null` while the actions are shown. */
@@ -213,32 +241,40 @@ export function mountMenu(ctx: EditorContext): void {
     let group = -1;
     items.forEach((item, index) => {
       if (index > 0 && item.group !== group) {
-        const divider = document.createElement('hr');
-        divider.className = 'edit-menu-divider';
+        const divider = document.createElement('div');
+        divider.className = 'k-menu-sep';
+        divider.setAttribute('role', 'separator');
         element.append(divider);
       }
       group = item.group;
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'edit-menu-item';
+      button.className = 'k-menu-item menu-item';
       button.setAttribute('role', 'menuitem');
       button.dataset.menuItem = item.action ?? item.tag ?? (item.note ? 'note' : '');
       button.tabIndex = -1;
       button.setAttribute('aria-disabled', String(!item.enabled));
+      const mark = document.createElement('span');
+      mark.className = 'menu-icon';
+      const name = menuIcon(item);
+      if (name !== null) mark.append(icon(name));
+      const words = document.createElement('span');
+      words.className = 'menu-text';
       const label = document.createElement('span');
       label.textContent = item.label;
-      button.append(label);
-      if (item.hint !== null) {
-        const hint = document.createElement('kbd');
-        hint.className = 'edit-menu-key';
-        hint.textContent = item.hint;
-        button.append(hint);
-      }
+      words.append(label);
       if (item.reason !== null) {
         const reason = document.createElement('span');
-        reason.className = 'edit-menu-reason';
+        reason.className = 'k-meta menu-reason';
         reason.textContent = item.reason;
-        button.append(reason);
+        words.append(reason);
+      }
+      button.append(mark, words);
+      if (item.hint !== null) {
+        const hint = document.createElement('kbd');
+        hint.className = 'k-kbd';
+        hint.textContent = item.hint;
+        button.append(hint);
       }
       button.addEventListener('click', () => choose(item));
       button.addEventListener('pointermove', () => {

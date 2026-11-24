@@ -7,6 +7,7 @@ import type { Waiver } from '../../../../src/studio/api/waivers/waiver-schemas.t
 import { getWaivers, postWaiver, postWithdraw } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { text } from '../texts.ts';
+import { mountChecksFilter } from './filter.ts';
 
 /** Copy of `MAX_REASON` in `src/studio/api/waivers/waiver-schemas.ts`. */
 export const MAX_REASON = 300;
@@ -43,10 +44,13 @@ export function noteKey(row: {
   return { rule, element: row.element ?? row.waivedElement ?? null };
 }
 
-function button(label: string, onClick: () => void): HTMLButtonElement {
+/** The class every control has: a row of the Checks list gets one only once. */
+const CONTROL = 'checks-waiver';
+
+function button(label: string, onClick: () => void, line = false): HTMLButtonElement {
   const element = document.createElement('button');
   element.type = 'button';
-  element.className = 'waiver-button';
+  element.className = line ? 'k-btn k-btn-line' : 'k-btn';
   element.textContent = label;
   element.addEventListener('click', onClick);
   return element;
@@ -59,7 +63,7 @@ function button(label: string, onClick: () => void): HTMLButtonElement {
 export function waiverControl(ctx: EditorContext, finding: WaiverKey): HTMLElement {
   const { store, slug } = ctx;
   const root = document.createElement('span');
-  root.className = 'waiver';
+  root.className = CONTROL;
   let asking = false;
   let connected = false;
 
@@ -68,26 +72,31 @@ export function waiverControl(ctx: EditorContext, finding: WaiverKey): HTMLEleme
 
   function form(): HTMLFormElement {
     const element = document.createElement('form');
-    element.className = 'waiver-form';
+    element.className = 'checks-waiver-form';
     const label = document.createElement('label');
-    label.textContent = text('waiver.reasonLabel');
+    label.className = 'checks-waiver-label';
+    label.append(text('waiver.reasonLabel'));
     const input = document.createElement('input');
     input.type = 'text';
+    input.className = 'k-field';
     input.required = true;
     input.maxLength = MAX_REASON;
     label.append(input);
     const error = document.createElement('span');
-    error.className = 'waiver-error';
+    error.className = 'k-fix checks-waiver-error';
     error.setAttribute('role', 'alert');
     const save = document.createElement('button');
     save.type = 'submit';
-    save.className = 'waiver-button';
+    save.className = 'k-btn k-btn-line';
     save.textContent = text('waiver.save');
     const cancel = button(text('waiver.cancel'), () => {
       asking = false;
       render();
     });
-    element.append(label, save, cancel, error);
+    const actions = document.createElement('span');
+    actions.className = 'checks-waiver-actions';
+    actions.append(save, cancel);
+    element.append(label, actions, error);
     element.addEventListener('submit', (event) => {
       event.preventDefault();
       const problem = reasonProblem(input.value);
@@ -115,7 +124,7 @@ export function waiverControl(ctx: EditorContext, finding: WaiverKey): HTMLEleme
     const waiver = waiverOf(store.get().waivers, finding);
     if (waiver) {
       const note = document.createElement('span');
-      note.className = 'waiver-state';
+      note.className = 'k-meta checks-waiver-state';
       note.textContent = text('waiver.accepted', { reason: waiver.reason });
       root.append(
         note,
@@ -130,10 +139,14 @@ export function waiverControl(ctx: EditorContext, finding: WaiverKey): HTMLEleme
     root.append(
       asking
         ? form()
-        : button(text('waiver.accept'), () => {
-            asking = true;
-            render();
-          }),
+        : button(
+            text('waiver.accept'),
+            () => {
+              asking = true;
+              render();
+            },
+            true,
+          ),
     );
   }
 
@@ -153,9 +166,10 @@ export function waiverControl(ctx: EditorContext, finding: WaiverKey): HTMLEleme
 /** The rows of the Checks list the controls go on: the numbered notes and the accepted ones. */
 const ROWS = 'li.note, li.accepted-note';
 
+/** The rule is the row's `data-rule` (plan 18), else the first `<code>` of its details. */
 function rowKey(row: HTMLElement): WaiverKey | null {
   return noteKey({
-    rule: row.querySelector('code')?.textContent ?? row.dataset.rule ?? null,
+    rule: row.dataset.rule ?? row.querySelector('code')?.textContent ?? null,
     element: row.dataset.element,
     waivedElement: row.dataset.waivedElement,
   });
@@ -182,8 +196,9 @@ export function decorateRows(ctx: EditorContext, region: HTMLElement): void {
         delete row.dataset.waivedElement;
       }
     }
-    if (row.querySelector('.waiver')) continue;
-    (row.querySelector(':scope > div') ?? row).append(waiverControl(ctx, key));
+    if (row.querySelector(`.${CONTROL}`)) continue;
+    const place = row.querySelector('[data-checks-actions]') ?? row.querySelector(':scope > div');
+    (place ?? row).append(waiverControl(ctx, key));
   }
 }
 
@@ -201,6 +216,8 @@ export function mountWaivers(ctx: EditorContext): void {
   });
   const region = main.querySelector<HTMLElement>('[data-shell="checks"]');
   if (!region) return;
+  // The filter of counts over the same list (plan 18); the draft page may run it already.
+  mountChecksFilter(main);
   let queued = false;
   const again = (): void => {
     if (queued) return;

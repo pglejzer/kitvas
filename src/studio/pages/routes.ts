@@ -9,6 +9,7 @@ import { draftPage } from './draft/draft-page.ts';
 import type { FrameOrigin } from './draft/frame-src.ts';
 import { galleryPage } from './gallery.ts';
 import { kitListPage, kitPage } from './kit/kit-page.ts';
+import type { Skin } from './skin.ts';
 
 export type PageDeps = {
   drafts: DraftStore;
@@ -18,7 +19,7 @@ export type PageDeps = {
   project?: string | undefined;
   t: Translate;
   /** The studio's style sheet, from `studioSkin`. */
-  skin: string;
+  skin: Skin;
   frame: FrameOrigin;
 };
 

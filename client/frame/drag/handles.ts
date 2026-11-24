@@ -121,16 +121,16 @@ export function pxAfter(start: number, track: Track, from: Point, to: Point): nu
   return Math.max(0, start + track.sign * moved);
 }
 
-// The DOM part. System colours stand in for a kit without the variable; no literal colour here.
-const FOCUS = 'var(--kit-color-focus, Highlight)';
+// The DOM part. Tones come from `toned` (`guides.ts`); system colours stand in before the studio's.
+const FOCUS = 'var(--kv-select, Highlight)';
 const SHEET = `
 .handle, .value { position: absolute; left: 0; top: 0; box-sizing: border-box; }
 .handle {
   pointer-events: auto; touch-action: none; border-radius: 3px;
-  background: var(--kit-color-surface, Canvas); border: 1px solid ${FOCUS};
+  background: var(--kv-on-select, Canvas); border: 1px solid ${FOCUS};
 }
 .handle[data-kind^="padding"], .handle[data-kind="gap"] {
-  background: ${FOCUS}; border-color: var(--kit-color-surface, Canvas);
+  background: ${FOCUS}; border-color: var(--kv-on-select, Canvas);
 }
 .shield { position: fixed; inset: 0; pointer-events: auto; touch-action: none; }
 [data-axis="x"] { cursor: ew-resize; }
@@ -140,7 +140,7 @@ const SHEET = `
   pointer-events: none; padding: 2px 5px; border-radius: 3px; white-space: nowrap;
   font: 600 11px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums; letter-spacing: 0;
-  background: var(--kit-color-ink, CanvasText); color: var(--kit-color-surface, Canvas);
+  background: var(--kv-select, CanvasText); color: var(--kv-on-select, Canvas);
 }
 .off { display: none; }
 @media (forced-colors: active) {

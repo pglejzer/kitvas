@@ -118,14 +118,14 @@ export function uploadImage(ctx: EditorContext, file: File): Promise<string | nu
 /** The Upload button of the image picker; `onStored` gets the stored file name. */
 export function uploadControl(ctx: EditorContext, onStored: (file: string) => void): HTMLElement {
   const wrap = document.createElement('span');
-  wrap.className = 'upload';
+  wrap.className = 'insert-upload';
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = IMAGE_TYPES.join(',');
   input.hidden = true;
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = 'upload-button';
+  button.className = 'k-btn k-btn-line';
   button.textContent = text('upload.button');
   button.addEventListener('click', () => input.click());
   input.addEventListener('change', () => {

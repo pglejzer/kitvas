@@ -88,10 +88,10 @@ test('a written kit shows its source line and the reference beside the frame wit
   writeVerify(made.dir, made.hash);
   const text = pageOf(made);
   assert.ok(text.includes('<span data-kit-source>Website example.com</span>'));
-  assert.ok(text.includes('<div class="example-pair"><iframe class="example-frame"'));
+  assert.ok(text.includes('<div class="kit-pair"><iframe class="kit-frame"'));
   assert.ok(
     text.includes(
-      '<img class="example-ref" data-reference="Button.1" src="http://127.0.0.1:5001/k/k3y/tiny/img/refs/Button.1.png" alt="Reference for Button: ',
+      '<img class="kit-ref" data-reference="Button.1" src="http://127.0.0.1:5001/k/k3y/tiny/img/refs/Button.1.png" alt="Reference for Button: ',
     ),
   );
   assert.ok(
@@ -123,7 +123,7 @@ test('a reference that the build did not copy shows no image', () => {
   writeVerify(made.dir, made.hash);
   const text = pageOf(made);
   assert.ok(!text.includes('<img'));
-  assert.ok(!text.includes('example-pair'));
+  assert.ok(!text.includes('kit-pair'));
   assert.ok(text.includes('Look 81/100'));
 });
 

@@ -7,6 +7,7 @@
 
 import type { ScaleStep } from '../../channel/structure-protocol.ts';
 import { elementsWith } from '../edit/tree.ts';
+import { toned } from '../tones/tones.ts';
 import type { Box, Point } from './slots.ts';
 
 const MARKED = '[data-ks]';
@@ -245,6 +246,7 @@ export function createOverlay(tag: string, sheet: string, zIndex: number): Overl
   host.setAttribute('aria-hidden', 'true');
   // Inline and important, so no rule of the prototype moves or hides the overlay itself.
   host.style.cssText = rules.map((rule) => `${rule} !important;`).join(' ');
+  toned(host);
   const shadow = host.attachShadow({ mode: 'closed' });
   const style = document.createElement('style');
   style.textContent = sheet;
@@ -263,9 +265,9 @@ export function createOverlay(tag: string, sheet: string, zIndex: number): Overl
   };
 }
 
-// The kit's accent when it has one, else its ink; the system colours stand in for a kit with
-// neither (custom properties reach into a shadow root).
-const LINE = 'var(--kit-color-accent, var(--kit-color-ink, CanvasText))';
+// The studio's selection colour (`toned`, custom properties reach into a shadow root); the system
+// colour stands in until the studio has said its tones.
+const LINE = 'var(--kv-select, CanvasText)';
 const SHEET = `
 .line, .label { position: absolute; left: 0; top: 0; pointer-events: none; }
 .line { background: ${LINE}; }
@@ -273,7 +275,7 @@ const SHEET = `
   transform: translate(-50%, -50%); padding: 2px 5px; border-radius: 3px; white-space: nowrap;
   font: 600 11px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums; letter-spacing: 0;
-  background: ${LINE}; color: var(--kit-color-surface, Canvas);
+  background: ${LINE}; color: var(--kv-on-select, Canvas);
 }
 .off { display: none; }
 @media (forced-colors: active) {

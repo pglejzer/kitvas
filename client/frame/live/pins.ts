@@ -2,11 +2,12 @@
 // element, apart from the live marks: at the element's bottom-left corner, where neither the live
 // tags (top-left) nor the full check's dots (top-right) sit. Like them, everything is in one
 // overlay at the end of `body`, in a closed shadow root, hidden from assistive technology and
-// never taking the pointer; system colours only. The page sends the pins; nothing of a note is
-// ever in a build or a draft file.
+// never taking the pointer; the studio's tones (`toned`) over system colours. The page sends the
+// pins; nothing of a note is ever in a build or a draft file.
 
 import type { NotePin } from '../../channel/live-protocol.ts';
 import type { Point, Rect } from '../drag/place.ts';
+import { toned } from '../tones/tones.ts';
 
 export type Pins = { set(pins: readonly NotePin[]): void; clear(): void };
 
@@ -20,7 +21,8 @@ const SHEET = `
   display: flex; align-items: center; justify-content: center; white-space: nowrap;
   font: 700 10px/1 system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: 0;
   font-variant-numeric: tabular-nums;
-  background: Mark; color: MarkText; border: 1px solid CanvasText;
+  background: var(--kv-select, Mark); color: var(--kv-on-select, MarkText);
+  border: 1px solid var(--kv-on-select, CanvasText);
 }
 .off { display: none; }
 `;
@@ -137,6 +139,7 @@ export function createPins(): Pins {
     host = document.createElement('kitvas-note-pins');
     host.setAttribute('aria-hidden', 'true');
     host.style.cssText = HOST_STYLE;
+    toned(host);
     const shadow = host.attachShadow({ mode: 'closed' });
     const sheet = document.createElement('style');
     sheet.textContent = SHEET;

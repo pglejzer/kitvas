@@ -38,6 +38,11 @@ export function orderNotes(notes: readonly NoteView[]): NoteView[] {
   return [...notes.filter((note) => !note.done), ...notes.filter((note) => note.done)];
 }
 
+/** How many notes are open: the count the bar's Notes button shows (hidden at none). */
+export function openCount(notes: readonly NoteView[]): number {
+  return notes.filter((note) => !note.done).length;
+}
+
 export function noteRows(notes: readonly NoteView[]): NoteRow[] {
   return orderNotes(notes).map((note, index): NoteRow => {
     const label = `N${index + 1}`;

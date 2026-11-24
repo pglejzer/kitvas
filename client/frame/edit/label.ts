@@ -48,10 +48,10 @@ export const LABEL_SHEET = `
   position: absolute; left: 0; top: 0; pointer-events: none; white-space: nowrap;
   transform-origin: 0 0;
   padding: 0 4px; font: 11px/1.4 system-ui, sans-serif;
-  background: var(--kit-color-ink-mid, GrayText); color: var(--kit-color-on-ink, Canvas);
+  background: var(--kv-select, GrayText); color: var(--kv-on-select, Canvas);
 }
 .label[data-kind="select"] {
-  background: var(--kit-color-focus, Highlight); color: var(--kit-color-on-focus, HighlightText);
+  background: var(--kv-select, Highlight); color: var(--kv-on-select, HighlightText);
 }
 @media (forced-colors: active) {
   .label { background: Highlight; color: HighlightText; }

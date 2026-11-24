@@ -16,7 +16,7 @@ import type {
 } from '../../channel/edit-protocol.ts';
 import type { LiveFrameMessage, LiveStudioBody } from '../../channel/live-protocol.ts';
 import { type CardSource, cardsOf } from '../canvas/card-list.ts';
-import { type Frame, frameMessage, sendEdit, sendLive } from '../frames.ts';
+import { type Frame, frameMessage, sendEdit, sendFlash, sendLive } from '../frames.ts';
 import { previewApplies } from './style/context-rules.ts';
 
 export type FrameListener = (message: EditFrameMessage) => void;
@@ -47,6 +47,11 @@ export type Bridge = {
   setPreviewWidth?(width: number | null): void;
   /** A preview for one width context, whatever the context is now (an undo of an older edit). */
   sendPreview?(changes: PreviewChange[], width: number | null): void;
+  /**
+   * A ring flashes once on `ids` in every card: a change was just applied to them by a button
+   * or a key (a variant, a suggestion, an undo, a redo), not by the person's hand on the element.
+   */
+  flash?(ids: readonly string[]): void;
 };
 
 /** What every card gets; the frame answers these to the edit card only. */
@@ -169,6 +174,9 @@ export function createBridge(lead: Frame, cards: CardSource = cardsOf(lead)): Br
     sendPreview(changes, width) {
       const body: EditStudioBody = { type: 'preview', changes };
       for (const frame of targetsOf(body, cards, width)) sendEdit(frame, body);
+    },
+    flash(ids) {
+      for (const frame of cards.frames()) sendFlash(frame, ids);
     },
   };
   return bridge;

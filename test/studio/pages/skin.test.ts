@@ -1,23 +1,32 @@
 import assert from 'node:assert/strict';
-import { join } from 'node:path';
 import { test } from 'node:test';
-import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
-import { loadKit, tokensToCss } from '../../../src/kit/index.ts';
-import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
-import { SKIN_RULES, studioSkin } from '../../../src/studio/pages/skin.ts';
+import { EDITOR_RULES } from '../../../src/studio/pages/skin/editor/index.ts';
+import { SHARED_RULES } from '../../../src/studio/pages/skin/index.ts';
+import { PAGE_RULES } from '../../../src/studio/pages/skin/pages/index.ts';
+import { studioSkin } from '../../../src/studio/pages/skin.ts';
+import { themeCss, themeNames } from '../../../src/studio/theme/theme-css.ts';
 
-const base = loadKit(createFolderKitStore(join(PLUGIN_ROOT, 'kits')), 'base');
+// What each part may hold is checked beside it: the theme in test/studio/theme/, the shared rules
+// and every area in test/studio/pages/skin/. Here: the sheet as a whole.
 
-test('the skin is the Base tokens, then rules that use only tokens the kit has', () => {
-  const tokens = tokensToCss(base.tokens);
-  assert.ok(studioSkin(base.tokens).startsWith(tokens));
-  const defined = new Set([...tokens.matchAll(/(--kit-[a-z0-9-]+):/g)].map((match) => match[1]));
-  const used = [...SKIN_RULES.matchAll(/var\((--kit-[a-z0-9-]+)\)/g)].map((match) => match[1]);
-  assert.ok(used.length > 20);
-  for (const name of used) assert.ok(defined.has(name), `${name} is a Base token`);
+test("the sheet is the studio's tokens, then the shared rules, the pages' and the editor's", () => {
+  assert.equal(studioSkin(), `${themeCss()}${SHARED_RULES}${PAGE_RULES}${EDITOR_RULES}`);
 });
 
-test('colours come only from the tokens, and soft grey is never text', () => {
-  assert.doesNotMatch(SKIN_RULES, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|\b(white|black)\b/i);
-  assert.ok(!SKIN_RULES.includes('--kit-color-ink-soft'));
+test('the studio has a look of its own: no kit token, and every token it reads is defined', () => {
+  const css = studioSkin();
+  // A kit styles prototypes; the studio looks the same whichever kit a draft uses (ADR 0057).
+  assert.ok(!css.includes('--kit-'));
+  // The theme builds its tokens from values of its own; the rules read only the tokens.
+  const names = themeNames();
+  const rules = `${SHARED_RULES}${PAGE_RULES}${EDITOR_RULES}`;
+  const used = [...rules.matchAll(/var\((--st-[a-z0-9-]+)/g)].map((match) => match[1] ?? '');
+  assert.ok(used.length > 200);
+  for (const name of used) assert.ok(names.has(name), `${name} is defined`);
+});
+
+test('the rules of the look before the redesign are gone', () => {
+  const css = studioSkin();
+  const old = ['.editor-side', '.editor-pane', '.editor-bar', '.edit-toggle', '.draft {', '.opt {'];
+  for (const rule of old) assert.ok(!css.includes(rule), rule);
 });

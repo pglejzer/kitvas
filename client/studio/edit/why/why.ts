@@ -1,7 +1,8 @@
-// The Why tab (spec 4d, goal 7; plan 17, task E): the left panel's reasons, one entry per section
-// in layout order. A click on an entry selects the section's root; "may be out of date" says the
-// section changed after its lines were written; a section with none offers "Ask Claude for the
-// reasons", which sends a `why` request (task A's route). The data is pure (`entries.ts`).
+// The Why pane (spec 4d, goal 7; plan 17, task E; plan 18, task B): the left panel's reasons, one
+// `.k-item` per section in layout order. A click on a name selects the section's root; "may be out
+// of date" says the section changed after its lines were written; a section with none offers "Ask
+// Claude for the reasons", which sends a `why` request (task A's route). The data is pure
+// (`entries.ts`).
 
 import type { EditorContext } from '../context.ts';
 import { el } from '../props/controls.ts';
@@ -12,7 +13,7 @@ import { itemsOf, type WhyItem, type WhyReport } from './entries.ts';
 type Shown = WhyReport | 'loading' | 'failed';
 
 function entryView(item: WhyItem, select: (id: string) => void, ask: () => void): HTMLElement {
-  const row = el('li', 'why-item');
+  const row = el('li', 'k-item why-item');
   row.dataset.section = item.section;
   row.dataset.state = item.state;
   const { element } = item;
@@ -28,23 +29,33 @@ function entryView(item: WhyItem, select: (id: string) => void, ask: () => void)
     const lines = el('ul', 'why-lines');
     for (const line of item.lines) lines.append(el('li', undefined, line));
     row.append(lines);
-    if (item.guidelines.length > 0) {
-      const names = item.guidelines.join(', ');
-      row.append(el('p', 'props-note why-guidelines', text('why.guidelines', { names })));
-    }
-    if (item.stale) {
-      const stale = el('p', 'props-note why-stale', text('why.stale'));
-      stale.setAttribute('role', 'status');
-      row.append(stale);
+    // Guideline ids and the stale mark sit under a hairline: one fill, the item's own.
+    if (item.guidelines.length > 0 || item.stale) {
+      const foot = el('div', 'why-foot');
+      if (item.guidelines.length > 0) {
+        const names = el('div', 'why-guidelines');
+        names.setAttribute('role', 'group');
+        names.setAttribute('aria-label', text('why.guidelinesLabel'));
+        for (const id of item.guidelines) names.append(el('span', 'k-chip', id));
+        foot.append(names);
+      }
+      if (item.stale) {
+        const stale = el('span', 'why-stale k-chip', text('why.staleShort'));
+        stale.dataset.tone = 'review';
+        stale.title = text('why.stale');
+        stale.setAttribute('role', 'status');
+        foot.append(stale);
+      }
+      row.append(foot);
     }
     return row;
   }
-  row.append(el('p', 'props-note', text('why.none')));
+  row.append(el('p', 'k-quiet', text('why.none')));
   if (item.state === 'asked') {
-    row.append(el('p', 'props-note why-asked', text('why.asked')));
+    row.append(el('p', 'why-asked k-meta', text('why.asked')));
     return row;
   }
-  const button = el('button', 'why-ask', text('why.ask'));
+  const button = el('button', 'why-ask k-btn k-btn-line', text('why.ask'));
   button.type = 'button';
   button.addEventListener('click', ask);
   row.append(button);
@@ -61,11 +72,22 @@ export function mountWhy(ctx: EditorContext): void {
   /** Sections asked in this page, until the request list says so too. */
   const asked = new Set<string>();
 
+  const head = el('div', 'k-pad why-head');
+  const title = el('div', 'k-head');
+  title.append(el('h2', undefined, text('why.title')));
+  head.append(title);
+  const scroll = el('div', 'k-scroll why-scroll');
+  section.append(head, scroll);
+
+  function say(words: string, status = false): void {
+    const note = el('p', 'k-empty why-note', words);
+    if (status) note.setAttribute('role', 'status');
+    scroll.replaceChildren(note);
+  }
+
   function render(): void {
     if (shown === 'loading' || shown === 'failed') {
-      const note = el('p', 'props-note', text(shown === 'loading' ? 'why.loading' : 'why.failed'));
-      note.setAttribute('role', 'status');
-      section?.replaceChildren(note);
+      say(text(shown === 'loading' ? 'why.loading' : 'why.failed'), true);
       return;
     }
     const state = store.get();
@@ -79,10 +101,10 @@ export function mountWhy(ctx: EditorContext): void {
       (state.structure?.sections ?? []).map((one) => one.id),
     );
     if (items.length === 0) {
-      section?.replaceChildren(el('p', 'props-note', text('why.empty')));
+      say(text('why.empty'));
       return;
     }
-    const list = el('ul', 'why-list');
+    const list = el('ul', 'k-stack why-list');
     for (const item of items) {
       const select = (id: string): void => store.set({ selection: [id] });
       const ask = (): void => {
@@ -93,7 +115,7 @@ export function mountWhy(ctx: EditorContext): void {
       };
       list.append(entryView(item, select, ask));
     }
-    section?.replaceChildren(list);
+    scroll.replaceChildren(list);
   }
 
   function read(): void {

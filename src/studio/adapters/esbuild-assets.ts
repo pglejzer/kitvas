@@ -1,8 +1,11 @@
 // The studio's browser scripts: `client/studio/<name>.ts` bundled by esbuild on first use.
+// And the files of its typeface, read from the font package on first use.
 
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { KitvasError, loadDep } from '../../shared/index.ts';
+import { KitvasError, loadDep, resolveDep } from '../../shared/index.ts';
 import type { ScriptName, StudioAssets } from '../pages/asset-routes.ts';
+import { FONT_PACKAGE, type FontFile } from '../pages/fonts.ts';
 
 type Esbuild = typeof import('esbuild');
 
@@ -23,6 +26,7 @@ function firstError(cause: unknown): KitvasError {
 
 export function createEsbuildAssets({ roots, clientDir }: EsbuildAssetsOptions): StudioAssets {
   const bundles = new Map<ScriptName, Promise<string>>();
+  const fonts = new Map<FontFile, Promise<Buffer>>();
 
   async function bundle(name: ScriptName): Promise<string> {
     const { build } = await loadDep<Esbuild>('esbuild', roots);
@@ -52,6 +56,18 @@ export function createEsbuildAssets({ roots, clientDir }: EsbuildAssetsOptions):
         text.catch(() => bundles.delete(name));
       }
       return text;
+    },
+    font(name) {
+      let bytes = fonts.get(name);
+      if (!bytes) {
+        // A missing package is `DEPS_MISSING`, raised here as a rejection like a failed read.
+        bytes = Promise.resolve().then(() =>
+          readFile(resolveDep(`${FONT_PACKAGE}/files/${name}`, roots)),
+        );
+        fonts.set(name, bytes);
+        bytes.catch(() => fonts.delete(name));
+      }
+      return bytes;
     },
   };
 }

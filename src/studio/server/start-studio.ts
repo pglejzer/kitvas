@@ -4,8 +4,13 @@ import type { Server } from 'node:http';
 import { join } from 'node:path';
 import type { SharedBrowser } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
-import { type KitStore, loadKit } from '../../kit/index.ts';
-import { PLUGIN_ROOT, type Translate } from '../../shared/index.ts';
+import type { KitStore } from '../../kit/index.ts';
+import {
+  memoryViewStore,
+  PLUGIN_ROOT,
+  type Translate,
+  type ViewStore,
+} from '../../shared/index.ts';
 import type { EditDeps } from '../api/edit/edit-routes.ts';
 import type { ImageStore } from '../api/images/image-rules.ts';
 import { apiRoutes } from '../api/routes.ts';
@@ -27,7 +32,7 @@ import { type LiveTools, startLiveLoop } from '../live/index.ts';
 import { assetRoutes, type StudioAssets } from '../pages/asset-routes.ts';
 import { openRoute } from '../pages/open-route.ts';
 import { pageRoutes } from '../pages/routes.ts';
-import { studioSkin } from '../pages/skin.ts';
+import { type StudioSkin, studioSkin } from '../pages/skin.ts';
 import { createDeniedLog } from '../security/denied-log.ts';
 import { createOpenLinks } from '../security/open-links.ts';
 import { frameHeaders, studioHeaders } from '../security/response-headers.ts';
@@ -39,7 +44,7 @@ import { handleStudio } from './studio-handler.ts';
 export type StudioDeps = {
   /** The drafts of the project the studio shows. */
   drafts: DraftStore;
-  /** The kits: the studio's own look comes from the Base kit's tokens. */
+  /** The kits, for the kit pages and for building what a draft shows. */
   kits: KitStore;
   /** The project's folder: where the kits' built examples are. Without it the kit page shows none. */
   project?: string | undefined;
@@ -74,6 +79,11 @@ export type StudioDeps = {
   imageStore?: ImageStore;
   /** The live loop's watch and warm build (`live/`); without it nothing rebuilds by itself. */
   live?: LiveTools;
+  /**
+   * The view the person chose (theme, panels, accent). `serveProject` gives the one kept in the
+   * person's settings file; without it the view lives in memory and ends with the studio.
+   */
+  view?: ViewStore;
 };
 
 export type StudioOptions = {
@@ -122,8 +132,12 @@ function listenOn(
 }
 
 export async function startStudio(deps: StudioDeps, options: StudioOptions = {}): Promise<Studio> {
-  // Before any port is opened: a studio without its look does not start.
-  const skin = studioSkin(loadKit(deps.kits, 'base').tokens);
+  const view = deps.view ?? memoryViewStore();
+  // The sheet is made once; the view is read for every page, so a change shows on the next one.
+  const skin: StudioSkin = {
+    css: studioSkin(),
+    view: () => view.read(),
+  };
   const { t } = deps;
   const studioServer = createLimitedServer();
   const frameServer = createLimitedServer();
@@ -228,6 +242,7 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       inbox,
       t,
       links,
+      view,
       ...(deps.shutdown ? { shutdown: deps.shutdown } : {}),
       ...(edit ? { edit } : {}),
       ...(deps.imageStore ? { imageStore: deps.imageStore } : {}),

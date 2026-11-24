@@ -75,7 +75,7 @@ test("a card's facts become items filed under the full check's rules, at the car
   const answer = { width: 390, facts: [fact(TITLE, 'contrast', 'fix')] };
   const [one] = withFrameAnswer([], answer, new Set());
   assert.ok(one);
-  const { message, ...rest } = one;
+  const { message, values, ...rest } = one;
   assert.deepEqual(rest, {
     id: TITLE,
     rule: 'a11y/color-contrast',
@@ -84,6 +84,17 @@ test("a card's facts become items filed under the full check's rules, at the car
     source: 'frame',
   });
   assert.equal(message, 'live.fact.contrast');
+  // The measured values stay on the item, for the evidence line (plan 18).
+  assert.deepEqual(values, {});
+});
+
+test("a row's evidence comes from its item's values; a code finding has its message only", () => {
+  const measured = { ...item({}), values: { ratio: 2.9, needed: 4.5 } };
+  const code = item({ id: SECTION, source: 'code', rule: 'ds/raw-color', message: 'by hand' });
+  const groups = liveGroups([measured, code], []);
+  const byId = new Map(groups.map((group) => [group.id, group.rows[0]?.evidence]));
+  assert.deepEqual(byId.get(TITLE), { kind: 'contrast', ratio: 2.9, needed: 4.5 });
+  assert.deepEqual(byId.get(SECTION), { kind: 'message', message: 'by hand' });
 });
 
 test('what a measurement covered is the named elements, all under them, and every fact', () => {

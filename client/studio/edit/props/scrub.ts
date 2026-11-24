@@ -62,7 +62,7 @@ export function scrubText(tokens: readonly TokenOption[], value: StyleValue): st
 
 /**
  * Makes `label` scrub: a press and a drag step the value, the release writes it once. The label
- * keeps its text; the moving value shows in `data-scrub`.
+ * keeps its text; the moving value shows in `data-scrub`, which the skin draws over the label.
  */
 export function attachScrub(
   label: HTMLElement,
@@ -75,7 +75,7 @@ export function attachScrub(
     onScrub(value: StyleValue): void;
   },
 ): void {
-  label.classList.add('props-scrub');
+  label.classList.add('props-scrubber');
   let drag: { pointer: number; x: number; value: StyleValue | null } | null = null;
   // Listened to only while a drag runs: the panel rebuilds its rows, and a listener left on the
   // document by each one would pile up.

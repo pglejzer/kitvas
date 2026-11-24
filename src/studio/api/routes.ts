@@ -9,7 +9,7 @@ import {
   versionInfo,
 } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
-import { KitvasError, type Translate } from '../../shared/index.ts';
+import { KitvasError, type Translate, type ViewStore } from '../../shared/index.ts';
 import type { EventHub } from '../events/event-hub.ts';
 import { etagOf, requireIfMatch } from '../http/etag.ts';
 import { type ApiRoute, apiRoute } from '../http/router.ts';
@@ -40,6 +40,7 @@ import {
   VersionParams,
   VersionSchema,
 } from './schemas.ts';
+import { settingsRoutes } from './settings/settings-routes.ts';
 import { viewRoutes } from './view/view-routes.ts';
 import { waiverRoutes } from './waivers/waiver-routes.ts';
 import { whyRoutes } from './why/why-routes.ts';
@@ -66,6 +67,8 @@ export type ApiDeps = {
   edit?: EditDeps;
   /** Where an uploaded image is stored (`src/main.ts` gives it); without it uploads answer 500. */
   imageStore?: ImageStore;
+  /** The view the person chose (theme, panels, accent), kept in their own settings file. */
+  view: ViewStore;
 };
 
 const draftPath = (slug: string): string => `/api/v1/drafts/${slug}`;
@@ -186,6 +189,8 @@ export function apiRoutes(deps: ApiDeps): ApiRoute[] {
     ...viewRoutes(deps),
     ...historyRoutes(deps),
     ...whyRoutes(deps),
+    // The studio's look (plan 18).
+    ...settingsRoutes(deps),
   ];
   routes.push(
     apiRoute({

@@ -31,20 +31,24 @@ function kitPageOf(kits: KitStore, project: string | undefined, id: string): str
   }) as unknown as string;
 }
 
-const FRAME = /<iframe class="example-frame"[^>]*><\/iframe>/g;
+const FRAME = /<iframe class="kit-frame"[^>]*><\/iframe>/g;
+const SOURCE =
+  '<pre class="kit-source" tabindex="0"><code>&lt;Button&gt;Save&lt;/Button&gt;</code></pre>';
 
 test('without a stamp the page is missing its catalog and shows the building note', () => {
   const text = kitPageOf(builtinKits(), tempDir('kitvas-project-'), 'base');
-  assert.ok(text.includes('<main data-kit="base" data-catalog="missing">'));
+  assert.ok(
+    text.includes('<main class="k-page kit-layout" data-kit="base" data-catalog="missing">'),
+  );
   assert.ok(
     text.includes(
-      '<p class="quiet" data-catalog-note="building">The examples are being built.</p>',
+      '<p class="k-quiet" data-catalog-note="building">The examples are being built.</p>',
     ),
   );
-  assert.ok(text.includes('<p class="fix" data-catalog-note="failed" hidden>'));
+  assert.ok(text.includes('<p class="k-fix" data-catalog-note="failed" hidden>'));
   assert.ok(text.includes('Run &quot;kitvas kit build base&quot; to see why.'));
   assert.equal(text.match(FRAME), null, 'no frame without a build');
-  assert.ok(text.includes('<pre><code>&lt;Button&gt;Save&lt;/Button&gt;</code></pre>'));
+  assert.ok(text.includes(SOURCE));
 });
 
 test('a page without a project folder is the same as one without a catalog', () => {
@@ -64,14 +68,14 @@ test('with a stamp a shown example gets a sandboxed frame on the prototype origi
   const project = tempDir('kitvas-project-');
   writeCatalog(project);
   const text = kitPageOf(builtinKits(), project, 'base');
-  assert.ok(text.includes('<main data-kit="base" data-catalog="ready">'));
-  assert.ok(text.includes('<p class="quiet" data-catalog-note="building" hidden>'));
+  assert.ok(text.includes('<main class="k-page kit-layout" data-kit="base" data-catalog="ready">'));
+  assert.ok(text.includes('<p class="k-quiet" data-catalog-note="building" hidden>'));
   const frames = text.match(FRAME) ?? [];
   assert.equal(frames.length, 1, 'only the shown example');
   const frame = frames[0] ?? '';
   const channel = /data-channel="([^"]+)"/.exec(frame)?.[1];
   assert.ok(channel);
-  assert.ok(frame.startsWith('<iframe class="example-frame" data-example="Button.1" '));
+  assert.ok(frame.startsWith('<iframe class="kit-frame" data-example="Button.1" '));
   assert.ok(
     frame.includes(
       `src="http://127.0.0.1:5001/k/k3y/base/html/index.html?example=Button.1#kitvas=${channel}&amp;studio=5000"`,
@@ -90,11 +94,13 @@ test('a skipped example shows the note, a shown one keeps it hidden', () => {
   writeCatalog(project);
   const text = kitPageOf(builtinKits(), project, 'base');
   assert.ok(
-    text.includes('<p class="quiet" data-preview-note="Button.2">No preview for this example.</p>'),
+    text.includes(
+      '<p class="k-quiet" data-preview-note="Button.2">No preview for this example.</p>',
+    ),
   );
   assert.ok(
     text.includes(
-      '<p class="quiet" data-preview-note="Button.1" hidden>No preview for this example.</p>',
+      '<p class="k-quiet" data-preview-note="Button.1" hidden>No preview for this example.</p>',
     ),
   );
   // An example of the stamp's neither list is not framed and keeps its note hidden too.
@@ -105,7 +111,7 @@ test('every frame of a page has a channel of its own', () => {
   const project = tempDir('kitvas-project-');
   writeCatalog(project, { ...BASE_STAMP, shown: ['Button.1', 'Button.2'], skipped: [] });
   const text = kitPageOf(builtinKits(), project, 'base');
-  const channels = [...text.matchAll(/class="example-frame"[^>]*data-channel="([^"]+)"/g)].map(
+  const channels = [...text.matchAll(/class="kit-frame"[^>]*data-channel="([^"]+)"/g)].map(
     (match) => match[1],
   );
   assert.equal(channels.length, 2);

@@ -4,8 +4,15 @@
 
 import type { Translate } from '../../shared/index.ts';
 import { type Html, html } from './html.ts';
+import { commandBox } from './states/command.ts';
 
-/** `role="status"` and a focus on show: a screen reader reads it, a keyboard lands on it. */
+/** The command that starts the studio again. */
+const START = 'kitvas studio';
+
+/**
+ * `role="status"` and a focus on show: a screen reader reads it, a keyboard lands on it. The
+ * skin hides every other child of the body while `data-paused` is on it (`skin/pages/states.ts`).
+ */
 export function pausedView(t: Translate): Html {
-  return html`<div class="paused" data-paused-view role="status" tabindex="-1" hidden><h1>${t('studio.paused.title')}</h1><p>${t('studio.paused.body')}</p></div>`;
+  return html`<div class="state-card state-paused k-rise" data-paused-view role="status" tabindex="-1" hidden><h1>${t('studio.paused.title')}</h1><p>${t('studio.paused.body')}</p>${commandBox(t, START, { copy: true })}</div>`;
 }

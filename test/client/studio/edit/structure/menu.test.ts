@@ -5,12 +5,15 @@ import {
   activate,
   clampToView,
   componentItems,
+  MENU_ICONS,
   type MenuItem,
+  menuIcon,
   menuItems,
   selectionFor,
   stepIndex,
   toPagePoint,
 } from '../../../../../client/studio/edit/structure/menu.ts';
+import { ICON_NAMES } from '../../../../../src/studio/pages/icons/paths.ts';
 
 const on = (id: ActionState['id']): ActionState => ({ id, enabled: true, reason: null });
 const off = (id: ActionState['id'], reason: ActionState['reason']): ActionState => ({
@@ -157,4 +160,19 @@ test('the menu offers Lock or Unlock, whichever applies, never both', () => {
   assert.deepEqual(free, ['lock']);
   const locked = menuItems([off('lock', 'no-selection'), on('unlock')], 0).map((i) => i.action);
   assert.deepEqual(locked, ['unlock']);
+});
+
+test('an item has an icon only where its action has one; the rest keep their words alone', () => {
+  assert.equal(menuIcon({ action: 'delete' }), 'trash');
+  assert.equal(menuIcon({ action: 'duplicate' }), 'duplicate');
+  assert.equal(menuIcon({ action: 'hide' }), 'eye-off');
+  assert.equal(menuIcon({ action: 'wrap-stack' }), null);
+  assert.equal(menuIcon({ action: 'replace' }), null);
+  // A component in the list that Replace opens, and the note item.
+  assert.equal(menuIcon({ action: null }), null);
+  assert.equal(menuIcon({ action: null, note: true }), 'note');
+});
+
+test('every icon of the menu is one the studio draws', () => {
+  for (const name of Object.values(MENU_ICONS)) assert.ok(ICON_NAMES.includes(name), name);
 });

@@ -1,9 +1,11 @@
-// Notes pinned to elements (spec 4d, goal 3; plan 17, task C): "Note…" in the context menu opens
-// the form, the Notes section sits at the bottom of the AI tab (after task B's content, never in
-// its list), and every card gets the pins of the open notes while editing. A note for Claude also
-// sends a `note` request (task A's route, through task B's client), which waits until a listening
-// Claude Code session takes it; closing it marks the note done on the server. Fills `store.notes`.
-// Nothing of a note reaches a build or a source file: the pins are an overlay of the frame.
+// Notes pinned to elements (spec 4d, goal 3; plan 17, task C; plan 18, task B): "Note…" in the
+// context menu opens the form, the Notes pane (`section[data-edit="notes"]`, its own pane on the
+// rail) lists them and adds one at its foot, the bar's Notes button (`[data-bar-notes]`) shows how
+// many are open, and every card gets the pins of the open notes while editing. A note for Claude
+// also sends a `note` request (task A's route, through task B's client), which waits until a
+// listening Claude Code session takes it; closing it marks the note done on the server. Fills
+// `store.notes`. Nothing of a note reaches a build or a source file: the pins are an overlay of
+// the frame.
 
 import { frameMessage } from '../../frames.ts';
 import { dropRequest, postRequest } from '../ai/api.ts';
@@ -13,13 +15,14 @@ import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 import { changeNote, getNotes, postNote, removeNote } from './api.ts';
 import { openNoteForm } from './form.ts';
-import { createNotesList, type ListHandlers } from './list.ts';
+import { createNotesPane, type ListHandlers, type NoteDraft } from './list.ts';
 import {
   NOTE_EVENT,
   type NoteRow,
   noteRequest,
   noteRequestKey,
   noteRows,
+  openCount,
   pinsOf,
   waitingRequest,
 } from './model.ts';
@@ -36,17 +39,32 @@ function isNoteAsked(event: Event): event is CustomEvent<{ id: string | null }> 
 
 export function mountNotes(ctx: EditorContext): void {
   const { store, bridge, slug, main } = ctx;
-  const list = createNotesList();
-  // At the bottom of the AI tab, after task B's own content (`mountAi` ran first).
-  const section = ctx.panel.querySelector('section[data-edit="ai"]');
-  if (section instanceof HTMLElement) section.append(list.element);
+  // The Notes pane (C8); without it the notes still work through the form and the pins.
+  const host = ctx.panel.querySelector('section[data-edit="notes"]');
+  const pane = createNotesPane(
+    host instanceof HTMLElement ? host : document.createElement('section'),
+    (draft) => save(store.get().selection[0] ?? null, draft),
+  );
 
   let rows: NoteRow[] = [];
   let reload: ReturnType<typeof setTimeout> | null = null;
+  /** The notes the page started with are drawn at once; a note that comes later slides in. */
+  let loaded = false;
 
   async function load(): Promise<void> {
     const notes = await getNotes(slug);
     if (notes !== null) store.set({ notes });
+    loaded = true;
+  }
+
+  /** The bar's Notes button says how many notes are open, and is hidden at none (C8). */
+  function syncBar(): void {
+    const button = document.querySelector<HTMLElement>('[data-bar-notes]');
+    if (!button) return;
+    const count = openCount(store.get().notes);
+    const shown = button.querySelector<HTMLElement>('[data-count]');
+    if (shown) shown.textContent = String(count);
+    button.hidden = count === 0;
   }
 
   function later(): void {
@@ -75,20 +93,23 @@ export function mountNotes(ctx: EditorContext): void {
     if (waiting !== undefined) await dropRequest(slug, waiting.id);
   }
 
+  /** Saves a new note on `id` (`null`: the draft); a note for Claude asks Claude too. */
+  async function save(id: string | null, values: NoteDraft): Promise<boolean> {
+    const made = await postNote(slug, { element: id, text: values.text, for: values.for });
+    if (made === null) return false;
+    store.set({ notes: made.notes });
+    if (values.for === 'claude') {
+      await ask({ id: made.created, element: id, text: values.text });
+    }
+    return true;
+  }
+
   function create(id: string | null): void {
     openNoteForm(main, {
       place: id === null ? null : elementName(id),
       text: '',
       for: 'me',
-      save: async (values) => {
-        const made = await postNote(slug, { element: id, text: values.text, for: values.for });
-        if (made === null) return false;
-        store.set({ notes: made.notes });
-        if (values.for === 'claude') {
-          await ask({ id: made.created, element: id, text: values.text });
-        }
-        return true;
-      },
+      save: (values) => save(id, values),
     });
   }
 
@@ -142,7 +163,10 @@ export function mountNotes(ctx: EditorContext): void {
   function render(): void {
     const state = store.get();
     rows = noteRows(state.notes);
-    list.draw(rows, handlers, state.selection[0] ?? null);
+    const selected = state.selection[0] ?? null;
+    pane.target(selected === null ? null : elementName(selected));
+    pane.draw(rows, handlers, selected, loaded);
+    syncBar();
   }
 
   document.addEventListener(NOTE_EVENT, (event) => {

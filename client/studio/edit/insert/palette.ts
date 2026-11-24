@@ -5,11 +5,18 @@
 import type { EditOp } from '../../../../src/edit/index.ts';
 import type { Palette, Structure } from '../../../../src/studio/api/edit/structure-schemas.ts';
 import type { Place } from '../../../channel/structure-protocol.ts';
+import { icon } from '../../ui/icon.ts';
 import { getPalette } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { forwardDrag } from '../select/forward.ts';
 import type { Gesture } from '../store.ts';
 import { text } from '../texts.ts';
+import { groupByCategory, groupTitle } from './groups.ts';
+import { type TileOptions, tileGroup, tileView } from './tile.ts';
+
+/** Where a click puts the new thing, relative to the selected element. */
+export type Where = 'before' | 'after' | 'inside';
+const WHERES: readonly Where[] = ['before', 'after', 'inside'];
 
 export type PaletteComponent = Palette['components'][number];
 export type PaletteSection = Palette['sections'][number];
@@ -87,11 +94,14 @@ const byId = (structure: Structure): Map<string, Entry> =>
  * Where a click inserts: after the selected element, or inside it when it is a root (an element
  * after a root would be a second root); with nothing selected, last in the first section's root.
  * A part goes last inside the nearest selected ancestor that is its root component, nowhere else.
+ * `where` is the person's choice in the pane: "after" is the rule above, "before" puts it in front
+ * of the selected element (a root has no sibling), "inside" puts it last inside one that takes children.
  */
 export function clickTarget(
   structure: Structure,
   selection: readonly string[],
   parent: string | null,
+  where: Where = 'after',
 ): Target | Refusal {
   const entries = byId(structure);
   const first = selection[0];
@@ -105,11 +115,15 @@ export function clickTarget(
     return 'partOnly';
   }
   if (selected) {
+    if (where === 'inside') {
+      return selected.accepts ? { anchor: selected.id, place: 'last' } : 'noTarget';
+    }
     if (selected.root !== null) {
+      if (where === 'before') return 'noTarget';
       return selected.accepts ? { anchor: selected.id, place: 'last' } : 'noTarget';
     }
     if (selected.movable === 'in-expression') return 'noTarget';
-    return { anchor: selected.id, place: 'after' };
+    return { anchor: selected.id, place: where === 'before' ? 'before' : 'after' };
   }
   const root = structure.elements.find((entry) => entry.root === 'section' && entry.accepts);
   return root ? { anchor: root.id, place: 'last' } : 'noTarget';
@@ -164,15 +178,21 @@ export function opFor(
   structure: Structure,
   slot: Target | null,
   selection: readonly string[],
+  where: Where = 'after',
 ): EditOp | Refusal | 'needsProps' {
   if (item.kind === 'section') {
-    const after = sectionAfter(structure, selection, slot);
+    const first = selection[0];
+    const before: Target | null =
+      slot === null && where === 'before' && first !== undefined
+        ? { anchor: first, place: 'before' }
+        : slot;
+    const after = sectionAfter(structure, selection, before);
     return { op: 'insertSection', from: { slug: item.slug, section: item.section }, after };
   }
   const code = item.kind === 'icon' ? iconCode(item.component, item.name) : codeOf(item.component);
   if (code === null) return 'needsProps';
   const parent = item.kind === 'component' ? item.component.parent : null;
-  const target = slot ?? clickTarget(structure, selection, parent);
+  const target = slot ?? clickTarget(structure, selection, parent, where);
   if (typeof target === 'string') return target;
   return { op: 'insertElement', anchor: target.anchor, place: target.place, source: code };
 }
@@ -205,20 +225,60 @@ export function mountPalette(ctx: EditorContext): void {
   let dragging: Item | null = null;
   let suppressClick = false;
 
+  /** Where a click puts the thing; the drag decides for itself at the drop. */
+  let where: Where = 'after';
+
+  const head = document.createElement('div');
+  head.className = 'k-pad insert-head';
+  const title = document.createElement('div');
+  title.className = 'k-head';
   const heading = document.createElement('h2');
   heading.textContent = text('palette.title');
+  title.append(heading);
+  const find = document.createElement('label');
+  find.className = 'k-search';
   const search = document.createElement('input');
   search.type = 'search';
-  search.className = 'palette-search';
+  search.className = 'k-field insert-search';
   search.placeholder = text('palette.search');
   search.setAttribute('aria-label', text('palette.search'));
+  find.append(icon('search'), search);
+  head.append(title, find);
+  const scroll = document.createElement('div');
+  scroll.className = 'k-scroll insert-scroll';
+  scroll.dataset.insertScroll = '';
   const groups = document.createElement('div');
-  groups.className = 'palette-groups';
+  groups.className = 'insert-groups';
+  scroll.append(groups);
   const note = document.createElement('p');
-  note.className = 'palette-note';
+  note.className = 'insert-note k-meta';
   note.setAttribute('role', 'status');
   note.hidden = true;
-  section.append(heading, search, groups, note);
+  const foot = document.createElement('div');
+  foot.className = 'k-actions insert-where';
+  const wherePick = document.createElement('div');
+  wherePick.className = 'k-seg';
+  wherePick.setAttribute('role', 'group');
+  wherePick.setAttribute('aria-label', text('palette.where'));
+  const whereLabel = document.createElement('span');
+  whereLabel.className = 'k-meta';
+  whereLabel.textContent = text('palette.where');
+  for (const choice of WHERES) {
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.dataset.where = choice;
+    pick.textContent = text(`palette.where.${choice}`);
+    pick.setAttribute('aria-pressed', String(choice === where));
+    pick.addEventListener('click', () => {
+      where = choice;
+      for (const one of wherePick.querySelectorAll('button')) {
+        one.setAttribute('aria-pressed', String(one.dataset.where === where));
+      }
+    });
+    wherePick.append(pick);
+  }
+  foot.append(whereLabel, wherePick);
+  section.append(head, scroll, note, foot);
 
   const say = (message: string | null): void => {
     note.hidden = message === null;
@@ -243,7 +303,7 @@ export function mountPalette(ctx: EditorContext): void {
     }
     const state = store.get();
     if (!state.structure) return;
-    const op = opFor(item, state.structure, null, state.selection);
+    const op = opFor(item, state.structure, null, state.selection, where);
     if (op === 'needsProps' && item.kind === 'component') {
       say(text('palette.needsProps', { props: item.component.required.join(', ') }));
     } else if (op === 'partOnly') {
@@ -301,39 +361,11 @@ export function mountPalette(ctx: EditorContext): void {
     });
   }
 
-  function row(item: Item, label: string, hint: string | null, disabled: boolean): HTMLLIElement {
-    const li = document.createElement('li');
-    const element = document.createElement('button');
-    element.type = 'button';
-    element.className = 'palette-item';
-    element.disabled = disabled;
-    const name = document.createElement('span');
-    name.className = 'palette-name';
-    name.textContent = label;
-    element.append(name);
-    if (hint !== null && hint !== '') {
-      const small = document.createElement('span');
-      small.className = 'palette-hint';
-      small.textContent = hint;
-      element.title = hint;
-      element.append(small);
-    }
-    element.addEventListener('click', () => click(item));
-    if (!disabled) wireDrag(element, item);
-    li.append(element);
+  function row(item: Item, label: string, options: TileOptions): HTMLLIElement {
+    const { li, button } = tileView(label, options);
+    button.addEventListener('click', () => click(item));
+    if (!options.disabled) wireDrag(button, item);
     return li;
-  }
-
-  function group(title: string, rows: HTMLLIElement[]): void {
-    if (rows.length === 0) return;
-    const wrap = document.createElement('div');
-    wrap.className = 'palette-group';
-    const h = document.createElement('h3');
-    h.textContent = title;
-    const list = document.createElement('ul');
-    list.append(...rows);
-    wrap.append(h, list);
-    groups.append(wrap);
   }
 
   function componentRow(component: PaletteComponent): HTMLLIElement {
@@ -341,38 +373,54 @@ export function mountPalette(ctx: EditorContext): void {
     const hint = needs
       ? text('palette.needsProps', { props: component.required.join(', ') })
       : component.category;
-    const li = row({ kind: 'component', component }, component.name, hint, needs);
-    if (component.parent !== null) li.classList.add('palette-part');
-    return li;
+    return row({ kind: 'component', component }, component.name, {
+      hint,
+      disabled: needs,
+      part: component.parent !== null,
+      icon: 'component',
+    });
   }
 
   function render(): void {
     groups.replaceChildren();
     if (!palette) return;
     const shown = filterPalette(palette, query);
-    group(text('palette.components'), shown.components.map(componentRow));
+    const add = (title: string, tiles: HTMLLIElement[]): void => {
+      const made = tileGroup(title, tiles);
+      if (made) groups.append(made);
+    };
+    // The kit's components by category, in the order the kit lists them.
+    for (const group of groupByCategory(shown.components, text('palette.components'))) {
+      add(groupTitle(group.category), group.items.map(componentRow));
+    }
     const iconComponent = palette.icons?.component ?? '';
-    group(
+    add(
       text('palette.icons'),
       shown.icons
         .filter((name) => iconCode(iconComponent, name) !== null)
-        .map((name) => row({ kind: 'icon', component: iconComponent, name }, name, null, false)),
+        .map((name) =>
+          row({ kind: 'icon', component: iconComponent, name }, name, {
+            hint: null,
+            disabled: false,
+            part: false,
+            icon: null,
+          }),
+        ),
     );
-    group(
+    add(
       text('palette.sections'),
       shown.sections.map((entry) => {
         const from = text('palette.from', { slug: entry.slug });
         return row(
           { kind: 'section', slug: entry.slug, section: entry.section, purpose: entry.purpose },
           entry.section,
-          `${entry.purpose} (${from})`,
-          false,
+          { hint: `${entry.purpose} (${from})`, disabled: false, part: false, icon: 'section' },
         );
       }),
     );
     if (groups.childElementCount === 0) {
       const empty = document.createElement('p');
-      empty.className = 'palette-empty';
+      empty.className = 'k-empty insert-empty';
       empty.textContent = text('palette.none');
       groups.append(empty);
     }

@@ -100,16 +100,19 @@ test('the rework page offers the original and shows version 0 with its problem c
   const original = escapeHtml(t('studio.draft.original'));
   assert.ok(
     plain.includes(
-      `<a class="editor-pick-item" href="/drafts/landing?version=1&amp;state=filled&amp;width=390&amp;compare=0"><span>${original}</span></a>`,
+      `<a class="k-menu-item" href="/drafts/landing?version=1&amp;state=filled&amp;width=390&amp;compare=0"><span>${original}</span></a>`,
     ),
   );
-  assert.ok(!plain.includes('original-shot'));
+  assert.ok(!plain.includes('data-card="original"'));
+  assert.ok(!plain.includes('cmp-shot'));
   const text = await view('draft', { params: { slug: 'landing' }, query: 'compare=0' });
-  assert.ok(text.includes(`<p class="caption">${original}</p>`));
+  // The original is a card of its own, named in its caption, before the version's card.
+  assert.ok(text.includes(`<span class="card-name">${original}</span>`));
+  assert.ok(text.indexOf('data-card="original"') < text.indexOf('data-card="current"'));
   assert.ok(text.includes(escapeHtml(t('studio.edit.shell.comparingOriginal'))));
   // The original is a comparison: Edit is off.
   assert.ok(text.includes(`disabled title="${escapeHtml(t('studio.edit.shell.reason.compare'))}"`));
-  assert.ok(text.includes('<img class="original-shot" src="data:image/png;base64,iVBORw=="'));
+  assert.ok(text.includes('<img class="cmp-shot" src="data:image/png;base64,iVBORw=="'));
   assert.ok(text.includes('data-original-problems="7"'));
   assert.ok(text.includes(escapeHtml(t('studio.rework.problems', { count: 7 }))));
   assert.ok(text.includes('data-frame="current"'));
@@ -246,12 +249,15 @@ test('the craft page shows three pick commands and none picked', async () => {
   for (const sketch of ['A', 'B', 'C']) {
     assert.ok(text.includes(`<code>kitvas craft pick mark ${sketch}</code>`), sketch);
   }
-  assert.equal(text.match(/<li class="pick"/g)?.length, 3);
+  assert.equal(text.match(/<li class="k-item sketch-card" data-sketch="[ABC]">/g)?.length, 3);
   assert.ok(text.includes(escapeHtml(t('studio.craft.pickHint'))));
-  assert.ok(!text.includes(`<strong>${t('studio.craft.picked')}</strong>`));
+  assert.ok(!text.includes(`>${t('studio.craft.picked')}</span>`));
   // The pick has a tab of its own in the right panel.
   assert.ok(text.includes('data-tab="sketches"'));
-  assert.match(text, /data-shell="sketches" data-pane="sketches"[^>]*><section class="craft-pick"/);
+  assert.match(
+    text,
+    /data-shell="sketches" data-pane="sketches"[^>]*><section class="sketch-pick k-scroll"/,
+  );
 });
 
 test('a picked sketch is named and marked', async () => {
@@ -266,8 +272,13 @@ test('a picked sketch is named and marked', async () => {
   );
   const text = await pages(store)('draft', { params: { slug: 'mark' } });
   assert.ok(text.includes(escapeHtml(t('studio.craft.pickedLine', { sketch: 'B' }))));
-  assert.equal(text.match(/<strong>Picked<\/strong>/g)?.length, 1);
-  assert.ok(text.includes('data-sketch="B"><strong>Picked</strong>'));
+  const chip = '<span class="k-chip" data-tone="accent">Picked</span>';
+  assert.equal(text.split(chip).length, 2, 'one sketch is marked');
+  assert.ok(
+    text.includes(
+      `<div class="k-item sketch-card" data-sketch="B" aria-current="true"><div class="sketch-head"><h3>Sketch B</h3>${chip}`,
+    ),
+  );
   assert.ok(text.includes('<code>kitvas craft add mark</code>'));
   assert.ok(text.includes('<code>kitvas craft export mark --to &lt;folder&gt;</code>'));
   assert.ok(!text.includes('kitvas craft pick mark'));
@@ -281,26 +292,32 @@ test('the gallery labels every draft with its kind', async () => {
   craftDraft(store);
   store.writeText('bad', 'draft.json', '{ "schemaVersion": 2 }');
   const text = await pages(store)('home');
-  assert.ok(text.includes('<p class="kind" data-kind="screen">Screen</p><h2>'));
-  assert.ok(text.includes('<p class="kind" data-kind="rework">Rework</p><h2>'));
-  assert.ok(text.includes('<p class="kind" data-kind="craft">Craft</p><h2>'));
-  assert.equal(text.match(/class="kind"/g)?.length, 3, 'an unreadable draft has no kind');
+  assert.ok(text.includes('<span data-kind="screen">Screen</span>'));
+  assert.ok(text.includes('<span data-kind="rework">Rework</span>'));
+  assert.ok(text.includes('<span data-kind="craft">Craft</span>'));
+  assert.equal(
+    text.match(/<span data-kind="[a-z]+">/g)?.length,
+    3,
+    'an unreadable draft has no kind',
+  );
 });
 
 test('the page of an old screen draft has no rework or craft markup', async () => {
   const { store } = shopDraft();
   const view = pages(store);
   const text = await view('draft', { params: { slug: 'shop' } });
-  const canvas = /<section class="editor-canvas stage"[^>]*>([\s\S]*?)<\/section>/.exec(text)?.[1];
-  assert.ok(canvas?.includes(escapeHtml(t('studio.page.notBuilt', { version: 1, slug: 'shop' }))));
-  assert.ok(!text.includes('<details class="editor-pick" data-shell="compare">'));
-  assert.ok(text.includes('class="editor-pick-off" data-shell="compare" disabled'));
-  assert.ok(!text.includes('craft-pick'));
+  const canvas = /<section class="stage-canvas"[^>]*>([\s\S]*?)<\/section>/.exec(text)?.[1];
+  // The canvas says what is missing and holds the one command that makes it.
+  assert.ok(canvas?.includes(`<p>${escapeHtml(t('studio.draft.notBuilt', { version: 1 }))}</p>`));
+  assert.ok(canvas?.includes('<div class="k-cmd"><code>kitvas build shop</code>'));
+  assert.ok(!text.includes('<details class="bar-menu" data-shell="compare">'));
+  assert.ok(text.includes('<button type="button" class="k-btn" data-shell="compare" disabled'));
+  assert.ok(!text.includes('sketch-pick'));
   assert.ok(!text.includes('data-tab="sketches"'));
   assert.ok(!text.includes('original'));
   build(store, 'shop');
   const built = await view('draft', { params: { slug: 'shop' } });
   assert.ok(built.includes('data-frame="current"'));
-  assert.ok(!built.includes('craft-pick'));
+  assert.ok(!built.includes('sketch-pick'));
   assert.ok(!built.includes('data-shell="sketches"'));
 });

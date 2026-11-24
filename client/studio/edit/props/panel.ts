@@ -4,6 +4,9 @@
 // another panel. With several elements selected it reads each of them and shows the rows they
 // share; a change goes to each as one gesture. A redraw keeps the focus, the caret and a
 // half-typed value. The parts are in `props-*.ts`; this file mounts them and keeps their state.
+// Plan 18 (task C, C8): the pane holds a head that stays in view and one part that scrolls; both
+// are kept across redraws, so the scroll stays where the person left it. The rows of a new
+// selection rise in once.
 
 import type { EditOp, StyleProperty } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
@@ -24,6 +27,38 @@ export { opsForProp, opsForStyle, readOnlyReason, refusalKey } from '../style/op
 
 /** Several elements: at most this many are read for the rows they share. */
 export const MAX_MANY = 20;
+
+/** What the panel draws: the head that stays in view, and what scrolls under it. */
+type Drawn = { head: HTMLElement[]; body: HTMLElement[] };
+
+/** A line in place of the rows: nothing selected, too many, or the element still being read. */
+function emptyView(...lines: string[]): HTMLElement {
+  const box = el('div', 'k-empty');
+  const [first, ...rest] = lines;
+  if (first !== undefined) box.append(el(rest.length > 0 ? 'strong' : 'p', undefined, first));
+  for (const line of rest) box.append(el('p', undefined, line));
+  return box;
+}
+
+/**
+ * Starts an element's entrance again (`.k-rise`), as when it was just shown. An element not shown
+ * now (another tab, a folded panel) does not rise: it comes in with its pane when that is shown.
+ */
+function rise(node: HTMLElement): void {
+  node.classList.remove('k-rise');
+  // Reading the layout ends the old animation, so the class starts a new one.
+  if (node.getClientRects().length === 0) return;
+  node.classList.add('k-rise');
+}
+
+/** The entrance's class goes once it has run, so showing the pane later does not run it again. */
+function settle(node: HTMLElement): void {
+  const done = (event: Event): void => {
+    if (event.target === node) node.classList.remove('k-rise');
+  };
+  node.addEventListener('animationend', done);
+  node.addEventListener('animationcancel', done);
+}
 
 /** The focused control of the panel, and the text typed into it that was not sent yet. */
 type Kept = { row: string; control: string; typed: string | null; caret: [number, number] | null };
@@ -82,6 +117,12 @@ export function mountProps(ctx: EditorContext): void {
   let chain: Promise<void> = Promise.resolve();
   let latest = 0;
   let reads = 0;
+  /** The pane's head (`.k-pad`, C8) and the one part of it that scrolls. */
+  const headBox = el('div', 'k-pad props-top');
+  const scrollBox = el('div', 'k-scroll props-scroll');
+  settle(scrollBox);
+  /** The selection whose rows are drawn now; its rows rose in when they were first drawn. */
+  let drawn: string | null = null;
 
   const ui = (): PanelUi => ({
     folds,
@@ -119,20 +160,30 @@ export function mountProps(ctx: EditorContext): void {
     if (!section) return;
     const state = store.get();
     const kept = keptFocus(section);
-    const content: HTMLElement[] = [];
-    const note = (key: string, params: Record<string, string | number> = {}): void => {
-      content.push(el('p', 'props-note', text(key, params)));
-    };
+    // Nothing shows outside edit mode: the empty pane says how to start (its `data-empty`).
+    if (!state.on) {
+      drawn = null;
+      section.replaceChildren();
+      return;
+    }
     const views = viewsOf(state);
     const count = state.selection.length;
-    // Nothing shows outside edit mode.
-    if (state.on && count === 0) note('props.none');
-    else if (state.on && count > MAX_MANY) {
-      note('props.many', { count });
-      note('props.many.tooMany');
-    } else if (state.on && (!views || !state.edit)) note('props.loading');
-    else if (state.on && views && state.edit) content.push(...viewOf(state, views, state.edit));
-    section.replaceChildren(...content);
+    let view: Drawn = { head: [], body: [] };
+    if (count === 0) view.body.push(emptyView(text('props.none')));
+    else if (count > MAX_MANY) {
+      view.body.push(emptyView(text('props.many', { count }), text('props.many.tooMany')));
+    } else if (!views || !state.edit) view.body.push(emptyView(text('props.loading')));
+    else view = viewOf(state, views, state.edit);
+    headBox.replaceChildren(...view.head);
+    headBox.hidden = view.head.length === 0;
+    scrollBox.replaceChildren(...view.body);
+    if (headBox.parentElement !== section || scrollBox.parentElement !== section) {
+      section.replaceChildren(headBox, scrollBox);
+    }
+    // The rows of another selection rise in once, when they are first drawn.
+    const key = view.head.length > 0 ? state.selection.join('\n') : null;
+    if (key !== null && key !== drawn) rise(scrollBox);
+    drawn = key;
     restoreFocus(section, kept);
   }
 
@@ -140,9 +191,9 @@ export function mountProps(ctx: EditorContext): void {
     state: EditorState,
     views: Inspect[],
     edit: NonNullable<EditorState['edit']>,
-  ): HTMLElement[] {
+  ): Drawn {
     const [inspected] = views;
-    if (!inspected) return [];
+    if (!inspected) return { head: [], body: [] };
     const key = state.refused ? refusalKey(state.refused) : null;
     const first = state.refused?.gesture.ops[0];
     const own = first !== undefined && elementOf(first) === inspected.id;
@@ -163,12 +214,22 @@ export function mountProps(ctx: EditorContext): void {
       reread: () => refresh(store.get()),
     };
     const view = propsView(env, ui());
+    // Under the head: the suggestion, what a handle could not write, then the notes.
+    const lead: HTMLElement[] = view.offer === null ? [] : [view.offer];
     if (handleNote !== null) {
-      const said = el('p', 'props-note props-handle-note', text(handleNote));
+      const said = el('p', 'props-hint', text(handleNote));
       said.setAttribute('role', 'status');
-      view.splice(1, 0, said);
+      lead.push(said);
     }
-    return view;
+    lead.push(...view.notes);
+    const body: HTMLElement[] = [];
+    if (lead.length > 0) {
+      const under = el('div', 'props-lead');
+      under.append(...lead);
+      body.push(under);
+    }
+    body.push(...view.groups);
+    return { head: view.head, body };
   }
 
   // Edits are built when their turn comes, from the source as the server last described it, so a
@@ -194,7 +255,8 @@ export function mountProps(ctx: EditorContext): void {
         notes.delete(row);
         if (state.refused) store.set({ refused: null });
         const before = watched ? state.computed?.[watched] : undefined;
-        const outcome = await history.apply({ ops, label });
+        // The suggestion is applied by its button: the ring shows what it changed.
+        const outcome = await history.apply({ ops, label, flash: row === 'suggest' });
         if (outcome?.outcome === 'applied' && watched && views?.length === 1) {
           pending.set(row, { property: watched, before });
         }

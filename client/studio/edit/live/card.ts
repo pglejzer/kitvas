@@ -4,6 +4,7 @@
 // `textContent` only.
 
 import type { A11yCard } from '../../../channel/live-protocol.ts';
+import { icon } from '../../ui/icon.ts';
 import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
 import { enhancedRatio, MIN_TARGET, neededRatio } from './colour.ts';
@@ -149,25 +150,32 @@ export type CardDeps = {
   findingOf(rule: string): HTMLElement | null;
 };
 
-/** The card as a details element: the problem count in its summary, one row per fact. */
+/**
+ * The card as a details element: the problem count in its summary, one label and value row per
+ * fact (plan 18: `.k-row`s, a problem's value in the fix tone). Its summary has the chevron of a
+ * group of the properties, so it reads as something that folds; folded, the count still shows.
+ */
 export function renderCard(card: A11yCard, deps: CardDeps): HTMLElement {
   const rows = cardRows(card);
   const count = problemCount(rows);
-  const details = el('details', 'a11y-card');
+  const details = el('details', 'checks-a11y');
   details.open = deps.open;
-  const summary = el('summary', undefined, text('a11y.title'));
+  const summary = el('summary', 'checks-a11y-head');
+  summary.append(icon('chevron-down'), el('span', 'checks-a11y-title', text('a11y.title')));
   let said = text('a11y.ok');
   if (count > 0) said = text(count === 1 ? 'a11y.problem' : 'a11y.problems', { count });
-  const tally = el('span', 'a11y-count', said);
+  const tally = el('span', 'k-chip', said);
+  tally.dataset.tone = count > 0 ? 'fix' : 'good';
   if (count > 0) tally.dataset.problems = '';
-  summary.append(' ', tally);
-  const list = el('dl', 'a11y-rows');
+  summary.append(tally);
+  const list = el('dl', 'checks-a11y-rows');
   for (const row of rows) {
-    const line = el('div', row.problem ? 'a11y-row a11y-row-problem' : 'a11y-row');
-    const value = el('dd', undefined, row.value);
+    const line = el('div', 'k-row checks-a11y-row');
+    if (row.problem) line.dataset.problem = '';
+    const value = el('dd', row.problem ? 'k-fix' : undefined, row.value);
     const finding = row.problem && row.rule !== null ? deps.findingOf(row.rule) : null;
     if (finding) {
-      const link = el('button', 'a11y-link', text('a11y.see'));
+      const link = el('button', 'k-link checks-a11y-link', text('a11y.see'));
       link.type = 'button';
       link.addEventListener('click', () => {
         finding.focus();
@@ -175,7 +183,7 @@ export function renderCard(card: A11yCard, deps: CardDeps): HTMLElement {
       });
       value.append(' ', link);
     }
-    line.append(el('dt', undefined, row.label), value);
+    line.append(el('dt', 'k-label', row.label), value);
     list.append(line);
   }
   details.append(summary, list);
