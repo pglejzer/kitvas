@@ -19,8 +19,27 @@ export const TOKEN_VAR = /^--kit-[A-Za-z0-9_-]{1,80}$/;
 
 export const MAX_TEXT = 2_000;
 export const MAX_RAW = 200;
-/** Operations in one request: one gesture, or one undo of a gesture. */
-export const MAX_OPS = 20;
+/** Operations in one request: one gesture, or one undo of a gesture (a move across sections with
+ * its class rules is several). */
+export const MAX_OPS = 50;
+/** JSX source an op carries: an inserted element, a pasted subtree, an element's whole source. */
+export const MAX_SOURCE = 20_000;
+/** One hunk's text in a server-made inverse, and a whole file in a `file` op. */
+export const MAX_HUNK = 100_000;
+export const MAX_FILE = 200_000;
+/** `hashOf`: FNV-1a 64-bit, 16 lower-case hex digits. */
+export const HASH = /^[0-9a-f]{16}$/;
+/** A kit component tag: `Stack`, `Card.Header`. */
+export const COMPONENT_TAG = /^[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)?$/;
+/** A section id of the layout (the drafts module's `SECTION_ID`) and a draft slug (`SLUG`). */
+export const SECTION = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+export const DRAFT_SLUG = /^[a-z0-9][a-z0-9-]{0,62}$/;
+/**
+ * A file inside a version that a server-made inverse may change: a section's or a sketch's TSX, a
+ * section's SCSS, the layout. Never the generated `index.tsx` or `index.scss`.
+ */
+export const EDIT_FILE =
+  /^(?:src\/tsx\/sections\/[A-Za-z0-9]+\.tsx|src\/tsx\/sketches\/[A-Za-z0-9]+\.tsx|src\/scss\/sections\/_?[a-z][a-z0-9-]*\.scss|md\/layout\.md)$/;
 
 export const ElementIdSchema = z.string().max(200).regex(ELEMENT_ID);
 
@@ -51,6 +70,18 @@ export const StyleValueSchema = z.union([
 ]);
 
 const target = { id: ElementIdSchema };
+/** Where a moved or inserted element goes: beside the anchor, or inside it as first or last child. */
+export const PLACES = ['before', 'after', 'first', 'last'] as const;
+const HashSchema = z.string().regex(HASH);
+const SourceSchema = z.string().min(1).max(MAX_SOURCE);
+const place = { anchor: ElementIdSchema, place: z.enum(PLACES) };
+/** The subtree as the editor last saw it (`Inspect.hash`); another one there is a conflict. */
+const seen = { hash: HashSchema.optional() };
+const SectionSchema = z.string().max(48).regex(SECTION);
+const HunkSchema = z.strictObject({
+  find: z.string().max(MAX_HUNK),
+  replace: z.string().max(MAX_HUNK),
+});
 const style = {
   ...target,
   className: z.string().regex(CLASS_NAME),
@@ -113,16 +144,132 @@ export const EditOpSchema = z.discriminatedUnion('op', [
     ...target,
     className: z.string().regex(CLASS_NAME),
   }),
+  // Structure (spec 4b, decision 2). Their inverses are made by the server (decision 4).
+  /** The element and its subtree to `place` of `anchor`, in its file or another section's. */
+  z.strictObject({ op: z.literal('moveElement'), ...target, ...place, ...seen }),
+  /** `source`: one element or one fragment, as JSX; it may name kit components and literals. */
+  z.strictObject({
+    op: z.literal('insertElement'),
+    ...place,
+    source: SourceSchema,
+    /** The TSX file a copied or cut subtree came from: its class rules come along (task B4). */
+    from: z.string().regex(EDIT_FILE).optional(),
+  }),
+  z.strictObject({ op: z.literal('removeElement'), ...target, ...seen }),
+  /**
+   * The siblings from `first` to `last` (the same parent, in order) inside a new element whose
+   * opening tag is `open` (`<Stack direction="row">`); its closing tag follows from the name.
+   */
+  z.strictObject({
+    op: z.literal('wrapElements'),
+    first: ElementIdSchema,
+    last: ElementIdSchema,
+    open: z.string().min(3).max(2_000),
+    ...seen,
+  }),
+  /** The element replaced by its children; a lone root's children go into a fragment. */
+  z.strictObject({ op: z.literal('unwrapElement'), ...target, ...seen }),
+  /** Another kit component in the element's place, with the props both have, and its children. */
+  z.strictObject({
+    op: z.literal('replaceTag'),
+    ...target,
+    tag: z.string().max(80).regex(COMPONENT_TAG),
+    ...seen,
+  }),
+  /** The element's whole source swapped for `source` (paste over). */
+  z.strictObject({ op: z.literal('replaceElement'), ...target, source: SourceSchema, ...seen }),
+  /** The element as it was when the session started (the previous version), via the rename log. */
+  z.strictObject({ op: z.literal('resetElement'), ...target, ...seen }),
+  /** Sections of the layout; `after: null` puts the section first. */
+  z.strictObject({
+    op: z.literal('moveSection'),
+    section: SectionSchema,
+    after: SectionSchema.nullable(),
+  }),
+  /** A section of another draft with the same kit, copied with a free id. */
+  z.strictObject({
+    op: z.literal('insertSection'),
+    from: z.strictObject({ slug: z.string().regex(DRAFT_SLUG), section: SectionSchema }),
+    after: SectionSchema.nullable(),
+  }),
+  z.strictObject({ op: z.literal('removeSection'), section: SectionSchema }),
+  /**
+   * Server-made inverses (decision 4). `patch`: each hunk's `find` occurs exactly once in the
+   * file and becomes `replace`; anything else is a conflict. `file`: the whole file becomes
+   * `text` (`null` removes it) when its text hashes to `before` (`null`: it must not exist).
+   */
+  z.strictObject({
+    op: z.literal('patch'),
+    file: z.string().regex(EDIT_FILE),
+    hunks: z.array(HunkSchema).min(1).max(50),
+  }),
+  z.strictObject({
+    op: z.literal('file'),
+    file: z.string().regex(EDIT_FILE),
+    text: z.string().max(MAX_FILE).nullable(),
+    before: HashSchema.nullable(),
+  }),
 ]);
 
 export type PropValue = Zod.infer<typeof PropValueSchema>;
 export type StyleValue = Zod.infer<typeof StyleValueSchema>;
 export type EditOp = Zod.infer<typeof EditOpSchema>;
 export type EditOpKind = EditOp['op'];
+export type Place = (typeof PLACES)[number];
+export type Hunk = Zod.infer<typeof HunkSchema>;
+/** The ops of 4a: one element, one value, an inverse the client can make itself. */
+export type SimpleOp = Extract<
+  EditOp,
+  {
+    op:
+      | 'setProp'
+      | 'removeProp'
+      | 'setText'
+      | 'setStyle'
+      | 'removeStyle'
+      | 'addClass'
+      | 'removeClass';
+  }
+>;
+/** The ops of 4b: structure, sections, and the server-made inverses. */
+export type StructuralOp = Exclude<EditOp, SimpleOp>;
+
+const SIMPLE: ReadonlySet<EditOpKind> = new Set([
+  'setProp',
+  'removeProp',
+  'setText',
+  'setStyle',
+  'removeStyle',
+  'addClass',
+  'removeClass',
+]);
+
+export const isStructural = (op: EditOp): op is StructuralOp => !SIMPLE.has(op.op);
+
+/** Every element id `op` names: its element, its anchor, the ends of a wrap. Section and file ops name none. */
+export function idsOf(op: EditOp): string[] {
+  switch (op.op) {
+    case 'insertElement':
+      return [op.anchor];
+    case 'moveElement':
+      return [op.id, op.anchor];
+    case 'wrapElements':
+      return [op.first, op.last];
+    case 'moveSection':
+    case 'insertSection':
+    case 'removeSection':
+    case 'patch':
+    case 'file':
+      return [];
+    default:
+      return [op.id];
+  }
+}
+
 /** Where an operation writes: the element's TSX file, or its section's SCSS file. */
 export type OpTarget = 'tsx' | 'scss';
 
-export const targetOf = (op: EditOp): OpTarget =>
+export const targetOf = (op: SimpleOp): OpTarget =>
   op.op === 'setStyle' || op.op === 'removeStyle' ? 'scss' : 'tsx';
 
 /** `sections/Pricing:section/Stack` lives in `src/tsx/sections/Pricing.tsx`. */
@@ -131,8 +278,21 @@ export function fileOfId(id: string): string {
   return `src/tsx/${stem}.tsx`;
 }
 
-/** The operation that undoes `op` once `op` has been applied. */
-export function inverse(op: EditOp): EditOp {
+/**
+ * The 64-bit FNV-1a hash of a text, as 16 hex digits: the `hash` of a subtree (spec 4b,
+ * decision 5). Not for security: it only tells the editor's copy from another writer's.
+ */
+export function hashOf(text: string): string {
+  let hash = 0xcbf29ce484222325n;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= BigInt(text.charCodeAt(i));
+    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return hash.toString(16).padStart(16, '0');
+}
+
+/** The operation that undoes `op` once `op` has been applied (4a ops; 4b's come from the server). */
+export function inverse(op: SimpleOp): SimpleOp {
   switch (op.op) {
     case 'setProp':
       return op.before === null
@@ -178,7 +338,7 @@ export function inverse(op: EditOp): EditOp {
 }
 
 /** The inverse of a gesture: the inverses in reverse order. */
-export const inverseAll = (ops: readonly EditOp[]): EditOp[] => [...ops].reverse().map(inverse);
+export const inverseAll = (ops: readonly SimpleOp[]): SimpleOp[] => [...ops].reverse().map(inverse);
 
 /** How a style value is written into SCSS (decision 3); the marker follows the semicolon. */
 export function styleText(value: StyleValue): { value: string; offKit: boolean } {

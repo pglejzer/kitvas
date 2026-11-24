@@ -34,7 +34,7 @@ test('the frame cannot send a bad edit message', () => {
   const bad = [
     { type: 'pick', id: '<b>', add: true, double: false },
     { type: 'pick', id, add: 'yes', double: false },
-    { type: 'key', key: 'delete' },
+    { type: 'key', key: 'explode' },
     { type: 'tree', request: 1, nodes: Array.from({ length: MAX_NODES + 1 }, () => node('')) },
     { type: 'tree', request: 1, nodes: [node('x'.repeat(81))] },
     { type: 'inspected', request: 1, id, found: true, styles: { '--x': '1' } },

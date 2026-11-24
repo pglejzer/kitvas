@@ -46,8 +46,16 @@ const addClass = (className: string): TsxOp => ({ op: 'addClass', id, className 
 const removeClass = (className: string): TsxOp => ({ op: 'removeClass', id, className });
 
 function tsxOp(op: EditOp): TsxOp {
-  if (op.op === 'setStyle' || op.op === 'removeStyle') throw new Error('not a TSX operation');
-  return op;
+  if (
+    op.op === 'setProp' ||
+    op.op === 'removeProp' ||
+    op.op === 'setText' ||
+    op.op === 'addClass' ||
+    op.op === 'removeClass'
+  ) {
+    return op;
+  }
+  throw new Error('not a TSX operation');
 }
 
 /** Applies `op` to the first `<tag` of the text. */

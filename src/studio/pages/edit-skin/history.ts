@@ -17,4 +17,8 @@ export const EDIT_SKIN_HISTORY = `
   flex-wrap: wrap;
   gap: var(--kit-space-sm);
 }
+.edit-note {
+  color: var(--kit-color-ink-mid);
+  margin: 0;
+}
 `;

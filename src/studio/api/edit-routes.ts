@@ -9,6 +9,7 @@ import {
   type EditOp,
   editState,
   fileOfId,
+  idsOf,
   inspectElement,
   offKitValues,
   sectionScss,
@@ -70,9 +71,14 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
   /** Every op names an element of a source file; the pointer says which one does not. */
   const checkOps = (ops: EditOp[]): void => {
     const errors = ops.flatMap((op, index) =>
-      namesSourceFile(op.id)
+      idsOf(op).every(namesSourceFile)
         ? []
-        : [{ pointer: `/ops/${index}/id`, detail: deps.t('studio.edit.badElement') }],
+        : [
+            {
+              pointer: `/ops/${index}${'id' in op ? '/id' : ''}`,
+              detail: deps.t('studio.edit.badElement'),
+            },
+          ],
     );
     if (errors.length > 0) throw new RequestError('BODY_INVALID', {}, { errors });
   };
@@ -162,6 +168,7 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
         const outcome = await applyEdits(
           {
             drafts: deps.drafts,
+            kits: deps.kits,
             compiler: edit.compiler,
             now: () => deps.now(),
             etag: etagOf,

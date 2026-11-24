@@ -23,8 +23,16 @@ function tsxFiles(folder: string): string[] {
 }
 
 function tsxOp(op: EditOp): TsxOp {
-  if (op.op === 'setStyle' || op.op === 'removeStyle') throw new Error('not a TSX operation');
-  return op;
+  if (
+    op.op === 'setProp' ||
+    op.op === 'removeProp' ||
+    op.op === 'setText' ||
+    op.op === 'addClass' ||
+    op.op === 'removeClass'
+  ) {
+    return op;
+  }
+  throw new Error('not a TSX operation');
 }
 
 function textOf(result: ApplyResult, where: string): string {

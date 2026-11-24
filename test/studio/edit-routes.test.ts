@@ -157,6 +157,20 @@ test('the first edit starts a version, the next goes into it, and saving ends it
       started: true,
       etags,
       merged: false,
+      // Spec 4b: the exact inverse, and no renames for a prop edit.
+      inverse: [
+        {
+          op: 'setProp',
+          id: STACK,
+          name: 'gap',
+          value: { kind: 'string', value: 'md' },
+          before: { kind: 'string', value: 'lg' },
+          after: null,
+        },
+      ],
+      renames: {},
+      created: [],
+      dropped: [],
     });
     // The live loop hears of the write after it with the ETags it made, and before it also of
     // the files the new version copied, so none of them is taken for someone else's change.

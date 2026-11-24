@@ -8,6 +8,7 @@
 import {
   EditOpSchema,
   ElementIdSchema,
+  HASH,
   MAX_OPS,
   REFUSALS,
   STYLE_PROPERTIES,
@@ -18,13 +19,17 @@ import { type Zod, z } from '../../shared/index.ts';
 /** A path inside the version: `src/tsx/sections/Hero.tsx`, `src/scss/sections/hero.scss`. */
 export const SOURCE_PATH =
   /^src\/(?:tsx|scss)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.(?:tsx|scss)$/;
+/** A file an edit may change: a source file, or the layout the section ops change (spec 4b). */
+export const EDIT_PATH =
+  /^(?:src\/(?:tsx|scss)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.(?:tsx|scss)|md\/layout\.md)$/;
 /** A strong ETag as `etagOf` writes it (http/etag.ts). */
 export const ETAG = /^"[A-Za-z0-9_-]{27}"$/;
 
 const SourcePath = z.string().regex(SOURCE_PATH);
+const EditPath = z.string().regex(EDIT_PATH);
 const Etag = z.string().regex(ETAG);
 /** ETags of a version's source files, by path. */
-export const EtagsSchema = z.record(SourcePath, Etag);
+export const EtagsSchema = z.record(EditPath, Etag);
 const Version = z.number().int().min(1);
 
 const PropValue = z.discriminatedUnion('kind', [
@@ -129,6 +134,10 @@ export const InspectSchema = z.strictObject({
     .nullable(),
   /** Where each style property's value comes from (C6). */
   styles: z.record(z.enum(STYLE_PROPERTIES), StyleSourceSchema),
+  /** `hashOf` the element's whole source: structural ops carry it (spec 4b, decision 5). */
+  hash: z.string().regex(HASH),
+  /** Why the element cannot be moved or deleted as an element; `null` when it can. */
+  movable: z.enum(REFUSALS).nullable(),
 });
 
 /** `POST /api/v1/drafts/{slug}/edits`. */
@@ -155,6 +164,17 @@ export const EditOutcomeSchema = z.discriminatedUnion('outcome', [
     etags: EtagsSchema,
     /** A file had changed since `etags`; the ops were placed again by their element ids. */
     merged: z.boolean(),
+    /**
+     * The exact inverse, in the ids after this request (spec 4b, decision 4): the 4a inverses for
+     * a request of 4a ops only, else `patch` and `file` ops, one per changed file. Undo sends it.
+     */
+    inverse: z.array(EditOpSchema).max(MAX_OPS),
+    /** Old id → new id of every element whose id this request changed (decision 7). */
+    renames: z.record(ElementIdSchema, ElementIdSchema),
+    /** Ids of the elements this request created: an insert's, a paste's, a wrap's new parent. */
+    created: z.array(ElementIdSchema),
+    /** Props a `replaceTag` dropped because the new component has none of that name. */
+    dropped: z.array(z.string()),
   }),
   z.strictObject({
     outcome: z.literal('conflict'),
@@ -163,7 +183,7 @@ export const EditOutcomeSchema = z.discriminatedUnion('outcome', [
     index: z.number().int().min(0),
     /** `changed`: the place holds another value than `before`. `gone`: the place is not there. */
     reason: z.enum(['changed', 'gone']),
-    file: SourcePath,
+    file: EditPath,
     text: z.string(),
     etag: Etag,
   }),

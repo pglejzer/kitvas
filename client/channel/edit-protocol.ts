@@ -6,6 +6,15 @@
 // The page owns the selection and the history; the frame only reports what the person did in it
 // (a click, a key, a finished inline text) and draws what the page tells it (outlines, previews).
 
+import {
+  parseStructureFrame,
+  parseStructureStudio,
+  STRUCTURE_FRAME_TYPES,
+  STRUCTURE_STUDIO_TYPES,
+  type StructureFrameMessage,
+  type StructureStudioMessage,
+} from './structure-protocol.ts';
+
 const ELEMENT_ID = /^[A-Za-z0-9_.:/$-]{1,200}$/;
 const PROPERTY = /^[a-z][a-z-]{0,47}$/;
 const CLASS = /^[a-z][a-z0-9-]{0,63}$/;
@@ -19,7 +28,25 @@ export const MAX_STYLE_VALUE = 200;
 export const MAX_PREVIEW = 40;
 
 /** Keys the frame passes on while edit mode is on and focus is in the frame. */
-export const EDIT_KEYS = ['clear', 'parent', 'child', 'undo', 'redo'] as const;
+export const EDIT_KEYS = [
+  'clear',
+  'parent',
+  'child',
+  'undo',
+  'redo',
+  // Structure (spec 4b): Delete, Ctrl+D, Ctrl+C, Ctrl+X, Ctrl+V, Alt+Up, Alt+Down, Ctrl+G,
+  // Ctrl+Shift+G, Shift+F10 or the menu key.
+  'delete',
+  'duplicate',
+  'copy',
+  'cut',
+  'paste',
+  'move-up',
+  'move-down',
+  'wrap',
+  'unwrap',
+  'menu',
+] as const;
 export type EditKey = (typeof EDIT_KEYS)[number];
 
 /** One element of the layers tree, in document order. */
@@ -41,38 +68,50 @@ export type PreviewChange =
 
 type Head = { kitvas: 1; channel: string };
 
-export type EditFrameMessage = Head &
-  (
-    | { type: 'pick'; id: string | null; add: boolean; double: boolean }
-    | { type: 'hovered'; id: string | null }
-    | { type: 'key'; key: EditKey }
-    | { type: 'tree'; request: number; nodes: TreeNode[] }
-    | {
-        type: 'inspected';
-        request: number;
-        id: string;
-        found: boolean;
-        styles: Record<string, string>;
-      }
-    /** The end of an inline text edit; `value: null` when the person cancelled it. */
-    | { type: 'text'; id: string; value: string | null }
-  );
+export type EditFrameMessage =
+  | StructureFrameMessage
+  | (Head &
+      (
+        | { type: 'pick'; id: string | null; add: boolean; double: boolean }
+        | { type: 'hovered'; id: string | null }
+        | { type: 'key'; key: EditKey }
+        | { type: 'tree'; request: number; nodes: TreeNode[] }
+        | {
+            type: 'inspected';
+            request: number;
+            id: string;
+            found: boolean;
+            styles: Record<string, string>;
+          }
+        /** The end of an inline text edit; `value: null` when the person cancelled it. */
+        | { type: 'text'; id: string; value: string | null }
+      ));
 
-export type EditStudioMessage = Head &
-  (
-    | { type: 'edit'; on: boolean }
-    | { type: 'select'; ids: string[] }
-    | { type: 'hover'; id: string | null }
-    | { type: 'tree'; request: number }
-    | { type: 'inspect'; request: number; id: string }
-    /** Starts an inline text edit of the element; the frame answers with `text`. */
-    | { type: 'edit-text'; id: string }
-    | { type: 'preview'; changes: PreviewChange[] }
-    /** Takes every preview back: a refused edit, or a build that replaced the page. */
-    | { type: 'unpreview' }
-  );
+export type EditStudioMessage =
+  | StructureStudioMessage
+  | (Head &
+      (
+        | { type: 'edit'; on: boolean }
+        | { type: 'select'; ids: string[] }
+        | { type: 'hover'; id: string | null }
+        | { type: 'tree'; request: number }
+        | { type: 'inspect'; request: number; id: string }
+        /** Starts an inline text edit of the element; the frame answers with `text`. */
+        | { type: 'edit-text'; id: string }
+        | { type: 'preview'; changes: PreviewChange[] }
+        /** Takes every preview back: a refused edit, or a build that replaced the page. */
+        | { type: 'unpreview' }
+      ));
 
-export const EDIT_FRAME_TYPES = new Set(['pick', 'hovered', 'key', 'tree', 'inspected', 'text']);
+export const EDIT_FRAME_TYPES = new Set([
+  'pick',
+  'hovered',
+  'key',
+  'tree',
+  'inspected',
+  'text',
+  ...STRUCTURE_FRAME_TYPES,
+]);
 export const EDIT_STUDIO_TYPES = new Set([
   'edit',
   'select',
@@ -82,6 +121,7 @@ export const EDIT_STUDIO_TYPES = new Set([
   'edit-text',
   'preview',
   'unpreview',
+  ...STRUCTURE_STUDIO_TYPES,
 ]);
 
 type Loose = Record<string, unknown>;
@@ -169,7 +209,7 @@ export function parseEditFrame(message: Loose, channel: string): EditFrameMessag
       return { ...head, type: 'text', id, value };
     }
     default:
-      return undefined;
+      return parseStructureFrame(message, channel);
   }
 }
 
@@ -208,7 +248,7 @@ export function parseEditStudio(message: Loose, channel: string): EditStudioMess
     case 'unpreview':
       return { ...head, type: 'unpreview' };
     default:
-      return undefined;
+      return parseStructureStudio(message, channel);
   }
 }
 

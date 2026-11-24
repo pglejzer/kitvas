@@ -15,7 +15,10 @@ import { KitvasError } from '../../shared/index.ts';
 import { isSlug } from '../domain/names.ts';
 import type { DraftStore } from '../ports/draft-store.ts';
 
-/** What `replaceAll` appends to a file's path for the text it writes before the move. */
+/**
+ * What `replaceAll` appends to a file's path for the text it writes before the move, and for a
+ * file it removes, moved aside until every other file is in place.
+ */
 export const REPLACE_SUFFIX = '.kitvas-tmp';
 
 /** The file calls `replaceAll` makes. A test swaps one to see a failed move rolled back. */
@@ -48,8 +51,28 @@ function quietly(step: () => void): void {
   }
 }
 
-/** Absolute paths, already checked to be inside the draft. */
-function replaceFiles(targets: { file: string; text: string }[], io: ReplaceIo): void {
+/** A file `replaceFiles` already put in place, or moved aside to remove it. */
+type Moved = { file: string; temporary: string; before: string | undefined; removed: boolean };
+
+/** Undoes one step of `replaceFiles`: the file gets its old text back, or comes back at all. */
+function putBack({ file, temporary, before, removed }: Moved, io: ReplaceIo): void {
+  if (!removed) {
+    quietly(() => {
+      if (before === undefined) io.remove(file);
+      else io.write(file, before);
+    });
+    return;
+  }
+  quietly(() => io.rename(temporary, file));
+  // When the rename back failed, the text kept in memory is written instead.
+  quietly(() => {
+    if (before !== undefined && io.read(file) === undefined) io.write(file, before);
+  });
+  quietly(() => io.remove(temporary));
+}
+
+/** Absolute paths, already checked to be inside the draft. `text: null` removes the file. */
+function replaceFiles(targets: { file: string; text: string | null }[], io: ReplaceIo): void {
   // The old texts are kept in memory first, so a failed move can put them back.
   const planned = targets.map(({ file, text }) => ({
     file,
@@ -58,25 +81,31 @@ function replaceFiles(targets: { file: string; text: string }[], io: ReplaceIo):
     before: io.read(file),
   }));
   const written: string[] = [];
-  const moved: { file: string; before: string | undefined }[] = [];
+  const moved: Moved[] = [];
   try {
     for (const { temporary, text } of planned) {
+      if (text === null) continue;
       written.push(temporary);
       io.write(temporary, text);
     }
-    for (const { file, temporary, before } of planned) {
-      io.rename(temporary, file);
-      moved.push({ file, before });
+    for (const { file, temporary, text, before } of planned) {
+      if (text !== null) {
+        io.rename(temporary, file);
+        moved.push({ file, temporary, before, removed: false });
+      } else if (before !== undefined) {
+        // Moved aside, not deleted: until every file is in place, a rollback renames it back.
+        io.rename(file, temporary);
+        moved.push({ file, temporary, before, removed: true });
+      }
     }
   } catch (cause) {
-    for (const { file, before } of moved) {
-      quietly(() => {
-        if (before === undefined) io.remove(file);
-        else io.write(file, before);
-      });
-    }
+    for (const step of moved) putBack(step, io);
     for (const temporary of written) quietly(() => io.remove(temporary));
     throw cause;
+  }
+  // Every file is in place: the removed ones can go. One left behind is only a stray file.
+  for (const { temporary, removed } of moved) {
+    if (removed) quietly(() => io.remove(temporary));
   }
 }
 

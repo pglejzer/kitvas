@@ -19,6 +19,8 @@ function inspected(overrides: Partial<Inspect> = {}): Inspect {
   return {
     id: ID,
     version: 2,
+    hash: '0123456789abcdef',
+    movable: null,
     file: 'src/tsx/sections/Pricing.tsx',
     etag: ETAG,
     tag: 'div',

@@ -133,7 +133,7 @@ export function mountMode(ctx: EditorContext): void {
     else if (key === 'parent') {
       const parent = parentOf(tree, first);
       if (parent !== null) store.set({ selection: [parent] });
-    } else {
+    } else if (key === 'child') {
       const child = firstChildOf(tree, first);
       if (child !== null) store.set({ selection: [child] });
     }

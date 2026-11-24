@@ -86,11 +86,6 @@ export const EDIT_SKIN_LAYOUT = `
 .layers-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .layers-badge { flex: none; color: var(--kit-color-ink-mid); font-size: var(--kit-font-size-sm); }
 .layers-row:hover, .layers-row[data-hover] { background: var(--kit-color-bg); }
-[aria-selected="true"] > .layers-row {
-  background: var(--kit-color-ink);
-  color: var(--kit-color-on-ink);
-}
-[aria-selected="true"] > .layers-row .layers-badge { color: var(--kit-color-on-ink); }
 .layers-empty { padding: var(--kit-space-sm); color: var(--kit-color-ink-mid); }
 @media (min-width: 1100px) {
   .draft-page:has(.edit-panel:not([hidden])) { padding-right: 24rem; }

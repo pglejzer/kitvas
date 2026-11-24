@@ -9,6 +9,7 @@ import type {
   Inspect,
   OffKit,
 } from '../../../src/studio/api/edit-schemas.ts';
+import type { Palette, Structure, Subtree } from '../../../src/studio/api/structure-schemas.ts';
 
 export type Answer<T> =
   | { ok: true; status: number; body: T }
@@ -50,3 +51,13 @@ export const endSession = (slug: string): Promise<Answer<EditEnd>> =>
 
 export const getOffKit = (slug: string): Promise<Answer<OffKit>> =>
   call('GET', `${base(slug)}/off-kit`);
+
+// Structure (spec 4b; plan 14, C10).
+export const getStructure = (slug: string): Promise<Answer<Structure>> =>
+  call('GET', `${base(slug)}/structure`);
+
+export const getPalette = (slug: string): Promise<Answer<Palette>> =>
+  call('GET', `${base(slug)}/palette`);
+
+export const getSubtree = (slug: string, id: string): Promise<Answer<Subtree>> =>
+  call('GET', `${base(slug)}/subtree?id=${encodeURIComponent(id)}`);

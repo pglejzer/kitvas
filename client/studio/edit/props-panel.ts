@@ -22,7 +22,7 @@ import {
   tokenPicker,
 } from './controls.ts';
 import { isOffKit, PROPERTIES, styleValueOf, tokensFor } from './steps.ts';
-import type { EditorState, Refused } from './store.ts';
+import { type EditorState, elementOf, type Refused } from './store.ts';
 import { text } from './texts.ts';
 
 /** Copy of `PROP_NAME` in `src/edit/domain/ops.ts`: the props the editor may write. */
@@ -379,7 +379,8 @@ export function mountProps(ctx: EditorContext): void {
         content.push(el('p', 'props-note', text('props.loading')));
       } else {
         const key = state.refused ? refusalKey(state.refused) : null;
-        const own = state.refused?.gesture.ops[0]?.id === inspected.id;
+        const first = state.refused?.gesture.ops[0];
+        const own = first !== undefined && elementOf(first) === inspected.id;
         content.push(
           ...view({
             state,
