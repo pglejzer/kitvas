@@ -70,6 +70,32 @@ test('reads a partial file and lists the rules of every class in it', () => {
   assert.ok(['color.ink', 'color.accent'].includes(colour?.nearest?.path ?? ''));
 });
 
+test('a keyword and a background image are never off-kit, even with a marker', () => {
+  const { store } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  const text = [
+    '.hero {',
+    '  display: flex; /* off-kit */',
+    '  background-image: url(../img/hero.png); /* off-kit */',
+    '  padding-top: 13px; /* off-kit */',
+    '  outline-color: #123456; /* off-kit */',
+    '}',
+    '',
+  ].join('\n');
+  store.writeText('shop', 'v1/src/scss/sections/hero.scss', text);
+  const items = offKitValues({ drafts: store, kits }, 'shop').items;
+  assert.deepEqual(
+    items.map((item) => [item.property, item.value]),
+    [
+      ['padding-top', '13px'],
+      ['outline-color', '#123456'],
+    ],
+  );
+  // One side of padding takes the spacing scale; the outline colour the colours.
+  assert.equal(items[0]?.nearest?.type, 'dimension');
+  assert.equal(items[1]?.nearest?.type, 'color');
+});
+
 test('a draft without section styles has an empty list', () => {
   const { store } = shopDraft();
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);

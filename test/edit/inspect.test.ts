@@ -200,6 +200,45 @@ test('an element that is not in the current text is not found', async () => {
   await assert.rejects(inspectIn(drafts, 'sections/Gone:div'), isCode('EDIT_ELEMENT_NOT_FOUND'));
 });
 
+test('the answer gives the line of the tag, and every style property of the panel', async () => {
+  const drafts = draftWith(PRICING);
+  const stack = await inspectIn(drafts, 'sections/Pricing:section/Stack');
+  assert.equal(stack.line, 9);
+  assert.equal(Object.keys(stack.styles).length, 38);
+  // Base's Stack sets the flex keywords by its own props (plan 15).
+  assert.deepEqual(stack.styles['flex-direction'], { kind: 'prop', prop: 'direction' });
+  assert.deepEqual(stack.styles['align-items'], { kind: 'prop', prop: 'align' });
+  assert.deepEqual(stack.styles['justify-content'], { kind: 'prop', prop: 'justify' });
+  assert.deepEqual(stack.styles['flex-wrap'], { kind: 'prop', prop: 'wrap' });
+  assert.deepEqual(stack.styles['padding-top'], { kind: 'kit' });
+  const section = await inspectIn(drafts, 'sections/Pricing:section');
+  assert.equal(section.line, 8);
+});
+
+test('the answer lists the image files of the version, sorted, and only plain names', async () => {
+  const drafts = draftWith(PRICING);
+  const id = 'sections/Pricing:section';
+  // Without a way to list the folder, there are none to pick.
+  assert.deepEqual((await inspectIn(drafts, id)).images, []);
+  const asked: [string, number][] = [];
+  const answer = await inspectElement(
+    {
+      drafts,
+      kits: builtinKits(),
+      compiler,
+      etag: etagOf,
+      images: (slug, version) => {
+        asked.push([slug, version]);
+        return ['b.png', 'a.webp', 'bad name.png', 'notes.txt', '.hidden.png', 'logo.SVG'];
+      },
+    },
+    'shop',
+    id,
+  );
+  assert.deepEqual(answer.images, ['a.webp', 'b.png', 'logo.SVG']);
+  assert.deepEqual(asked, [['shop', 1]]);
+});
+
 test('a new class name is the tag in kebab case', () => {
   assert.equal(classNameOf('Card.Header'), 'card-header');
   assert.equal(classNameOf('PriceTag'), 'price-tag');

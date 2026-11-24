@@ -15,6 +15,7 @@ import {
   parseEditFrame,
 } from '../channel/edit-protocol.ts';
 import { type KeyLike, keyOf } from './keys.ts';
+import { drawLabels, LABEL_SHEET } from './label.ts';
 import { placeRing, type Rect } from './place.ts';
 import { cut } from './snapshot.ts';
 import { elementsWith, inspectStyles, readTree } from './tree.ts';
@@ -35,7 +36,7 @@ const SHEET = `
 @media (forced-colors: active) {
   .box { outline-color: Highlight; }
 }
-`;
+${LABEL_SHEET}`;
 
 const HOST_RULES = [
   'all: initial',
@@ -84,9 +85,16 @@ export type Edit = {
   handle(message: EditStudioMessage): void;
   /** Keeps the outlines on their elements every frame until `until` settles (a state's motion). */
   follow(until: Promise<unknown>): void;
+  /** The size of the name labels, as a multiple of their own: the inverse of the canvas zoom. */
+  scale(value: number): void;
 };
 
-type Layer = { host: HTMLElement; root: HTMLElement; boxes: HTMLElement[] };
+type Layer = {
+  host: HTMLElement;
+  root: HTMLElement;
+  boxes: HTMLElement[];
+  labels: HTMLElement[];
+};
 type Inline = {
   id: string;
   element: HTMLElement;
@@ -121,7 +129,7 @@ function createLayer(): Layer {
   const root = document.createElement('div');
   shadow.append(sheet, root);
   document.body.append(host);
-  return { host, root, boxes: [] };
+  return { host, root, boxes: [], labels: [] };
 }
 
 /** Puts `value` into the element as one text node, keeping the node React made when it can. */
@@ -159,6 +167,8 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
   /** The element the studio points at (a row of its layers tree). */
   let shownId: string | null = null;
   let inline: Inline | undefined;
+  /** How much the name labels are scaled, so they keep their size on screen at any zoom. */
+  let labelScale = 1;
   let drawFrame = 0;
   let hoverFrame = 0;
   let pointerAt: EventTarget | null = null;
@@ -213,6 +223,13 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
       box.style.width = `${ring.width}px`;
       box.style.height = `${ring.height}px`;
     }
+    const items = list.map((target) => ({
+      element: target.element,
+      id: target.element.getAttribute('data-ks'),
+      kind: target.kind,
+      box: placeRing(pageRect(target.element), { left: 0, top: 0 }, pageWidth),
+    }));
+    drawLabels(layer, items, { host, pageWidth, scale: labelScale });
   }
 
   function schedule(): void {
@@ -437,6 +454,11 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
           schedule();
           break;
       }
+    },
+
+    scale(value) {
+      labelScale = value > 0 && Number.isFinite(value) ? value : 1;
+      if (on) draw();
     },
 
     follow(until) {

@@ -96,6 +96,8 @@ export function createStructure(deps: StructureDeps): FrameStructure {
   let size: readonly ScaleStep[] = [];
   let selection: readonly string[] = [];
   let editing = false;
+  /** Locked while editing; Preview takes the pointer as the page would. */
+  let locked: string[] = [];
   let handlesOn = false;
   const drag: Drag = parts.drag({ entries: () => entries, selection: () => selection });
   const handles: Handles = parts.handles(() => ({ space, size }));
@@ -120,6 +122,7 @@ export function createStructure(deps: StructureDeps): FrameStructure {
   function turnOn(): void {
     if (editing) return;
     editing = true;
+    parts.hide.lock(locked);
     drag.enable(true);
     listener.add(onMenu);
     placeHandles();
@@ -128,6 +131,7 @@ export function createStructure(deps: StructureDeps): FrameStructure {
   function turnOff(): void {
     if (!editing) return;
     editing = false;
+    parts.hide.lock([]);
     drag.enable(false);
     listener.remove(onMenu);
     // `edit.ts` forgets the selection with edit mode; the page sends it again on the next `edit`.
@@ -159,6 +163,10 @@ export function createStructure(deps: StructureDeps): FrameStructure {
           break;
         case 'hide':
           parts.hide.set(message.ids);
+          break;
+        case 'lock':
+          locked = message.ids;
+          if (editing) parts.hide.lock(locked);
           break;
         case 'drag':
           // A drag the page forwards needs the pointer tools, which exist in edit mode only.

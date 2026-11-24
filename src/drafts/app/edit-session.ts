@@ -26,6 +26,26 @@ export function startEditSession(store: DraftStore, slug: string, now: Date): nu
 }
 
 /**
+ * "Undo save": writes `session` back when its version is still the latest and no session is
+ * open. Otherwise (a newer version, or another session) it answers `reopened: false` and writes
+ * nothing.
+ */
+export function reopenEditSession(
+  store: DraftStore,
+  slug: string,
+  session: EditSession,
+): { version: number; reopened: boolean } {
+  const draft = loadDraft(store, slug);
+  const version = latestVersion(draft);
+  if (session.version !== version || editSession(draft) !== null) {
+    return { version, reopened: false };
+  }
+  const edit = { version: session.version, startedAt: session.startedAt };
+  store.writeText(slug, 'draft.json', serializeJson({ ...draft, edit }));
+  return { version, reopened: true };
+}
+
+/**
  * "Save version": the next edit starts a new version. `ended` says whether a session was open. A
  * session that a newer version already ended is cleared as well; a draft with neither is not
  * rewritten.

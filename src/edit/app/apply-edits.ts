@@ -48,6 +48,7 @@ import {
   type Work,
 } from './request-state.ts';
 import { applyStructural } from './structural.ts';
+import { imagesOf, undoableByOps } from './style-checks.ts';
 
 /**
  * Called right before the files are written, with the version they go into and their new ETags,
@@ -197,7 +198,7 @@ async function applySimple(work: Work, index: number, op: SimpleOp): Promise<OpR
   const at = isScss(op) ? scssPlace(work, op) : await locate(work, op.id);
   if (!('at' in at)) return at;
   const result = isScss(op)
-    ? applyScss(at.text, op, work.options)
+    ? applyScss(at.text, op, { ...work.options, hasImage: imagesOf(work) })
     : applyTsx(at.text, at.at, op, work.options);
   if ('conflict' in result) return { conflict: 'changed', file: at.file };
   if ('refused' in result) return { refused: result.refused };
@@ -325,8 +326,11 @@ function serverInverse(files: Map<string, FileState>): EditOp[] {
 
 function madeOf(work: Work, ops: readonly EditOp[], sites: Map<string, Site[]>): Made {
   const simple = ops.filter((op): op is SimpleOp => !isStructural(op));
-  // 4a ops only: their exact inverses, made from the ops alone (spec 4a, decision 5).
-  if (simple.length === ops.length) return { ...nothingMade, inverse: inverseAll(simple) };
+  // 4a ops only: their exact inverses, made from the ops alone (spec 4a, decision 5), unless one
+  // would write back a value its property refuses: then the hunks below undo it (plan 15).
+  if (simple.length === ops.length && undoableByOps(work, simple)) {
+    return { ...nothingMade, inverse: inverseAll(simple) };
+  }
   return {
     inverse: serverInverse(work.files),
     renames: renamesOf(work, sites),

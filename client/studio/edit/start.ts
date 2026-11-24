@@ -1,6 +1,7 @@
-// Starts the editor on a draft page whose version can be edited (the page rendered
-// `aside[data-edit-panel]`). Returns the handler the draft page passes the current frame's edit
-// messages to; `undefined` when there is no editor on the page.
+// Starts the editor on a draft page whose version can be edited (the page marked `main` with
+// `data-edit-panel`, or rendered `aside[data-edit-panel]` before plan 15). Returns the editor's
+// handle for the draft page: where the current frame's edit messages go, and the store, which the
+// canvas keeps the zoom in and reads the selection from. `undefined` when there is no editor.
 
 import type { EditFrameMessage } from '../../channel/edit-protocol.ts';
 import type { Frame } from '../frames.ts';
@@ -20,15 +21,21 @@ import { mountMenu } from './menu.ts';
 import { mountMode } from './mode.ts';
 import { mountPalette } from './palette.ts';
 import { mountProps } from './props-panel.ts';
-import { createStore } from './store.ts';
+import { mountSession } from './session.ts';
+import { createStore, type Store } from './store.ts';
 import { mountStructure } from './structure.ts';
-import { mountZoom } from './zoom.ts';
 
-export function startEditor(
-  main: HTMLElement,
-  frame: Frame,
-): ((message: EditFrameMessage) => void) | undefined {
-  const panel = main.querySelector('aside[data-edit-panel]');
+export type Editor = {
+  /** An edit message of the current frame. */
+  receive(message: EditFrameMessage): void;
+  store: Store;
+};
+
+export function startEditor(main: HTMLElement, frame: Frame): Editor | undefined {
+  // The editor screen (plan 15) marks `main` itself; the older page had an aside.
+  const panel = main.hasAttribute('data-edit-panel')
+    ? main
+    : main.querySelector('aside[data-edit-panel]');
   const slug = main.dataset.draft;
   if (!(panel instanceof HTMLElement) || slug === undefined) return undefined;
   const store = createStore(slug);
@@ -48,10 +55,12 @@ export function startEditor(
   mountFrameDrop(ctx);
   mountMenu(ctx);
   mountKeys(ctx);
-  mountZoom(ctx);
+  // The zoom is the canvas's (`client/studio/canvas/`), which works without the editor too.
   mountHandleWrites(ctx);
+  // The editor screen (plan 15).
+  mountSession(ctx);
   getEditState(slug).then((answer) => {
     if (answer.ok) store.set({ edit: answer.body, etags: answer.body.etags });
   });
-  return (message) => bridge.receive(message);
+  return { receive: (message) => bridge.receive(message), store };
 }

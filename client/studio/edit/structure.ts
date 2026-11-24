@@ -124,10 +124,11 @@ export function createStructureSync(
       changed();
     },
     ready() {
-      const { structure, hidden, on } = store.get();
+      const { structure, hidden, locked, on } = store.get();
       if (structure) send(structure);
       // A new page in the frame shows everything again: the hidden ones are hidden once more.
       if (on && hidden.length > 0) bridge.send({ type: 'hide', ids: [...hidden] });
+      if (locked.length > 0) bridge.send({ type: 'lock', ids: [...locked] });
     },
   };
 }
@@ -140,9 +141,8 @@ export function mountStructure(ctx: EditorContext): void {
   note.setAttribute('role', 'status');
   note.hidden = true;
   note.textContent = text('structure.lost');
-  const bar = panel.querySelector('.edit-bar');
-  if (bar) bar.after(note);
-  else panel.prepend(note);
+  // The screen floats it over the canvas (edit-skin/screen.ts).
+  panel.prepend(note);
 
   const sync = createStructureSync(ctx, {
     getStructure,

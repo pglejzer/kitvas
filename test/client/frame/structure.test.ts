@@ -8,7 +8,7 @@ import type {
 } from '../../../client/channel/structure-protocol.ts';
 import type { Drag } from '../../../client/frame/drag.ts';
 import type { Handles } from '../../../client/frame/handles.ts';
-import { hideCss } from '../../../client/frame/hide.ts';
+import { hideCss, lockCss } from '../../../client/frame/hide.ts';
 import {
   createStructure,
   type MenuEvent,
@@ -58,7 +58,10 @@ function setup(): Calls {
       calls.scales = scales;
       return handles;
     },
-    hide: { set: (ids) => calls.log.push(`hide ${ids.join(',')}`) },
+    hide: {
+      set: (ids) => calls.log.push(`hide ${ids.join(',')}`),
+      lock: (ids) => calls.log.push(`lock ${ids.join(',')}`),
+    },
     idOf: (target) => (typeof target === 'string' ? target : null),
   };
   calls.structure = createStructure({
@@ -96,14 +99,33 @@ test('a hide message goes to hiding, in edit mode or not', () => {
   assert.deepEqual(calls.log, ['hide a,b']);
 });
 
+test('locks apply while editing only: kept from a message, lifted in Preview', () => {
+  const calls = setup();
+  send(calls, { ...head, type: 'lock', ids: ['a'] });
+  assert.deepEqual(calls.log, []);
+  send(calls, { ...head, type: 'edit', on: true });
+  assert.equal(calls.log[0], 'lock a');
+  calls.log.length = 0;
+  send(calls, { ...head, type: 'lock', ids: ['a', 'b'] });
+  assert.deepEqual(calls.log, ['lock a,b']);
+  calls.log.length = 0;
+  send(calls, { ...head, type: 'edit', on: false });
+  assert.equal(calls.log[0], 'lock ');
+});
+
 test('edit mode turns the drag on and off and listens for the context menu', () => {
   const calls = setup();
   send(calls, { ...head, type: 'edit', on: true });
-  assert.deepEqual(calls.log, ['drag.enable true', 'handles.enable false', 'handles.show null']);
+  assert.deepEqual(calls.log, [
+    'lock ',
+    'drag.enable true',
+    'handles.enable false',
+    'handles.show null',
+  ]);
   assert.ok(calls.menu);
   calls.log.length = 0;
   send(calls, { ...head, type: 'edit', on: false });
-  assert.equal(calls.log[0], 'drag.enable false');
+  assert.deepEqual(calls.log.slice(0, 2), ['lock ', 'drag.enable false']);
   assert.equal(calls.menu, undefined);
 });
 
@@ -187,6 +209,19 @@ test('turning edit mode off drops the selection and removes the handles', () => 
   send(calls, { ...head, type: 'select', ids: ['a'] });
   calls.log.length = 0;
   send(calls, { ...head, type: 'edit', on: false });
-  assert.deepEqual(calls.log, ['drag.enable false', 'handles.enable false', 'handles.show null']);
+  assert.deepEqual(calls.log, [
+    'lock ',
+    'drag.enable false',
+    'handles.enable false',
+    'handles.show null',
+  ]);
   assert.deepEqual(calls.selection(), []);
+});
+
+test('a locked element and everything in it take no pointer; none locked writes nothing', () => {
+  assert.equal(lockCss([]), '');
+  assert.equal(
+    lockCss(['sections/Hero:section/h1']),
+    '[data-ks="sections/Hero:section/h1"],[data-ks="sections/Hero:section/h1"] *{pointer-events:none!important}',
+  );
 });

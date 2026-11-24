@@ -6,6 +6,7 @@ import {
   editSession,
   endEditSession,
   loadDraft,
+  reopenEditSession,
   startEditSession,
 } from '../../src/drafts/index.ts';
 import { NOW, shopDraft } from '../helpers/drafts.ts';
@@ -64,6 +65,45 @@ test('Save version after a newer version clears the session that version ended',
   addVersion(store, 'shop', LATER);
   assert.deepEqual(endEditSession(store, 'shop'), { version: 3, ended: false });
   assert.equal(loadDraft(store, 'shop').edit, undefined);
+});
+
+test('Undo save opens the ended session again while its version is the latest', () => {
+  const { store } = shopDraft();
+  startEditSession(store, 'shop', LATER);
+  const session = editSession(loadDraft(store, 'shop'));
+  assert.ok(session);
+  endEditSession(store, 'shop');
+  assert.equal(editSession(loadDraft(store, 'shop')), null);
+  assert.deepEqual(reopenEditSession(store, 'shop', session), { version: 2, reopened: true });
+  assert.deepEqual(editSession(loadDraft(store, 'shop')), session);
+  // The next edit goes into version 2 again: no version was added.
+  assert.deepEqual(
+    loadDraft(store, 'shop').versions.map((version) => version.number),
+    [1, 2],
+  );
+});
+
+test('Undo save is refused, and writes nothing, after a newer version was started', () => {
+  const { store } = shopDraft();
+  startEditSession(store, 'shop', LATER);
+  const session = editSession(loadDraft(store, 'shop'));
+  assert.ok(session);
+  endEditSession(store, 'shop');
+  addVersion(store, 'shop', LATER);
+  const before = store.readText('shop', 'draft.json');
+  assert.deepEqual(reopenEditSession(store, 'shop', session), { version: 3, reopened: false });
+  assert.equal(store.readText('shop', 'draft.json'), before);
+});
+
+test('Undo save is refused when another session is already open', () => {
+  const { store } = shopDraft();
+  startEditSession(store, 'shop', LATER);
+  const open = editSession(loadDraft(store, 'shop'));
+  assert.ok(open);
+  const before = store.readText('shop', 'draft.json');
+  const other = { version: 2, startedAt: '2026-11-24T10:00:00.000Z' };
+  assert.deepEqual(reopenEditSession(store, 'shop', other), { version: 2, reopened: false });
+  assert.equal(store.readText('shop', 'draft.json'), before);
 });
 
 test('draft.json takes an edit block only in its own shape', () => {

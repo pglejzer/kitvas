@@ -12,6 +12,11 @@ export type PageFrame = {
   body: Html;
   /** The studio's links and paused view; `null` on a page shown before the cookie is set. */
   nav: { t: Translate; current: NavCurrent } | null;
+  /**
+   * `screen`: a full-window page with a bar of its own (the editor screen, plan 15). It drops the
+   * studio's links, and `body.screen` keeps the window from scrolling. The paused view stays.
+   */
+  chrome?: 'page' | 'screen';
 };
 
 export type NavCurrent = 'drafts' | 'kit' | null;
@@ -24,6 +29,8 @@ function navBar(nav: { t: Translate; current: NavCurrent }): Html {
 }
 
 export function page(input: PageFrame): string {
+  const screen = input.chrome === 'screen';
+  const links = input.nav && !screen ? navBar(input.nav) : '';
   return html`<!doctype html>
 <html lang="en">
 <head>
@@ -33,8 +40,8 @@ export function page(input: PageFrame): string {
 <link rel="icon" href="data:,">
 <style nonce="${input.nonce}">${trusted(input.skin)}</style>
 </head>
-<body>
-${input.nav ? navBar(input.nav) : ''}
+<body${screen ? trusted(' class="screen"') : ''}>
+${links}
 ${input.body}
 ${input.nav ? pausedView(input.nav.t) : ''}
 </body>

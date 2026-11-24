@@ -128,14 +128,38 @@ test('a draft that cannot be read is listed without a link; no drafts says how t
   assert.ok(!empty.includes('class="row"'));
 });
 
-test('a draft not built yet says how to build it', async () => {
+/** The markup between the opening tag that starts with `open` and its matching `</tag>`. */
+function region(text: string, open: string, tag: string): string {
+  const start = text.indexOf(open);
+  assert.ok(start >= 0, open);
+  let depth = 0;
+  for (const match of text.slice(start).matchAll(new RegExp(`<(/?)${tag}\\b`, 'g'))) {
+    depth += match[1] === '/' ? -1 : 1;
+    if (depth === 0) return text.slice(start, text.indexOf('>', start + match.index) + 1);
+  }
+  assert.fail(`${open} is not closed`);
+}
+
+const COMPARE_ICON = '<span class="editor-pick-icon" aria-hidden="true">⇄</span>';
+
+const editMode = (text: string): string =>
+  /<button type="button" class="editor-mode" data-shell-mode="edit"[^>]*>/.exec(text)?.[0] ?? '';
+
+test('a draft not built yet says how to build it, and Edit says why it is off', async () => {
   const { store } = shopDraft();
   const text = await pages(store)('draft', SHOP);
-  assert.ok(text.includes('<h1>Shop</h1>'));
+  assert.ok(text.includes('<h1 class="editor-title">Shop</h1>'));
   assert.ok(text.includes(escapeHtml(t('studio.page.notBuilt', { version: 1, slug: 'shop' }))));
   assert.ok(text.includes(escapeHtml(t('studio.next.build', { slug: 'shop' }))));
   assert.ok(!text.includes('<iframe'));
   assert.ok(!text.includes('Built from'));
+  const reason = escapeHtml(t('studio.edit.shell.reason.unbuilt'));
+  assert.ok(editMode(text).endsWith(`aria-pressed="false" disabled title="${reason}">`));
+  assert.ok(!text.includes('data-edit-panel'));
+  assert.ok(!text.includes('data-edit-undo'));
+  // The editor's panes say so too, and the screen's texts are there for its own script.
+  assert.ok(text.includes(`<p class="editor-pane-note">${reason}</p>`));
+  assert.ok(text.includes('<script type="application/json" id="edit-texts" nonce="N0nce">'));
 });
 
 test('a built draft is framed at the phone width in its default state', async () => {
@@ -150,38 +174,120 @@ test('a built draft is framed at the phone width in its default state', async ()
   );
   assert.ok(!text.includes('allow-same-origin'));
   assert.match(text, /^<!doctype html>[\s\S]*<main class="draft-page" data-draft="shop"/m);
+  // The latest built version can be edited; the screen opens in Preview.
   assert.ok(
     text.includes(
-      '<main class="draft-page" data-draft="shop" data-version="1" data-state="filled" data-width="390">',
+      '<main class="draft-page" data-draft="shop" data-version="1" data-state="filled" data-width="390" data-mode="preview" data-edit-panel>',
     ),
   );
-  // The latest built version can be edited: the toggle opens the controls, the panel follows the
-  // stage, and the notes close the layout.
-  assert.ok(
-    text.includes('</section></div><script type="module" src="/assets/draft.js"></script></main>'),
-  );
-  assert.ok(
-    text.includes(
-      '<section class="controls" aria-label="View"><button type="button" class="edit-toggle"',
-    ),
-  );
-  assert.ok(text.includes('</section><aside class="edit-panel" data-edit-panel hidden'));
+  assert.ok(text.includes('<script type="module" src="/assets/draft.js"></script></main>'));
   assert.ok(!text.includes('data-compare'));
   assert.ok(!text.includes('data-frame="before"'));
-  assert.ok(text.includes('<div class="draft">'));
-  assert.ok(text.includes('<p class="caption">390 px wide</p>'));
   assert.ok(
     text.includes(
-      '<a class="opt" href="/drafts/shop?version=1&amp;state=filled&amp;width=390" aria-current="true">Phone</a>',
+      '<div class="checks-lines"><p>Built from the Tiny kit.</p><p>Not checked yet.</p></div>',
     ),
   );
-  assert.ok(
-    text.includes(
-      '<a class="opt" href="/drafts/shop?version=1&amp;state=filled&amp;width=768">Tablet</a>',
-    ),
-  );
-  assert.ok(text.includes('<p>Built from the Tiny kit.</p><p>Not checked yet.</p>'));
   assert.ok(text.includes(escapeHtml(t('studio.next.check', { slug: 'shop' }))));
+});
+
+test('the screen has a full window of its own: no studio links, no edit toggle', async () => {
+  const { store } = shopDraft();
+  build(store);
+  const text = await pages(store)('draft', SHOP);
+  assert.ok(text.includes('<body class="screen">'));
+  assert.ok(!text.includes('<header class="top">'));
+  assert.ok(text.includes('data-paused-view'));
+  const gone = ['data-edit-toggle', 'class="controls"', 'class="edit-panel"', 'class="draft"'];
+  for (const part of gone) assert.ok(!text.includes(part), part);
+});
+
+test('the top bar has three parts: the draft, the mode, and the session', async () => {
+  const { store } = shopDraft();
+  build(store);
+  const text = await pages(store)('draft', SHOP);
+  const bar = region(text, '<header class="editor-bar">', 'header');
+  const start = region(bar, '<div class="editor-bar-start">', 'div');
+  assert.ok(start.startsWith('<div class="editor-bar-start"><a class="mark" href="/"'));
+  assert.ok(start.includes('<h1 class="editor-title">Shop</h1>'));
+  assert.ok(start.includes('<details class="editor-pick" data-shell="version">'));
+  assert.ok(start.includes('data-shell="compare"'));
+  const modes = region(bar, '<div class="editor-modes" role="group"', 'div');
+  assert.ok(
+    modes.includes(
+      `<button type="button" class="editor-mode" data-shell-mode="preview" aria-pressed="true">${t('studio.edit.shell.preview')}</button>`,
+    ),
+  );
+  assert.ok(editMode(modes).endsWith('data-shell-mode="edit" aria-pressed="false">'));
+  const end = region(bar, '<div class="editor-bar-end">', 'div');
+  for (const part of ['data-edit-undo disabled', 'data-edit-redo disabled', 'data-edit-session']) {
+    assert.ok(end.includes(part), part);
+  }
+  assert.ok(end.includes('data-edit-save disabled'));
+  assert.ok(end.includes('data-edit-unsave hidden'));
+  assert.ok(end.includes('data-shell="shortcuts"'));
+  assert.ok(bar.indexOf('editor-bar-start') < bar.indexOf('editor-modes'));
+  assert.ok(bar.indexOf('editor-modes') < bar.indexOf('editor-bar-end'));
+});
+
+test('both panels have their tabs and panes, a grip and a rail; Preview shows Checks', async () => {
+  const { store } = shopDraft();
+  build(store);
+  const text = await pages(store)('draft', SHOP);
+  const body = region(text, '<div class="editor-body">', 'div');
+  const left = region(body, '<aside class="editor-side" data-side="left"', 'aside');
+  assert.ok(left.includes(' data-folded>'), 'Preview starts with the left panel folded');
+  for (const tab of ['layers', 'insert']) assert.ok(left.includes(`data-tab="${tab}"`), tab);
+  assert.ok(left.includes('data-edit="layers" data-pane="layers"'));
+  assert.ok(left.includes('data-edit="palette" data-pane="insert"'));
+  assert.ok(left.includes('<button type="button" class="editor-rail" data-rail="left"'));
+  const right = region(body, '<aside class="editor-side" data-side="right"', 'aside');
+  for (const tab of ['properties', 'changes', 'checks']) {
+    assert.ok(right.includes(`data-tab="${tab}"`), tab);
+  }
+  assert.ok(!right.includes('data-tab="sketches"'), 'Sketches only on a craft draft');
+  assert.ok(right.includes('data-edit="props" data-empty='));
+  assert.ok(right.includes('data-edit="changes" data-pane="changes"'));
+  assert.ok(right.includes('<div data-edit="conflict" hidden></div>'));
+  assert.ok(right.includes('<button type="button" class="editor-rail" data-rail="right"'));
+  // Checks is the tab shown; the others wait hidden.
+  assert.match(right, /id="editor-tab-checks" data-tab="checks"[^>]*aria-selected="true"/);
+  assert.match(right, /data-pane="properties"[^>]*hidden>/);
+  assert.doesNotMatch(right, /data-pane="checks"[^>]*hidden>/);
+  // Left, grip, canvas, grip, right, in that order.
+  const order = [
+    'data-side="left"',
+    'data-grip="left"',
+    'data-shell="canvas"',
+    'data-grip="right"',
+    'data-side="right"',
+  ].map((part) => body.indexOf(part));
+  assert.deepEqual(
+    order,
+    [...order].sort((a, b) => a - b),
+  );
+  assert.ok(order.every((at) => at >= 0));
+  assert.ok(text.includes('<div data-edit="menu" hidden></div>'));
+});
+
+test('the Checks pane holds what the checks could not do, then the findings', async () => {
+  const { store } = shopDraft();
+  build(store);
+  check(store, checksOf([finding()]));
+  const text = await pages(store)('draft', SHOP);
+  const checks = region(text, '<section class="editor-pane" data-shell="checks"', 'section');
+  assert.ok(checks.includes('<div class="checks-lines"><p>Built from the Tiny kit.</p></div>'));
+  assert.ok(checks.includes('<h2 class="fix">1 to fix</h2>'));
+  assert.ok(checks.indexOf('checks-lines') < checks.indexOf('<section class="notes"'));
+  // The canvas holds the frame and the dock, not the findings.
+  const canvas = region(
+    text,
+    '<section class="editor-canvas stage" data-shell="canvas"',
+    'section',
+  );
+  assert.ok(canvas.includes('data-frame="current"'));
+  assert.ok(canvas.includes('data-shell="dock"'));
+  assert.ok(!canvas.includes('li class="note"'));
 });
 
 test('the address picks the version, state and width; anything else falls back', async () => {
@@ -206,22 +312,25 @@ test('the address picks the version, state and width; anything else falls back',
       `src="http://127.0.0.1:5001/f/k3y/shop/v1/html/index\\.html\\?state=empty${HASH_5000}" width="1280"`,
     ),
   );
-  assert.ok(picked.includes('<div class="draft wide">'));
+  assert.ok(picked.includes('data-version="1" data-state="empty" data-width="1280"'));
+  // The version menu lists the newest first, the one shown marked, the latest named.
+  const versions = region(picked, '<details class="editor-pick" data-shell="version">', 'details');
+  assert.ok(versions.includes(`<summary>${t('studio.draft.versionCaption', { version: 1 })}`));
   assert.ok(
-    picked.includes(
-      '<a class="opt" data-state="empty" href="/drafts/shop?version=1&amp;state=empty&amp;width=1280" aria-current="true">Empty</a>',
+    versions.includes(
+      `<a class="editor-pick-item" href="/drafts/shop?version=2&amp;state=empty&amp;width=1280"><span>Version 2</span><small class="editor-pick-tag">${t('studio.edit.shell.latest')}</small></a>`,
     ),
   );
   assert.ok(
-    picked.includes(
-      '<a class="opt" data-state="filled" href="/drafts/shop?version=1&amp;state=filled&amp;width=1280">With data</a>',
+    versions.includes(
+      '<a class="editor-pick-item" href="/drafts/shop?version=1&amp;state=empty&amp;width=1280" aria-current="true"><span>Version 1</span></a>',
     ),
   );
-  assert.ok(
-    picked.includes(
-      '<a class="opt" href="/drafts/shop?version=2&amp;state=empty&amp;width=1280">2</a>',
-    ),
-  );
+  assert.ok(versions.indexOf('Version 2') < versions.indexOf('Version 1</span>'));
+  // An older version cannot be edited, and Edit says why.
+  const reason = escapeHtml(t('studio.edit.shell.reason.old'));
+  assert.ok(editMode(picked).endsWith(`disabled title="${reason}">`));
+  assert.ok(!picked.includes('data-edit-panel'));
   const fallback = await view('draft', { ...SHOP, query: 'version=9&state=gone&width=1024' });
   assert.match(
     fallback,
@@ -264,11 +373,13 @@ test('the frame address ends with a fresh channel and the studio port', async ()
   assert.ok(first.includes(`data-frame="current" data-channel="${channelOf(first)}"`));
 });
 
-test('compare shows the other version first, captioned, with the same state and width', async () => {
+test('compare shows the other version first, with the same state and width', async () => {
   const view = pages(twoVersions());
   const text = await view('draft', { ...SHOP, query: 'version=2&state=empty&width=768&compare=1' });
   assert.ok(
-    text.includes('data-version="2" data-state="empty" data-width="768" data-compare="1">'),
+    text.includes(
+      'data-version="2" data-state="empty" data-width="768" data-compare="1" data-mode="preview">',
+    ),
   );
   const before = text.indexOf('data-frame="before"');
   const current = text.indexOf('data-frame="current"');
@@ -278,35 +389,62 @@ test('compare shows the other version first, captioned, with the same state and 
   const channels = [...text.matchAll(/data-channel="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(channels.length, 2);
   assert.notEqual(channels[0], channels[1]);
-  assert.ok(text.indexOf('Version 1</p>') < text.indexOf('Version 2</p>'));
-  assert.ok(text.includes('<div class="draft wide">'));
-  assert.ok(
-    text.includes(
-      '<p class="compare-summary" role="status" aria-live="polite" data-changed="{count} changed" data-added="{count} added" data-removed="{count} removed" data-same="Nothing changed"></p>',
-    ),
-  );
-  assert.ok(
-    text.includes(
-      '<nav class="row" aria-label="Compare"><a class="opt" href="/drafts/shop?version=2&amp;state=empty&amp;width=768">Stop comparing</a></nav>',
-    ),
-  );
-  // The links keep the comparison, except a version link to the compared version.
-  assert.ok(
-    text.includes('href="/drafts/shop?version=2&amp;state=filled&amp;width=768&amp;compare=1"'),
-  );
-  assert.ok(text.includes('href="/drafts/shop?version=1&amp;state=empty&amp;width=768">1</a>'));
+  assert.ok(text.includes('class="compare-summary"'));
+  // Comparing: Edit is off and says why.
+  const reason = escapeHtml(t('studio.edit.shell.reason.compare'));
+  assert.ok(editMode(text).endsWith(`disabled title="${reason}">`));
+  assert.ok(!text.includes('data-edit-panel'));
 });
 
-test('without compare an earlier version is offered; the oldest has none to offer', async () => {
+test('the compare menu marks the compared version and offers to stop', async () => {
   const view = pages(twoVersions());
-  const latest = await view('draft', SHOP);
+  const text = await view('draft', { ...SHOP, query: 'version=2&state=empty&width=768&compare=1' });
+  const menu = region(text, '<details class="editor-pick" data-shell="compare">', 'details');
+  assert.ok(menu.includes(escapeHtml(t('studio.edit.shell.comparing', { version: 1 }))));
   assert.ok(
-    latest.includes(
-      '<nav class="row" aria-label="Compare"><a class="opt" href="/drafts/shop?version=2&amp;state=filled&amp;width=390&amp;compare=1">Compare with version 1</a></nav>',
+    menu.includes(
+      '<a class="editor-pick-item" href="/drafts/shop?version=2&amp;state=empty&amp;width=768&amp;compare=1" aria-current="true"><span>Version 1</span></a>',
     ),
   );
+  assert.ok(
+    menu.includes(
+      `<a class="editor-pick-item" href="/drafts/shop?version=2&amp;state=empty&amp;width=768"><span>${t('studio.draft.stopCompare')}</span></a>`,
+    ),
+  );
+  // The version menu keeps the comparison, except on a link to the compared version itself.
+  const versions = region(text, '<details class="editor-pick" data-shell="version">', 'details');
+  assert.ok(
+    versions.includes('href="/drafts/shop?version=2&amp;state=empty&amp;width=768&amp;compare=1"'),
+  );
+  assert.ok(versions.includes('href="/drafts/shop?version=1&amp;state=empty&amp;width=768"'));
+});
+
+test('without compare every other version is offered; a lone version has none', async () => {
+  const view = pages(twoVersions());
+  const latest = await view('draft', SHOP);
+  const offered = region(latest, '<details class="editor-pick" data-shell="compare">', 'details');
+  assert.ok(offered.includes(`<summary>${COMPARE_ICON}${t('studio.edit.shell.compare')}`));
+  assert.ok(
+    offered.includes(
+      'href="/drafts/shop?version=2&amp;state=filled&amp;width=390&amp;compare=1"><span>Version 1</span>',
+    ),
+  );
+  assert.ok(!offered.includes(escapeHtml(t('studio.draft.stopCompare'))));
+  // The oldest version compares with a newer one.
   const oldest = await view('draft', { ...SHOP, query: 'version=1' });
-  assert.ok(!oldest.includes('aria-label="Compare"'));
+  assert.ok(
+    oldest.includes('href="/drafts/shop?version=1&amp;state=filled&amp;width=390&amp;compare=2"'),
+  );
+  const { store } = shopDraft();
+  build(store);
+  const lone = await pages(store)('draft', SHOP);
+  const title = escapeHtml(t('studio.edit.shell.compareNone'));
+  assert.ok(
+    lone.includes(
+      `<button type="button" class="editor-pick-off" data-shell="compare" disabled title="${title}">`,
+    ),
+  );
+  assert.ok(!lone.includes('<details class="editor-pick" data-shell="compare">'));
   // Comparing a version with itself, or with one the draft lacks, is no comparison.
   for (const compare of ['2', '9', 'x']) {
     const text = await view('draft', { ...SHOP, query: `compare=${compare}` });

@@ -3,7 +3,9 @@
 // Without `#kitvas=<channel>&studio=<port>` at the end of the address it only renders: the checks
 // open prototypes that way, and so does a person opening the page on its own.
 
+import { isCanvasStudio } from '../channel/canvas-protocol.ts';
 import { type FrameMessage, parseStudioMessage, readHash } from '../channel/protocol.ts';
+import { createCanvas } from './canvas.ts';
 import { createEdit } from './edit.ts';
 import { createMarks } from './marks.ts';
 import { measureElements, settle } from './measure.ts';
@@ -43,6 +45,8 @@ export function startFrame({ states, initial, render }: FrameInput): void {
   // Edit mode stays off, with no listener on the page, until the studio turns it on.
   const edit = createEdit({ channel, post, preview: createPreview() });
   const structure = createStructure({ channel, post });
+  // The screen's canvas (plan 15): forwards the zoom wheel, Space and the screen's keys.
+  const canvas = createCanvas({ channel, post });
   let current = initial;
   let heard = false;
 
@@ -72,8 +76,14 @@ export function startFrame({ states, initial, render }: FrameInput): void {
     if (message.type === 'measure') answer(message.request);
     else if (message.type === 'state') show(message.state);
     else if (message.type === 'marks') marks.draw(message.marks);
+    else if (isCanvasStudio(message)) {
+      // The labels keep one size on the screen at any canvas zoom.
+      if (message.type === 'zoom') edit.scale(1 / message.value);
+      else canvas.handle(message);
+    }
     // Every other message the parser lets through is one of the editor's.
     else {
+      if (message.type === 'edit') canvas.edit(message.on);
       edit.handle(message);
       structure.handle(message);
     }

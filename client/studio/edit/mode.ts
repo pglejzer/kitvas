@@ -1,9 +1,12 @@
-// Edit mode: the toggle, selection by click, Shift-click and keys, the session line and "Save
-// version" (plan 13, task F). It talks to the frame through the bridge and to the other panels
-// only through the store and the history.
+// Edit mode: the top bar's Preview | Edit switch, selection by click, Shift-click and keys (plan
+// 13, task F; plan 15, task A). It talks to the frame through the bridge and to the other panels
+// only through the store and the history. `store.on` is the truth; `main.dataset.mode` follows
+// it, so the screen outside the editor reads the mode there, and `main[data-selected]` marks the
+// rails while something is selected. The session's controls are `session.ts`.
 
 import type { EditFrameMessage } from '../../channel/edit-protocol.ts';
-import { endSession, getEditState, inspect } from './api.ts';
+import type { Mode } from '../shell/layout.ts';
+import { inspect } from './api.ts';
 import type { EditorContext } from './context.ts';
 import { firstChildOf, nextSelection, parentOf } from './selection.ts';
 import type { EditorState } from './store.ts';
@@ -12,11 +15,22 @@ import { text } from './texts.ts';
 const sameIds = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((id, index) => id === b[index]);
 
+/** The screen's mode for the editor's `on`. */
+export const modeOf = (on: boolean): Mode => (on ? 'edit' : 'preview');
+
+/**
+ * What pressing a mode button asks of the store; `null` when the editor is in that mode already.
+ * Preview turns editing off and drops what Edit picked, as the toggle did before.
+ */
+export function modePatch(on: boolean, pressed: Mode): Partial<EditorState> | null {
+  if (pressed === 'edit') return on ? null : { on: true };
+  if (!on) return null;
+  return { on: false, selection: [], hovered: null, inspected: null, computed: null };
+}
+
 export function mountMode(ctx: EditorContext): void {
-  const { store, bridge, panel, main, history } = ctx;
-  const toggle = main.querySelector('button[data-edit-toggle]');
-  const session = panel.querySelector('[data-edit-session]');
-  const save = panel.querySelector('button[data-edit-save]');
+  const { store, bridge, main, history } = ctx;
+  const buttons = [...main.querySelectorAll<HTMLButtonElement>('button[data-shell-mode]')];
 
   /** Answers of the API to an older selection are dropped by this number. */
   let inspectToken = 0;
@@ -61,19 +75,12 @@ export function mountMode(ctx: EditorContext): void {
     load(first, false);
   }
 
-  function renderSession(state: EditorState): void {
-    const open = state.edit?.session ?? null;
-    if (session) {
-      session.textContent = open
-        ? text('session.open', { version: open.version })
-        : text('session.none');
+  function renderMode(on: boolean): void {
+    const mode = modeOf(on);
+    for (const button of buttons) {
+      button.setAttribute('aria-pressed', String(button.dataset.shellMode === mode));
     }
-    if (save instanceof HTMLButtonElement) save.disabled = open === null;
-  }
-
-  function renderToggle(on: boolean): void {
-    if (toggle instanceof HTMLElement) toggle.setAttribute('aria-pressed', String(on));
-    panel.hidden = !on;
+    main.dataset.mode = mode;
   }
 
   function requestTree(): void {
@@ -81,7 +88,7 @@ export function mountMode(ctx: EditorContext): void {
   }
 
   function onToggle(on: boolean): void {
-    renderToggle(on);
+    renderMode(on);
     bridge.send({ type: 'edit', on });
     if (!on) return;
     requestTree();
@@ -91,7 +98,9 @@ export function mountMode(ctx: EditorContext): void {
 
   store.subscribe((state, previous) => {
     if (state.on !== previous.on) onToggle(state.on);
-    if (state.edit !== previous.edit) renderSession(state);
+    if (state.selection !== previous.selection) {
+      main.toggleAttribute('data-selected', state.selection.length > 0);
+    }
     if (state.on && !sameIds(state.selection, previous.selection)) {
       onSelection(state);
     } else if (state.on && state.etags !== previous.etags && state.selection[0] !== undefined) {
@@ -100,26 +109,13 @@ export function mountMode(ctx: EditorContext): void {
     }
   });
 
-  if (toggle instanceof HTMLElement) {
-    toggle.addEventListener('click', () => {
-      const state = store.get();
-      if (state.on) {
-        pendingDouble = null;
-        store.set({ on: false, selection: [], hovered: null, inspected: null, computed: null });
-      } else {
-        store.set({ on: true });
-      }
-    });
-  }
-
-  if (save instanceof HTMLButtonElement) {
-    save.addEventListener('click', async () => {
-      save.disabled = true;
-      const slug = store.get().slug;
-      await endSession(slug);
-      const state = await getEditState(slug);
-      if (state.ok) store.set({ edit: state.body, etags: state.body.etags, undo: [], redo: [] });
-      else renderSession(store.get());
+  for (const button of buttons) {
+    button.addEventListener('click', () => {
+      const pressed: Mode = button.dataset.shellMode === 'edit' ? 'edit' : 'preview';
+      const patch = modePatch(store.get().on, pressed);
+      if (patch === null) return;
+      if (pressed === 'preview') pendingDouble = null;
+      store.set(patch);
     });
   }
 
@@ -200,6 +196,5 @@ export function mountMode(ctx: EditorContext): void {
     }
   });
 
-  renderToggle(store.get().on);
-  renderSession(store.get());
+  renderMode(store.get().on);
 }

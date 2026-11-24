@@ -5,6 +5,7 @@ import type { EditOp } from '../../../src/edit/index.ts';
 import type { TreeNode } from '../../channel/edit-protocol.ts';
 import type { EditorContext } from './context.ts';
 import { filterTree, nextSelection } from './selection.ts';
+import type { ChangeEntry } from './store.ts';
 import { text } from './texts.ts';
 import { isNoop, type Row, sectionDrop, treeDrop, type Zone, zoneOf } from './tree-drag.ts';
 
@@ -39,6 +40,31 @@ export function moveOps(
 /** The "× n" badge shows for an item of a mapped list only; the count, or `null`. */
 export function badgeCount(node: TreeNode): number | null {
   return node.count > 1 ? node.count : null;
+}
+
+/** The elements the person changed in this session, from the change list's ids. */
+export function changedIds(changes: readonly ChangeEntry[]): Set<string> {
+  const ids = new Set<string>();
+  for (const change of changes) {
+    if (change.by === 'person' && change.id !== null) ids.add(change.id);
+  }
+  return ids;
+}
+
+/** What a row shows besides its name: the kit marker, the "× n" badge and the changed dot. */
+export type RowFacts = { kit: boolean; count: number | null; changed: boolean };
+
+/** `component` is the structure's kit component of the element (`null`: a plain element). */
+export function rowFacts(
+  node: TreeNode,
+  component: string | null | undefined,
+  changed: ReadonlySet<string>,
+): RowFacts {
+  return {
+    kit: component !== null && component !== undefined,
+    count: badgeCount(node),
+    changed: changed.has(node.id),
+  };
 }
 
 /** Nests a flat tree in document order; a node whose parent is not in the list is a root. */
@@ -114,12 +140,44 @@ export function mountLayers(ctx: EditorContext): void {
     return button;
   }
 
+  /** The lock toggle: a locked element is picked in Layers only, never on the canvas. */
+  function padlock(id: string, locked: boolean): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'layers-lock';
+    button.dataset.lock = id;
+    button.setAttribute('aria-pressed', String(locked));
+    const label = text(locked ? 'layers.unlock' : 'layers.lock');
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 12 12');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    // A body and a shackle; the shackle stands open while unlocked.
+    path.setAttribute(
+      'd',
+      locked ? 'M3 5.5V4a3 3 0 0 1 6 0v1.5M2 5.5h8v5H2z' : 'M3 5.5V4a3 3 0 0 1 5.8-1M2 5.5h8v5H2z',
+    );
+    svg.append(path);
+    button.append(svg);
+    button.addEventListener('click', () => {
+      const current = store.get().locked;
+      const next = current.includes(id) ? current.filter((one) => one !== id) : [...current, id];
+      store.set({ locked: next });
+      bridge.send({ type: 'lock', ids: next });
+    });
+    return button;
+  }
+
   function row(
     item: LayerItem,
     level: number,
     selected: Set<string>,
     sections: Map<string, Section>,
     hidden: Set<string>,
+    components: Map<string, string | null>,
+    changed: Set<string>,
   ): HTMLLIElement {
     const { node } = item;
     const asSection = level === 1 ? sections.get(node.id) : undefined;
@@ -142,12 +200,27 @@ export function mountLayers(ctx: EditorContext): void {
     name.className = 'layers-name';
     name.textContent = asSection ? asSection.id : node.name;
     button.append(name);
-    const count = badgeCount(node);
-    if (count !== null) {
+    const facts = rowFacts(node, components.get(node.id), changed);
+    if (facts.kit) {
+      const marker = document.createElement('span');
+      marker.className = 'layers-kit';
+      marker.title = text('layers.kit');
+      marker.setAttribute('aria-label', text('layers.kit'));
+      marker.textContent = '◆';
+      button.prepend(marker);
+    }
+    if (facts.count !== null) {
       const badge = document.createElement('span');
       badge.className = 'layers-badge';
-      badge.textContent = text('layers.count', { count });
+      badge.textContent = text('layers.count', { count: facts.count });
       button.append(badge);
+    }
+    if (facts.changed) {
+      const dot = document.createElement('span');
+      dot.className = 'layers-dot';
+      dot.title = text('layers.changed');
+      dot.setAttribute('aria-label', text('layers.changed'));
+      button.append(dot);
     }
     button.addEventListener('click', (event) => {
       if (swallowClick) return;
@@ -164,18 +237,21 @@ export function mountLayers(ctx: EditorContext): void {
     });
     button.addEventListener('contextmenu', (event) => {
       event.preventDefault();
-      if (!store.get().selection.includes(node.id)) store.set({ selection: [node.id] });
-      // The menu (task D3) listens for this; the position is in page pixels.
+      // The menu (task D3) listens for this; the position is in page pixels. It selects the row
+      // itself: selecting here first would draw the tree again and take this button off the page
+      // before the event could reach the menu, so the first right click did nothing.
       const detail = { id: node.id, x: event.clientX, y: event.clientY };
-      button.dispatchEvent(new CustomEvent('edit-menu', { detail, bubbles: true }));
+      document.dispatchEvent(new CustomEvent('edit-menu', { detail }));
     });
-    line.append(button, eye(node.id, hidden.has(node.id)));
+    const locked = store.get().locked.includes(node.id);
+    if (locked) li.dataset.locked = '';
+    line.append(button, padlock(node.id, locked), eye(node.id, hidden.has(node.id)));
     li.append(line);
     if (item.children.length > 0) {
       const group = document.createElement('ul');
       group.setAttribute('role', 'group');
       for (const child of item.children) {
-        group.append(row(child, level + 1, selected, sections, hidden));
+        group.append(row(child, level + 1, selected, sections, hidden, components, changed));
       }
       li.append(group);
     }
@@ -195,12 +271,24 @@ export function mountLayers(ctx: EditorContext): void {
     if (nodes.length === 0) {
       const empty = document.createElement('li');
       empty.className = 'layers-empty';
-      empty.textContent = text(state.tree.length === 0 ? 'layers.none' : 'layers.nomatch');
+      // The tree is read from the frame while editing; previewing says so instead of looking empty.
+      const key = !state.on
+        ? 'layers.off'
+        : state.tree.length === 0
+          ? 'layers.none'
+          : 'layers.nomatch';
+      empty.textContent = text(key);
       list.append(empty);
       return;
     }
     const sections = sectionsByElement();
-    for (const item of nestTree(nodes)) list.append(row(item, 1, selected, sections, hidden));
+    const components = new Map(
+      (state.structure?.elements ?? []).map((entry) => [entry.id, entry.component]),
+    );
+    const changed = changedIds(state.changes);
+    for (const item of nestTree(nodes)) {
+      list.append(row(item, 1, selected, sections, hidden, components, changed));
+    }
     markHover(state.hovered);
     if (focused) {
       for (const button of list.querySelectorAll<HTMLElement>('.layers-row')) {
@@ -327,7 +415,10 @@ export function mountLayers(ctx: EditorContext): void {
       state.tree !== previous.tree ||
       state.selection !== previous.selection ||
       state.structure !== previous.structure ||
-      state.hidden !== previous.hidden;
+      state.changes !== previous.changes ||
+      state.hidden !== previous.hidden ||
+      state.on !== previous.on ||
+      state.locked !== previous.locked;
     // A rebuild in the middle of a drag would drop the rows the pointer is over.
     if (changed && !press?.active) render();
     else if (state.hovered !== previous.hovered) markHover(state.hovered);

@@ -4,8 +4,21 @@
 import { compareSummary, type ElementDiff } from './diff.ts';
 import type { NoteInfo } from './marks.ts';
 
-/** The parts a state switch takes from the server's page for the new state. */
-const SWAPPED = ['section.controls', 'section.notes'] as const;
+/**
+ * The regions of the editor screen (plan 15, C4) a switch takes from the server's page for the new
+ * view. Only their children are replaced: the regions themselves stay, with what the screen's
+ * script put on them (a pane's `hidden`, an open menu). `must`: every draft page has it.
+ */
+const SWAPPED = [
+  // The findings of the state and width shown; their numbers match the marks.
+  { part: '[data-shell="checks"]', must: true },
+  // The dock's links; the number field and the zoom strip beside them stay as they are.
+  { part: '[data-dock="states"]', must: false },
+  { part: '[data-dock="widths"]', must: false },
+  // The top bar's links to other versions and to compare name the state and width too.
+  { part: '[data-shell="version"]', must: false },
+  { part: '[data-shell="compare"]', must: false },
+] as const;
 const STATE_OPTION = 'a.opt[data-state]';
 const FOCUSABLE = 'a[href], button, summary, input, select, textarea, [tabindex]';
 
@@ -52,7 +65,7 @@ type FocusSpot = { part: string; state: string | undefined; index: number };
 function focusSpot(main: HTMLElement): FocusSpot | undefined {
   const active = document.activeElement;
   if (!(active instanceof HTMLElement)) return undefined;
-  for (const part of SWAPPED) {
+  for (const { part } of SWAPPED) {
     const section = main.querySelector(part);
     if (!section?.contains(active)) continue;
     const state = active.matches(STATE_OPTION) ? active.dataset.state : undefined;
@@ -74,8 +87,9 @@ function restoreFocus(main: HTMLElement, spot: FocusSpot | undefined): void {
 }
 
 /**
- * Puts the controls and notes of `fresh` (the server's page for `state`) in place of this page's.
- * `false`, changing nothing, when `fresh` is not that page or lacks a part.
+ * Puts what the regions of `fresh` (the server's page for `state`) hold in place of what this
+ * page's hold. `false`, changing nothing, when `fresh` is not that page or lacks the findings.
+ * A region only one of the two pages has is left alone.
  */
 export function swapSections(main: HTMLElement, fresh: ParentNode, state: string): boolean {
   const next = fresh.querySelector<HTMLElement>('main.draft-page');
@@ -83,14 +97,16 @@ export function swapSections(main: HTMLElement, fresh: ParentNode, state: string
     return false;
   }
   const swaps: [Element, Element][] = [];
-  for (const part of SWAPPED) {
+  for (const { part, must } of SWAPPED) {
     const old = main.querySelector(part);
     const now = next.querySelector(part);
-    if (!old || !now) return false;
-    swaps.push([old, now]);
+    if (old && now) swaps.push([old, now]);
+    else if (must) return false;
   }
   const spot = focusSpot(main);
-  for (const [old, now] of swaps) old.replaceWith(document.importNode(now, true));
+  for (const [old, now] of swaps) {
+    old.replaceChildren(...document.importNode(now, true).childNodes);
+  }
   restoreFocus(main, spot);
   return true;
 }

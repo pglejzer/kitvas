@@ -133,7 +133,11 @@ export type StyleSource =
   | { kind: 'utility'; className: string }
   | { kind: 'kit' };
 
-/** The style properties the panel shows for any element (R9). */
+/**
+ * The style properties the panel shows for any element (R9). The first seventeen are stage 4a's,
+ * in their order; plan 15 adds each side of padding and margin, the layout keywords, the outline
+ * and the background image. `client/frame/tree.ts` keeps a copy in the same order.
+ */
 export const STYLE_PROPERTIES = [
   'padding',
   'padding-block',
@@ -152,14 +156,40 @@ export const STYLE_PROPERTIES = [
   'border-width',
   'width',
   'height',
+  'padding-top',
+  'padding-right',
+  'padding-bottom',
+  'padding-left',
+  'margin-top',
+  'margin-right',
+  'margin-bottom',
+  'margin-left',
+  'display',
+  'flex-direction',
+  'flex-wrap',
+  'justify-content',
+  'align-items',
+  'align-self',
+  'text-align',
+  'border-style',
+  'outline-color',
+  'outline-width',
+  'outline-style',
+  'background-image',
+  'background-size',
 ] as const;
 export type StyleProperty = (typeof STYLE_PROPERTIES)[number];
 
-/** Which token type a property takes, for pickers and `nearestToken`. */
-export const PROPERTY_TOKEN_TYPE: Record<
-  StyleProperty,
-  'dimension' | 'color' | 'fontWeight' | 'number'
-> = {
+/** The token types a style property may take. */
+export type StyleTokenType = 'dimension' | 'color' | 'fontWeight' | 'number';
+/**
+ * What a style property's value is (plan 15): a kit token of a type (or a raw value marked
+ * off-kit), one keyword of a fixed list, or an image file of the version.
+ */
+export type StyleKind = StyleTokenType | 'keyword' | 'image';
+
+/** The token type a property takes, for pickers and `nearestToken`. Keywords and images take none. */
+export const PROPERTY_TOKEN_TYPE = {
   padding: 'dimension',
   'padding-block': 'dimension',
   'padding-inline': 'dimension',
@@ -177,7 +207,84 @@ export const PROPERTY_TOKEN_TYPE: Record<
   'border-width': 'dimension',
   width: 'dimension',
   height: 'dimension',
+  'padding-top': 'dimension',
+  'padding-right': 'dimension',
+  'padding-bottom': 'dimension',
+  'padding-left': 'dimension',
+  'margin-top': 'dimension',
+  'margin-right': 'dimension',
+  'margin-bottom': 'dimension',
+  'margin-left': 'dimension',
+  'outline-color': 'color',
+  'outline-width': 'dimension',
+} as const satisfies Partial<Record<StyleProperty, StyleTokenType>>;
+export type TokenProperty = keyof typeof PROPERTY_TOKEN_TYPE;
+
+/**
+ * The words each keyword property takes (plan 15), in the order the panel offers them. A keyword
+ * is never a token and never off-kit: it is written without the marker. Any other word is refused
+ * (`invalid`).
+ */
+export const STYLE_KEYWORDS = {
+  display: ['block', 'flex', 'grid', 'inline', 'inline-block', 'inline-flex', 'none'],
+  'flex-direction': ['row', 'row-reverse', 'column', 'column-reverse'],
+  'flex-wrap': ['nowrap', 'wrap'],
+  'justify-content': [
+    'flex-start',
+    'center',
+    'flex-end',
+    'space-between',
+    'space-around',
+    'space-evenly',
+  ],
+  'align-items': ['stretch', 'flex-start', 'center', 'flex-end', 'baseline'],
+  'align-self': ['auto', 'stretch', 'flex-start', 'center', 'flex-end'],
+  'text-align': ['left', 'center', 'right', 'justify'],
+  'border-style': ['none', 'solid', 'dashed', 'dotted'],
+  'outline-style': ['none', 'solid', 'dashed', 'dotted'],
+  'background-size': ['auto', 'cover', 'contain'],
+} as const satisfies Partial<Record<StyleProperty, readonly string[]>>;
+export type KeywordProperty = keyof typeof STYLE_KEYWORDS;
+
+/** Every property's kind: its token type, `keyword`, or `image` (only `url(../img/<file>)`). */
+export const PROPERTY_KIND: Record<StyleProperty, StyleKind> = {
+  ...PROPERTY_TOKEN_TYPE,
+  display: 'keyword',
+  'flex-direction': 'keyword',
+  'flex-wrap': 'keyword',
+  'justify-content': 'keyword',
+  'align-items': 'keyword',
+  'align-self': 'keyword',
+  'text-align': 'keyword',
+  'border-style': 'keyword',
+  'outline-style': 'keyword',
+  'background-size': 'keyword',
+  'background-image': 'image',
 };
+
+export const isStyleProperty = (property: string): property is StyleProperty =>
+  Object.hasOwn(PROPERTY_KIND, property);
+
+export const isTokenProperty = (property: string): property is TokenProperty =>
+  Object.hasOwn(PROPERTY_TOKEN_TYPE, property);
+
+export const isKeywordProperty = (property: string): property is KeywordProperty =>
+  Object.hasOwn(STYLE_KEYWORDS, property);
+
+/** The kind of a property of the editor's set; `null` for any other property. */
+export const kindOf = (property: string): StyleKind | null =>
+  isStyleProperty(property) ? PROPERTY_KIND[property] : null;
+
+/** The token type a property takes; `null` for a keyword, an image or a property not in the set. */
+export const tokenTypeOf = (property: string): StyleTokenType | null =>
+  isTokenProperty(property) ? PROPERTY_TOKEN_TYPE[property] : null;
+
+/** The words a keyword property takes; `null` for any other property. */
+export function keywordsOf(property: string): readonly string[] | null {
+  if (!isKeywordProperty(property)) return null;
+  const words: readonly string[] = STYLE_KEYWORDS[property];
+  return words;
+}
 
 /** A kit token as the editor offers it. */
 export type TokenOption = {

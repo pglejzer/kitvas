@@ -147,6 +147,17 @@ test('every element of the latest version is listed in page order with its paren
   });
 });
 
+test('an element says where its < is, and the structure names the version folder', async () => {
+  const drafts = shop();
+  const structure = await structureOf(drafts);
+  const section = entry(structure, P);
+  assert.deepEqual([section.file, section.line, section.column], [PRICING_FILE, 7, 5]);
+  const hero = entry(structure, 'sections/Hero:h1');
+  assert.deepEqual([hero.file, hero.line, hero.column], [HERO_FILE, 2, 10]);
+  assert.equal(structure.folder, `${drafts.dir('shop').replaceAll('\\', '/')}/v1`);
+  assert.equal(structure.folder.includes('\\'), false);
+});
+
 test('an item of a mapped list and everything inside it cannot move: in-expression', async () => {
   const structure = await structureOf(shop());
   const card = entry(structure, `${P}/Stack/Card`);

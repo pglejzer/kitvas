@@ -1,14 +1,16 @@
-// A handle let go in the frame, written (spec 4b, decision 12; plan 14, task D7): the frame's `handle`
-// message with `done` becomes a 4a edit through the style source, and the frame gets the kit's
-// spacing and size scales as `tokens`.
+// A handle let go in the frame, written (spec 4b, decision 12; plan 14, task D7): the frame's
+// `handle` message with `done` becomes a 4a edit through the style source, and the frame gets
+// the kit's spacing and size scales as `tokens`. Since plan 15 a one-side padding handle writes
+// that side (`padding-top`); with Alt the frame sends the axis (`padding-block`) and that is
+// written.
+// A handle that writes nothing says why in the properties panel (`HANDLE_NOTE`).
 
 import type { EditOp, StyleProperty, TokenOption } from '../../../src/edit/index.ts';
 import type { Inspect } from '../../../src/studio/api/edit-schemas.ts';
 import type { HandleValue, ScaleStep } from '../../channel/structure-protocol.ts';
 import { inspect as readInspect } from './api.ts';
 import type { EditorContext } from './context.ts';
-import { el } from './controls.ts';
-import { opsForStyle, readOnlyReason } from './props-panel.ts';
+import { opsForStyle, readOnlyReason } from './props-ops.ts';
 import { PROPERTIES, styleValueOf, tokensFor } from './steps.ts';
 import { text } from './texts.ts';
 
@@ -42,9 +44,8 @@ export function scalesOf(tokens: readonly TokenOption[]): Scales {
   };
 }
 
-/** The style row a handle's CSS property writes; one padding side has none (not an editor row). */
-export function styleOfHandle(property: string): StyleProperty | 'side' | null {
-  if (/^padding-(?:top|right|bottom|left)$/.test(property)) return 'side';
+/** The style row a handle's CSS property writes; `null` for one that is no editor row. */
+export function styleOfHandle(property: string): StyleProperty | null {
   return PROPERTIES.find((row) => row === property) ?? null;
 }
 
@@ -63,7 +64,6 @@ export function opsForHandle(
 ): HandleWrite {
   if (format === 'tailwind') return { note: 'handles.readOnly' };
   const row = styleOfHandle(property);
-  if (row === 'side') return { note: 'handles.side' };
   if (row === null) return { note: 'handles.notWritten' };
   const reason = readOnlyReason(inspected, row, format);
   if (reason) return { note: `props.reason.${reason}` };
@@ -75,23 +75,29 @@ export function opsForHandle(
   return ops.length > 0 ? { ops } : { note: 'handles.notWritten' };
 }
 
+/**
+ * The event a handle's note goes out on, from `main`: the properties panel shows it for the
+ * element until the selection changes. `key: null` takes it away.
+ */
+export const HANDLE_NOTE = 'edit-handle-note';
+export type HandleNote = { id: string; key: string | null };
+
+/** The note an event carries; `null` for anything else on the event name. */
+export function readHandleNote(detail: unknown): HandleNote | null {
+  if (typeof detail !== 'object' || detail === null) return null;
+  if (!('id' in detail) || !('key' in detail)) return null;
+  const { id, key } = detail;
+  if (typeof id !== 'string' || (key !== null && typeof key !== 'string')) return null;
+  return { id, key };
+}
+
 export function mountHandleWrites(ctx: EditorContext): void {
-  const { store, bridge, history, slug, panel } = ctx;
-  let note: HTMLElement | null = null;
+  const { store, bridge, history, slug, main } = ctx;
   let chain: Promise<void> = Promise.resolve();
 
-  function say(key: string | null): void {
-    const strip = panel.querySelector<HTMLElement>('[data-edit="zoom"]');
-    if (!strip) return;
-    if (key === null) {
-      note?.remove();
-      note = null;
-      return;
-    }
-    note ??= el('p', 'zoom-note');
-    note.setAttribute('role', 'status');
-    note.textContent = text(key);
-    strip.append(note);
+  function say(id: string, key: string | null): void {
+    const detail: HandleNote = { id, key };
+    main.dispatchEvent(new CustomEvent(HANDLE_NOTE, { detail }));
   }
 
   // The frame forgets both after it loads again, so they go out after every `tree` as well.
@@ -104,7 +110,6 @@ export function mountHandleWrites(ctx: EditorContext): void {
   store.subscribe((state, previous) => {
     if (state.edit !== previous.edit) sendScales();
     if (state.on !== previous.on) sendHandles();
-    if (state.selection[0] !== previous.selection[0]) say(null);
   });
 
   function write(id: string, property: string, value: HandleValue): void {
@@ -116,10 +121,10 @@ export function mountHandleWrites(ctx: EditorContext): void {
         if (!answer.ok) return;
         const made = opsForHandle(answer.body, property, value, edit.format);
         if ('note' in made) {
-          say(made.note);
+          say(id, made.note);
           return;
         }
-        say(null);
+        say(id, null);
         const label = text('props.label.style', { property });
         await history.apply({ ops: made.ops, label });
       })

@@ -145,6 +145,8 @@ function joinOps(first: EditOp, second: EditOp): EditOp {
  * inverse is made here.
  */
 export function mergeGestures(top: Gesture, next: Gesture): Gesture | null {
+  // An undo the server wrote as a patch (a word outside the list) is not rebuilt here.
+  if (top.undoOps?.some((op) => op.op === 'patch')) return null;
   const [only] = next.ops;
   const last = top.ops[top.ops.length - 1];
   if (next.ops.length !== 1 || !only || !last) return null;
@@ -155,8 +157,9 @@ export function mergeGestures(top: Gesture, next: Gesture): Gesture | null {
   return undoOps ? { ops, label: next.label, undoOps } : null;
 }
 
+/** A raw value written with the off-kit marker; a keyword or an image (`mark: false`) is not one. */
 const isOffKit = (ops: readonly EditOp[]): boolean =>
-  ops.some((op) => op.op === 'setStyle' && 'raw' in op.value);
+  ops.some((op) => op.op === 'setStyle' && 'raw' in op.value && op.value.mark !== false);
 
 /** The first element the ops name, for the change list. */
 function firstElement(ops: readonly EditOp[]): string | null {

@@ -63,6 +63,8 @@ export type EditorState = {
   clipboard: Clip | null;
   /** Elements hidden in the frame only (spec 4b, decision 14). */
   hidden: string[];
+  /** Elements the canvas cannot select or drag; Layers still can. For this page only. */
+  locked: string[];
   /** The frame box's scale, 0.25 to 2 (task D7). */
   zoom: number;
   menu: Menu | null;
@@ -105,6 +107,7 @@ export function initialState(slug: string): EditorState {
     structure: null,
     clipboard: null,
     hidden: [],
+    locked: [],
     zoom: 1,
     menu: null,
   };

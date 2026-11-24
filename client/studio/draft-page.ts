@@ -1,9 +1,13 @@
-// The draft page's script: findings marked on the prototype, a state switch without a reload,
-// compare with a diff, and a reload when a build or check of this draft ends. Without frames (a
-// version not built) or without a frame that answers, links simply load the next page.
+// The draft page's script: findings marked on the prototype, a state and a width switch without a
+// reload, compare with a diff, the canvas (zoom, pan, widths), and a reload when a build or check
+// of this draft ends. Without frames (a version not built) or without a frame that answers, links
+// simply load the next page.
 
+import { isCanvasFrame } from '../channel/canvas-protocol.ts';
 import { isEditFrameMessage } from '../channel/edit-protocol.ts';
 import type { ElementSnapshot } from '../channel/protocol.ts';
+import { type Canvas, mountCanvas } from './canvas/canvas.ts';
+import { mountWidth, type WidthControl } from './canvas/width-control.ts';
 import { isPlainClick } from './clicks.ts';
 import { diffElements, type ElementDiff } from './diff.ts';
 import {
@@ -14,7 +18,7 @@ import {
   swapSections,
   writeSummary,
 } from './draft-dom.ts';
-import { startEditor } from './edit/start.ts';
+import { type Editor, startEditor } from './edit/start.ts';
 import {
   type Frame,
   type FrameRole,
@@ -51,16 +55,36 @@ type Page = {
   pending: Pending | undefined;
   /** Counts switches; a step of an older switch sees a newer number and stops. */
   switches: number;
+  /** The switch whose findings are still on their way: until they are here, no marks of theirs. */
+  awaited: number;
+  width: WidthControl | undefined;
 };
 
 const currentFrame = (page: Page): Frame | undefined =>
   page.frames.find((frame) => frame.role === 'current');
 
-/** Marks always match the notes on the page now, plus the diff in compare mode. */
+/**
+ * While the person edits, the page never loads itself again; the editor reloads only the frame.
+ * The screen writes the mode on `main` (plan 15, C5).
+ */
+const editing = (main: HTMLElement): boolean => main.dataset.mode === 'edit';
+
+/** Loads `href` the plain way, the fallback of a switch; never while the person edits. */
+function loadPlainly(page: Page, href: string): void {
+  if (!editing(page.main)) location.assign(href);
+}
+
+/**
+ * Marks always match the notes on the page now, plus the diff in compare mode. The findings were
+ * seen at the three preset widths: at any other width, and while the notes of a new width are on
+ * their way, their marks are hidden.
+ */
 function refreshMarks(page: Page): void {
   const frame = currentFrame(page);
   if (!frame?.ready) return;
-  sendMarks(frame, pageMarks(marksFromNotes(readNotes(page.main)), page.diff));
+  const hidden = page.width?.marksHidden() === true || page.awaited === page.switches;
+  const findings = hidden ? [] : marksFromNotes(readNotes(page.main));
+  sendMarks(frame, pageMarks(findings, page.diff));
 }
 
 /** Also a probe: a frame that loaded before this script ran answers it, so it counts as ready. */
@@ -129,37 +153,86 @@ async function fetchPage(href: string): Promise<DocumentFragment> {
   return template.content;
 }
 
-async function switchState(page: Page, state: string, href: string): Promise<void> {
+/**
+ * Takes the regions of the view at `href` from the server (the findings, the links), then marks
+ * the prototype again. `false` when the page could not be read or has other markup.
+ */
+async function swapFrom(page: Page, href: string, stale: () => boolean): Promise<boolean> {
+  try {
+    const fresh = await fetchPage(href);
+    if (stale()) return true;
+    if (!swapSections(page.main, fresh, page.state)) return false;
+  } catch {
+    return stale();
+  }
+  // The findings are here: their marks may show again.
+  page.awaited = -1;
+  // The fresh links know nothing of a custom width; the dock puts it back.
+  page.width?.sync();
+  refreshMarks(page);
+  return true;
+}
+
+/** In compare mode the two frames are measured again once a change has settled. */
+function measureSoon(page: Page, stale: () => boolean): void {
+  if (!page.compare) return;
+  setTimeout(() => {
+    if (!stale()) measure(page);
+  }, SETTLE_MS);
+}
+
+/** Starts a switch: older ones stop, and what was measured belongs to the view before. */
+function nextTurn(page: Page): () => boolean {
   page.switches += 1;
   const turn = page.switches;
-  const stale = (): boolean => turn !== page.switches;
   page.pending?.done(false);
-  page.state = state;
   page.diff = undefined;
   page.round = undefined;
+  if (page.compare) writeSummary(page.main, undefined);
+  return () => turn !== page.switches;
+}
+
+async function switchState(page: Page, state: string, href: string): Promise<void> {
+  const stale = nextTurn(page);
+  page.state = state;
   page.main.dataset.state = state;
   markStateOption(page.main, state);
   history.replaceState(history.state, '', href);
-  if (page.compare) writeSummary(page.main, undefined);
   const shown = waitForShown(page, state);
   for (const frame of page.frames) sendState(frame, state);
   if (!(await shown)) {
-    if (!stale()) location.assign(href);
+    if (!stale()) loadPlainly(page, href);
     return;
   }
-  if (page.compare) {
-    setTimeout(() => {
-      if (!stale()) measure(page);
-    }, SETTLE_MS);
-  }
-  try {
-    const fresh = await fetchPage(href);
-    if (stale()) return;
-    if (!swapSections(page.main, fresh, state)) throw new Error('The page has other markup.');
-    refreshMarks(page);
-  } catch {
-    if (!stale()) location.assign(href);
-  }
+  measureSoon(page, stale);
+  if (!(await swapFrom(page, href, stale)) && !stale()) loadPlainly(page, href);
+}
+
+/**
+ * The cards went to a preset width in place (`canvas/width-control.ts` already sized the frames
+ * and wrote the address): the findings and marks of that width come from the server's page.
+ */
+async function switchWidth(page: Page, href: string): Promise<void> {
+  const stale = nextTurn(page);
+  page.awaited = page.switches;
+  // The marks of the width before are wrong here; they come back with the new findings.
+  refreshMarks(page);
+  measureSoon(page, stale);
+  if (!(await swapFrom(page, href, stale)) && !stale()) loadPlainly(page, href);
+}
+
+/**
+ * The cards went to a width that is no preset: the findings stay those of the preset, with their
+ * marks hidden, and what compare measured was of the width before.
+ */
+function resized(page: Page): void {
+  // Not a switch of its own: a state switch on its way still brings its findings.
+  const turn = page.switches;
+  page.diff = undefined;
+  page.round = undefined;
+  if (page.compare) writeSummary(page.main, undefined);
+  measureSoon(page, () => turn !== page.switches);
+  refreshMarks(page);
 }
 
 function onClick(page: Page, event: MouseEvent): void {
@@ -175,12 +248,26 @@ function onClick(page: Page, event: MouseEvent): void {
   switchState(page, state, href);
 }
 
+/** The editor's zoom is the canvas zoom, and "zoom to selection" reads the editor's selection. */
+function joinEditor(canvas: Canvas, editor: Editor): void {
+  const { store } = editor;
+  const follow = (zoom: number): void => {
+    if (store.get().zoom !== zoom) store.set({ zoom });
+  };
+  follow(canvas.zoom());
+  canvas.onZoom(follow);
+  canvas.selectionFrom(() => {
+    const state = store.get();
+    return state.on ? state.selection[0] : undefined;
+  });
+}
+
 export function startDraftPage(main: HTMLElement): void {
   const slug = main.dataset.draft;
-  // While the person edits, the page never loads itself again; the editor reloads only the frame.
-  const editing = (): boolean =>
-    main.querySelector('button[data-edit-toggle]')?.getAttribute('aria-pressed') === 'true';
-  reloadWhenJobsEnd((job) => job === slug, editing);
+  reloadWhenJobsEnd(
+    (job) => job === slug,
+    () => editing(main),
+  );
   const frames = findFrames(main);
   if (frames.length === 0) return;
   const roles = new Set(frames.map((frame) => frame.role));
@@ -194,19 +281,41 @@ export function startDraftPage(main: HTMLElement): void {
     requests: 0,
     pending: undefined,
     switches: 0,
+    awaited: -1,
+    width: undefined,
   };
+  // The canvas works in Preview and in Edit, on a version that cannot be edited too.
+  const canvas = mountCanvas(main, frames);
+  page.width = mountWidth({
+    main,
+    frames,
+    zoom: () => canvas?.zoom() ?? 1,
+    centred: () => canvas?.centred() ?? true,
+    onSettled: (href, preset) => {
+      if (preset) void switchWidth(page, href);
+      else resized(page);
+    },
+    onMarks: () => refreshMarks(page),
+  });
   const current = currentFrame(page);
   const editor = current && !page.compare ? startEditor(main, current) : undefined;
+  if (canvas && editor) joinEditor(canvas, editor);
   window.addEventListener('message', (event) => {
     const heard = frameMessage(page.frames, event);
     if (!heard) return;
     const { frame, message } = heard;
-    if (isEditFrameMessage(message)) {
-      if (frame.role === 'current') editor?.(message);
+    if (isCanvasFrame(message)) {
+      canvas?.hear(frame, message);
       return;
     }
-    if (message.type === 'ready') onReady(page, frame);
-    else if (message.type === 'shown') onShown(page, frame, message.state);
+    if (isEditFrameMessage(message)) {
+      if (frame.role === 'current') editor?.receive(message);
+      return;
+    }
+    if (message.type === 'ready') {
+      canvas?.frameReady();
+      onReady(page, frame);
+    } else if (message.type === 'shown') onShown(page, frame, message.state);
     // `example` comes only from the kit page's frames; a draft frame has no use for it.
     else if (message.type === 'elements') onElements(page, frame, message.request, message.items);
   });

@@ -17,6 +17,9 @@ import {
   type Declaration,
   type EditOp,
   inverse,
+  keywordsOf,
+  kindOf,
+  plainValue,
   type StyleValue,
 } from '../../src/edit/index.ts';
 import { PLUGIN_ROOT } from '../../src/shared/env/paths.ts';
@@ -47,6 +50,20 @@ function heldValue(declaration: Declaration): StyleValue {
   const name = /^var\((--kit-[A-Za-z0-9_-]+)\)$/.exec(declaration.value)?.[1];
   // A plain value (`display: flex`) has no marker: `mark: false` names it as it is.
   return name === undefined ? { raw: declaration.value, mark: false } : { token: name };
+}
+
+/**
+ * What to write over a declaration and how the file then spells it: the probe token, or for a
+ * keyword property another word of its list (a token there is refused). `null`: nothing to try.
+ */
+function probeFor(declaration: Declaration): { value: StyleValue; css: string } | null {
+  const kind = kindOf(declaration.property);
+  if (kind === 'image') return null;
+  if (kind !== 'keyword') return { value: PROBE, css: 'var(--kit-rt-probe)' };
+  const words = keywordsOf(declaration.property) ?? [];
+  if (!words.includes(declaration.value)) return null;
+  const other = words.find((word) => word !== declaration.value);
+  return other === undefined ? null : { value: plainValue(other), css: other };
 }
 
 test('the fixtures and the built-in kit have SCSS files with class rules to try', () => {
@@ -88,6 +105,7 @@ test('a new declaration and then its inverse leave every rule of every file as i
 test('a token on every existing declaration and then its inverse leave the file as it was', () => {
   let exact = 0;
   let plain = 0;
+  let keywords = 0;
   for (const { path, text } of files) {
     for (const rule of listRules(text)) {
       if (readRule(text, rule.className) === 'ambiguous') continue;
@@ -95,13 +113,15 @@ test('a token on every existing declaration and then its inverse leave the file 
         const { property, span } = declaration;
         const where = `${path} .${rule.className} ${property}`;
         if (rule.declarations.filter((d) => d.property === property).length > 1) continue;
+        const probe = probeFor(declaration);
+        if (probe === null) continue;
         const before = heldValue(declaration);
         const op: ScssOp = {
           op: 'setStyle',
           id: ID,
           className: rule.className,
           property,
-          value: PROBE,
+          value: probe.value,
           before,
           newRule: false,
         };
@@ -110,11 +130,12 @@ test('a token on every existing declaration and then its inverse leave the file 
         const at = text.indexOf(declaration.value, text.indexOf(':', span.start));
         assert.equal(
           applied,
-          `${text.slice(0, at)}var(--kit-rt-probe)${text.slice(at + declaration.value.length)}`,
+          `${text.slice(0, at)}${probe.css}${text.slice(at + declaration.value.length)}`,
           where,
         );
         const back = textOf(applyScss(applied, scssOp(inverse(op)), PLAIN), where);
         assert.equal(back, text, where);
+        if (kindOf(property) === 'keyword') keywords += 1;
         if ('mark' in before) plain += 1;
         else exact += 1;
       }
@@ -122,6 +143,8 @@ test('a token on every existing declaration and then its inverse leave the file 
   }
   assert.ok(exact >= 10, `only ${exact} token declarations tried`);
   assert.ok(plain >= 10, `only ${plain} plain declarations tried`);
+  // Plan 15: the keyword words of the fixtures and the kit, each swapped for another of its list.
+  assert.ok(keywords >= 5, `only ${keywords} keyword declarations tried`);
 });
 
 test('a new rule and then its inverse leave every file as it was', () => {

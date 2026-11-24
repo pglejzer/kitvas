@@ -19,6 +19,8 @@ function entry(id: string, overrides: Partial<Entry> = {}): Entry {
   return {
     id,
     file: 'src/tsx/sections/Hero.tsx',
+    line: 1,
+    column: 1,
     tag: 'div',
     parent: null,
     hash: HASH,
@@ -42,6 +44,7 @@ const OTHER_ROOT = 'sections/OrderSummary:section';
 
 const structure: Structure = {
   version: 1,
+  folder: '/d/hero/v1',
   etags: {},
   elements: [
     entry(ROOT, { tag: 'section', root: 'section' }),

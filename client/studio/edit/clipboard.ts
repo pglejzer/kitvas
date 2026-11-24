@@ -65,6 +65,44 @@ export async function copyElements(
   return clip;
 }
 
+/**
+ * One `folder/file:line:column` per selected element, in page order (the structure's order).
+ * An id the structure does not know has no place and is left out.
+ */
+export function locationLines(
+  folder: string,
+  elements: readonly { id: string; file: string; line: number; column: number }[],
+  ids: readonly string[],
+): string {
+  const wanted = new Set(ids);
+  return elements
+    .filter((entry) => wanted.has(entry.id))
+    .map((entry) => `${folder}/${entry.file}:${entry.line}:${entry.column}`)
+    .join('\n');
+}
+
+/**
+ * "Copy code location": writes where the selected elements are in the code to the system
+ * clipboard. Like copy, a clipboard the browser refuses is not an error the person can fix, so
+ * it answers `false` and nothing else changes.
+ */
+export async function copyLocation(
+  ctx: EditorContext,
+  ids: readonly string[],
+  io: ClipboardIo = defaultClipboardIo,
+): Promise<boolean> {
+  const structure = ctx.store.get().structure;
+  if (!structure) return false;
+  const lines = locationLines(structure.folder, structure.elements, ids);
+  if (lines === '') return false;
+  try {
+    await io.writeText(lines);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** What a paste inserts now; `null` when there is nothing to paste. */
 export async function pasteClip(
   ctx: EditorContext,

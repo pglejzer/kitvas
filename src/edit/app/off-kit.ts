@@ -12,17 +12,15 @@ import { cssVarName, formatTokenValue, type KitStore, loadKit } from '../../kit/
 import { KitvasError } from '../../shared/index.ts';
 import { listRules } from '../domain/apply-scss.ts';
 import { nearestToken } from '../domain/nearest.ts';
-import {
-  PROPERTY_TOKEN_TYPE,
-  STYLE_PROPERTIES,
-  type StyleProperty,
-  type TokenOption,
-} from '../domain/types.ts';
+import { kindOf, type TokenOption, tokenTypeOf } from '../domain/types.ts';
 
 export type OffKitDeps = { drafts: DraftStore; kits: KitStore };
 
-const isStyleProperty = (property: string): property is StyleProperty =>
-  (STYLE_PROPERTIES as readonly string[]).includes(property);
+/** A keyword and an image of the version are never off-kit, even with a marker someone wrote. */
+const neverOffKit = (property: string): boolean => {
+  const kind = kindOf(property);
+  return kind === 'keyword' || kind === 'image';
+};
 
 /** The kit's tokens as the editor offers them; none when the kit cannot be read. */
 function kitTokens(kits: KitStore, kitId: string): TokenOption[] {
@@ -67,10 +65,8 @@ export function offKitValues(deps: OffKitDeps, slug: string): OffKit {
       if (text === undefined) continue;
       for (const rule of listRules(text)) {
         for (const declaration of rule.declarations) {
-          if (!declaration.offKit) continue;
-          const type = isStyleProperty(declaration.property)
-            ? PROPERTY_TOKEN_TYPE[declaration.property]
-            : null;
+          if (!declaration.offKit || neverOffKit(declaration.property)) continue;
+          const type = tokenTypeOf(declaration.property);
           items.push({
             file,
             className: rule.className,

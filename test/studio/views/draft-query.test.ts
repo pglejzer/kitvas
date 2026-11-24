@@ -6,6 +6,7 @@ import {
   pickCompare,
   pickState,
   pickVersion,
+  pickView,
   pickWidth,
 } from '../../../src/studio/views/draft-query.ts';
 
@@ -69,6 +70,38 @@ test('compare: a version the draft has, other than the one shown, else none', ()
     assert.equal(pickCompare(query(`compare=${asked}`), DRAFT, 3), null, asked);
   }
   assert.equal(pickCompare(query(''), DRAFT, 3), null);
+});
+
+test('a view is any whole width from 320 to 2560 that is not a preset', () => {
+  assert.equal(pickView(query('view=1000')), 1000);
+  assert.equal(pickView(query('view=320')), 320);
+  assert.equal(pickView(query('view=2560')), 2560);
+  for (const asked of ['', '319', '2561', '99999', '1000.5', '-1000', 'wide', '1e3', '10']) {
+    assert.equal(pickView(query(`view=${asked}`)), null, asked);
+  }
+  assert.equal(pickView(query('')), null);
+});
+
+test('a preset asked for as a view is no view: the width names it', () => {
+  for (const preset of [390, 768, 1280]) {
+    assert.equal(pickView(query(`view=${preset}`)), null, String(preset));
+  }
+});
+
+test('the view does not change the width the checks belong to', () => {
+  assert.equal(pickWidth(query('width=768&view=1000')), 768);
+  assert.equal(pickWidth(query('view=1000')), 390);
+});
+
+test('a link keeps the custom width when it is given one, after everything else', () => {
+  assert.equal(
+    draftHref('shop', { version: 3, state: 'empty', width: 768, view: 1000 }),
+    '/drafts/shop?version=3&state=empty&width=768&view=1000',
+  );
+  assert.equal(
+    draftHref('shop', { version: 3, state: 'empty', width: 768, compare: 1, view: 1000 }),
+    '/drafts/shop?version=3&state=empty&width=768&compare=1&view=1000',
+  );
 });
 
 test('a link keeps the comparison when it is given one', () => {

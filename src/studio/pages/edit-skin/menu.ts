@@ -46,4 +46,12 @@ export const EDIT_SKIN_MENU = `
   color: var(--kit-color-ink-mid);
   font-size: var(--kit-font-size-sm);
 }
+/* The key sits at the end of the label's row; a reason, when the item is off, goes below. */
+.edit-menu-item:has(.edit-menu-key) { grid-template-columns: 1fr auto; column-gap: var(--kit-space-lg); }
+.edit-menu-item:has(.edit-menu-key) .edit-menu-reason { grid-column: 1 / -1; }
+.edit-menu-key {
+  color: var(--kit-color-ink-mid);
+  font: inherit;
+  font-size: var(--kit-font-size-sm);
+}
 `;

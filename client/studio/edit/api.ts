@@ -9,6 +9,7 @@ import type {
   Inspect,
   OffKit,
 } from '../../../src/studio/api/edit-schemas.ts';
+import type { SessionReopen } from '../../../src/studio/api/session-schemas.ts';
 import type { Palette, Structure, Subtree } from '../../../src/studio/api/structure-schemas.ts';
 
 export type Answer<T> =
@@ -48,6 +49,12 @@ export const postEdits = (slug: string, request: EditRequest): Promise<Answer<Ed
 
 export const endSession = (slug: string): Promise<Answer<EditEnd>> =>
   call('POST', `${base(slug)}/edits/end`, {});
+
+/** "Undo save": opens the ended session again; a refusal answers 409 `EDIT_SESSION_TAKEN`. */
+export const reopenSession = (
+  slug: string,
+  session: { version: number; startedAt: string },
+): Promise<Answer<SessionReopen>> => call('POST', `${base(slug)}/edits/reopen`, session);
 
 export const getOffKit = (slug: string): Promise<Answer<OffKit>> =>
   call('GET', `${base(slug)}/off-kit`);

@@ -391,6 +391,113 @@ test('tokenGroupsOf groups tokens by their path without the last part', () => {
   assert.deepEqual(baseGroups.fontWeight, { fontWeight: ['regular', 'medium', 'bold'] });
 });
 
+test('a Base Stack sets direction, wrap, justify and align by its props (plan 15)', () => {
+  const stack = baseComponent('Stack');
+  const cases: [StyleProperty, string][] = [
+    ['flex-direction', 'direction'],
+    ['flex-wrap', 'wrap'],
+    ['justify-content', 'justify'],
+    ['align-items', 'align'],
+  ];
+  for (const [property, prop] of cases) {
+    assert.deepEqual(styleSource(input(property, { component: stack })), { kind: 'prop', prop });
+  }
+  // Stack has no prop of these: a rule over the kit sets them.
+  for (const property of ['display', 'align-self', 'text-align', 'padding-top'] as const) {
+    assert.deepEqual(styleSource(input(property, { component: stack })), { kind: 'kit' });
+  }
+});
+
+test("Grid's columns set none of the panel's properties: a number is no keyword", () => {
+  const grid = baseComponent('Grid');
+  for (const property of STYLE_PROPERTIES) {
+    if (property === 'gap') continue;
+    assert.deepEqual(styleSource(input(property, { component: grid })), { kind: 'kit' }, property);
+  }
+});
+
+test('a keyword prop counts only when each value names a keyword of the property', () => {
+  const cases: [StyleProperty, ReturnType<typeof enumProp>, boolean][] = [
+    ['align-items', enumProp('align', ['start', 'center']), true],
+    ['justify-content', enumProp('justify', ['between', 'around', 'evenly']), true],
+    // `left` is a text alignment, not an item alignment.
+    ['align-items', enumProp('align', ['left', 'center']), false],
+    ['flex-direction', enumProp('direction', ['horizontal', 'vertical']), false],
+    // A prop named like the property counts whatever its values.
+    ['text-align', enumProp('textAlign', ['start', 'end']), true],
+  ];
+  for (const [property, prop, isProp] of cases) {
+    const found = styleSource(input(property, { component: { props: [prop] } }));
+    const expected: StyleSource = isProp ? { kind: 'prop', prop: prop.name } : { kind: 'kit' };
+    assert.deepEqual(found, expected, `${prop.name} for ${property}`);
+  }
+  // Only `flex-wrap` takes a boolean, as Stack's `wrap`.
+  const boolean = { props: [{ name: 'wrap', type: 'boolean' }] };
+  assert.equal(styleSource(input('flex-wrap', { component: boolean })).kind, 'prop');
+  const display = { props: [{ name: 'display', type: 'boolean' }] };
+  assert.equal(styleSource(input('display', { component: display })).kind, 'kit');
+});
+
+test('one side of padding and margin is a declaration of its own in the class rule', () => {
+  const card = rule('card', [
+    ['padding', 'var(--kit-space-md)'],
+    ['padding-top', 'var(--kit-space-lg)'],
+    ['margin-left', '3px', true],
+  ]);
+  assert.deepEqual(styleSource(input('padding-top', { rule: card })), {
+    kind: 'scss',
+    className: 'card',
+    value: 'var(--kit-space-lg)',
+    offKit: false,
+  });
+  assert.deepEqual(styleSource(input('margin-left', { rule: card })), {
+    kind: 'scss',
+    className: 'card',
+    value: '3px',
+    offKit: true,
+  });
+  assert.deepEqual(styleSource(input('padding-left', { rule: card })), { kind: 'kit' });
+});
+
+test('the Tailwind utilities of the plan 15 properties name their class', () => {
+  const cases: [StyleProperty, string, string | null][] = [
+    ['padding-top', 'pt-4', 'pt-4'],
+    ['padding-top', 'py-2', 'py-2'],
+    ['padding-right', 'px-3', 'px-3'],
+    ['margin-bottom', 'my-1', 'my-1'],
+    ['margin-left', 'ms-2', 'ms-2'],
+    ['display', 'hidden', 'hidden'],
+    ['display', 'flex', 'flex'],
+    ['display', 'flex-col', null],
+    ['flex-direction', 'flex-col', 'flex-col'],
+    ['flex-direction', 'flex-wrap', null],
+    ['flex-wrap', 'flex-wrap', 'flex-wrap'],
+    ['justify-content', 'justify-between', 'justify-between'],
+    ['justify-content', 'justify-items-center', null],
+    ['align-items', 'items-center', 'items-center'],
+    ['align-self', 'self-end', 'self-end'],
+    ['text-align', 'text-center', 'text-center'],
+    ['text-align', 'text-sm', null],
+    ['border-style', 'border-dashed', 'border-dashed'],
+    ['border-style', 'border-2', null],
+    ['outline-width', 'outline-2', 'outline-2'],
+    ['outline-width', 'outline', 'outline'],
+    ['outline-width', 'outline-primary', null],
+    ['outline-color', 'outline-primary', 'outline-primary'],
+    ['outline-color', 'outline-offset-2', null],
+    ['outline-color', 'outline-dashed', null],
+    ['outline-style', 'outline-dashed', 'outline-dashed'],
+    ['background-image', 'bg-[url(/a.png)]', 'bg-[url(/a.png)]'],
+    ['background-image', 'bg-linear-to-r', 'bg-linear-to-r'],
+    ['background-image', 'bg-primary', null],
+    ['background-size', 'bg-cover', 'bg-cover'],
+    ['background-size', 'bg-primary', null],
+  ];
+  for (const [property, className, found] of cases) {
+    assert.equal(utility(property, className), found, `${className} ${property}`);
+  }
+});
+
 test('every style property has its prop names, its own name first, and utility prefixes', () => {
   assert.deepEqual(Object.keys(PROP_FOR).sort(), [...STYLE_PROPERTIES].sort());
   assert.deepEqual(Object.keys(UTILITY_PREFIXES).sort(), [...STYLE_PROPERTIES].sort());

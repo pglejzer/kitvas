@@ -7,6 +7,8 @@ const S = 'sections/Hero:Stack';
 const entry = (id: string, hash: string): StructureEntry => ({
   id,
   file: 'src/tsx/sections/Hero.tsx',
+  line: 4,
+  column: 7,
   tag: 'Text',
   parent: S,
   hash,
@@ -21,6 +23,7 @@ const entry = (id: string, hash: string): StructureEntry => ({
 });
 const structure: Structure = {
   version: 2,
+  folder: '/d/hero/v2',
   etags: {},
   elements: [entry(`${S}/Text`, 'a'.repeat(16)), entry(`${S}/Text.2`, 'b'.repeat(16))],
   sections: [],

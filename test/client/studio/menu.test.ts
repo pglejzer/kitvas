@@ -134,3 +134,27 @@ test('a click on an element outside the selection selects it, inside keeps the s
   assert.deepEqual(selectionFor(['a', 'b'], 'c'), ['c']);
   assert.deepEqual(selectionFor(['a'], null), ['a']);
 });
+
+test('an item shows its key from the list of shortcuts, Cmd on a Mac, nothing without one', () => {
+  const hints = (mac: boolean): Record<string, string | null> =>
+    Object.fromEntries(
+      menuItems([...ACTIONS, on('copy-location')], 0, mac).map((item) => [item.action, item.hint]),
+    );
+  const pc = hints(false);
+  assert.equal(pc.duplicate, 'Ctrl+D');
+  assert.equal(pc.copy, 'Ctrl+C');
+  assert.equal(pc['wrap-stack'], 'Ctrl+G');
+  assert.equal(pc.replace, null);
+  assert.equal(pc['copy-location'], null);
+  assert.equal(hints(true).duplicate, 'Cmd+D');
+  for (const item of componentItems([{ name: 'Button', parent: null }], null)) {
+    assert.equal(item.hint, null);
+  }
+});
+
+test('the menu offers Lock or Unlock, whichever applies, never both', () => {
+  const free = menuItems([on('lock'), off('unlock', 'no-selection')], 0).map((item) => item.action);
+  assert.deepEqual(free, ['lock']);
+  const locked = menuItems([off('lock', 'no-selection'), on('unlock')], 0).map((i) => i.action);
+  assert.deepEqual(locked, ['unlock']);
+});
