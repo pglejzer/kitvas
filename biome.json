@@ -1,7 +1,15 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.6.6/schema.json",
   "files": {
-    "includes": ["**", "!docs", "!.superpowers", "!spikes", "!evals"]
+    "includes": [
+      "**",
+      "!docs",
+      "!.superpowers",
+      "!spikes",
+      "!evals",
+      "!.playwright-mcp",
+      "!.claude/settings.local.json"
+    ]
   },
   "formatter": {
     "indentStyle": "space",

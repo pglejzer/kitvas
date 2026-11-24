@@ -1,24 +1,106 @@
 # kitvas
 
-kitvas is a Claude Code plugin. You describe a screen, Claude builds a prototype of it from your design system (React today, more to come), and kitvas builds it, checks it and shows it in a local studio, in versions.
+kitvas is a Claude Code plugin that builds UI prototypes from your project's own design system, checks them, and shows them in a local studio where you can edit them.
 
-Status: early (0.1.0).
+It is for a developer who has to ship a screen with no designer at hand: you go from an idea to a checked prototype on your own machine.
 
-## What you can ask for
+Status: 0.1.0, early. Prototypes are React (with SCSS, or Tailwind v4 when the kit uses it), whatever technology your application uses, because kitvas never writes into your application.
 
-- `/kitvas:compose`: a screen or page from a description, built section by section and fixed until its checks pass. Feedback gives a new version.
-- `/kitvas:rework`: give a page you already have (a URL, a screenshot or a Figma link) and get a better version of it in your kit. The content and purpose stay the same; the layout may change. You confirm a short list of things that must stay (the logo, the main action, prices, fields), and every version is checked against it. The report says how many of the original's problems are gone.
-- `/kitvas:craft`: name a component, icon or logo you are missing and show an example you like. You get three sketches in your kit's style to pick from. The one you pick goes into your project's kit, or into a folder you name.
-- `/kitvas:learn`: teach kitvas your design system (below).
-- `/kitvas:kit`: ask what your kit offers: components, tokens, icons.
+## Why
 
-## Your design system comes first
+- **Generated UI ignores your design system.** kitvas builds only from a kit: the catalog of components, tokens and icons it learned from your project. Without one it uses a built-in kit, Base.
+- **Nobody checks the result.** kitvas builds the draft, type-checks it, applies the kit's rules, and opens the page in a real browser at 390 and 1280 px in every state. Each finding has a place, a message and a hint.
+- **Changing one detail means prompting again.** The studio's editor writes your change into the draft's own TSX or SCSS, touching only the lines it changes.
+- **Generated code lands in your application.** Everything stays under `.kitvas/` in your project until you export it.
 
-kitvas builds from the design system your project already has. The rework and craft skills look for it first (`kitvas kit detect`). If your project has a design system that kitvas has not learned yet, they offer to learn it before anything else, instead of quietly using the built-in kit.
+## How it works
 
-kitvas can learn:
+One screen takes this path:
 
-- an npm package (public or private), or a folder of your own components, with Tailwind v4 supported;
+1. A kit supplies the components, tokens and icons: one learned from your project, or Base.
+2. The skill writes a brief, then plans the sections in `layout.md`. One agent writes the TSX and SCSS of each section.
+3. `kitvas build` bundles the version into a page.
+4. `kitvas check` runs the build, types, the kit's rules and the browser checks, and a fix round follows when there are findings.
+5. The studio shows the version at every width, state and version, with the findings marked on the page.
+6. Your feedback, in chat, as notes in the studio or as edits in the editor, goes into the next version.
+
+```text
+ you ── Claude Code ── skills ── kitvas commands ── .kitvas/drafts/<slug>/v<N>/
+                          │            │
+                          │            └── local studio (127.0.0.1) ── your browser
+                          └── agents write section files only
+```
+
+Where things live:
+
+| Place                            | Holds                                                                                                                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.kitvas/` in your project       | `config.json`, `kits/` (kits you learned), `additions/` (what craft added), `drafts/<slug>/v<N>/` (md, src, build)                                                    |
+| `~/.kitvas/` in your home folder | `config.json` (the studio's look), `data/` (the plugin's npm packages, Chromium in `data/browsers/`, the studio's state files), `data-dir` (where the data folder is) |
+| The studio                       | A local process that serves pages and prototypes on 127.0.0.1 until it is stopped                                                                                     |
+
+Claude Code runs the skills and the commands. The plugin's agents only write files; each runs on Sonnet:
+
+| Agent             | Writes                                                      |
+| ----------------- | ----------------------------------------------------------- |
+| `kitvas:maker`    | The TSX and SCSS of one section of a draft                  |
+| `kitvas:patcher`  | Fixes for check findings in a draft's files                 |
+| `kitvas:learner`  | A kit's files from an npm package or a folder of components |
+| `kitvas:tailor`   | A kit from a Figma file, a website scan or screenshots      |
+| `kitvas:sketcher` | Three sketches of a component, icon or logo for craft       |
+| `kitvas:scout`    | A research note from the public web                         |
+
+Commands appear below as `kitvas <command>`. That is shorthand, explained in [Commands](#commands).
+
+## Requirements
+
+- Claude Code.
+- Node 24.22.3 or later in the 24 line, or 26.13.1 or later.
+- Access to the npm registry during the first session.
+- Chrome, Edge or Chromium for the browser checks. `kitvas browser` says which one is used; `kitvas browser install` downloads Chromium when none is found.
+
+## Install
+
+```bash
+claude plugin marketplace add pglejzer/kitvas
+claude plugin install kitvas@kitvas
+```
+
+Inside Claude Code the same works as `/plugin marketplace add pglejzer/kitvas` and `/plugin install kitvas@kitvas`.
+
+On the first session after an install or an update, a `SessionStart` hook runs `npm ci --ignore-scripts` for the plugin's own packages in the plugin's data folder. No install script of a dependency runs.
+
+## Quick start
+
+In your project folder, in Claude Code:
+
+1. Type `/kitvas`. It reports whether kitvas is ready and what is missing, and offers to create the `.kitvas/` workspace.
+2. Choose a kit. If your project has a design system, type `/kitvas:learn`; otherwise go on with Base.
+3. Type `/kitvas:compose` with a description, for example `/kitvas:compose a pricing page with three plans and a FAQ`. Claude asks at most three questions, builds the sections, checks them and fixes what it can.
+4. Open the link Claude gives you. It is a one-time link, valid for 60 seconds, to `http://kitvas.localhost:<port>/`. Your browser then stays signed in for 30 days.
+5. Give feedback in chat, leave a note in the studio, or switch to Edit and change the draft yourself. Each round makes a new version.
+
+## Skills
+
+| Skill                  | You give                                                                     | You get                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `/kitvas`              | Nothing                                                                      | Whether kitvas is ready, the kit in use, the workspace                        |
+| `/kitvas:compose`      | A description of a screen, or feedback on a draft                            | A built and checked draft, and a studio link                                  |
+| `/kitvas:rework`       | A page you have: a URL, a screenshot or a Figma link                         | A better version in your kit, checked against a list of things that must stay |
+| `/kitvas:craft`        | A missing component, icon or logo, and an example                            | Three sketches; the one you pick goes into your kit's additions               |
+| `/kitvas:learn`        | A design system: a package, a folder, a Figma file, a website or screenshots | A kit in `.kitvas/kits/<id>/`                                                 |
+| `/kitvas:kit`          | A question about the kit                                                     | Its components, tokens and icons                                              |
+| `/kitvas:edit <draft>` | An open studio editor                                                        | Claude answers its requests while you edit                                    |
+
+Rework keeps the content and purpose and may change the layout. The report says how many of the original's problems are gone.
+
+## Your design system
+
+A kit describes one design system: components, tokens and icons. The rework and craft skills look for yours first (`kitvas kit detect`) and offer to learn it before they fall back to Base.
+
+kitvas can learn from:
+
+- an npm package (public or private) or a folder of your own components, with Tailwind v4 supported;
 - a Figma file, read through your own Figma MCP;
 - a website, or screenshots.
 
@@ -33,78 +115,82 @@ What craft adds goes to `.kitvas/additions/<kit-id>/`, next to the kit, never in
 
 ## Checks
 
-`kitvas check <draft>` builds a draft and checks it: the build, types, the kit's rules, and the page in a browser at 390 and 1280 px, in every state. The browser checks cover accessibility, the look (`ui`), the flow (`ux`) and errors at runtime. Every finding has a place, a message and a hint. `kitvas guidelines` lists the rules, each with the guidance it is based on.
+`kitvas check <draft>` builds a draft and checks it: the build, types, the kit's rules, and the page in a browser at 390 and 1280 px, in every state. The browser checks cover accessibility, the look (`ui`), the flow (`ux`) and errors at runtime. `--deep` adds the slower checks; compose uses it before it hands over a final version.
 
-## The studio
+Every finding has a place, a message and a hint. A finding you accept on purpose, with a reason, is kept in the draft's `waivers.json` and is left out of the count. `kitvas guidelines` lists the rules, each with the guidance it is based on.
 
-`kitvas studio --open` opens the project's studio in your browser. It shows:
+## The studio and the editor
 
-- a gallery of drafts;
-- each draft at every width, in every state and version, with its findings marked on the page;
-- two versions side by side; a rework also next to its original;
-- a craft draft's sketches, with the command that picks one;
-- your kit: tokens, components and their examples.
+`kitvas studio --open` opens the project's studio. It shows a gallery of drafts; each draft at every width, state and version, with findings marked on the page; two versions side by side (a rework also next to its original); a craft draft's sketches; and your kit's tokens, components and examples.
 
-Notes you leave in the studio reach Claude. The studio keeps its address (`http://kitvas.localhost:<port>/`), and your browser stays signed in for 30 days, so a bookmark works after a restart.
+A draft is deleted from its card in the gallery or from the editor's menu. It moves to Deleted (the folder `.kitvas/trash/`), where it can be restored or removed for good.
 
-### Look
+Switch a draft to Edit to change it by hand:
 
-The View button in the bar of every page sets how the studio looks: the theme (system, light or dark), the panels (Cards, as islands, or Flush, with hairlines) and the accent (Copper, Teal, Coral or Rose). The choice is yours, not the project's: it is kept in `~/.kitvas/config.json`, holds in every project and after a restart, and applies at once without reloading a prototype. The studio has its own colours and typeface (Figtree, served by the studio itself); your kit and your drafts are never touched by them.
+- a kit component's props, and spacing, colour, typography, radius, border and size, with the kit's tokens offered first;
+- text, by a double click;
+- structure: drag, insert, delete, wrap and reorder elements and sections;
+- widths and states: an edit at 768 or 1280 px is written as a media query, a hover or focus edit as `&:hover` or `&:focus-visible`;
+- live findings after each edit, with Apply for a target that is too small and for text of too low contrast.
 
-## Edit in the studio
+Everything above works with no network, no account and no model: the studio, the edits, the builds, the checks and the versions. The AI tab (variants for a sentence or "Improve"), requests for changes kitvas cannot write itself, and the reasons behind a section need a listening session: run `/kitvas:edit <draft>` in Claude Code and leave it running.
 
-A draft opens as one screen that never scrolls: a bar on top, layers and the insert palette on the left, the prototype in the middle, and properties, changes, checks (and sketches, for a craft draft) on the right. The bar switches Preview and Edit, picks a version or one to compare, and holds undo, redo and "Save version". For 8 seconds after a save, "Undo save" brings the session back.
+The full guide, with every key and rule, is in [docs/editor.md](docs/editor.md).
 
-Drag the edge of a panel to resize it (arrow keys step 16 px, a double click resets it). `[` and `]` fold the left and right panel, `Ctrl+\` folds both, and the sizes are kept. Zoom runs from 10 % to 400 % with Ctrl and the wheel (also over the prototype), the buttons or a typed percent. `Shift+1` fits the prototype to the room, and it stays fitted when panels move; `Shift+2` zooms to the selection and `Ctrl+0` goes to 100 %. Hold Space and drag, or drag with the middle button, to pan. The width has the presets 390, 768 and 1280, where the checks' marks show, and any width from 320 to 2560 px. Press `?` for every shortcut, searchable.
+## Commands
 
-Switch to Edit in the bar. Click an element (Shift adds more, Esc clears, the arrow keys go to the parent or the first child), or find it in the layers list. Then you can change:
+There is no global `kitvas` command. The package is private and not on npm. Claude Code runs the commands from the skills as `node "${CLAUDE_PLUGIN_ROOT}/bin/kitvas.ts" <command>`, so the normal way to run one is to ask Claude in plain words: "open the studio", "check the pricing draft".
 
-- a kit component's props: variant, size, gap and the rest;
-- spacing, colour, typography, radius, border, width and height, with the kit's tokens offered first and the arrow keys stepping through the kit's scale;
-- the text, by a double click.
+By hand, run `node <plugin folder>/bin/kitvas.ts <command>` from your project folder. An installed plugin's folder is `~/.claude/plugins/cache/<marketplace>/kitvas/<version>/`. This works after the first session, because the hook records where the packages were installed. In this README `kitvas <command>` is short for that.
 
-Each row says where its value lives: a kit prop, the section's SCSS, or the kit's default. kitvas writes the change into the draft's TSX or SCSS itself, touching only the lines it changes, and the prototype shows it within about a second. A value outside the kit is allowed; it is marked in the code and in the session's change list, and can be mapped to the nearest token. Undo and redo work with Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y.
+Every command takes `--json` and answers `{"ok":true,"data":…}` or `{"ok":false,"error":{"code","message"}}`.
 
-You can also change the structure. Drag an element on the prototype or in the layers list; a line shows where it will land, and Esc cancels. Drag a rectangle over empty space to select several elements. The palette inserts a kit component, an icon or a section of another draft that uses the same kit. The right-click menu and the keys offer delete, duplicate, copy, cut, paste, copy and paste style, move up and down, wrap in a stack, a grid or a card, unwrap, replace with another component, reset to how it was when the session started, select similar, hide, lock, and copy code location (the file, line and column, ready to paste). A locked element is picked in the layers list only: a click on it in the prototype selects what is under it. Each menu item shows its key. Sections can be reordered, deleted and inserted. Handles on the selected element resize it and change its padding and gap, snapping to the kit's scale (Shift writes a raw value, marked off-kit). Zooming never changes the prototype's real width. Every step is one undo.
+| Command      | What it does                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| `status`     | Shows the version, settings and workspace                                                |
+| `init`       | Creates the `.kitvas` folder in this project                                             |
+| `kit`        | Lists, shows, checks, learns, verifies and selects kits                                  |
+| `draft`      | Creates, lists and shows drafts, starts a new version; `delete`, `restore` and `purge`   |
+| `craft`      | Makes sketches of a component, icon or logo, picks one, adds it to the kit or exports it |
+| `rework`     | Starts a better version of a page from a URL or images                                   |
+| `layout`     | Checks a draft's `layout.md` against the kit and writes its entry files                  |
+| `context`    | Gives an agent what it needs to write one section                                        |
+| `map`        | Lists a draft's sections, files and element ids for agents                               |
+| `build`      | Builds the latest version of a draft into a page                                         |
+| `check`      | Checks the latest version against the kit; `--deep` for the slower checks                |
+| `browser`    | Shows the browser the checks use; `browser install` downloads Chromium                   |
+| `doctor`     | Checks the setup and says what is wrong                                                  |
+| `studio`     | Starts the project's studio and prints its address; `studio status`, `studio stop`       |
+| `inbox`      | Waits for notes and requests from the studio and prints them                             |
+| `request`    | Reads or answers a request from the editor                                               |
+| `guidelines` | Shows the guideline book                                                                 |
 
-A page lives at several widths and in several states, and the editor sees both:
+## What leaves your machine
 
-- The Widths control in the dock shows one, two or all three preset widths side by side (390, 768, 1280). The card you last clicked in sets the width of an edit: at 390 it applies to all widths, at 768 or 1280 from that width up, written as a `@media (min-width: …)` block in the section's SCSS, or as an `md:` or `xl:` utility in a Tailwind draft. The kit may name its own breakpoints in `kit.json`.
-- The state bar (Default, Hover, Focus, Active) forces that state on the selected element in every card and sends your edits to it, written as `&:hover`, `&:focus-visible` or `&:active`, or as a `hover:` utility. A forced state is only a preview: it never reaches the build, and it ends with Edit or with the selection.
-- Each style row says where its value comes from (set here, from all widths, from 768 up, or the kit) and offers "Remove for this width" and "Apply to all widths".
-- After each edit's build the editor measures the changed elements in every card (text contrast, target size, content that overflows or is cut) and checks the code it wrote (values outside the kit, plain controls). A finding shows in the Checks tab, as a mark on the canvas and at the top of Properties. A colour or size option that would fail warns you before you pick it. The Properties panel also has an accessibility card: role, name, focus order, contrast and target size of the selected element.
-- Save version starts the full check in the background and shows its result when it ends. A finding you accept on purpose ("Accept…", with a reason) is kept in `waivers.json`, shown as accepted, left out of what must be fixed and out of `kitvas check`'s count, and carries to later versions while its element exists.
-- An element made by a `.map` over a literal array in the same file can be moved, duplicated, deleted and have its text edited; each step changes only that item's text.
-- An image file (PNG, JPEG, WebP, AVIF or GIF, up to 5 MB; never SVG) can be uploaded from the background image picker, dropped on an element in the prototype, or dropped on the Insert tab. It goes into the version's `src/img/`; dropped on an `img` it sets `src`, dropped on any other element it sets the background image, with undo.
+- The studio binds to 127.0.0.1 and needs no account. Pages need a cookie that only a one-time link gives. Prototypes run in a sandboxed frame on a second port.
+- kitvas itself calls the network in three cases: the npm install of its own packages, the Chromium download when you ask for it, and a page you ask it to read. A local or private address is refused unless you pass `--allow-private`.
+- The `kitvas:scout` agent searches the public web through Claude Code's own tools. Its queries carry only the public terms of a question, never your name, paths, code or draft text (`reference/scout.md`).
+- Figma is read only through your own Figma MCP. kitvas holds no key.
+- kitvas sends your drafts to nobody. Claude Code itself sends what it reads to the model, as in any session. That is not a kitvas feature, and it applies to the files of a draft Claude reads.
 
-Some things are refused with "Ask Claude": an element inside a list that is not a literal array in the same file (a prop, an import or a computed one) or inside a condition (`&&`), a copy that uses variables of its old place when it goes to another section, a style that a kit prop covers at another width or state, and the sections of a craft draft's sketches.
+See [SECURITY.md](SECURITY.md) and [docs/security.md](docs/security.md) for the model and the controls.
 
-The first edit starts a new version, and later edits go into it. "Save version" ends the session; the next edit starts another version. Claude can edit the same files while you work: you see its changes live, and when you both changed the same place you choose between yours and theirs.
+## When something does not work
 
-The editor also works with Claude, with notes, with locks and with time:
+Run `kitvas doctor`. It checks Node, packages, the plugin, the workspace, the kit, the browser, the data and drafts folders, the ports and the studio's recent errors, and says what to do for each check that is not ok. It changes nothing that lasts.
 
-- **Ask Claude to change things.** The AI tab takes a sentence about the selected elements, or "Improve", and Claude answers one to three variants. Each previews on hover with its checks (contrast, target size, overflow, changed text); a click applies it as one undo step. **This needs a Claude Code session that is listening:** run `/kitvas:edit <draft>` in Claude Code and leave it running. Without one, requests wait on disk and are answered when a session starts. Your text is data for Claude, never an instruction to its tools.
-- **Notes** (right click, "Note…") pin to an element, for you or for Claude, and follow it to later versions.
-- **Locks** hold against Claude too: the editor refuses to change a locked element, Claude is told never to, and if a file changes one anyway kitvas shows it (also in `kitvas check`) and offers Restore. Lock and hide survive a reload. Nothing is reverted behind your back.
-- **The timeline** under the canvas shows any version read only, marks where the selected element changed, and brings one element back as a diff. An identifier the current file lacks refuses it with the name; a kit import it needs is added.
-- **Suggestions.** A plain `<button>`, input, heading or card-like `div` that a kit component covers shows "This looks like <Component> from the kit" with Replace.
-- **Why.** The Why tab lists, per section, the reasons Claude wrote when it made it, and says when the section changed since. An older section offers "Ask Claude for the reasons".
+`kitvas doctor --report` prints text to paste into an issue. It writes your home folder as `~` and the project folder as `<project>`, and leaves out names and addresses.
 
-What works offline: the studio, every edit above, the builds, the checks and the versions. No account, network or model is involved. What needs Claude: the AI tab and the reasons (a listening Claude Code session, as above), and asking for a change kitvas cannot write itself, such as a value computed in code, a prop passed through a spread or a style set by a utility class. kitvas refuses those and shows why. "Ask Claude" then sends the element, the change you wanted and the reason to Claude through the studio's notes. Drafts that use Tailwind can edit props, text and styles; a style is written as a utility class of the element's own `className` string. Text that spans several lines in the code is read-only too, and a rebuild while you type in the prototype reloads it, so finish the text first.
+Open an issue at https://github.com/pglejzer/kitvas/issues. Report a vulnerability through [SECURITY.md](SECURITY.md), not as a public issue.
 
-## What kitvas will not do
+## Limits
 
-- Write into your application's code. Everything goes to `.kitvas/`, or to a folder you name when you export.
-- Open a local or private address you give it, unless you allow it with `--allow-private`.
-- Copy an example. A page, screenshot or logo you show gives the idea and the style, never a traced copy.
-
-## Requirements
-
-Node 24.22.3 or later in the 24 line, or 26.13.1 or later.
-
-## What it installs
-
-On the first session after an install or update, kitvas runs `npm ci --ignore-scripts` for its own dependencies in the plugin's data folder. This needs access to the npm registry.
+- kitvas is early (0.1.0).
+- Prototypes are React only.
+- kitvas will not write into your application's code. Everything goes to `.kitvas/`, or to a folder you name when you export.
+- kitvas will not open a local or private address you give it, unless you allow it with `--allow-private`.
+- kitvas will not copy an example. A page, screenshot or logo you show gives the idea and the style, never a traced copy.
+- The editor refuses a change it cannot write safely, such as a text from a prop or a call, and hands it to Claude with the reason. See [docs/editor.md](docs/editor.md).
 
 ## Develop
 
@@ -113,7 +199,7 @@ npm ci --ignore-scripts
 npm run check
 ```
 
-See `AGENTS.md` for the rules and `docs/adr/` for the decisions.
+`AGENTS.md` has the rules. `docs/adr/README.md` indexes the decisions. `CHANGELOG.md` lists the changes. `evals/README.md` explains the skill evals.
 
 ## License
 
