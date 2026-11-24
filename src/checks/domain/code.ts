@@ -1,4 +1,5 @@
-// The ds check of a draft's code: imports come from the kit, controls are the kit's components.
+// The ds check of a draft's code: imports come from the kit, controls are the kit's components,
+// and a section never imports a style file (the entry `index.scss` includes it already).
 
 import type { RawFinding } from './finding.ts';
 import type { IdEntry } from './ids.ts';
@@ -27,6 +28,9 @@ const CONTROLS: Record<string, string> = {
 
 const allowed = (source: string): boolean =>
   source === '@kit' || source === 'react' || source.startsWith('./') || source.startsWith('../');
+
+/** A draft's own style file: the entry `index.scss` includes every one with `@use`. */
+const STYLE_FILE = /\.(?:s[ac]ss|css)(?:\?.*)?$/i;
 
 function placeOf(text: string, index: number): { line: number; column: number } {
   const before = text.slice(0, index);
@@ -71,6 +75,19 @@ export function importFindings({ file, text, components }: ImportInput): RawFind
           'fix',
           { key: 'checkRule.foreignImport', params: { source } },
           'checkHint.foreignImport',
+        ),
+      );
+      continue;
+    }
+    if (STYLE_FILE.test(source)) {
+      findings.push(
+        dsFinding(
+          file,
+          placeOf(text, start + match[0].indexOf('import')),
+          'ds/style-import',
+          'fix',
+          { key: 'checkRule.styleImport', params: { source } },
+          'checkHint.styleImport',
         ),
       );
       continue;
