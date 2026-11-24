@@ -1,12 +1,40 @@
 // The layers tree with readable names and search (plan 13, task F). Built with
 // `createElement` and `textContent` only: names come from the page being edited.
 
+import type { EditOp } from '../../../src/edit/index.ts';
 import type { TreeNode } from '../../channel/edit-protocol.ts';
 import type { EditorContext } from './context.ts';
 import { filterTree, nextSelection } from './selection.ts';
 import { text } from './texts.ts';
+import { isNoop, type Row, sectionDrop, treeDrop, type Zone, zoneOf } from './tree-drag.ts';
 
 export type LayerItem = { node: TreeNode; children: LayerItem[] };
+
+/** The pointer must move this far (page pixels) before a press on a row becomes a drag. */
+const DRAG_THRESHOLD = 4;
+
+/**
+ * The ops of dropping `ids` (in document order) at one place: each element goes to the same place,
+ * or after the one moved before it, so the group keeps its order. Ids name elements as they are now.
+ */
+export function moveOps(
+  ids: readonly string[],
+  drop: { anchor: string; place: 'before' | 'after' | 'last' },
+  hashes: ReadonlyMap<string, string>,
+): EditOp[] {
+  return ids.map((id, index) => {
+    const hash = hashes.get(id);
+    const previous = ids[index - 1];
+    const anchor = drop.place === 'after' && previous !== undefined ? previous : drop.anchor;
+    return {
+      op: 'moveElement',
+      id,
+      anchor,
+      place: anchor === drop.anchor ? drop.place : 'after',
+      ...(hash === undefined ? {} : { hash }),
+    };
+  });
+}
 
 /** The "× n" badge shows for an item of a mapped list only; the count, or `null`. */
 export function badgeCount(node: TreeNode): number | null {
@@ -27,12 +55,20 @@ export function nestTree(nodes: TreeNode[]): LayerItem[] {
   return roots;
 }
 
+type Section = { id: string; purpose: string };
+type Press = { id: string; section: string | null; x: number; y: number; active: boolean };
+type Target = { el: HTMLElement; zone: Zone; fraction: number };
+
 export function mountLayers(ctx: EditorContext): void {
-  const { store, bridge, panel } = ctx;
+  const { store, bridge, panel, history } = ctx;
   const section = panel.querySelector('section[data-edit="layers"]');
   if (!(section instanceof HTMLElement)) return;
 
   let query = '';
+  let press: Press | null = null;
+  let target: Target | null = null;
+  // A drag ends with a click on the row it started on; that click must not select.
+  let swallowClick = false;
 
   const heading = document.createElement('h2');
   heading.textContent = text('layers.title');
@@ -47,19 +83,64 @@ export function mountLayers(ctx: EditorContext): void {
   list.setAttribute('aria-label', text('layers.title'));
   section.append(heading, search, list);
 
-  function row(item: LayerItem, level: number, selected: Set<string>): HTMLLIElement {
+  /** Section rows: the elements of `index.tsx` that render a layout section. */
+  function sectionsByElement(): Map<string, Section> {
+    const found = new Map<string, Section>();
+    for (const entry of store.get().structure?.sections ?? []) {
+      if (entry.element !== null) found.set(entry.element, entry);
+    }
+    return found;
+  }
+
+  const rowsOf = (): Map<string, Row> =>
+    new Map((store.get().structure?.elements ?? []).map((entry) => [entry.id, entry]));
+
+  function eye(id: string, hidden: boolean): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'layers-eye';
+    button.dataset.eye = id;
+    button.setAttribute('aria-pressed', String(hidden));
+    const label = text(hidden ? 'layers.show' : 'layers.hide');
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.textContent = hidden ? '○' : '●';
+    button.addEventListener('click', () => {
+      const current = store.get().hidden;
+      const next = current.includes(id) ? current.filter((one) => one !== id) : [...current, id];
+      store.set({ hidden: next });
+      bridge.send({ type: 'hide', ids: next });
+    });
+    return button;
+  }
+
+  function row(
+    item: LayerItem,
+    level: number,
+    selected: Set<string>,
+    sections: Map<string, Section>,
+    hidden: Set<string>,
+  ): HTMLLIElement {
     const { node } = item;
+    const asSection = level === 1 ? sections.get(node.id) : undefined;
     const li = document.createElement('li');
     li.setAttribute('role', 'treeitem');
     li.setAttribute('aria-level', String(level));
     li.setAttribute('aria-selected', String(selected.has(node.id)));
+    if (hidden.has(node.id)) li.dataset.hidden = '';
+    const line = document.createElement('div');
+    line.className = 'layers-line';
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'layers-row';
+    button.className = asSection ? 'layers-row layers-section' : 'layers-row';
     button.dataset.layer = node.id;
+    if (asSection) {
+      button.dataset.section = asSection.id;
+      button.title = asSection.purpose;
+    }
     const name = document.createElement('span');
     name.className = 'layers-name';
-    name.textContent = node.name;
+    name.textContent = asSection ? asSection.id : node.name;
     button.append(name);
     const count = badgeCount(node);
     if (count !== null) {
@@ -69,17 +150,33 @@ export function mountLayers(ctx: EditorContext): void {
       button.append(badge);
     }
     button.addEventListener('click', (event) => {
+      if (swallowClick) return;
       const state = store.get();
       const selection = nextSelection(state.selection, { id: node.id, add: event.shiftKey });
       store.set({ selection });
     });
     button.addEventListener('mouseenter', () => bridge.send({ type: 'hover', id: node.id }));
     button.addEventListener('mouseleave', () => bridge.send({ type: 'hover', id: null }));
-    li.append(button);
+    button.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 || store.get().busy) return;
+      const at = { x: event.clientX, y: event.clientY };
+      press = { id: node.id, section: asSection ? asSection.id : null, ...at, active: false };
+    });
+    button.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      if (!store.get().selection.includes(node.id)) store.set({ selection: [node.id] });
+      // The menu (task D3) listens for this; the position is in page pixels.
+      const detail = { id: node.id, x: event.clientX, y: event.clientY };
+      button.dispatchEvent(new CustomEvent('edit-menu', { detail, bubbles: true }));
+    });
+    line.append(button, eye(node.id, hidden.has(node.id)));
+    li.append(line);
     if (item.children.length > 0) {
       const group = document.createElement('ul');
       group.setAttribute('role', 'group');
-      for (const child of item.children) group.append(row(child, level + 1, selected));
+      for (const child of item.children) {
+        group.append(row(child, level + 1, selected, sections, hidden));
+      }
       li.append(group);
     }
     return li;
@@ -89,6 +186,7 @@ export function mountLayers(ctx: EditorContext): void {
     const state = store.get();
     const nodes = filterTree(state.tree, query);
     const selected = new Set(state.selection);
+    const hidden = new Set(state.hidden);
     // Rebuilding the list must not drop the keyboard focus from the row the person used.
     const active = document.activeElement;
     const focused =
@@ -101,7 +199,8 @@ export function mountLayers(ctx: EditorContext): void {
       list.append(empty);
       return;
     }
-    for (const item of nestTree(nodes)) list.append(row(item, 1, selected));
+    const sections = sectionsByElement();
+    for (const item of nestTree(nodes)) list.append(row(item, 1, selected, sections, hidden));
     markHover(state.hovered);
     if (focused) {
       for (const button of list.querySelectorAll<HTMLElement>('.layers-row')) {
@@ -116,13 +215,121 @@ export function mountLayers(ctx: EditorContext): void {
     }
   }
 
+  /** The ids a press on `id` drags: the selection when it holds `id` and shares one parent. */
+  function draggedIds(id: string): string[] {
+    const state = store.get();
+    const rows = rowsOf();
+    const parent = rows.get(id)?.parent;
+    const together = state.selection.every((one) => rows.get(one)?.parent === parent);
+    const ids = state.selection.includes(id) && together ? state.selection : [id];
+    const order = (state.structure?.elements ?? []).map((entry) => entry.id);
+    return [...ids].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  }
+
+  /** The element drop a pointer over `id` in `zone` makes; `null` when the rules or a no-op say no. */
+  function elementDrop(from: Press, id: string, zone: Zone) {
+    const rows = rowsOf();
+    const dragged = draggedIds(from.id);
+    const drop = treeDrop(rows, dragged, id, zone);
+    if (!drop) return null;
+    const parent = rows.get(id)?.parent ?? null;
+    const siblings = (store.get().structure?.elements ?? [])
+      .filter((entry) => entry.parent === parent)
+      .map((entry) => entry.id);
+    return isNoop(siblings, dragged, drop) ? null : drop;
+  }
+
+  function sectionMove(from: Press, over: Target) {
+    const id = over.el.dataset.section;
+    if (from.section === null || id === undefined) return null;
+    const order = (store.get().structure?.sections ?? []).map((entry) => entry.id);
+    return sectionDrop(order, from.section, id, over.zone, over.fraction);
+  }
+
+  function allowed(from: Press, over: Target): boolean {
+    if (from.section !== null) return sectionMove(from, over) !== null;
+    return elementDrop(from, over.el.dataset.layer ?? '', over.zone) !== null;
+  }
+
+  function clearMarks(): void {
+    for (const el of list.querySelectorAll<HTMLElement>('[data-drop]')) delete el.dataset.drop;
+    list.classList.remove('layers-dragging');
+    target = null;
+  }
+
+  function aim(from: Press, event: PointerEvent): void {
+    for (const el of list.querySelectorAll<HTMLElement>('[data-drop]')) delete el.dataset.drop;
+    target = null;
+    const under = document.elementFromPoint(event.clientX, event.clientY);
+    const el = under instanceof Element ? under.closest<HTMLElement>('.layers-row') : null;
+    if (!el || !list.contains(el) || el.dataset.layer === undefined) return;
+    const box = el.getBoundingClientRect();
+    const fraction = box.height > 0 ? (event.clientY - box.top) / box.height : 0.5;
+    const accepts = rowsOf().get(el.dataset.layer)?.accepts ?? false;
+    const zone = zoneOf(fraction, from.section === null && accepts);
+    target = { el, zone, fraction };
+    el.dataset.drop = allowed(from, target) ? zone : 'no';
+  }
+
+  function finish(commit: boolean): void {
+    const from = press;
+    const over = target;
+    press = null;
+    clearMarks();
+    if (!from?.active) return;
+    swallowClick = true;
+    setTimeout(() => {
+      swallowClick = false;
+    }, 0);
+    if (!commit || !over) return;
+    if (from.section !== null) {
+      const move = sectionMove(from, over);
+      if (!move) return;
+      const ops: EditOp[] = [{ op: 'moveSection', section: move.section, after: move.after }];
+      void history.apply({ ops, label: text('layers.moveSection') });
+      return;
+    }
+    const drop = elementDrop(from, over.el.dataset.layer ?? '', over.zone);
+    if (!drop) return;
+    const hashes = new Map((store.get().structure?.elements ?? []).map((e) => [e.id, e.hash]));
+    const ops = moveOps(draggedIds(from.id), drop, hashes);
+    void history.apply({ ops, label: text('layers.move') });
+  }
+
+  document.addEventListener('pointermove', (event) => {
+    if (!press) return;
+    if (!press.active) {
+      const far = Math.hypot(event.clientX - press.x, event.clientY - press.y) > DRAG_THRESHOLD;
+      if (!far) return;
+      press.active = true;
+      list.classList.add('layers-dragging');
+    }
+    aim(press, event);
+  });
+  // A row press that moves would also select the panel's text on its way; no text is selected
+  // while a press is held.
+  document.addEventListener('selectstart', (event) => {
+    if (press) event.preventDefault();
+  });
+  document.addEventListener('pointerup', () => finish(true));
+  document.addEventListener('pointercancel', () => finish(false));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && press) finish(false);
+  });
+
   search.addEventListener('input', () => {
     query = search.value;
     render();
   });
 
   store.subscribe((state, previous) => {
-    if (state.tree !== previous.tree || state.selection !== previous.selection) render();
+    const changed =
+      state.tree !== previous.tree ||
+      state.selection !== previous.selection ||
+      state.structure !== previous.structure ||
+      state.hidden !== previous.hidden;
+    // A rebuild in the middle of a drag would drop the rows the pointer is over.
+    if (changed && !press?.active) render();
     else if (state.hovered !== previous.hovered) markHover(state.hovered);
   });
   render();

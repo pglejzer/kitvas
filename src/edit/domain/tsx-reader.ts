@@ -226,7 +226,7 @@ function closingEnd(text: string, at: number, name: string): number {
 }
 
 /** Whitespace and comments between the parts of a tag. */
-function skipTagSpace(text: string, from: number): number {
+export function skipTagSpace(text: string, from: number): number {
   let i = from;
   while (i < text.length) {
     if (isSpace(text.charAt(i))) {
@@ -394,4 +394,88 @@ export function openingTags(text: string): number[] {
   const scan = newScan(text);
   skipJs(scan, 0, true);
   return scan.tags;
+}
+
+// For the structural reader (`subtree.ts`, spec 4b). Nothing above reads differently for it.
+
+/** The end of the element or fragment whose `<` is at `at`; `-1` when none reads there. */
+export function elementEnd(text: string, at: number): number {
+  const starts = text.charAt(at) === '<' && JSX_START.test(text.charAt(at + 1));
+  return starts ? skipElement(newScan(text), at) : -1;
+}
+
+/** The end of the `{…}` whose `{` is at `at`; `-1` when it is none or never closes. */
+export function expressionEnd(text: string, at: number): number {
+  return text.charAt(at) === '{' ? skipJs(newScan(text), at + 1, false) : -1;
+}
+
+/** `jsx`: a whole element or fragment. `literal`: a string, a template's text or a regex. */
+export type JsToken = { kind: 'word' | 'punct' | 'literal' | 'jsx'; start: number; end: number };
+
+/**
+ * The tokens of the JavaScript `skipJs` walks from `from`, in the same steps and with the same
+ * rule for where JSX starts, so the two never disagree. A template's `${` and `}` are `punct`.
+ */
+export function jsTokens(text: string, from: number, toEnd: boolean): JsToken[] {
+  const tokens: JsToken[] = [];
+  tokenize(text, from, toEnd, tokens);
+  return tokens;
+}
+
+function tokenize(text: string, from: number, toEnd: boolean, out: JsToken[]): number {
+  const add = (kind: JsToken['kind'], start: number, end: number): number => {
+    out.push({ kind, start, end });
+    return end;
+  };
+  let depth = 0;
+  let value = false;
+  let i = from;
+  while (i < text.length) {
+    const char = text.charAt(i);
+    const next = text.charAt(i + 1);
+    if (isSpace(char) || (char === '/' && (next === '/' || next === '*'))) {
+      i = skipTagSpace(text, i);
+    } else if (char === '"' || char === "'") {
+      i = add('literal', i, skipString(text, i));
+      value = true;
+    } else if (char === '`') {
+      i = tokenizeTemplate(text, i, out);
+      if (i < 0) return toEnd ? text.length : -1;
+      value = true;
+    } else if (char === '}' && depth === 0 && !toEnd) {
+      return i + 1;
+    } else {
+      // A regular expression or JSX only where a value may start, as in `skipJs`.
+      const opens: boolean = !value && (char === '/' || char === '<');
+      const end: number = opens ? (char === '/' ? skipRegex(text, i) : elementEnd(text, i)) : -1;
+      const word = end < 0 ? matchAt(WORD, text, i) : null;
+      if (end >= 0) i = add(char === '<' ? 'jsx' : 'literal', i, end);
+      else i = add(word === null ? 'punct' : 'word', i, i + (word?.length ?? 1));
+      if (char === '{') depth += 1;
+      if (char === '}') depth = Math.max(0, depth - 1);
+      value = end >= 0 || (word === null ? char === ')' || char === ']' : !BEFORE_VALUE.has(word));
+    }
+  }
+  return toEnd ? text.length : -1;
+}
+
+function tokenizeTemplate(text: string, at: number, out: JsToken[]): number {
+  let chunk = at;
+  let i = at + 1;
+  while (i < text.length) {
+    const char = text.charAt(i);
+    if (char === '\\') i += 2;
+    else if (char === '`') {
+      out.push({ kind: 'literal', start: chunk, end: i + 1 });
+      return i + 1;
+    } else if (char === '$' && text.charAt(i + 1) === '{') {
+      out.push({ kind: 'literal', start: chunk, end: i + 1 });
+      out.push({ kind: 'punct', start: i + 1, end: i + 2 });
+      i = tokenize(text, i + 2, false, out);
+      if (i < 0) return -1;
+      out.push({ kind: 'punct', start: i - 1, end: i });
+      chunk = i;
+    } else i += 1;
+  }
+  return -1;
 }

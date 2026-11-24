@@ -34,6 +34,7 @@ import {
   VersionParams,
   VersionSchema,
 } from './schemas.ts';
+import { structureRoutes } from './structure-routes.ts';
 
 export type ApiDeps = {
   drafts: DraftStore;
@@ -166,6 +167,7 @@ export function apiRoutes(deps: ApiDeps): ApiRoute[] {
     ...inboxRoutes(deps),
     ...linkRoutes(deps),
     ...editRoutes(deps),
+    ...structureRoutes(deps),
   ];
   routes.push(
     apiRoute({

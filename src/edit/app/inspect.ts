@@ -7,8 +7,9 @@ import type { KitComponent, KitStore, LoadedKit } from '../../kit/index.ts';
 import { KitvasError } from '../../shared/index.ts';
 import { readRule } from '../domain/apply-scss.ts';
 import { readTag } from '../domain/apply-tsx.ts';
-import { CLASS_NAME, fileOfId, type PropValue } from '../domain/ops.ts';
+import { CLASS_NAME, fileOfId, hashOf, type PropValue } from '../domain/ops.ts';
 import { type SourceInput, styleSource, tokenGroupsOf } from '../domain/source.ts';
+import { elementSpan } from '../domain/subtree.ts';
 import {
   type PropView,
   type Refusal,
@@ -22,6 +23,7 @@ import type { EditCompiler } from '../ports/compiler.ts';
 import { editKit, styleFormat, tokenOptions } from './edit-state.ts';
 import { locateElement } from './locate.ts';
 import { sectionScss } from './section-files.ts';
+import { movableAt } from './structure.ts';
 
 export type InspectDeps = {
   drafts: DraftStore;
@@ -64,6 +66,10 @@ export type InspectView = {
     nested: string[];
   } | null;
   styles: Record<StyleProperty, StyleSource>;
+  /** `hashOf` the element's whole source (spec 4b, decision 5). */
+  hash: string;
+  /** Why it cannot be moved or deleted as an element; `null` when it can. */
+  movable: Refusal | null;
 };
 
 /** `Card.Header` is the part `Header` of `Card`: the catalog entry is `Card`. */
@@ -214,6 +220,8 @@ export async function inspectElement(
   const styles = Object.fromEntries(
     STYLE_PROPERTIES.map((property) => [property, styleSource({ ...input, property })]),
   ) as Record<StyleProperty, StyleSource>;
+  // The whole subtree, as a structural op names it (spec 4b, decision 5).
+  const span = elementSpan(text, at);
 
   return {
     id,
@@ -250,5 +258,9 @@ export async function inspectElement(
             nested: rule?.nested ?? [],
           },
     styles,
+    // An element whose end the reader cannot find is not offered for a move: its hash would match
+    // nothing a structural op could check.
+    hash: hashOf(span === null ? '' : text.slice(span.start, span.end)),
+    movable: span === null ? 'not-found' : movableAt(text, at),
   };
 }

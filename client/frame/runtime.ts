@@ -9,6 +9,7 @@ import { createMarks } from './marks.ts';
 import { measureElements, settle } from './measure.ts';
 import { createMotion } from './motion.ts';
 import { createPreview } from './preview.ts';
+import { createStructure } from './structure.ts';
 
 export type FrameInput = {
   states: string[];
@@ -41,6 +42,7 @@ export function startFrame({ states, initial, render }: FrameInput): void {
   const motion = createMotion();
   // Edit mode stays off, with no listener on the page, until the studio turns it on.
   const edit = createEdit({ channel, post, preview: createPreview() });
+  const structure = createStructure({ channel, post });
   let current = initial;
   let heard = false;
 
@@ -71,7 +73,10 @@ export function startFrame({ states, initial, render }: FrameInput): void {
     else if (message.type === 'state') show(message.state);
     else if (message.type === 'marks') marks.draw(message.marks);
     // Every other message the parser lets through is one of the editor's.
-    else edit.handle(message);
+    else {
+      edit.handle(message);
+      structure.handle(message);
+    }
   });
 
   const announce = (): void => {

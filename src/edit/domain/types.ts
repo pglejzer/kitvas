@@ -7,6 +7,12 @@ import type { PropValue, StyleValue } from './ops.ts';
 export type Span = { start: number; end: number };
 
 /**
+ * Where an offset of a text before a change is in the text after it; `null` for a place the change
+ * removed (spec 4b, decision 7: the rename map is made from it).
+ */
+export type OffsetMap = (old: number) => number | null;
+
+/**
  * Why kitvas will not write an edit itself. The panel shows the reason and offers "Ask Claude".
  * - `computed`: the value is an expression (`variant={tone}`, `{plan.name}`, a `className` built in code).
  * - `spread`: the tag has `{...props}`, which may set the same prop.
@@ -30,6 +36,35 @@ export const REFUSALS = [
   'utility',
   'nested',
   'invalid',
+  // Structure (spec 4b, decision 6).
+  /** Inside a `{…}` child expression: a `.map`, a condition, a ternary. */
+  'in-expression',
+  /** The element a section's function returns: moved and deleted as a section. */
+  'section-root',
+  /** The JSX of a prop (`title={<Heading />}`): replaced, never moved out or deleted. */
+  'slot-root',
+  /** Names a variable or a non-kit component that does not exist where it would go. */
+  'scope',
+  /** A class it carries has another rule of the same name in the target section. */
+  'class-clash',
+  /** The anchor takes no children (no `children: node` in the catalog, or a void element). */
+  'not-accepted',
+  /** The parent mixes text and elements: a move there changes the spaces between words. */
+  'mixed',
+  /** An interactive element inside another (a button in a button, a link in a link). */
+  'nested-interactive',
+  /** Wrap: `first` and `last` are not siblings of one parent in that order. */
+  'not-siblings',
+  /** Unwrap: the first or the last child is not an element. */
+  'no-element-children',
+  /** A tag that is neither a kit component nor a lowercase HTML element. */
+  'unknown-component',
+  /** A section of a draft that uses another kit. */
+  'kit-mismatch',
+  /** Reset: the element did not exist when the session started. */
+  'not-in-session',
+  /** A move into the element itself or into one of its descendants. */
+  'into-self',
 ] as const;
 export type Refusal = (typeof REFUSALS)[number];
 

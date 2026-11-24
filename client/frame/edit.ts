@@ -9,12 +9,12 @@
 
 import {
   type EditFrameMessage,
-  type EditKey,
   type EditStudioMessage,
   MAX_INLINE_TEXT,
   type PreviewChange,
   parseEditFrame,
 } from '../channel/edit-protocol.ts';
+import { type KeyLike, keyOf } from './keys.ts';
 import { placeRing, type Rect } from './place.ts';
 import { cut } from './snapshot.ts';
 import { elementsWith, inspectStyles, readTree } from './tree.ts';
@@ -51,29 +51,8 @@ const HOST_RULES = [
 /** Inline and important, so no rule of the prototype moves or hides the overlay itself. */
 const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
 
-export type KeyLike = {
-  key: string;
-  ctrlKey: boolean;
-  metaKey: boolean;
-  shiftKey: boolean;
-  altKey: boolean;
-};
-
-/** The editor key a key press stands for; `undefined` for a key the page keeps. */
-export function keyOf(event: KeyLike): EditKey | undefined {
-  if (event.altKey) return undefined;
-  const letter = event.key.toLowerCase();
-  if (event.ctrlKey || event.metaKey) {
-    if (letter === 'z') return event.shiftKey ? 'redo' : 'undo';
-    if (letter === 'y' && event.ctrlKey && !event.metaKey && !event.shiftKey) return 'redo';
-    return undefined;
-  }
-  if (event.shiftKey) return undefined;
-  if (event.key === 'Escape') return 'clear';
-  if (event.key === 'ArrowUp') return 'parent';
-  if (event.key === 'ArrowDown') return 'child';
-  return undefined;
-}
+// Kept importable from here for the code and tests that already do.
+export { type KeyLike, keyOf };
 
 /** As much of an element as picking needs. */
 export type TargetLike = {

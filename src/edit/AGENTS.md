@@ -10,3 +10,8 @@ The editor's write-back (stage 4a): operations from the studio's panels applied 
 - A request writes all its files or none: new texts are made and checked in memory first, then written (`DraftStore.replaceAll`).
 - Styles are written as `var(--kit-…)`; a raw value gets the off-kit marker after its semicolon. Never an inline `style` in TSX, never an id attribute in TSX.
 - Writes stay inside the draft's own version folder.
+- Structural edits (stage 4b, ADRs 0051 and 0052): `domain/subtree.ts` reads spans and children, `domain/apply-structure.ts` and `domain/apply-wrap.ts` splice them, `domain/format.ts` keeps indent and line endings. Remove then insert at one place restores the file byte for byte.
+- In a request, ids name elements as they were before it. `app/structural.ts` (with the request's texts in `app/request-state.ts`) carries each op's effect forward and answers with `renames`, `created` and the server-made `inverse` (`patch` hunks and `file` ops, `domain/patch.ts`). Undo uses that inverse, never a snapshot.
+- After a structural change `domain/kit-imports.ts` makes the `@kit` import match the components used, and touches no other import.
+- An element in a `{…}` expression, a section root and a slot root never move or get deleted; a subtree that names local variables moves only within its function body. Refuse with the reasons in `domain/types.ts`, never guess.
+- Never write `position`, an offset, a transform or an id attribute into a draft.

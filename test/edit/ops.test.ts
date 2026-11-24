@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  type EditOp,
   EditOpSchema,
   fileOfId,
   inverse,
   inverseAll,
+  type SimpleOp,
   styleText,
   targetOf,
 } from '../../src/edit/index.ts';
 
 const id = 'sections/Pricing:section/Stack/Card.2';
 
-const ops: EditOp[] = [
+const ops: SimpleOp[] = [
   {
     op: 'setProp',
     id,
@@ -67,7 +67,7 @@ const ops: EditOp[] = [
   { op: 'removeClass', id, className: 'pricing-card' },
 ];
 
-const at = (index: number): EditOp => {
+const at = (index: number): SimpleOp => {
   const op = ops[index];
   if (!op) throw new Error(`no op ${index}`);
   return op;

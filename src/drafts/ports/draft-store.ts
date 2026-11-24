@@ -21,7 +21,8 @@ export interface DraftStore {
    * file, then each is moved over its file. When a move fails, the files already moved get their old
    * text back (a file that did not exist is removed), the temporary files are removed, and the
    * failure is thrown. A path outside the draft, or a path given twice, throws DRAFT_INVALID before
-   * anything is written.
+   * anything is written. `text: null` removes the file, and a rollback writes it back (spec 4b,
+   * section ops).
    */
-  replaceAll(slug: string, files: { relPath: string; text: string }[]): void;
+  replaceAll(slug: string, files: { relPath: string; text: string | null }[]): void;
 }

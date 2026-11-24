@@ -8,14 +8,25 @@ import {
   type EditCompiler,
   type EditInput,
   type EditOp,
+  type EditResult,
   inverseAll,
   type Refusal,
+  type SimpleOp,
 } from '../../src/edit/index.ts';
 import { KitvasError, PLUGIN_ROOT } from '../../src/shared/index.ts';
 import { etagOf } from '../../src/studio/http/etag.ts';
 import { readVersionFiles, shopDraft, writeVersionFiles } from '../helpers/drafts.ts';
+import { builtinKits } from '../helpers/kits.ts';
 
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
+
+/** An answer without the fields spec 4b added, so the 4a cases compare what they are about. */
+function core(result: EditResult): Record<string, unknown> {
+  if (result.outcome !== 'applied') return result;
+  const { inverse, renames, created, dropped, ...rest } = result;
+  void [inverse, renames, created, dropped];
+  return rest;
+}
 after(() => compiler.dispose());
 
 const LATER = new Date('2026-11-23T09:00:00.000Z');
@@ -50,7 +61,7 @@ const LIST_TSX = [
 
 const LATER_BUTTON = 'sections/Hero:section/Button.2';
 
-const variant = (from: string, to: string): EditOp => ({
+const variant = (from: string, to: string): SimpleOp => ({
   op: 'setProp',
   id: LATER_BUTTON,
   name: 'variant',
@@ -83,6 +94,7 @@ function setup(over: Partial<ApplyEditsDeps> = {}) {
   const written: Written[] = [];
   const deps: ApplyEditsDeps = {
     drafts: store,
+    kits: builtinKits(),
     compiler,
     now: () => LATER,
     etag: etagOf,
@@ -126,7 +138,17 @@ test('the first edit starts the next version, writes into it and opens the sessi
   const result = await applyEdits(deps, request(store, 1, [variant('plain', 'primary')]));
   const text = HERO_TSX.replace('variant="plain"', 'variant="primary"');
   const etags = { [HERO]: etagOf(text) };
-  assert.deepEqual(result, { outcome: 'applied', version: 2, started: true, etags, merged: false });
+  assert.deepEqual(core(result), {
+    outcome: 'applied',
+    version: 2,
+    started: true,
+    etags,
+    merged: false,
+  });
+  // A request of 4a ops answers their exact inverse, and renames and creates nothing (spec 4b).
+  assert.ok(result.outcome === 'applied');
+  assert.deepEqual(result.inverse, inverseAll([variant('plain', 'primary')]));
+  assert.deepEqual([result.renames, result.created, result.dropped], [{}, [], []]);
   assert.equal(store.readText('shop', `v2/${HERO}`), text);
   assert.equal(store.readText('shop', `v2/${SCSS}`), HERO_SCSS);
   assert.equal(store.readText('shop', `v1/${HERO}`), HERO_TSX);
@@ -142,7 +164,7 @@ test('a later edit of the session goes into the same version', async () => {
     '<h1>Shop</h1>',
     '<h1>Store</h1>',
   );
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'applied',
     version: 2,
     started: false,
@@ -155,7 +177,7 @@ test('a later edit of the session goes into the same version', async () => {
 
 test('a TSX and an SCSS change land together, and their inverse undoes both', async () => {
   const { store, deps } = setup();
-  const ops: EditOp[] = [
+  const ops: SimpleOp[] = [
     { op: 'addClass', id: 'sections/Hero:section/h1', className: 'title' },
     {
       op: 'setStyle',
@@ -201,7 +223,7 @@ test('a refused op writes nothing, not even the ops before it', async () => {
   const before = snapshot(store);
   const noText: EditOp = { op: 'setText', id: 'sections/Hero:section/p', value: 'x', before: 'y' };
   const result = await applyEdits(deps, request(store, 1, [variant('plain', 'primary'), noText]));
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'refused',
     version: 1,
     refusals: [{ index: 1, reason: 'no-text' }],
@@ -216,7 +238,7 @@ test('a TSX change with an SCSS change that would not balance writes neither fil
   // A raw value with an open quote leaves a string open to the end of its line.
   const ops = [variant('plain', 'primary'), colour('"x')];
   const result = await applyEdits(deps, request(store, 1, ops));
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'refused',
     version: 1,
     refusals: [{ index: 1, reason: 'invalid' }],
@@ -241,7 +263,7 @@ test('a change to a second TSX file that would not compile writes neither file',
   };
   const ops = [variant('plain', 'primary'), item];
   const result = await applyEdits(deps, request(store, 1, ops));
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'refused',
     version: 1,
     refusals: [{ index: 1, reason: 'invalid' }],
@@ -260,7 +282,7 @@ test('a change by Claude elsewhere in the file is kept, and the edit is merged',
   const ops = [variant('plain', 'primary')];
   const result = await applyEdits(deps, request(store, 1, ops, { etags }));
   const text = claude.replace('variant="plain"', 'variant="primary"');
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'applied',
     version: 2,
     started: true,
@@ -278,7 +300,7 @@ test('a prop Claude changed too is a conflict with the current text', async () =
   const before = snapshot(store);
   const ops = [heading('Shop', 'Store'), variant('plain', 'primary')];
   const result = await applyEdits(deps, request(store, 1, ops, { etags }));
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'conflict',
     version: 1,
     index: 1,
@@ -298,7 +320,7 @@ test('an element Claude deleted is a conflict: gone', async () => {
   const before = snapshot(store);
   const ops = [variant('plain', 'primary')];
   const result = await applyEdits(deps, request(store, 1, ops, { etags }));
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'conflict',
     version: 1,
     index: 0,
@@ -317,7 +339,7 @@ test('keep mine writes over a value someone else changed', async () => {
   const ops = [variant('plain', 'primary')];
   const result = await applyEdits(deps, request(store, 1, ops, { force: true }));
   const text = claude.replace('variant="ghost"', 'variant="primary"');
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'applied',
     version: 2,
     started: true,
@@ -375,7 +397,11 @@ test('every refusal leaves draft.json and every file byte for byte', async () =>
   ];
   for (const { op, force, reason } of cases) {
     const result = await applyEdits(deps, request(store, 1, [op], { force: force === true }));
-    assert.deepEqual(result, { outcome: 'refused', version: 1, refusals: [{ index: 0, reason }] });
+    assert.deepEqual(core(result), {
+      outcome: 'refused',
+      version: 1,
+      refusals: [{ index: 0, reason }],
+    });
     assert.deepEqual(snapshot(store), before, reason);
   }
   assert.deepEqual(written, []);
@@ -384,7 +410,7 @@ test('every refusal leaves draft.json and every file byte for byte', async () =>
 test('an edit that leaves the text as it was starts no version', async () => {
   const { store, deps, written } = setup();
   const result = await applyEdits(deps, request(store, 1, [variant('plain', 'plain')]));
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'applied',
     version: 1,
     started: false,
@@ -425,7 +451,7 @@ test('a file written while the edit is placed is read again, so that change is k
   const ops = [variant('plain', 'primary')];
   const result = await applyEdits({ ...deps, compiler: racing }, request(store, 1, ops));
   const text = claude.replace('variant="plain"', 'variant="primary"');
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'applied',
     version: 2,
     started: true,
@@ -449,7 +475,7 @@ test('a file that keeps changing while the edit is placed is a conflict', async 
   const ops = [variant('plain', 'primary')];
   const result = await applyEdits({ ...deps, compiler: busy }, request(store, 1, ops));
   const current = store.readText('shop', `v1/${HERO}`) ?? '';
-  assert.deepEqual(result, {
+  assert.deepEqual(core(result), {
     outcome: 'conflict',
     version: 1,
     index: 0,

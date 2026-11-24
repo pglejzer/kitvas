@@ -34,9 +34,8 @@ export function previewOf(op: EditOp): PreviewChange | null {
       return { id: op.id, kind: 'class', className: op.className, on: true };
     case 'removeClass':
       return { id: op.id, kind: 'class', className: op.className, on: false };
-    case 'removeStyle':
-    case 'setProp':
-    case 'removeProp':
+    default:
+      // Props and removed styles need the build; structure moves in the frame by itself (task C2).
       return null;
   }
 }

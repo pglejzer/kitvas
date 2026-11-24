@@ -71,7 +71,8 @@ test('every key the mapping gives is one the protocol carries', () => {
     press('y', { ctrlKey: true }),
   ];
   const keys = presses.map(keyOf);
-  assert.deepEqual([...new Set(keys)].sort(), [...EDIT_KEYS].sort());
+  // Plan 14, task C4 maps the structure keys too and checks the whole list in keys.test.ts.
+  for (const key of keys) assert.ok(key !== undefined && EDIT_KEYS.includes(key), String(key));
   for (const key of keys) assert.ok(parseEditFrame({ type: 'key', key }, 'probe'));
 });
 

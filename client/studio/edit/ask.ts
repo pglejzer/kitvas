@@ -7,6 +7,7 @@ import type { EditOp, Refusal } from '../../../src/edit/index.ts';
 import type { Inspect } from '../../../src/studio/api/edit-schemas.ts';
 import type { EditorContext } from './context.ts';
 import type { Conflict, Gesture, Refused } from './store.ts';
+import { elementOf as opElement } from './store.ts';
 import { text } from './texts.ts';
 
 /** What Claude is asked to do: a gesture the editor could not write, and why. */
@@ -33,6 +34,20 @@ const REASONS: Record<AskSubject['reason'], string> = {
   invalid: 'the result would not compile',
   gone: 'the place was removed from the source by someone else',
   changed: 'the place was changed by someone else',
+  'in-expression': 'the element is written inside an expression (a list or a condition)',
+  'section-root': 'the element is the root of a section, which moves as a section',
+  'slot-root': "the element is a prop's value, which can only be replaced",
+  scope: 'the code names a variable or a component that does not exist where it would go',
+  'class-clash': 'a class of the element has another rule of the same name in the target section',
+  'not-accepted': 'the target takes no children',
+  mixed: 'the target mixes text and elements',
+  'nested-interactive': 'it would put an interactive element inside another',
+  'not-siblings': 'the elements are not siblings of one parent',
+  'no-element-children': 'the element does not start and end with child elements',
+  'unknown-component': 'the code names a component the kit does not have',
+  'kit-mismatch': 'the section comes from a draft that uses another kit',
+  'not-in-session': 'the element did not exist when the session started',
+  'into-self': 'the element would go inside itself',
 };
 
 const tokenName = (token: string): string => token.replace(/^--kit-/, '').replace('-', '.');
@@ -62,22 +77,48 @@ export function opWords(op: EditOp): string {
       return `add the class "${op.className}"`;
     case 'removeClass':
       return `remove the class "${op.className}"`;
+    case 'moveElement':
+      return `move the element ${op.place} ${op.anchor}`;
+    case 'insertElement':
+      return `insert ${op.source.slice(0, 200)} ${op.place} ${op.anchor}`;
+    case 'removeElement':
+      return 'delete the element';
+    case 'wrapElements':
+      return `wrap the elements from ${op.first} to ${op.last} in ${op.open}`;
+    case 'unwrapElement':
+      return 'replace the element with its children';
+    case 'replaceTag':
+      return `replace the element with a ${op.tag}`;
+    case 'replaceElement':
+      return `replace the element with ${op.source.slice(0, 200)}`;
+    case 'resetElement':
+      return 'put the element back as it was when the session started';
+    case 'moveSection':
+      return `move the section "${op.section}" ${op.after ? `after "${op.after}"` : 'to the top'}`;
+    case 'insertSection':
+      return `copy the section "${op.from.section}" of the draft "${op.from.slug}"`;
+    case 'removeSection':
+      return `delete the section "${op.section}"`;
+    case 'patch':
+    case 'file':
+      return `undo an earlier change in ${op.file}`;
   }
 }
 
 /** The element a subject is about: the id of its op. */
 export function elementOf(subject: AskSubject): string | null {
   const op = subject.gesture.ops[subject.index] ?? subject.gesture.ops[0];
-  return op ? op.id : null;
+  return op ? opElement(op) : null;
 }
 
 /** The note's text: the element, the wanted change in words, and the reason. */
 export function askText(subject: AskSubject, inspected: Inspect | null): string {
   const ops = subject.gesture.ops;
   const first = ops[subject.index] ?? ops[0];
-  const where = first ? ` (element ${first.id})` : '';
-  const tag = inspected && inspected.id === first?.id ? ` The element is a ${inspected.tag}.` : '';
-  const file = inspected && inspected.id === first?.id ? ` Its file is ${inspected.file}.` : '';
+  const id = first ? opElement(first) : null;
+  const where = id ? ` (element ${id})` : '';
+  const tag = inspected && inspected.id === id ? ` The element is a ${inspected.tag}.` : '';
+  const file = inspected && inspected.id === id ? ` Its file is ${inspected.file}.` : '';
   const wanted = ops.map(opWords).join('; then ');
   const lines = [
     `Please make this change in the draft source${where}: ${wanted || 'a change'}.`,
