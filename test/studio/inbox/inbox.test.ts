@@ -69,6 +69,41 @@ test('a waiter that times out, leaves or is replaced gets nothing and loses noth
   assert.equal(inbox.pending(), 1);
 });
 
+test('a take says whether it ended for its caller, and a request wakes it', async () => {
+  const { inbox } = setup({ maxWaitMs: 50 });
+  assert.equal(inbox.waiting(), false);
+  const woken = inbox.wait(10_000);
+  assert.equal(inbox.waiting(), true);
+  inbox.wake();
+  assert.deepEqual(await woken.items, []);
+  assert.equal(woken.given(), true, 'a request came for it');
+  assert.equal(inbox.waiting(), false);
+  const timedOut = inbox.wait(10_000);
+  await timedOut.items;
+  assert.equal(timedOut.given(), true, 'the time was up');
+  const older = inbox.wait(10_000);
+  const newer = inbox.wait(10_000);
+  await older.items;
+  assert.equal(older.given(), false, 'a newer take replaced it');
+  newer.cancel();
+  await newer.items;
+  assert.equal(newer.given(), false, 'its caller left');
+  assert.equal(inbox.wait(0).given(), true);
+  inbox.wake();
+});
+
+test('stopping ends the waiter for nobody, then tells each listener once', async () => {
+  const { inbox } = setup();
+  const heard: string[] = [];
+  inbox.onClose(() => heard.push('closed'));
+  const last = inbox.wait(10_000);
+  inbox.close();
+  await last.items;
+  assert.equal(last.given(), false);
+  inbox.close();
+  assert.deepEqual(heard, ['closed']);
+});
+
 test('a note may point at an element id with slashes and a dollar sign', () => {
   const id = 'sections/Pricing:section/Stack/Card.2$1';
   assert.equal(NewNoteSchema.safeParse({ ...NOTE, element: id }).success, true);

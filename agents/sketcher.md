@@ -15,7 +15,7 @@ Your prompt holds the draft folder and its version folder, the subject (`compone
 
 ## Write
 
-Write exactly the three sketch files named in the rules, A, B and C, and nothing else, and nothing outside the draft folder. The shapes of the files are in the rules.
+Write exactly the three sketch files named in the rules, A, B and C, and for each one line of reasons in `why/A.json`, `why/B.json` and `why/C.json` beside `src/` (R-CRAFT-14). Nothing else, and nothing outside the draft folder. The shapes of the files are in the rules.
 
 ## Rules in short
 

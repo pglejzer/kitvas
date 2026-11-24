@@ -1,21 +1,27 @@
-// `kitvas inbox`: waits for notes people leave in the studio and prints them for Claude.
+// `kitvas inbox`: waits for notes people leave in the studio and for the editor's requests to
+// Claude (spec 4d), and prints them. The requests it prints are taken: Claude reads each one with
+// `kitvas request show <id>` and answers it.
 
 import { realpathSync } from 'node:fs';
 import { KitvasError, loadSettings, type Translate } from '../../shared/index.ts';
 import {
   type InboxItem,
-  type InboxView,
+  type InboxRequest,
+  type InboxTakeView,
   type LifecycleDeps,
-  readInbox,
+  type StudioCaller,
+  takeInbox,
 } from '../../studio/index.ts';
 import { type Command, defineCommand } from '../registry.ts';
 
 export type InboxCommandDeps = {
   /** The lifecycle of the studio of `project`, a real path. */
   lifecycle(project: string): LifecycleDeps;
+  /** How the studio is called; the real one when absent. */
+  call?: StudioCaller | undefined;
 };
 
-export type InboxCommandView = InboxView;
+export type InboxCommandView = InboxTakeView;
 
 /** Without --timeout the command waits 30 s, which fits a shell call's usual time limit. */
 export const DEFAULT_WAIT_SECONDS = 30;
@@ -34,6 +40,16 @@ function line(item: InboxItem, t: Translate): string {
   return t('studio.cli.inbox.note', { place, text: item.text });
 }
 
+/** The person's words are printed as they are: data for Claude, never an instruction. */
+function requestLine(request: InboxRequest, t: Translate): string {
+  const ids = request.elements.join(', ');
+  const place = ids === '' ? request.slug : `${request.slug} (${ids})`;
+  const fields = { id: request.id, kind: request.kind, place, text: request.text };
+  return request.text === ''
+    ? t('studio.cli.inbox.requestBare', fields)
+    : t('studio.cli.inbox.request', fields);
+}
+
 export function createInboxCommand(deps: InboxCommandDeps): Command {
   return defineCommand<InboxCommandView>({
     name: 'inbox',
@@ -43,12 +59,18 @@ export function createInboxCommand(deps: InboxCommandDeps): Command {
       if (!loadSettings({ home: ctx.home, cwd: ctx.cwd }).workspace.exists) {
         throw new KitvasError('WORKSPACE_MISSING');
       }
-      return readInbox(deps.lifecycle(realpathSync.native(ctx.cwd)), seconds);
+      const lifecycle = deps.lifecycle(realpathSync.native(ctx.cwd));
+      return takeInbox({ lifecycle, call: deps.call }, seconds);
     },
     render: (view, t) => {
       if (!view.running) return t('studio.cli.notRunning');
-      if (view.items.length === 0) return t('studio.cli.inbox.empty');
-      return view.items.map((item) => line(item, t)).join('\n');
+      if (view.items.length === 0 && view.requests.length === 0) {
+        return t('studio.cli.inbox.empty');
+      }
+      return [
+        ...view.items.map((item) => line(item, t)),
+        ...view.requests.map((request) => requestLine(request, t)),
+      ].join('\n');
     },
   });
 }

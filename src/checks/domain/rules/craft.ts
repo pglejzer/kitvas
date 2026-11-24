@@ -3,8 +3,7 @@
 // `icon` and logo rules only for `logo`. One finding per sketch, at the sketch's block when the
 // facts list it, else page-level. The numbers come from `guidelines/craft.ts`.
 
-import type { CraftFacts, SvgFacts } from '../craft-facts.ts';
-import type { Message, RawFinding, Severity } from '../finding.ts';
+import type { Message, RawFinding, Severity } from '../findings/finding.ts';
 import {
   UI_ICON_COLOUR,
   UI_ICON_GRID,
@@ -14,6 +13,7 @@ import {
   UI_LOGO_MONO,
   UI_LOGO_SMALL,
 } from '../guidelines/craft.ts';
+import type { CraftFacts, SvgFacts } from '../page/craft-facts.ts';
 import { ruleFinding, type VisitInput } from './types.ts';
 
 export type CraftRule = {

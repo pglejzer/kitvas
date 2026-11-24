@@ -19,12 +19,15 @@ import type { OpenLinks } from '../security/open-links.ts';
 import { type EditDeps, editRoutes } from './edit/edit-routes.ts';
 import { structureRoutes } from './edit/structure-routes.ts';
 import { eventRoutes } from './event-routes.ts';
+import { historyRoutes } from './history/history-routes.ts';
 import { imageRoutes } from './images/image-routes.ts';
 import type { ImageStore } from './images/image-rules.ts';
 import { inboxRoutes } from './inbox-routes.ts';
 import { jobRoutes } from './job-routes.ts';
 import { linkRoutes } from './link-routes.ts';
+import { noteRoutes } from './notes/note-routes.ts';
 import { openApi } from './openapi.ts';
+import { requestRoutes } from './requests/request-routes.ts';
 import {
   DraftListSchema,
   EmptyBody,
@@ -37,7 +40,9 @@ import {
   VersionParams,
   VersionSchema,
 } from './schemas.ts';
+import { viewRoutes } from './view/view-routes.ts';
 import { waiverRoutes } from './waivers/waiver-routes.ts';
+import { whyRoutes } from './why/why-routes.ts';
 
 export type ApiDeps = {
   drafts: DraftStore;
@@ -175,6 +180,12 @@ export function apiRoutes(deps: ApiDeps): ApiRoute[] {
     ...structureRoutes(deps),
     ...imageRoutes(deps),
     ...waiverRoutes(deps),
+    // Stage 4d (plan 17).
+    ...requestRoutes(deps),
+    ...noteRoutes(deps),
+    ...viewRoutes(deps),
+    ...historyRoutes(deps),
+    ...whyRoutes(deps),
   ];
   routes.push(
     apiRoute({

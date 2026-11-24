@@ -1,7 +1,6 @@
 // Rules: ui-type. Typography of the text blocks a visit measured. All of them are `review`.
 
-import type { FactNode, PageFacts, TextFacts } from '../facts.ts';
-import type { RawFinding } from '../finding.ts';
+import type { RawFinding } from '../findings/finding.ts';
 import {
   UI_CENTERED_TEXT,
   UI_HEADING_LINE_HEIGHT,
@@ -13,6 +12,7 @@ import {
   UI_TYPE_SIZES,
   UI_TYPE_WEIGHTS,
 } from '../guidelines/ui-type.ts';
+import type { FactNode, PageFacts, TextFacts } from '../page/facts.ts';
 import type { VisitInput, VisitRule } from './types.ts';
 import { ruleFinding } from './types.ts';
 

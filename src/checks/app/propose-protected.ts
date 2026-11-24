@@ -1,9 +1,9 @@
 // `kitvas rework propose`: the protected list kitvas proposes from the original's inventory (spec
 // 5.3). Pure: the person confirms or edits it through the skill, which writes `protected.json`.
 
-import type { Inventory, ProtectedItem } from '../domain/before.ts';
-import { type InventoryItem, normalise, priceValue } from '../domain/inventory.ts';
-import { VIEWPORTS } from '../domain/page.ts';
+import { VIEWPORTS } from '../domain/page/page.ts';
+import type { Inventory, ProtectedItem } from '../domain/rework/before.ts';
+import { type InventoryItem, normalise, priceValue } from '../domain/rework/inventory.ts';
 
 const [, LAPTOP] = VIEWPORTS;
 

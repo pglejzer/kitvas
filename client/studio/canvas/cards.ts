@@ -8,6 +8,7 @@
 import { isPlainClick } from '../clicks.ts';
 import { text } from '../edit/texts.ts';
 import type { Frame } from '../frames.ts';
+import { fitMark } from './caption.ts';
 import type { CardList } from './card-list.ts';
 import {
   type CardCount,
@@ -178,6 +179,8 @@ export function mountCards(deps: CardsDeps): Cards {
       if (!figure) continue;
       markOf(figure);
       figure.toggleAttribute('data-editing', many && frame === edit);
+      // The mark never takes the card name's room (spec 4d, goal 8).
+      fitMark(figure);
     }
   }
 

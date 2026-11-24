@@ -55,12 +55,15 @@ export function leftSide(input: SidesInput): Html {
   const tabs: Tab[] = [
     { id: 'layers', label: t('studio.edit.shell.tab.layers') },
     { id: 'insert', label: t('studio.edit.shell.tab.insert') },
+    { id: 'why', label: t('studio.edit.shell.tab.why') },
   ];
   const note = lockedNote(input.locked);
   const layers = pane('layers', trusted(' data-edit="layers"'), true, note);
   const insert = pane('insert', trusted(' data-edit="palette"'), false, note);
+  // Stage 4d (plan 17, task E): the reasons of each section.
+  const why = pane('why', trusted(' data-edit="why"'), false, note);
   const name = t('studio.edit.shell.tab.layers');
-  return html`<aside class="editor-side" data-side="left" id="editor-side-left" aria-label="${t('studio.edit.shell.left')}" data-folded>${tabRow(t, 'left', tabs, 'layers')}${layers}${insert}${rail(t, 'left', name)}</aside>`;
+  return html`<aside class="editor-side" data-side="left" id="editor-side-left" aria-label="${t('studio.edit.shell.left')}" data-folded>${tabRow(t, 'left', tabs, 'layers')}${layers}${insert}${why}${rail(t, 'left', name)}</aside>`;
 }
 
 /**
@@ -73,6 +76,7 @@ export function rightSide(input: SidesInput): Html {
     { id: 'properties', label: t('studio.edit.shell.tab.properties') },
     { id: 'changes', label: t('studio.edit.shell.tab.changes') },
     { id: 'checks', label: t('studio.edit.shell.tab.checks') },
+    { id: 'ai', label: t('studio.edit.shell.tab.ai') },
   ];
   if (input.sketches !== null) {
     tabs.push({ id: 'sketches', label: t('studio.edit.shell.tab.sketches') });
@@ -85,12 +89,14 @@ export function rightSide(input: SidesInput): Html {
   const props = pane('properties', region, false, note);
   const changes = pane('changes', trusted(' data-edit="changes"'), false, note);
   const checks = pane('checks', trusted(' data-shell="checks"'), true, input.checks);
+  // Stage 4d (plan 17, task B): requests to Claude and their variants.
+  const ai = pane('ai', trusted(' data-edit="ai"'), false, note);
   const sketches =
     input.sketches === null
       ? ''
       : pane('sketches', trusted(' data-shell="sketches"'), false, input.sketches);
   const name = t('studio.edit.shell.tab.checks');
-  return html`<aside class="editor-side" data-side="right" id="editor-side-right" aria-label="${t('studio.edit.shell.right')}">${tabRow(t, 'right', tabs, 'checks')}<div data-edit="conflict" hidden></div>${props}${changes}${checks}${sketches}${rail(t, 'right', name)}</aside>`;
+  return html`<aside class="editor-side" data-side="right" id="editor-side-right" aria-label="${t('studio.edit.shell.right')}">${tabRow(t, 'right', tabs, 'checks')}<div data-edit="conflict" hidden></div>${props}${changes}${checks}${ai}${sketches}${rail(t, 'right', name)}</aside>`;
 }
 
 /** The grip on a panel's inner edge; the script sets its values and moves it. */

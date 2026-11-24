@@ -13,6 +13,7 @@ export * from './commands/init.ts';
 export * from './commands/kit.ts';
 export * from './commands/layout.ts';
 export * from './commands/map.ts';
+export * from './commands/request.ts';
 export * from './commands/rework.ts';
 export * from './commands/status.ts';
 export * from './commands/studio.ts';

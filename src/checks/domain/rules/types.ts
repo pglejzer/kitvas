@@ -1,11 +1,11 @@
 // What a rule of the ui, ux and a11y checks gets, and the helpers every rule shares (ADR 0043).
 // Rules are pure and import no Node module, so stage 4 can run them inside the frame.
 
-import type { DeepFacts, PageFacts } from '../facts.ts';
-import type { CheckName, Message, RawFinding, Severity } from '../finding.ts';
-import { elementPlace } from '../ids.ts';
-import type { PageReport, Seen } from '../page.ts';
-import type { CatalogComponent, UsageRecord } from '../usage.ts';
+import { elementPlace } from '../code/ids.ts';
+import type { CheckName, Message, RawFinding, Severity } from '../findings/finding.ts';
+import type { DeepFacts, PageFacts } from '../page/facts.ts';
+import type { PageReport, Seen } from '../page/page.ts';
+import type { CatalogComponent, UsageRecord } from '../page/usage.ts';
 
 /** Which state a visit shows: the baseline (`filled` or the default) or a state named by prefix. */
 export type StateKind = 'baseline' | 'empty' | 'loading' | 'error' | 'other';

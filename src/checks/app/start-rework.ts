@@ -13,13 +13,13 @@ import {
   WEB_URL,
 } from '../../kit/index.ts';
 import { KitvasError, type Translate } from '../../shared/index.ts';
-import { scanPolicy } from '../domain/addresses.ts';
-import { BEFORE_DIR } from '../domain/before.ts';
-import type { PageFacts } from '../domain/facts.ts';
-import type { RawFinding } from '../domain/finding.ts';
+import type { RawFinding } from '../domain/findings/finding.ts';
 import { UI_NO_VIEWPORT } from '../domain/guidelines/rework.ts';
-import { VIEWPORTS } from '../domain/page.ts';
+import type { PageFacts } from '../domain/page/facts.ts';
+import { VIEWPORTS } from '../domain/page/page.ts';
+import { BEFORE_DIR } from '../domain/rework/before.ts';
 import type { VisitInput } from '../domain/rules/index.ts';
+import { scanPolicy } from '../domain/scan/addresses.ts';
 import type { Browser, SurveyReport } from '../ports/browser.ts';
 import { problemsOf, uncappedFindings, writeBefore } from './before.ts';
 

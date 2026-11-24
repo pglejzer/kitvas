@@ -17,7 +17,7 @@ import {
   VERIFY_FILE,
   type VerifyFile,
   type VerifyIssue,
-} from '../domain/kit-verify.ts';
+} from '../domain/kit/kit-verify.ts';
 import type { Browser } from '../ports/browser.ts';
 import type { TypeChecker } from '../ports/type-checker.ts';
 import { type ParsedExample, parseExamples } from './verify/example-parse.ts';

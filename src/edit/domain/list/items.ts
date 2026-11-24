@@ -5,6 +5,7 @@
 
 import type { OffsetMap, Span } from '../types.ts';
 import type { ArrayView } from './find.ts';
+import { copyText } from './keys.ts';
 
 /** A changed text and where each offset of the old text went (`null`: it was removed). */
 export type ListEdit = { text: string; moved: OffsetMap };
@@ -81,7 +82,8 @@ export function duplicateItemText(text: string, array: ArrayView, item: number):
   const { items, reader } = array;
   const self = items[item];
   if (self === undefined) return { text, moved: (old) => old };
-  const copy: Piece = { text: text.slice(self.span.start, self.span.end), from: null };
+  // A literal `key` of the item is made unique in the copy (spec 4d, goal 8).
+  const copy: Piece = { text: copyText(text, array, self), from: null };
   const next = items[item + 1];
   const previous = items[item - 1];
   if (next !== undefined) {

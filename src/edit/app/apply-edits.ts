@@ -32,6 +32,7 @@ import { applyScss, type ScssOp, scssBalanced } from '../domain/style/apply-scss
 import { applyTsx } from '../domain/tsx/apply-tsx.ts';
 import type { OffsetMap, Refusal } from '../domain/types.ts';
 import type { EditCompiler } from '../ports/compiler.ts';
+import { lockRefusal } from './locks/lock-checks.ts';
 import {
   changedSince,
   commit,
@@ -241,7 +242,9 @@ async function applyInverse(work: Work, index: number, op: InverseOp): Promise<O
   return 'done';
 }
 
-function applyOne(work: Work, index: number, op: EditOp): Promise<OpResult> {
+async function applyOne(work: Work, index: number, op: EditOp): Promise<OpResult> {
+  const locked = await lockRefusal(work, op);
+  if (locked !== null) return { refused: locked };
   if (!isStructural(op)) return applySimple(work, index, op);
   if (op.op === 'patch' || op.op === 'file') return applyInverse(work, index, op);
   return applyStructural(work, index, op);

@@ -34,6 +34,7 @@ import { editKit, styleFormat, tokenOptions } from './edit-state.ts';
 import { locateElement } from './locate.ts';
 import { sectionScss } from './structure/section-files.ts';
 import { movableAt } from './structure/structure.ts';
+import { type Suggest, suggestFor } from './suggest/suggest.ts';
 
 /** The file names in a version's `src/img` folder (`src/edit/adapters/image-files.ts`). */
 export type ImageFiles = (slug: string, version: number) => readonly string[];
@@ -104,6 +105,8 @@ export type InspectView = {
   }[];
   /** Spec 4c, goal 9: the `.map` the element is rendered by; `null` when it is not in one. */
   list: (ListInfo & { texts: (string | null)[] | null }) | null;
+  /** Spec 4d, goal 6: the kit component a plain element looks like; `null`: nothing to offer. */
+  suggest: Suggest | null;
 };
 
 /** Spec 4c, goal 9: the `.map` the element is rendered by, with its items' texts when literal. */
@@ -330,5 +333,15 @@ export async function inspectElement(
     breakpoints: kit === null ? [...DEFAULT_BREAKPOINTS] : kitBreakpoints(kit.kit),
     overrides,
     list: listOf(text, at),
+    suggest: suggestFor({
+      text,
+      at,
+      view: tag,
+      own: component,
+      catalog: kit?.kit.components ?? [],
+      format,
+      properties: (rule?.declarations ?? []).map((declaration) => declaration.property),
+      classes: classesOf(tag),
+    }),
   };
 }

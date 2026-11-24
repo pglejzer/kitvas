@@ -6,7 +6,7 @@ import {
   kitTypesSource,
   type TypesComponent,
   type TypesExample,
-} from '../../../src/checks/domain/kit-types.ts';
+} from '../../../src/checks/domain/kit/kit-types.ts';
 
 const BUTTON: TypesComponent = {
   name: 'Button',

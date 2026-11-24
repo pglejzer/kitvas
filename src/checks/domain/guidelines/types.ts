@@ -28,7 +28,8 @@ export type GuidelineSource = { name: string; url: string };
 export type Guideline = {
   /** `<check>/<name>`, the same as the rule id. */
   id: string;
-  check: 'a11y' | 'ui' | 'ux';
+  /** `edit` (spec 4d): the editor's own rules, such as a locked element changed by another writer. */
+  check: 'a11y' | 'ui' | 'ux' | 'edit';
   chapter: Chapter;
   /** `auto`: every check; `deep`: `kitvas check --deep`; `manual`: the compose skill's checklist. */
   mode: 'auto' | 'deep' | 'manual';

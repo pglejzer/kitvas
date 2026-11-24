@@ -5,16 +5,21 @@ import {
   DEFAULT_STATES,
   type DraftStore,
   inspectLayout,
+  locksNow,
   StatesSchema,
   serializeJson,
   waiversFor,
 } from '../../drafts/index.ts';
+import { elementSpan, offsetOf } from '../../edit/index.ts';
 import { cssVarName, type FlatToken, type LoadedKit } from '../../kit/index.ts';
 import { type BuildError, type BuildFs, buildDraft, type RenderDeps } from '../../render/index.ts';
 import { KitvasError, type Translate } from '../../shared/index.ts';
-import type { Before } from '../domain/before.ts';
-import { importFindings, rawControlFindings } from '../domain/code.ts';
-import { FACTS_NODE_CAP } from '../domain/facts.ts';
+import { importFindings, rawControlFindings } from '../domain/code/code.ts';
+import { type IdEntry, idEntries } from '../domain/code/ids.ts';
+import { sourceRuleFindings } from '../domain/code/source-rules.ts';
+import { type SizeToken, styleFindings } from '../domain/code/styles.ts';
+import { sheetClasses, tailwindFindings, tailwindUnknown } from '../domain/code/tailwind.ts';
+import { elementAt, typeFindings } from '../domain/code/tsc.ts';
 import {
   type ChecksFile,
   mergeFindings,
@@ -24,16 +29,18 @@ import {
   summarize,
   toolText,
   translateFinding,
-} from '../domain/finding.ts';
-import { type IdEntry, idEntries } from '../domain/ids.ts';
-import { VIEWPORTS } from '../domain/page.ts';
-import { beforeProblemFindings, protectedFindings, reworkScore } from '../domain/rework.ts';
+} from '../domain/findings/finding.ts';
+import { splitWaived } from '../domain/findings/waived.ts';
+import {
+  type ElementNow,
+  lockedChangedFindings,
+  lockStates,
+} from '../domain/locks/locked-changed.ts';
+import { FACTS_NODE_CAP } from '../domain/page/facts.ts';
+import { VIEWPORTS } from '../domain/page/page.ts';
+import type { Before } from '../domain/rework/before.ts';
+import { beforeProblemFindings, protectedFindings, reworkScore } from '../domain/rework/rework.ts';
 import type { VisitInput } from '../domain/rules/index.ts';
-import { sourceRuleFindings } from '../domain/source-rules.ts';
-import { type SizeToken, styleFindings } from '../domain/styles.ts';
-import { sheetClasses, tailwindFindings, tailwindUnknown } from '../domain/tailwind.ts';
-import { elementAt, typeFindings } from '../domain/tsc.ts';
-import { splitWaived } from '../domain/waived.ts';
 import type { Browser } from '../ports/browser.ts';
 import type { TypeChecker } from '../ports/type-checker.ts';
 import { readBefore, uncappedFindings } from './before.ts';
@@ -162,6 +169,35 @@ function sourceFindings({ code, sheets }: Sources, ids: IdEntry[]): RawFinding[]
   return raw;
 }
 
+/**
+ * Spec 4d, goal 4: the locks whose element another writer changed or took away. The elements are
+ * the build's (`ids.json`, of the same sources), each with its whole source now; only the files
+ * a lock is in are read.
+ */
+function lockFindings(
+  drafts: DraftStore,
+  at: { slug: string; version: number },
+  ids: IdEntry[],
+  { code }: Sources,
+): RawFinding[] {
+  const locks = locksNow(drafts, at.slug, at.version);
+  if (locks.length === 0) return [];
+  const files = new Set(locks.map((lock) => lock.file));
+  const texts = new Map(
+    code.filter((one) => files.has(one.file)).map((one): [string, string] => [one.file, one.text]),
+  );
+  const elements = ids.flatMap((entry): ElementNow[] => {
+    const text = texts.get(entry.file);
+    if (text === undefined) return [];
+    const start = offsetOf(text, entry.line, entry.column);
+    const span = start >= 0 && text[start] === '<' ? elementSpan(text, start) : null;
+    if (span === null) return [];
+    const { id, file, line, column } = entry;
+    return [{ id, file, line, column, source: text.slice(span.start, span.end) }];
+  });
+  return lockedChangedFindings(lockStates(locks, elements));
+}
+
 /** The ds check: imports and controls of the TSX, the style sheets, and a Tailwind kit's classes. */
 function dsFindings({ fs, versionDir, kit, ids, built, sources }: DsInput): RawFinding[] {
   const raw: RawFinding[] = [];
@@ -270,6 +306,8 @@ export async function runChecks(
   const sources = draftSources(fs, versionDir);
   raw.push(...dsFindings({ fs, versionDir, kit, ids, built: build.built, sources }));
   raw.push(...sourceFindings(sources, ids));
+  // Only with the build's ids: those of a failed build would be stale.
+  if (build.built) raw.push(...lockFindings(drafts, { slug, version }, ids, sources));
 
   const deep = options.deep === true;
   const states = draftStates(drafts, slug, base);

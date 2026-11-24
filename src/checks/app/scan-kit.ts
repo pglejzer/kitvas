@@ -4,8 +4,8 @@
 import { join } from 'node:path';
 import { type KitStore, type KitWriter, parseKitSource, WEB_URL } from '../../kit/index.ts';
 import { KitvasError, z } from '../../shared/index.ts';
-import { scanPolicy } from '../domain/addresses.ts';
-import { CROPS_MAX, SCAN_WIDTHS, ScanFactsSchema, URLS_MAX } from '../domain/scan-facts.ts';
+import { scanPolicy } from '../domain/scan/addresses.ts';
+import { CROPS_MAX, SCAN_WIDTHS, ScanFactsSchema, URLS_MAX } from '../domain/scan/scan-facts.ts';
 import type { Browser } from '../ports/browser.ts';
 
 export type ScanDeps = {

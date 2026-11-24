@@ -17,6 +17,7 @@ import type { EditorState, Gesture } from '../store.ts';
 import { isBase } from '../style/context-ops.ts';
 import { type Format, opsForPropAll, PROP_NAME } from '../style/ops.ts';
 import { text } from '../texts.ts';
+import { noteOnce } from './context.ts';
 import { checkboxControl, el, numberControl, selectControl, textControl } from './controls.ts';
 
 /**
@@ -160,7 +161,9 @@ export function propRows(env: Env): HTMLElement[] {
     const raw = value ? value.value : absent ? def?.default : undefined;
     if (fixed) {
       row.body.append(el('code', 'props-code', String(raw ?? '')));
-      row.meta.append(el('span', 'props-note', text('context.propOnce')));
+      if (noteOnce(env, 'propOnce')) {
+        row.meta.append(el('span', 'props-note', text('context.propOnce')));
+      }
       rows.push(row.root);
       continue;
     }

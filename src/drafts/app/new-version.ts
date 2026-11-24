@@ -5,8 +5,8 @@ import { versionFolder } from '../domain/names.ts';
 import type { DraftStore } from '../ports/draft-store.ts';
 import { loadDraft } from './load-draft.ts';
 
-/** What a new version starts with. `build/` is never copied. */
-const COPIED = ['md', 'src'];
+/** What a new version starts with. `build/` is never copied; the reasons (`why/`) go along. */
+const COPIED = ['md', 'src', 'why'];
 
 /** A picked craft draft carries on with the picked sketch only: these `src/` parts, then the sketch. */
 const COPIED_WITHOUT_SKETCHES = ['src/json', 'src/scss', 'src/img', 'src/tsx/sections'];
@@ -25,6 +25,7 @@ export function addVersion(
   const picked = draft.craft?.picked ?? null;
   if (picked) {
     store.copyDir(slug, `${source}/md`, `${target}/md`);
+    store.copyDir(slug, `${source}/why`, `${target}/why`);
     for (const folder of COPIED_WITHOUT_SKETCHES) {
       store.copyDir(slug, `${source}/${folder}`, `${target}/${folder}`);
     }

@@ -54,6 +54,14 @@ export const ERROR_TABLE = {
   IMAGE_TYPE_UNSUPPORTED: { exit: 51, http: 415 },
   IMAGE_CONTENT_MISMATCH: { exit: 52, http: 422 },
   WAIVER_LIMIT: { exit: 53, http: 409 },
+  // Stage 4d (plan 17, task A): the editor's requests to Claude.
+  REQUEST_NOT_FOUND: { exit: 54, http: 404 },
+  REQUEST_NOT_TAKEN: { exit: 55, http: 409 },
+  REQUEST_LIMIT: { exit: 56, http: 409 },
+  STUDIO_NOT_RUNNING: { exit: 57, http: 503 },
+  // Stage 4d (plan 17, task C): notes on elements.
+  NOTE_NOT_FOUND: { exit: 58, http: 404 },
+  NOTE_LIMIT: { exit: 59, http: 409 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;

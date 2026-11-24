@@ -70,7 +70,9 @@ test('the shield lies over the world, inside the sizer, so it takes a drag over 
   const world = text.indexOf('data-canvas="world"');
   const shield = text.indexOf('data-canvas="shield"');
   assert.ok(world > 0 && shield > world);
-  assert.ok(text.endsWith('data-canvas="shield" hidden></div></div></div>'));
+  assert.ok(text.includes('data-canvas="shield" hidden></div></div></div>'));
+  // The version timeline's host comes after the canvas (spec 4d, goal 5).
+  assert.ok(text.indexOf('data-timeline') > shield);
 });
 
 test('the caption above the card names the version on the left and the size on the right', () => {

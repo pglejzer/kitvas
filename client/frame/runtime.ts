@@ -12,6 +12,7 @@ import { createPreview } from './edit/preview.ts';
 import { createStructure } from './edit/structure.ts';
 import { createForce } from './live/force.ts';
 import { createLive } from './live/live.ts';
+import { createPins } from './live/pins.ts';
 import { createCanvas } from './page/canvas.ts';
 import { createMarks } from './page/marks.ts';
 import { measureElements, settle } from './page/measure.ts';
@@ -53,6 +54,7 @@ export function startFrame({ states, initial, render }: FrameInput): void {
   // Stage 4c (plan 16): forced states, live measurements and the accessibility card.
   const force = createForce();
   const live = createLive({ channel, post });
+  const pins = createPins();
   let current = initial;
   let heard = false;
 
@@ -84,6 +86,7 @@ export function startFrame({ states, initial, render }: FrameInput): void {
     else if (message.type === 'marks') marks.draw(message.marks);
     else if (isLiveStudio(message)) {
       if (message.type === 'force') force.set(message.ids, message.state);
+      else if (message.type === 'pins') pins.set(message.pins);
       else if (message.type === 'state-held') {
         const { request, id } = message;
         const longhands = force.held(id).slice(0, MAX_LONGHANDS);

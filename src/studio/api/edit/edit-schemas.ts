@@ -167,6 +167,19 @@ export const InspectSchema = z.strictObject({
   /** The kit's breakpoints, ascending (spec 4c, goal 1; `kitBreakpoints`). */
   breakpoints: z.array(z.number().int().min(1)).optional(),
   /**
+   * Spec 4d, goal 6: plain JSX a kit component covers. `source`: the element's source with the
+   * component's tag, its children and the props both take kept (sent as `replaceElement`, which
+   * adds the kit import); `dropped`: what the component does not take. `null`: nothing to suggest.
+   */
+  suggest: z
+    .strictObject({
+      component: z.string().max(80),
+      source: z.string().max(20_000),
+      dropped: z.array(z.string().max(80)).max(40),
+    })
+    .nullable()
+    .optional(),
+  /**
    * Every value the element's rule sets for a width or a state (spec 4c): a nested block of the
    * SCSS rule, or a prefixed utility of a Tailwind draft. The base values stay in `styles`.
    */

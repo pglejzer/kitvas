@@ -1,7 +1,6 @@
 // Rules: a11y, beyond axe. Each reads the page facts and the report, never the page.
 
-import type { FactNode, PageFacts } from '../facts.ts';
-import type { RawFinding } from '../finding.ts';
+import type { RawFinding } from '../findings/finding.ts';
 import {
   A11Y_CONTROL_CONTRAST,
   A11Y_FOCUS_CONTRAST,
@@ -11,6 +10,7 @@ import {
   AUTOCOMPLETE_TYPES,
   AUTOCOMPLETE_WORDS,
 } from '../guidelines/a11y.ts';
+import type { FactNode, PageFacts } from '../page/facts.ts';
 import { contrast, parseColour } from './colour.ts';
 import { type At, ruleFinding, type VisitRule } from './types.ts';
 

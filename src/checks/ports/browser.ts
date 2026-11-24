@@ -1,10 +1,10 @@
 // A browser that opens a built page and reports what it saw.
 
-import type { PageFacts } from '../domain/facts.ts';
-import type { InventoryItem } from '../domain/inventory.ts';
-import type { Pixels } from '../domain/look-score.ts';
-import type { PageReport } from '../domain/page.ts';
-import type { ScanFacts } from '../domain/scan-facts.ts';
+import type { Pixels } from '../domain/kit/look-score.ts';
+import type { PageFacts } from '../domain/page/facts.ts';
+import type { PageReport } from '../domain/page/page.ts';
+import type { InventoryItem } from '../domain/rework/inventory.ts';
+import type { ScanFacts } from '../domain/scan/scan-facts.ts';
 
 export type Visit = {
   /** Absolute path of build/html/index.html. */

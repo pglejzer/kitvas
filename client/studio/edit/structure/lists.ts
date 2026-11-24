@@ -160,14 +160,32 @@ export function textTarget(state: EditorState): TextTarget | null {
   return typeof before === 'string' ? { id: target.id, item: target.item, before } : null;
 }
 
-/** The note above the properties: which item of how many, or why the list is read-only. */
-export function noteText(target: ItemTarget | null): string | null {
+/** A JSX `key` read from one field of the item (`item.id`); a copy keeps it (spec 4d, goal 8). */
+const FIELD_KEY = /^[A-Za-z_$][\w$]*\??\.([A-Za-z_$][\w$]*)$/;
+
+/**
+ * The field the element's `key` reads, when Duplicate leaves it as it is: kitvas makes a literal
+ * `key` field of the item unique in the copy, never another one. `null` for anything else.
+ */
+export function keyFieldOf(inspected: Pick<Inspect, 'props'> | null): string | null {
+  const key = inspected?.props.find((prop) => prop.name === 'key');
+  if (key?.kind !== 'expr') return null;
+  const field = FIELD_KEY.exec(key.source.trim())?.[1];
+  return field === undefined || field === 'key' ? null : field;
+}
+
+/**
+ * The note above the properties: which item of how many, or why the list is read-only.
+ * `keyField`: the item's field the list's `key` reads, which a copy keeps (`keyFieldOf`).
+ */
+export function noteText(target: ItemTarget | null, keyField: string | null = null): string | null {
   if (target === null) return null;
   const { list, item, count } = target;
   if (list.kind !== 'literal') return text(`lists.note.${list.kind}`);
   if (target.mismatch) return text('lists.note.mismatch');
   if (item === null) return text('lists.note.pick', { count });
-  return text('lists.note.item', { item: item + 1, count });
+  const line = text('lists.note.item', { item: item + 1, count });
+  return keyField === null ? line : `${line} ${text('lists.note.keyField', { field: keyField })}`;
 }
 
 export function mountLists(ctx: EditorContext): void {
@@ -191,7 +209,7 @@ export function mountLists(ctx: EditorContext): void {
   }
 
   function render(state: EditorState): void {
-    const line = state.on ? noteText(itemTarget(state)) : null;
+    const line = state.on ? noteText(itemTarget(state), keyFieldOf(state.inspected)) : null;
     note.hidden = line === null;
     note.textContent = line ?? '';
   }

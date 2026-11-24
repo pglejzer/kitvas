@@ -95,7 +95,10 @@ export function applyUtility(text: string, open: Open, op: UtilityOp, force: boo
   if (value === null) return refuse('not-found');
   if (named(value).length > 0) return force ? { text, changed: [] } : CONFLICT;
   const last = tokens.at(-1);
-  // An empty `className=""` would not come back when the class is taken out again.
-  if (last === undefined) return refuse('utility-unknown');
+  // An empty `className=""` gets the class inside its quotes (spec 4d, goal 8). Taking that class
+  // out again removes the attribute, so the inverse is not byte for byte (`undoableByOps`).
+  if (last === undefined) {
+    return splice(text, { start: current.inner.start, end: current.inner.start }, value);
+  }
   return splice(text, { start: last.end, end: last.end }, ` ${value}`);
 }

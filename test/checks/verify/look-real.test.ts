@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { createPlaywrightBrowser } from '../../../src/checks/adapters/playwright-browser.ts';
+import { createPlaywrightBrowser } from '../../../src/checks/adapters/browser/playwright-browser.ts';
 import { lookScore } from '../../../src/checks/index.ts';
 import { KitvasError, PLUGIN_ROOT } from '../../../src/shared/index.ts';
 import { tempDir } from '../../helpers/tmp.ts';

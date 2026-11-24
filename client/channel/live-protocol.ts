@@ -22,6 +22,9 @@ export type LiveFact = {
 /** A numbered live mark the page asks a frame to draw on an element (goal 5). */
 export type LiveMark = { id: string; label: string; tone: 'fix' | 'review' };
 
+/** A note's pin on an element (spec 4d, goal 3): its number in the Notes list. */
+export type NotePin = { id: string; label: string };
+
 /** A value the editor showed for an element, to compare with the build (goal 8). */
 export type Expected = { id: string; property: string; value: string };
 
@@ -69,6 +72,8 @@ export type LiveStudioMessage = Head &
     | { type: 'a11y'; request: number; id: string }
     /** The live marks of this frame's width; an empty list takes them all away. */
     | { type: 'live-marks'; marks: LiveMark[] }
+    /** The note pins of this frame (spec 4d); an empty list takes them all away. */
+    | { type: 'pins'; pins: NotePin[] }
     /** Which properties the kit's own rules of the forced state hold on `id` (ADR 0055). */
     | { type: 'state-held'; request: number; id: string }
   );
@@ -101,6 +106,7 @@ export const LIVE_STUDIO_TYPES = new Set([
   'measure-live',
   'a11y',
   'live-marks',
+  'pins',
   'state-held',
 ]);
 export const LIVE_FRAME_TYPES = new Set(['live-facts', 'a11y-card', 'state-held']);
@@ -160,6 +166,12 @@ function liveMark(value: unknown): LiveMark | undefined {
   const { id, label, tone } = value;
   if (!isId(id) || !isText(label, 8) || !oneOf(['fix', 'review'], tone)) return undefined;
   return { id, label, tone };
+}
+
+function notePin(value: unknown): NotePin | undefined {
+  if (!isObject(value)) return undefined;
+  const { id, label } = value;
+  return isId(id) && isText(label, 8) ? { id, label } : undefined;
 }
 
 function expected(value: unknown): Expected | undefined {
@@ -283,6 +295,13 @@ export function parseLiveStudio(message: Loose, channel: string): LiveStudioMess
       const parsed = marks.map(liveMark);
       if (!parsed.every((one): one is LiveMark => one !== undefined)) return undefined;
       return { ...head, type: 'live-marks', marks: parsed };
+    }
+    case 'pins': {
+      const { pins } = message;
+      if (!Array.isArray(pins) || pins.length > MAX_LIVE_IDS) return undefined;
+      const parsed = pins.map(notePin);
+      if (!parsed.every((one): one is NotePin => one !== undefined)) return undefined;
+      return { ...head, type: 'pins', pins: parsed };
     }
     default:
       return undefined;

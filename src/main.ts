@@ -4,9 +4,9 @@ import { lookup } from 'node:dns/promises';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { createBrowserInstaller } from './checks/adapters/browser-installer.ts';
-import { createPlaywrightBrowser } from './checks/adapters/playwright-browser.ts';
-import { createPlaywrightHost } from './checks/adapters/playwright-host.ts';
+import { createBrowserInstaller } from './checks/adapters/browser/browser-installer.ts';
+import { createPlaywrightBrowser } from './checks/adapters/browser/playwright-browser.ts';
+import { createPlaywrightHost } from './checks/adapters/browser/playwright-host.ts';
 import { createTscChecker } from './checks/adapters/tsc-checker.ts';
 import {
   cropKit,
@@ -29,6 +29,7 @@ import {
   createKitCommand,
   createLayoutCommand,
   createMapCommand,
+  createRequestCommand,
   createReworkCommand,
   createStudioCommand,
   disposeRenderTools,
@@ -119,6 +120,7 @@ export function main(argv: string[]): Promise<number> {
           'frame/live/marks.ts',
           'frame/live/measure.ts',
           'frame/live/specificity.ts',
+          'frame/live/pins.ts',
           'frame/edit/indicator.ts',
           'frame/edit/items.ts',
           'frame/edit/keys.ts',
@@ -303,6 +305,7 @@ export function main(argv: string[]): Promise<number> {
     createBrowserCommand({ browser, installer, browsersDir }),
     createStudioCommand(studio),
     createInboxCommand({ lifecycle: studio.lifecycle }),
+    createRequestCommand({ lifecycle: studio.lifecycle }),
     guidelinesCommand,
   ];
   return runCli(argv, commands, {

@@ -1,6 +1,6 @@
 // Checks the draft's TSX against the kit's types.
 
-import type { ToolMessage } from '../domain/tsc.ts';
+import type { ToolMessage } from '../domain/code/tsc.ts';
 
 export type TypeCheckInput = {
   /** Absolute folder of the draft version; tsc runs there, so its paths start with `src/`. */

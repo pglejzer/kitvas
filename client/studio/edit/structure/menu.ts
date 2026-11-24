@@ -5,6 +5,7 @@
 import { isMac, shortcutHint } from '../../shell/shortcuts.ts';
 import { getPalette } from '../api.ts';
 import type { EditorContext } from '../context.ts';
+import { NOTE_EVENT } from '../notes/model.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { type ActionId, type ActionState, actionsFor, runAction } from './actions.ts';
@@ -23,7 +24,21 @@ export type MenuItem = {
   hint: string | null;
   /** A divider is drawn before the item when its group differs from the one before. */
   group: number;
+  /** "Note…" (spec 4d, goal 3): opens the note form of `notes/` (task C). */
+  note?: true;
 };
+
+/** "Note…", last: a note on the element the menu is for, or on the draft. */
+const noteItem = (): MenuItem => ({
+  action: null,
+  tag: null,
+  label: text('menu.note'),
+  enabled: true,
+  reason: null,
+  hint: null,
+  group: 7,
+  note: true,
+});
 
 /** Related actions sit together, with a divider between the groups. */
 const GROUPS: Record<ActionId, number> = {
@@ -207,7 +222,7 @@ export function mountMenu(ctx: EditorContext): void {
       button.type = 'button';
       button.className = 'edit-menu-item';
       button.setAttribute('role', 'menuitem');
-      button.dataset.menuItem = item.action ?? item.tag ?? '';
+      button.dataset.menuItem = item.action ?? item.tag ?? (item.note ? 'note' : '');
       button.tabIndex = -1;
       button.setAttribute('aria-disabled', String(!item.enabled));
       const label = document.createElement('span');
@@ -250,6 +265,7 @@ export function mountMenu(ctx: EditorContext): void {
     replacing = null;
     const listItem = itemTarget(state) !== null;
     items = menuItems(actionsFor(state), state.hidden.length, isMac(navigator.platform), listItem);
+    items.push(noteItem());
     draw();
     place(menu);
     focusItem(stepIndex(items, -1, 'ArrowDown'));
@@ -272,7 +288,11 @@ export function mountMenu(ctx: EditorContext): void {
 
   function choose(item: MenuItem): void {
     if (!item.enabled) return;
-    if (item.tag !== null) {
+    if (item.note === true) {
+      const id = store.get().menu?.id ?? store.get().selection[0] ?? null;
+      close();
+      document.dispatchEvent(new CustomEvent(NOTE_EVENT, { detail: { id } }));
+    } else if (item.tag !== null) {
       close();
       void runAction(ctx, 'replace', { tag: item.tag });
     } else if (item.action === 'replace') {

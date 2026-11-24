@@ -152,6 +152,8 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
         drafts: deps.drafts,
         etag: etagOf,
         publish: (type, data) => events.publish(type, data),
+        // Spec 4d: a locked element another writer changed is told, never reverted.
+        locks: deps.edit ? { drafts: deps.drafts, compiler: deps.edit.compiler } : undefined,
         onError,
       })
     : undefined;

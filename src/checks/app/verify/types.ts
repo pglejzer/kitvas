@@ -9,8 +9,8 @@ import {
   kitTypeIssues,
   kitTypesSource,
   type TypesExample,
-} from '../../domain/kit-types.ts';
-import type { VerifyIssue } from '../../domain/kit-verify.ts';
+} from '../../domain/kit/kit-types.ts';
+import type { VerifyIssue } from '../../domain/kit/kit-verify.ts';
 import type { TypeChecker } from '../../ports/type-checker.ts';
 import { type ParsedExample, parseError } from './example-parse.ts';
 import { importedName } from './imports.ts';

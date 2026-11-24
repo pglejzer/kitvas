@@ -4,6 +4,7 @@
 
 import { type DraftStore, loadDraft, serializeJson } from '../../drafts/index.ts';
 import { KitvasError, type Zod } from '../../shared/index.ts';
+import type { RawFinding } from '../domain/findings/finding.ts';
 import {
   BEFORE_DIR,
   type Before,
@@ -15,8 +16,7 @@ import {
   ProtectedSchema,
   type SourceRecord,
   SourceRecordSchema,
-} from '../domain/before.ts';
-import type { RawFinding } from '../domain/finding.ts';
+} from '../domain/rework/before.ts';
 import { VISIT_RULES, type VisitInput, type VisitRule } from '../domain/rules/index.ts';
 
 /** The files of `before/` that hold data, by the part of `Before` they hold. */

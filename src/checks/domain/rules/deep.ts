@@ -1,8 +1,7 @@
 // Rules of `kitvas check --deep`: what the stress passes of one visit found (spec section 7). The
 // numbers come from the guideline entries; the passes are `adapters/playwright-deep.ts`.
 
-import { LONG_NUMBER } from '../facts.ts';
-import type { Message, RawFinding, Severity } from '../finding.ts';
+import type { Message, RawFinding, Severity } from '../findings/finding.ts';
 import {
   A11Y_CONTRAST_ON_IMAGE,
   A11Y_MOTION,
@@ -10,6 +9,7 @@ import {
   UI_LONG_NUMBER,
   UI_LONG_TEXT,
 } from '../guidelines/deep.ts';
+import { LONG_NUMBER } from '../page/facts.ts';
 import { type DeepInput, type DeepRule, ruleFinding } from './types.ts';
 
 type NodesAt = { rule: string; severity: Severity; message: Message; hint: Message };

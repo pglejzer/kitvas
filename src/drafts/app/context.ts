@@ -14,6 +14,7 @@ import { pascalCase, versionFolder } from '../domain/names.ts';
 import { DEFAULT_STATES, type States, StatesSchema } from '../domain/states.ts';
 import type { DraftStore } from '../ports/draft-store.ts';
 import { inspectLayout, sectionPaths } from './layout.ts';
+import { lockedIdsNow } from './view.ts';
 
 export type ContextToken = {
   /** `--kit-color-brand` */
@@ -54,6 +55,11 @@ export type SectionContext = {
   classes?: string[];
   /** Absolute paths of the two files the agent writes. */
   files: { tsx: string; scss: string };
+  /**
+   * Spec 4d, goal 4: the ids of the section's elements the person locked, as this version names
+   * them. The agent never changes a locked element.
+   */
+  locked: string[];
 };
 
 /**
@@ -128,6 +134,10 @@ export function sectionContext(
       references,
       icons,
     },
+    // An element id starts with its file: `sections/Hero:section/Button`.
+    locked: lockedIdsNow(store, slug, version).filter((id) =>
+      id.startsWith(`sections/${pascalCase(section.id)}:`),
+    ),
     shared: layout.shared,
     styling,
     ...(tailwind ? { classes: [...new Set(Object.values(kit.cssVarMap))] } : {}),

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { createPlaywrightBrowser } from '../../../src/checks/adapters/playwright-browser.ts';
+import { createPlaywrightBrowser } from '../../../src/checks/adapters/browser/playwright-browser.ts';
 import { createTscChecker } from '../../../src/checks/adapters/tsc-checker.ts';
 import { type VerifyDeps, type VerifyFile, verifyKit } from '../../../src/checks/index.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';

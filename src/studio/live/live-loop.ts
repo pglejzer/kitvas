@@ -7,6 +7,7 @@ import type { BuildEvent, SourceEvent } from '../api/edit/edit-schemas.ts';
 import type { EventType } from '../events/event-hub.ts';
 import { type IdleClock, SYSTEM_CLOCK } from '../server/idle-stop.ts';
 import { type BuiltDraft, createWarmBuilder } from './builder.ts';
+import { type LockDeps, type LocksEvent, watchLocks } from './locks.ts';
 import { createSourceWatcher, type WatchPort } from './watcher.ts';
 
 /** What the composition root hands the studio: the real watch, and builds with warm tools. */
@@ -24,7 +25,12 @@ export type LiveLoopDeps = LiveTools & {
   /** The ETag of a text: the same function the edit API answers with. */
   etag(text: string): string;
   /** The event hub's `publish`. */
-  publish(type: Extract<EventType, 'source' | 'build'>, data: SourceEvent | BuildEvent): void;
+  publish(
+    type: Extract<EventType, 'source' | 'build' | 'locks'>,
+    data: SourceEvent | BuildEvent | LocksEvent,
+  ): void;
+  /** Spec 4d: the locks are compared after each change by another writer (`locks.ts`). */
+  locks?: LockDeps | undefined;
   clock?: IdleClock | undefined;
   onError?: ((error: unknown) => void) | undefined;
 };
@@ -44,11 +50,22 @@ export function startLiveLoop(deps: LiveLoopDeps): LiveLoop {
     now: () => clock.now(),
     onError: deps.onError,
   });
+  const locks =
+    deps.locks === undefined
+      ? undefined
+      : watchLocks({
+          ...deps.locks,
+          publish: (event) => deps.publish('locks', event),
+          onError: deps.onError,
+        });
   const watcher = createSourceWatcher({
     watch: deps.watch,
     read: (slug, relPath) => deps.drafts.readText(slug, relPath),
     etag: (text) => deps.etag(text),
-    publish: (event) => deps.publish('source', event),
+    publish: (event) => {
+      deps.publish('source', event);
+      locks?.heard(event);
+    },
     build: (slug, version) => builder.request(slug, version),
     clock,
     onError: deps.onError,
@@ -59,6 +76,7 @@ export function startLiveLoop(deps: LiveLoopDeps): LiveLoop {
     close() {
       closing ??= (async () => {
         watcher.close();
+        await locks?.close();
         await builder.close();
         await deps.dispose();
       })();

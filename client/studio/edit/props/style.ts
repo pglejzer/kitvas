@@ -248,8 +248,10 @@ export function styleRow(env: Env, property: StyleProperty): HTMLElement {
   } else {
     row.body.append(tokenRow(style, row.label));
   }
-  if (covered) row.meta.append(coveredNote(env));
-  else if (!reason && !base) {
+  if (covered) {
+    const note = coveredNote(env);
+    if (note !== null) row.meta.append(note);
+  } else if (!reason && !base) {
     if (beaten) row.meta.append(heldNote(env));
     row.meta.append(...contextActions(env, property, key));
   } else if (!reason && (held !== null || mixed)) {

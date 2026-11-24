@@ -4,9 +4,10 @@ Read by the `sketcher` agent before it writes the three sketches of a craft draf
 
 ## Files
 
-- R-CRAFT-1: Write exactly three files, one per sketch: `v<N>/src/tsx/sketches/A.tsx`, `B.tsx` and `C.tsx` in the draft's latest version folder. Nothing else, nothing outside the draft folder. Never edit the generated entry `v<N>/src/tsx/index.tsx`: it is the board and kitvas rewrites it.
+- R-CRAFT-1: Write exactly three sketch files, one per sketch: `v<N>/src/tsx/sketches/A.tsx`, `B.tsx` and `C.tsx` in the draft's latest version folder, and the reasons files of R-CRAFT-14. Nothing else, nothing outside the draft folder. Never edit the generated entry `v<N>/src/tsx/index.tsx`: it is the board and kitvas rewrites it.
 - R-CRAFT-2: Each file exports one function component, named from the draft's `name` and the sketch letter. With `name` `Spark`: icon and logo sketches export `SparkA`, `SparkB`, `SparkC`; a component sketch exports `SparkAExample`, `SparkBExample`, `SparkCExample` (the example that shows the component, with its states).
 - R-CRAFT-3: Import only from `@kit`, `react` and the draft's own files. A sketch never imports from a package or from another sketch.
+- R-CRAFT-14: Besides the sketches, write one reasons file per sketch: `v<N>/why/A.json`, `B.json` and `C.json`, beside `src/`: `{ "lines": ["<one line: the idea of the sketch and why the kit supports it>"], "guidelines": [], "hash": "<64 zeros>" }`, the line at most 200 characters. You cannot compute a hash: write 64 zeros, and kitvas replaces them with the sha256 of the sketch's TSX when the studio first reads the file. Elements the person locked (`locked` ids) are never changed.
 
 ## Shapes
 

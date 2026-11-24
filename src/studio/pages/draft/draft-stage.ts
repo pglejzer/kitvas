@@ -108,6 +108,15 @@ function canvas(cards: Html | Html[]): Html {
   return html`<div class="canvas-scroll" data-canvas="scroll"><div class="canvas-sizer" data-canvas="sizer"><div class="canvas-world" data-canvas="world">${cards}</div><div class="canvas-shield" data-canvas="shield" hidden></div></div></div>`;
 }
 
+/**
+ * The host of the version timeline (spec 4d, goal 5): a strip under the cards that the editor's
+ * script fills and shows (`client/studio/edit/timeline/`). Never while comparing: compare has a
+ * card per version already.
+ */
+function timelineHost(t: Translate): Html {
+  return html`<div class="timeline" data-timeline role="group" aria-label="${t('studio.edit.timeline.label')}" hidden></div>`;
+}
+
 export function stage(input: StageInput): Html {
   const { t, compare } = input;
   if (!input.built) {
@@ -126,7 +135,7 @@ export function stage(input: StageInput): Html {
   if (!compare) {
     const box = frameBox({ ...base, src: input.src, title: named, role: 'current' });
     const extra = extraWidths(input.cards ?? 1, width).map((one) => widthCard(input, one));
-    return canvas([card(t, 'current', input.version, width, box), ...extra]);
+    return html`${canvas([card(t, 'current', input.version, width, box), ...extra])}${timelineHost(t)}`;
   }
   const before = compare.built
     ? frameBox({ ...base, src: compare.src, title: titleOf(compare.version), role: 'before' })
