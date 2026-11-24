@@ -1,5 +1,6 @@
 // API deps for route tests: the shop draft, jobs that never end, an event hub.
 
+import { memoryViewStore } from '../../src/shared/settings/config.ts';
 import type { ApiDeps } from '../../src/studio/api/routes.ts';
 import { createEventHub } from '../../src/studio/events/event-hub.ts';
 import { createInbox } from '../../src/studio/inbox/inbox.ts';
@@ -28,6 +29,7 @@ export function apiDeps(overrides: Partial<ApiDeps> = {}): ApiDeps {
     inbox: createInbox({ now: () => NOW, publish: () => undefined }),
     t,
     links: createOpenLinks(() => NOW),
+    view: memoryViewStore(),
     ...overrides,
   };
 }

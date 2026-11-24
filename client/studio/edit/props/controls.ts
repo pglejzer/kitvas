@@ -2,9 +2,13 @@
 // calls back with the new value and sends nothing itself. Built with `createElement` and
 // `textContent` only. `data-control` names what the panel focuses again after a redraw, and
 // `data-initial` the value a field was drawn with, so a half-typed value can be put back.
+// Plan 18 (task C): the studio's shared controls (`.k-field`, `.k-seg`, `.k-switch`, `.k-swatch`);
+// a row of keywords that all have an icon is drawn as icons (`keyword-icons.ts`).
 
 import type { StyleProperty, StyleValue, TokenOption } from '../../../../src/edit/index.ts';
+import { icon } from '../../ui/icon.ts';
 import { text } from '../texts.ts';
+import { segmentIcons } from './keyword-icons.ts';
 import { MAX_SEGMENTS } from './kinds.ts';
 import { parseRaw, stepToken } from './steps.ts';
 import { lengthValue, readLength } from './units.ts';
@@ -41,7 +45,7 @@ export function selectControl(options: {
   placeholder?: string;
   onChange(value: string): void;
 }): HTMLSelectElement {
-  const select = el('select', 'props-input');
+  const select = el('select', 'k-field props-select');
   select.dataset.control = 'main';
   select.setAttribute('aria-label', options.label);
   select.disabled = options.disabled ?? false;
@@ -66,7 +70,7 @@ export function checkboxControl(options: {
   disabled?: boolean;
   onChange(checked: boolean): void;
 }): HTMLInputElement {
-  const box = el('input', 'props-check');
+  const box = el('input', 'k-switch props-toggle');
   box.type = 'checkbox';
   box.dataset.control = 'main';
   box.setAttribute('aria-label', options.label);
@@ -83,7 +87,7 @@ export function textControl(options: {
   disabled?: boolean;
   onCommit(value: string): void;
 }): HTMLInputElement {
-  const input = field('props-input', 'main', options.label, options.value);
+  const input = field('k-field props-text', 'main', options.label, options.value);
   input.type = 'text';
   input.disabled = options.disabled ?? false;
   input.addEventListener('change', () => options.onCommit(input.value));
@@ -101,7 +105,7 @@ export function numberControl(options: {
   onCommit(value: number): void;
 }): HTMLInputElement {
   const drawn = options.value === null ? '' : String(options.value);
-  const input = field('props-input', 'main', options.label, drawn);
+  const input = field('k-field props-number', 'main', options.label, drawn);
   input.type = 'number';
   input.step = 'any';
   input.disabled = options.disabled ?? false;
@@ -115,9 +119,11 @@ export function numberControl(options: {
 
 /**
  * Keywords as segmented buttons, or as a short list above `MAX_SEGMENTS`. `current` is the
- * keyword the source sets; `hint` the one the frame computes, marked when nothing is set.
+ * keyword the source sets; `hint` the one the frame computes, marked when nothing is set. When
+ * every keyword of `property` has an icon the buttons show icons, each named by its keyword.
  */
 export function keywordControl(options: {
+  property: StyleProperty;
   label: string;
   keywords: readonly string[];
   current: string | null;
@@ -135,11 +141,21 @@ export function keywordControl(options: {
       },
     });
   }
-  const group = el('div', 'props-seg');
+  const icons = segmentIcons(options.property, options.keywords);
+  const group = el('div', icons === null ? 'k-seg props-words' : 'k-seg props-icons');
   group.setAttribute('role', 'group');
   group.setAttribute('aria-label', options.label);
-  for (const keyword of options.keywords) {
-    const button = el('button', 'props-seg-item', keyword);
+  for (const [index, keyword] of options.keywords.entries()) {
+    const button = el('button');
+    const glyph = icons?.[index];
+    if (glyph === undefined) {
+      button.textContent = keyword;
+    } else {
+      // An icon alone: the keyword is its name and its tooltip.
+      button.setAttribute('aria-label', keyword);
+      button.title = keyword;
+      button.append(icon(glyph));
+    }
     button.type = 'button';
     button.dataset.control = `kw-${keyword}`;
     button.setAttribute('aria-pressed', String(keyword === options.current));
@@ -163,7 +179,7 @@ export function imageControl(options: {
   shown: string;
   onPick(file: string): void;
 }): HTMLElement {
-  if (options.images.length === 0) return el('span', 'props-note', text('props.image.none'));
+  if (options.images.length === 0) return el('span', 'props-hint', text('props.image.none'));
   return selectControl({
     label: options.label,
     value: options.current ?? '',
@@ -207,15 +223,15 @@ function lengthEditor(options: {
   raw: string | null;
   onPick(value: StyleValue): void;
 }): { root: HTMLElement; focus(): void; hidden(on: boolean): void } {
-  const root = el('span', 'props-length');
+  const root = el('span', 'props-raw');
   const read = options.raw === null ? null : readLength(options.raw);
   const amountText = read === null || read === 'auto' ? '' : String(read.amount);
   const unitNow = read === 'auto' ? 'auto' : (read?.unit ?? 'px');
   const label = text('props.custom.label', { property: options.property });
-  const amount = field('props-input props-custom', 'custom', label, amountText);
+  const amount = field('k-field props-raw-value', 'custom', label, amountText);
   amount.inputMode = 'decimal';
   if (options.raw !== null && read === null) amount.placeholder = options.raw;
-  const unit = el('select', 'props-input props-unit');
+  const unit = el('select', 'k-field props-raw-unit');
   unit.dataset.control = 'unit';
   unit.setAttribute('aria-label', text('props.unit', { property: options.property }));
   for (const name of options.units) {
@@ -224,7 +240,7 @@ function lengthEditor(options: {
     unit.append(item);
   }
   unit.value = options.units.includes(unitNow) ? unitNow : (options.units[0] ?? 'px');
-  const problem = el('span', 'props-problem', text('props.length.invalid'));
+  const problem = el('span', 'props-error', text('props.length.invalid'));
   problem.hidden = true;
   const commit = (): void => {
     amount.disabled = unit.value === 'auto';
@@ -253,11 +269,11 @@ function rawEditor(options: {
   raw: string | null;
   onPick(value: StyleValue): void;
 }): { root: HTMLElement; focus(): void; hidden(on: boolean): void } {
-  const root = el('span', 'props-length');
+  const root = el('span', 'props-raw');
   const label = text('props.custom.label', { property: options.label });
-  const custom = field('props-input props-custom', 'custom', label, options.raw ?? '');
+  const custom = field('k-field props-raw-value', 'custom', label, options.raw ?? '');
   custom.type = 'text';
-  const problem = el('span', 'props-problem', text('props.custom.invalid'));
+  const problem = el('span', 'props-error', text('props.custom.invalid'));
   problem.hidden = true;
   custom.addEventListener('change', () => {
     const raw = parseRaw(custom.value);
@@ -291,11 +307,21 @@ export function showCustom(root: Element): void {
   select.dispatchEvent(new Event('change'));
 }
 
+/** A colour's sample beside its value (`.k-swatch`); `null` draws it empty. */
+function swatchOf(color: string | null): HTMLElement {
+  const sample = el('span', 'k-swatch props-sample');
+  sample.setAttribute('aria-hidden', 'true');
+  // Only a colour is taken: anything else leaves the sample empty.
+  if (color !== null) sample.style.backgroundColor = color;
+  return sample;
+}
+
 /**
  * Kit tokens first, then "Custom…" for a raw value, which the caller marks off-kit. `current` is
  * the value now in the source; `placeholder` is what the frame computes when the source has none.
  * With `length`, the raw value is a number and a unit; without it, a free text field.
  * `warn` (spec 4c): the words of a live check a token would fail, shown with a sign on its option.
+ * `sample` (plan 18): a colour row's swatch before the list, the colour shown or `null`.
  */
 export function tokenPicker(options: {
   label: string;
@@ -305,10 +331,11 @@ export function tokenPicker(options: {
   disabled?: boolean;
   length?: { property: StyleProperty; units: readonly string[] };
   warn?: (token: TokenOption) => string | null;
+  sample?: string | null;
   onPick(value: StyleValue): void;
 }): HTMLElement {
-  const root = el('span', 'props-token');
-  const select = el('select', 'props-input');
+  const root = el('span', 'props-picker');
+  const select = el('select', 'k-field props-select');
   select.dataset.control = 'main';
   select.setAttribute('aria-label', options.label);
   select.disabled = options.disabled ?? false;
@@ -361,6 +388,9 @@ export function tokenPicker(options: {
       pick({ token: token.var });
     },
   });
-  root.append(select, editor.root);
+  const line = el('span', 'props-pick-line');
+  if (options.sample !== undefined) line.append(swatchOf(options.sample));
+  line.append(select);
+  root.append(line, editor.root);
   return root;
 }

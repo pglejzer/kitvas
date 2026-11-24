@@ -1,9 +1,11 @@
 // The texts the editor's script shows, as short keys under `studio.edit.` in locales/en.json. The
 // page hands them to the script in one JSON block (`edit-panel.ts`); the script never writes text
 // of its own. A key a panel uses goes into this list and into the locale file. The panels of the
-// editor with Claude (stage 4d) keep theirs in `edit-texts-claude.ts`.
+// editor with Claude (stage 4d) keep theirs in `edit-texts-claude.ts`, the redesign's (plan 18) are
+// in `edit-texts-look.ts`.
 
 import { CLAUDE_TEXT_KEYS } from './edit-texts-claude.ts';
+import { LOOK_TEXT_KEYS } from './edit-texts-look.ts';
 
 const PANEL_TEXT_KEYS = [
   'save',
@@ -207,12 +209,9 @@ const PANEL_TEXT_KEYS = [
   'zoom.menu',
   'zoom.selection',
   'props.kind.kit',
-  'props.kind.html',
   'props.crumbs',
   'props.crumb.label',
-  'props.parent',
   'props.parent.label',
-  'props.child',
   'props.child.label',
   'props.many',
   'props.many.note',
@@ -406,4 +405,8 @@ const PANEL_TEXT_KEYS = [
   'waiver.full',
 ] as const;
 
-export const EDIT_TEXT_KEYS: readonly string[] = [...PANEL_TEXT_KEYS, ...CLAUDE_TEXT_KEYS];
+export const EDIT_TEXT_KEYS: readonly string[] = [
+  ...PANEL_TEXT_KEYS,
+  ...CLAUDE_TEXT_KEYS,
+  ...LOOK_TEXT_KEYS,
+];

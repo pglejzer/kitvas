@@ -3,11 +3,12 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import { buildDraft } from '../../../src/render/index.ts';
-import { loadDep, PLUGIN_ROOT } from '../../../src/shared/index.ts';
+import { defaultDepRoots, loadDep, PLUGIN_ROOT } from '../../../src/shared/index.ts';
+import { createEsbuildAssets } from '../../../src/studio/adapters/esbuild-assets.ts';
 import { shopDraft } from '../../helpers/drafts.ts';
 import { FIXTURE_KITS } from '../../helpers/kits.ts';
 import { renderTools, writeShopSections } from '../../helpers/render.ts';
-import { openLinkUrl, studioOver } from '../../helpers/studio.ts';
+import { fakeAssets, openLinkUrl, studioOver } from '../../helpers/studio.ts';
 
 type Playwright = typeof import('playwright-core');
 
@@ -35,7 +36,13 @@ test('a real browser shows the draft in a sandboxed frame from the second origin
     await tools.bundler.dispose();
     await tools.styles.dispose();
   }
-  const { studio, errors } = await studioOver(store);
+  // The real font files: a browser reports a font it cannot decode, and the page must be clean.
+  const real = createEsbuildAssets({
+    roots: defaultDepRoots(),
+    clientDir: join(PLUGIN_ROOT, 'client'),
+  });
+  const assets = { ...fakeAssets, font: real.font };
+  const { studio, errors } = await studioOver(store, {}, { assets });
   const browser = await launch();
   try {
     const page = await browser.newPage();

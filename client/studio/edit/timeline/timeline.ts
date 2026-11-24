@@ -1,12 +1,13 @@
-// The version timeline (spec 4d, goal 5; plan 17, task D): the strip under the canvas, an older
-// version shown read only (`store.viewing`), the selected element's changes, Bring back.
+// The Versions list (spec 4d, goal 5; plan 17, task D; plan 18, task B): at the bottom of the
+// Layers pane, an older version shown read only (`store.viewing`), the selected element's changes,
+// Bring back.
 //
-// The strip has one point per version; the latest is "now". A click, or a drag let go over a
-// point, shows that version in every card (`canvas/version-view.ts`) with Edit off; "Back to now"
-// and the Edit button return. The element selected when the person left now is the strip's
-// subject: its history marks the points, and Bring back asks the studio for the preview of its
-// old source and shows it as a diff to accept (`diff/diff-dialog.ts`). The rules are in
-// `points.ts`; this file wires them to the page.
+// The list has one row per version, "Now" (the latest) first. A click shows that version in every
+// card (`canvas/version-view.ts`) with Edit off; "Back to now" and the Edit button return. The
+// element selected when the person left now is the list's subject: its history marks the rows,
+// and Bring back asks the studio for the preview of its old source and shows it as a diff to
+// accept (`diff/diff-dialog.ts`). A version saved while the page is open slides in. The rules are
+// in `points.ts`; this file wires them to the page.
 
 import { showVersion } from '../../canvas/version-view.ts';
 import { frameMessage } from '../../frames.ts';
@@ -21,17 +22,15 @@ import {
   askWords,
   type ElementHistory,
   idIn,
+  newVersions,
   type Point,
-  pointAt,
-  pointsOf,
   type RestorePreview,
+  versionRows,
 } from './points.ts';
 
-/** A pointer that moved this far over the track is a drag, not a click. */
-const DRAG_PX = 4;
 /** The element's history is read again this long after its files last changed. */
 const HISTORY_DELAY_MS = 400;
-/** How long the strip says that something did not work. */
+/** How long the list says that something did not work. */
 const FAILURE_MS = 6_000;
 
 function button(className: string, label: string): HTMLButtonElement {
@@ -44,69 +43,97 @@ function button(className: string, label: string): HTMLButtonElement {
 
 export function mountTimeline(ctx: EditorContext): void {
   const { store, slug, main, bridge } = ctx;
-  const found = main.querySelector<HTMLElement>('[data-timeline]');
+  // In the Layers pane (C8); the page's own markup before that stays a fallback.
+  const found =
+    ctx.panel.querySelector<HTMLElement>('[data-timeline]') ??
+    document.querySelector<HTMLElement>('[data-timeline]');
   if (!found) return;
   const host: HTMLElement = found;
 
+  const head = document.createElement('div');
+  head.className = 'versions-head k-head';
+  const heading = document.createElement('h2');
+  heading.textContent = text('timeline.label');
+  head.append(heading);
   const track = document.createElement('div');
-  track.className = 'timeline-track';
+  track.className = 'versions-list';
   track.setAttribute('role', 'group');
   track.setAttribute('aria-label', text('timeline.versions'));
   const status = document.createElement('p');
-  status.className = 'timeline-status';
+  status.className = 'versions-status k-meta';
   status.setAttribute('role', 'status');
-  const bring = button('timeline-action', text('timeline.bring'));
-  const back = button('timeline-action', text('timeline.back'));
+  const actions = document.createElement('div');
+  actions.className = 'versions-actions';
+  const bring = button('k-btn', text('timeline.bring'));
+  const back = button('k-btn k-btn-line', text('timeline.back'));
   back.dataset.primary = '';
-  host.append(track, status, bring, back);
+  actions.append(bring, back);
+  host.append(head, track, status, actions);
 
   let versions: number[] = [];
+  /** The versions that came while the page was open: their rows slide in, once. */
+  const fresh = new Set<number>();
   /** The element the marks and Bring back are about, by its id in the latest version. */
   let subject: string | null = null;
   let history: ElementHistory | null = null;
   /** Edit was on when the person left now; "Back to now" turns it on again. */
   let wasOn = false;
-  /** A line the strip says by itself (a load, a failure) instead of the viewing line. */
+  /** A line the list says by itself (a load, a failure) instead of the viewing line. */
   let note = '';
   let reads = 0;
   let loads = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  /** A drag over the track: the point under the pointer, and whether it moved far enough. */
-  let drag: { start: number; over: number; moved: boolean } | null = null;
-  let dragged = false;
 
   const latest = (): number | undefined => store.get().edit?.version ?? versions.at(-1);
-  const points = (): Point[] =>
-    pointsOf(versions, store.get().viewing, subject === null ? null : (history?.steps ?? null));
+  const rows = () =>
+    versionRows(versions, store.get().viewing, subject === null ? null : (history?.steps ?? null));
+
+  function rowView(point: Point): HTMLButtonElement {
+    const made = button('versions-row', '');
+    made.dataset.version = String(point.version);
+    made.dataset.mark = point.mark;
+    if (point.shown) made.setAttribute('aria-current', 'true');
+    if (fresh.has(point.version)) made.classList.add('k-slide');
+    const name = document.createElement('span');
+    name.className = 'versions-name';
+    name.textContent = point.now
+      ? text('timeline.now')
+      : text('timeline.point', { version: point.version });
+    made.append(name);
+    if (point.now) {
+      const which = document.createElement('span');
+      which.className = 'k-meta';
+      which.textContent = text('timeline.point', { version: point.version });
+      made.append(which);
+    }
+    if (point.mark !== 'none') {
+      const chip = document.createElement('span');
+      chip.className = 'versions-mark k-chip';
+      chip.textContent = text(`timeline.markShort.${point.mark}`);
+      made.append(chip);
+    }
+    const words = [text('timeline.point', { version: point.version })];
+    if (point.now) words.push(text('timeline.now'));
+    if (point.mark !== 'none') words.push(text(`timeline.mark.${point.mark}`));
+    made.title = words.join(', ');
+    made.setAttribute('aria-label', made.title);
+    return made;
+  }
 
   function render(): void {
     const { viewing } = store.get();
-    const list = points();
+    const list = rows();
     host.hidden = list.length < 2;
-    // The canvas makes room for the strip only while it shows (`edit-skin/timeline.ts`).
-    host.closest('[data-shell="canvas"]')?.toggleAttribute('data-has-timeline', !host.hidden);
-    track.replaceChildren(
-      ...list.map((point, index) => {
-        const label = point.now ? text('timeline.now') : String(point.version);
-        const made = button('timeline-point', label);
-        made.dataset.version = String(point.version);
-        made.dataset.mark = point.mark;
-        if (point.shown) made.setAttribute('aria-current', 'true');
-        if (drag?.over === index) made.dataset.over = '';
-        const words = [text('timeline.point', { version: point.version })];
-        if (point.now) words.push(text('timeline.now'));
-        if (point.mark !== 'none') words.push(text(`timeline.mark.${point.mark}`));
-        made.title = words.join(', ');
-        made.setAttribute('aria-label', made.title);
-        return made;
-      }),
-    );
+    track.replaceChildren(...list.map(rowView));
+    fresh.clear();
     back.hidden = viewing === null;
     bring.hidden = viewing === null;
     bring.disabled = idIn(history?.steps ?? null, viewing) === null || subject === null;
     bring.title = bring.disabled ? text('timeline.bringNone') : '';
+    actions.hidden = viewing === null;
     const line = viewing === null ? '' : text('timeline.viewing', { version: viewing });
     status.textContent = note || line;
+    status.hidden = status.textContent === '';
   }
 
   /** `brief`: a failure, which goes away by itself so it never stands over a later view. */
@@ -122,7 +149,9 @@ export function mountTimeline(ctx: EditorContext): void {
   async function readVersions(): Promise<void> {
     const read = await getVersions(slug);
     if (read.length === 0) return;
-    versions = [...read].sort((a, b) => a - b);
+    const sorted = [...read].sort((a, b) => a - b);
+    for (const version of newVersions(versions, sorted)) fresh.add(version);
+    versions = sorted;
     render();
   }
 
@@ -190,6 +219,7 @@ export function mountTimeline(ctx: EditorContext): void {
       ops,
       label: text('timeline.bringLabel', { version }),
       selectCreated: true,
+      flash: true,
     });
   }
 
@@ -230,49 +260,7 @@ export function mountTimeline(ctx: EditorContext): void {
     });
   }
 
-  /** The index of the point under a pointer at page `x`. */
-  const over = (x: number): number => {
-    const first = track.firstElementChild?.getBoundingClientRect();
-    const last = track.lastElementChild?.getBoundingClientRect();
-    if (!first || !last) return -1;
-    const left = first.left + first.width / 2;
-    const right = last.left + last.width / 2;
-    return pointAt(x - left, right - left, track.childElementCount);
-  };
-
-  track.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0) return;
-    drag = { start: event.clientX, over: over(event.clientX), moved: false };
-    dragged = false;
-  });
-  // On the window: a drag carries on while the pointer leaves the strip.
-  window.addEventListener('pointermove', (event) => {
-    if (drag === null) return;
-    const next = over(event.clientX);
-    const moved = drag.moved || Math.abs(event.clientX - drag.start) > DRAG_PX;
-    if (next === drag.over && moved === drag.moved) return;
-    drag = { ...drag, over: next, moved };
-    if (moved) render();
-  });
-  window.addEventListener('pointerup', () => {
-    const ended = drag;
-    drag = null;
-    if (ended === null || !ended.moved) return;
-    // The click that follows a drag is not a second choice.
-    dragged = true;
-    const point = points()[ended.over];
-    render();
-    if (point) go(point.version);
-  });
-  window.addEventListener('pointercancel', () => {
-    drag = null;
-    render();
-  });
   track.addEventListener('click', (event) => {
-    if (dragged) {
-      dragged = false;
-      return;
-    }
     if (!(event.target instanceof Element)) return;
     const version = Number(event.target.closest<HTMLElement>('[data-version]')?.dataset.version);
     if (Number.isInteger(version) && version > 0) go(version);

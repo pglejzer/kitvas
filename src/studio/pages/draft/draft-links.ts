@@ -1,5 +1,6 @@
 // The draft page's links (plan 15, C3): the same view with one choice changed. The top bar
-// (version, compare) and the canvas dock (width, state) both build their links here.
+// (version, compare), the pills on the canvas (width, state) and the panes' next steps all build
+// their links here.
 
 import type { Draft } from '../../../drafts/index.ts';
 import { type DraftChoice, draftHref } from '../../views/draft-query.ts';

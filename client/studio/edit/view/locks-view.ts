@@ -1,7 +1,7 @@
 // The locks box in the right panel (spec 4d, goal 4; plan 17, task C), under the conflict box:
 // the selected locked element another writer changed (Restore, Unlock), the locks whose element
 // was not found after such a change (Lock again on the selection, Forget), and an edit a lock
-// refused (Unlock). Drawing only; `view.ts` acts.
+// refused (Unlock). Drawing only; `view.ts` acts. Each row is one `.k-item` (plan 18, task B).
 
 import type { EditorContext } from '../context.ts';
 import { el } from '../props/controls.ts';
@@ -16,7 +16,7 @@ export type LocksHandlers = {
 };
 
 function button(label: string, onClick: () => void, primary = false): HTMLButtonElement {
-  const made = el('button', 'edit-locks-button', label);
+  const made = el('button', primary ? 'k-btn k-btn-line' : 'k-btn', label);
   made.type = 'button';
   if (primary) made.dataset.primary = '';
   made.addEventListener('click', onClick);
@@ -27,11 +27,11 @@ export function mountLocksBox(
   ctx: EditorContext,
   handlers: LocksHandlers,
 ): { render(model: LocksModel): void; say(words: string): void } {
-  const box = el('div', 'edit-locks');
+  const box = el('div', 'layers-locks');
   box.dataset.edit = 'locks';
   box.hidden = true;
-  const body = el('div', 'edit-locks-body');
-  const said = el('p', 'edit-locks-said');
+  const body = el('div', 'layers-locks-body');
+  const said = el('p', 'layers-locks-said k-meta');
   said.setAttribute('role', 'status');
   box.append(body, said);
   // In the right panel under the conflict box, outside the panes their renders replace.
@@ -42,28 +42,28 @@ export function mountLocksBox(
   function changedPart(model: LocksModel): HTMLElement[] {
     const changed = model.changed;
     if (changed === null) return [];
-    const row = el('div', 'edit-locks-row');
-    const actions = el('div', 'edit-locks-actions');
+    const row = el('div', 'k-item');
+    const actions = el('div', 'layers-locks-actions');
     actions.append(
       button(text('locks.restore'), () => handlers.restore(changed.id), true),
       button(text('locks.unlock'), () => handlers.unlock(changed.id)),
     );
-    row.append(el('p', 'edit-locks-line', text('locks.changedHere')), actions);
+    row.append(el('p', undefined, text('locks.changedHere')), actions);
     return [row];
   }
 
   function lostPart(model: LocksModel): HTMLElement[] {
     if (model.lost.length === 0) return [];
-    const row = el('div', 'edit-locks-row');
-    row.append(el('p', 'edit-locks-line', text('locks.lost', { count: model.lost.length })));
-    const list = el('ul', 'edit-locks-lost');
+    const row = el('div', 'k-item');
+    row.append(el('p', undefined, text('locks.lost', { count: model.lost.length })));
+    const list = el('ul', 'layers-locks-lost');
     for (const lost of model.lost) {
-      const item = el('li', 'edit-locks-item');
+      const item = el('li', 'layers-locks-item');
       const again = button(text('locks.lockAgain'), () => handlers.lockAgain(lost.id));
       again.disabled = !model.canLockAgain;
       again.title = text(model.canLockAgain ? 'locks.lockAgainTitle' : 'locks.lockAgainNone');
       item.append(
-        el('span', 'edit-locks-name', lost.name),
+        el('span', 'layers-locks-name', lost.name),
         again,
         button(text('locks.forget'), () => handlers.forget(lost.id)),
       );
@@ -76,9 +76,9 @@ export function mountLocksBox(
   function refusedPart(model: LocksModel): HTMLElement[] {
     const refused = model.refused;
     if (refused === null) return [];
-    const row = el('div', 'edit-locks-row');
+    const row = el('div', 'k-item');
     const words = refused.unlock === null ? 'locks.refusedInside' : 'locks.refused';
-    row.append(el('p', 'edit-locks-line', text(words)));
+    row.append(el('p', undefined, text(words)));
     const unlock = refused.unlock;
     if (unlock !== null) row.append(button(text('locks.unlock'), () => handlers.unlock(unlock)));
     return [row];

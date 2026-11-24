@@ -36,8 +36,8 @@ test('tokens are grouped by type in the catalog order, empty types are left out'
 test('swatch rules cover colour tokens only', () => {
   const rules = swatchRules(tiny().tokens).split('\n');
   assert.equal(rules.length, 3);
-  assert.equal(rules[0], '.swatch[data-token="--kit-color-ink"] { background: #1d2025; }');
-  assert.ok(rules.every((rule) => rule.startsWith('.swatch[data-token="--kit-color-')));
+  assert.equal(rules[0], '.kit-swatch[data-token="--kit-color-ink"] { background: #1d2025; }');
+  assert.ok(rules.every((rule) => rule.startsWith('.kit-swatch[data-token="--kit-color-')));
 });
 
 test('components are grouped by category and turned into rows', () => {

@@ -1,16 +1,29 @@
-// The layers tree with readable names and search (plan 13, task F). Built with
-// `createElement` and `textContent` only: names come from the page being edited.
+// The layers tree with readable names and search (plan 13, task F; plan 18, task B). The pane
+// host is `div[data-edit="layers"]`: a head with a search field, then the part that scrolls. The
+// row's markup is `row.ts`, its facts are `facts.ts`; this file holds the tree, the drag and the keys.
 
 import type { EditOp } from '../../../../src/edit/index.ts';
 import type { TreeNode } from '../../../channel/edit-protocol.ts';
+import { icon } from '../../ui/icon.ts';
 import type { EditorContext } from '../context.ts';
 import { filterTree, nextSelection } from '../select/selection.ts';
-import type { ChangeEntry, EditorState } from '../store.ts';
+import type { EditorState } from '../store.ts';
 import { type ListKind, listOf } from '../structure/lists.ts';
 import { text } from '../texts.ts';
+import { changedIds, type Listed, listKindOf, nestTree } from './facts.ts';
+import { layerRow, type RowEnv, type Section } from './row.ts';
 import { isNoop, type Row, sectionDrop, treeDrop, type Zone, zoneOf } from './tree-drag.ts';
 
-export type LayerItem = { node: TreeNode; children: LayerItem[] };
+export {
+  badgeCount,
+  badgeOf,
+  changedIds,
+  type LayerItem,
+  listKindOf,
+  nestTree,
+  type RowFacts,
+  rowFacts,
+} from './facts.ts';
 
 /** The pointer must move this far (page pixels) before a press on a row becomes a drag. */
 const DRAG_THRESHOLD = 4;
@@ -38,89 +51,17 @@ export function moveOps(
   });
 }
 
-/** The "× n" badge shows for an item of a mapped list only; the count, or `null`. */
-export function badgeCount(node: TreeNode): number | null {
-  return node.count > 1 ? node.count : null;
-}
-
-/** The elements the person changed in this session, from the change list's ids. */
-export function changedIds(changes: readonly ChangeEntry[]): Set<string> {
-  const ids = new Set<string>();
-  for (const change of changes) {
-    if (change.by === 'person' && change.id !== null) ids.add(change.id);
-  }
-  return ids;
-}
-
-/**
- * What a row shows besides its name: the kit marker, the "× n" badge with the kind of list that
- * renders the element (spec 4c, goal 9; `null` while unknown), and the changed dot.
- */
-export type RowFacts = {
-  kit: boolean;
-  count: number | null;
-  changed: boolean;
-  kind: ListKind | null;
-};
-
-/** `component` is the structure's kit component of the element (`null`: a plain element). */
-export function rowFacts(
-  node: TreeNode,
-  component: string | null | undefined,
-  changed: ReadonlySet<string>,
-  kind: ListKind | null = null,
-): RowFacts {
-  const count = badgeCount(node);
-  return {
-    kit: component !== null && component !== undefined,
-    count,
-    changed: changed.has(node.id),
-    kind: count === null ? null : kind,
-  };
-}
-
-/** A structure entry, with the kind of list that renders it once the structure says so. */
-type Listed = { id: string; list?: ListKind | null };
-
-/** The kind of list that renders `id`: the structure's word, else what an inspect of it said. */
-export function listKindOf(
-  entry: Listed | undefined,
-  known: ReadonlyMap<string, ListKind>,
-  id: string,
-): ListKind | null {
-  return entry?.list ?? known.get(id) ?? null;
-}
-
-/** The badge of a row: "× 3", or "× 3 data" with what kind of list it is; `null` for none. */
-export function badgeOf(facts: RowFacts): { label: string; title: string | null } | null {
-  const { count, kind } = facts;
-  if (count === null) return null;
-  if (kind === null) return { label: text('layers.count', { count }), title: null };
-  const label = text('layers.countKind', { count, kind: text(`layers.kind.${kind}`) });
-  return { label, title: text(`layers.kindTitle.${kind}`) };
-}
-
-/** Nests a flat tree in document order; a node whose parent is not in the list is a root. */
-export function nestTree(nodes: TreeNode[]): LayerItem[] {
-  const items = new Map<string, LayerItem>();
-  for (const node of nodes) items.set(node.id, { node, children: [] });
-  const roots: LayerItem[] = [];
-  for (const node of nodes) {
-    const item = items.get(node.id);
-    if (!item) continue;
-    const parent = node.parent === null ? undefined : items.get(node.parent);
-    (parent ? parent.children : roots).push(item);
-  }
-  return roots;
-}
-
-type Section = { id: string; purpose: string };
 type Press = { id: string; section: string | null; x: number; y: number; active: boolean };
 type Target = { el: HTMLElement; zone: Zone; fraction: number };
 
+/** The ids in `current` with `id` put in or taken out. */
+function toggled(current: readonly string[], id: string): string[] {
+  return current.includes(id) ? current.filter((one) => one !== id) : [...current, id];
+}
+
 export function mountLayers(ctx: EditorContext): void {
   const { store, bridge, panel, history } = ctx;
-  const section = panel.querySelector('section[data-edit="layers"]');
+  const section = panel.querySelector('[data-edit="layers"]');
   if (!(section instanceof HTMLElement)) return;
 
   let query = '';
@@ -131,18 +72,30 @@ export function mountLayers(ctx: EditorContext): void {
   // A drag ends with a click on the row it started on; that click must not select.
   let swallowClick = false;
 
+  const head = document.createElement('div');
+  head.className = 'k-pad layers-head';
+  const title = document.createElement('div');
+  title.className = 'k-head';
   const heading = document.createElement('h2');
   heading.textContent = text('layers.title');
+  title.append(heading);
+  const find = document.createElement('label');
+  find.className = 'k-search';
   const search = document.createElement('input');
   search.type = 'search';
-  search.className = 'layers-search';
+  search.className = 'k-field layers-search';
   search.placeholder = text('layers.search');
   search.setAttribute('aria-label', text('layers.search'));
+  find.append(icon('search'), search);
+  head.append(title, find);
+  const scroll = document.createElement('div');
+  scroll.className = 'k-scroll layers-scroll';
   const list = document.createElement('ul');
   list.className = 'layers-tree';
   list.setAttribute('role', 'tree');
   list.setAttribute('aria-label', text('layers.title'));
-  section.append(heading, search, list);
+  scroll.append(list);
+  section.append(head, scroll);
 
   /** Section rows: the elements of `index.tsx` that render a layout section. */
   function sectionsByElement(): Map<string, Section> {
@@ -156,154 +109,46 @@ export function mountLayers(ctx: EditorContext): void {
   const rowsOf = (): Map<string, Row> =>
     new Map((store.get().structure?.elements ?? []).map((entry) => [entry.id, entry]));
 
-  function eye(id: string, hidden: boolean): HTMLButtonElement {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'layers-eye';
-    button.dataset.eye = id;
-    button.setAttribute('aria-pressed', String(hidden));
-    const label = text(hidden ? 'layers.show' : 'layers.hide');
-    button.setAttribute('aria-label', label);
-    button.title = label;
-    button.textContent = hidden ? '○' : '●';
-    button.addEventListener('click', () => {
-      const current = store.get().hidden;
-      const next = current.includes(id) ? current.filter((one) => one !== id) : [...current, id];
-      store.set({ hidden: next });
-      bridge.send({ type: 'hide', ids: next });
-    });
-    return button;
-  }
-
-  /** The lock toggle: a locked element is picked in Layers only, never on the canvas. */
-  function padlock(id: string, locked: boolean): HTMLButtonElement {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'layers-lock';
-    button.dataset.lock = id;
-    button.setAttribute('aria-pressed', String(locked));
-    const label = text(locked ? 'layers.unlock' : 'layers.lock');
-    button.setAttribute('aria-label', label);
-    button.title = label;
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 12 12');
-    svg.setAttribute('aria-hidden', 'true');
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    // A body and a shackle; the shackle stands open while unlocked.
-    path.setAttribute(
-      'd',
-      locked ? 'M3 5.5V4a3 3 0 0 1 6 0v1.5M2 5.5h8v5H2z' : 'M3 5.5V4a3 3 0 0 1 5.8-1M2 5.5h8v5H2z',
+  function env(state: EditorState): RowEnv {
+    const listed = new Map(
+      (state.structure?.elements ?? []).map((entry): [string, Listed] => [entry.id, entry]),
     );
-    svg.append(path);
-    button.append(svg);
-    button.addEventListener('click', () => {
-      const current = store.get().locked;
-      const next = current.includes(id) ? current.filter((one) => one !== id) : [...current, id];
-      store.set({ locked: next });
-      bridge.send({ type: 'lock', ids: next });
-    });
-    return button;
-  }
-
-  function row(
-    item: LayerItem,
-    level: number,
-    selected: Set<string>,
-    sections: Map<string, Section>,
-    hidden: Set<string>,
-    components: Map<string, string | null>,
-    changed: Set<string>,
-    kindOf: (id: string) => ListKind | null,
-  ): HTMLLIElement {
-    const { node } = item;
-    const asSection = level === 1 ? sections.get(node.id) : undefined;
-    const li = document.createElement('li');
-    li.setAttribute('role', 'treeitem');
-    li.setAttribute('aria-level', String(level));
-    li.setAttribute('aria-selected', String(selected.has(node.id)));
-    if (hidden.has(node.id)) li.dataset.hidden = '';
-    const line = document.createElement('div');
-    line.className = 'layers-line';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = asSection ? 'layers-row layers-section' : 'layers-row';
-    button.dataset.layer = node.id;
-    if (asSection) {
-      button.dataset.section = asSection.id;
-      button.title = asSection.purpose;
-    }
-    const name = document.createElement('span');
-    name.className = 'layers-name';
-    name.textContent = asSection ? asSection.id : node.name;
-    button.append(name);
-    const facts = rowFacts(node, components.get(node.id), changed, kindOf(node.id));
-    if (facts.kit) {
-      const marker = document.createElement('span');
-      marker.className = 'layers-kit';
-      marker.title = text('layers.kit');
-      marker.setAttribute('aria-label', text('layers.kit'));
-      marker.textContent = '◆';
-      button.prepend(marker);
-    }
-    const shown = badgeOf(facts);
-    if (shown !== null) {
-      const badge = document.createElement('span');
-      badge.className = 'layers-badge';
-      badge.textContent = shown.label;
-      if (shown.title !== null) badge.title = shown.title;
-      if (facts.kind !== null) badge.dataset.kind = facts.kind;
-      button.append(badge);
-    }
-    if (facts.changed) {
-      const dot = document.createElement('span');
-      dot.className = 'layers-dot';
-      dot.title = text('layers.changed');
-      dot.setAttribute('aria-label', text('layers.changed'));
-      button.append(dot);
-    }
-    button.addEventListener('click', (event) => {
-      if (swallowClick) return;
-      const state = store.get();
-      const selection = nextSelection(state.selection, { id: node.id, add: event.shiftKey });
-      store.set({ selection });
-    });
-    button.addEventListener('mouseenter', () => bridge.send({ type: 'hover', id: node.id }));
-    button.addEventListener('mouseleave', () => bridge.send({ type: 'hover', id: null }));
-    button.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0 || store.get().busy) return;
-      const at = { x: event.clientX, y: event.clientY };
-      press = { id: node.id, section: asSection ? asSection.id : null, ...at, active: false };
-    });
-    button.addEventListener('contextmenu', (event) => {
-      event.preventDefault();
-      // The menu (task D3) listens for this; the position is in page pixels. It selects the row
-      // itself: selecting here first would draw the tree again and take this button off the page
-      // before the event could reach the menu, so the first right click did nothing.
-      const detail = { id: node.id, x: event.clientX, y: event.clientY };
-      document.dispatchEvent(new CustomEvent('edit-menu', { detail }));
-    });
-    const locked = store.get().locked.includes(node.id);
-    if (locked) li.dataset.locked = '';
-    line.append(button, padlock(node.id, locked), eye(node.id, hidden.has(node.id)));
-    li.append(line);
-    if (item.children.length > 0) {
-      const group = document.createElement('ul');
-      group.setAttribute('role', 'group');
-      for (const child of item.children) {
-        group.append(
-          row(child, level + 1, selected, sections, hidden, components, changed, kindOf),
-        );
-      }
-      li.append(group);
-    }
-    return li;
+    return {
+      selected: new Set(state.selection),
+      hidden: new Set(state.hidden),
+      locked: new Set(state.locked),
+      sections: sectionsByElement(),
+      components: new Map(
+        (state.structure?.elements ?? []).map((entry) => [entry.id, entry.component]),
+      ),
+      changed: changedIds(state.changes),
+      kindOf: (id) => listKindOf(listed.get(id), kinds, id),
+      swallowClick: () => swallowClick,
+      select(id, add) {
+        store.set({ selection: nextSelection(store.get().selection, { id, add }) });
+      },
+      press(node, sectionId, event) {
+        if (event.button !== 0 || store.get().busy) return;
+        const at = { x: event.clientX, y: event.clientY };
+        press = { id: node.id, section: sectionId, ...at, active: false };
+      },
+      hover: (id) => bridge.send({ type: 'hover', id }),
+      toggleHidden(id) {
+        const next = toggled(store.get().hidden, id);
+        store.set({ hidden: next });
+        bridge.send({ type: 'hide', ids: next });
+      },
+      toggleLocked(id) {
+        const next = toggled(store.get().locked, id);
+        store.set({ locked: next });
+        bridge.send({ type: 'lock', ids: next });
+      },
+    };
   }
 
   function render(): void {
     const state = store.get();
-    const nodes = filterTree(state.tree, query);
-    const selected = new Set(state.selection);
-    const hidden = new Set(state.hidden);
+    const nodes: TreeNode[] = filterTree(state.tree, query);
     // Rebuilding the list must not drop the keyboard focus from the row the person used.
     const active = document.activeElement;
     const focused =
@@ -311,7 +156,7 @@ export function mountLayers(ctx: EditorContext): void {
     list.replaceChildren();
     if (nodes.length === 0) {
       const empty = document.createElement('li');
-      empty.className = 'layers-empty';
+      empty.className = 'k-empty layers-empty';
       // The tree is read from the frame while editing; previewing says so instead of looking empty.
       const key = !state.on
         ? 'layers.off'
@@ -322,18 +167,8 @@ export function mountLayers(ctx: EditorContext): void {
       list.append(empty);
       return;
     }
-    const sections = sectionsByElement();
-    const components = new Map(
-      (state.structure?.elements ?? []).map((entry) => [entry.id, entry.component]),
-    );
-    const changed = changedIds(state.changes);
-    const listed = new Map(
-      (state.structure?.elements ?? []).map((entry): [string, Listed] => [entry.id, entry]),
-    );
-    const kindOf = (id: string): ListKind | null => listKindOf(listed.get(id), kinds, id);
-    for (const item of nestTree(nodes)) {
-      list.append(row(item, 1, selected, sections, hidden, components, changed, kindOf));
-    }
+    const rowEnv = env(state);
+    for (const item of nestTree(nodes)) list.append(layerRow(item, 1, rowEnv));
     markHover(state.hovered);
     if (focused) {
       for (const button of list.querySelectorAll<HTMLElement>('.layers-row')) {

@@ -1,6 +1,7 @@
-// The editor screen on the draft page (plan 15, task A): the top bar's menus, the side panels with
-// their tabs, grips and rails, the narrow-window overlays, the screen keys on the page and the
-// `?` list of shortcuts. It runs on every draft page, editable or not, before the canvas and the
+// The editor screen on the draft page (plan 15, task A; plan 18, task A): the top bar's menus, the
+// rail and the side panels with their tabs, grips and folds, the narrow-window overlays, the screen
+// keys on the page and the `?` list of shortcuts (also in the bar's More menu). It runs on every
+// draft page, editable or not, before the canvas and the
 // editor start; the Preview | Edit switch belongs to the editor (`edit/mode.ts`), and the screen
 // hears the mode from `main.dataset.mode`.
 

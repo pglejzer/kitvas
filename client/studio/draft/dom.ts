@@ -5,21 +5,25 @@ import { compareSummary, type ElementDiff } from './diff.ts';
 import type { NoteInfo } from './marks.ts';
 
 /**
- * The regions of the editor screen (plan 15, C4) a switch takes from the server's page for the new
- * view. Only their children are replaced: the regions themselves stay, with what the screen's
- * script put on them (a pane's `hidden`, an open menu). `must`: every draft page has it.
+ * The regions of the editor screen (plan 15, C4; plan 18, C8) a switch takes from the server's
+ * page for the new view. Only their children are replaced: the regions themselves stay, with what
+ * the screen's script put on them (a pane's `hidden`, an open menu). `must`: every draft page has it.
  */
 const SWAPPED = [
   // The findings of the state and width shown; their numbers match the marks.
   { part: '[data-shell="checks"]', must: true },
-  // The dock's links; the number field and the zoom strip beside them stay as they are.
+  // The bar's count of them.
+  { part: '[data-bar-findings]', must: false },
+  // The pills' links; the number field and the zoom pill beside them stay as they are.
   { part: '[data-dock="states"]', must: false },
   { part: '[data-dock="widths"]', must: false },
-  // The top bar's links to other versions and to compare name the state and width too.
+  // The top bar's links to other versions and to compare name the state and width too, and so do
+  // the compare links in its More menu.
   { part: '[data-shell="version"]', must: false },
   { part: '[data-shell="compare"]', must: false },
+  { part: '[data-shell="more"]', must: false },
 ] as const;
-const STATE_OPTION = 'a.opt[data-state]';
+const STATE_OPTION = '[data-dock="states"] a[data-state]';
 const FOCUSABLE = 'a[href], button, summary, input, select, textarea, [tabindex]';
 
 export function readNotes(main: HTMLElement): NoteInfo[] {
@@ -113,7 +117,7 @@ export function swapSections(main: HTMLElement, fresh: ParentNode, state: string
 
 /** The compare sentence, from the templates the server put on the summary; empty while unknown. */
 export function writeSummary(main: HTMLElement, diff: ElementDiff | undefined): void {
-  const summary = main.querySelector<HTMLElement>('p.compare-summary');
+  const summary = main.querySelector<HTMLElement>('p[data-compare-summary]');
   if (!summary) return;
   const { changed = '', added = '', removed = '', same = '' } = summary.dataset;
   const text = diff ? compareSummary(diff, { changed, added, removed, same }) : '';

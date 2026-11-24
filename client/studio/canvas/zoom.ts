@@ -15,11 +15,12 @@ export type Point = { x: number; y: number };
 export type Box = Point & Size;
 
 /**
- * The room kept free around the cards, in page pixels. The bottom is deeper: the dock floats
- * there and must not cover a fitted card.
+ * The room kept free around the cards, in page pixels. The top keeps a row of the pills that float
+ * there (width, cards, state); the bottom is deeper, for the zoom pill and the ask bar of part 2,
+ * so neither covers a fitted card.
  */
 export type Pad = { x: number; top: number; bottom: number };
-export const PAD: Pad = { x: 32, top: 32, bottom: 96 };
+export const PAD: Pad = { x: 32, top: 64, bottom: 80 };
 
 /**
  * A zoom inside the range; a bad number is 100 %. Kept to a hundredth of a percent, so the small
@@ -93,7 +94,7 @@ export function placeWorld(room: Size, world: Size, zoom: number, pad: Pad = PAD
   const width = Math.ceil(wide + 2 * pad.x);
   const height = Math.ceil(high + pad.top + pad.bottom);
   const left = Math.round((Math.max(room.width, width) - wide) / 2);
-  // Above the dock's room when there is space; from the top when the world is taller.
+  // Between the pills' rooms when there is space; from the top when the world is taller.
   const free = room.height - height;
   const top = free > 0 ? Math.round(pad.top + free / 2) : pad.top;
   return { width, height, left, top, centred: width <= room.width };

@@ -22,15 +22,20 @@ export function mountImages(ctx: EditorContext): void {
   if (!(section instanceof HTMLElement)) return;
 
   const box = document.createElement('div');
-  box.className = 'upload-box';
+  box.className = 'insert-images';
+  const heading = document.createElement('h3');
+  heading.className = 'insert-cat';
+  heading.textContent = text('palette.images');
   const hint = document.createElement('p');
-  hint.className = 'upload-hint';
+  hint.className = 'insert-hint k-quiet';
   hint.textContent = text('upload.insertHint');
   box.append(
+    heading,
     hint,
     uploadControl(ctx, (file) => toast(main, storedNote([file]))),
   );
-  section.append(box);
+  // Inside the part of the pane that scrolls, after the kit's components (`palette.ts`).
+  (section.querySelector('[data-insert-scroll]') ?? section).append(box);
 
   const over = (on: boolean): void => {
     box.toggleAttribute('data-over', on);

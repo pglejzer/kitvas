@@ -51,33 +51,36 @@ export function offerOf(inspected: Pick<Inspect, 'id' | 'hash' | 'suggest'>): Of
 }
 
 function button(label: string, control: string, onClick: () => void): HTMLButtonElement {
-  const node = el('button', 'props-suggest-button', label);
+  const node = el('button', 'k-btn k-btn-line', label);
   node.type = 'button';
   node.dataset.control = control;
   node.addEventListener('click', onClick);
   return node;
 }
 
-/** The offer's line for the header; `null` when there is none or no way to act on it. */
+/**
+ * The offer under the header, as the one item of its place (`.k-item`); `null` when there is none
+ * or no way to act on it.
+ */
 export function suggestView(
   inspected: Inspect,
   actions: SuggestActions | undefined,
 ): HTMLElement | null {
   const offer = offerOf(inspected);
   if (offer === null || actions === undefined) return null;
-  const box = el('div', 'props-suggest');
+  const box = el('div', 'k-item props-offer');
   box.dataset.row = 'suggest';
-  box.append(el('p', 'props-note', text('suggest.looks', { component: offer.component })));
+  box.append(el('p', undefined, text('suggest.looks', { component: offer.component })));
   const { replace, ask } = offer;
   if (replace === null) {
     box.append(
-      el('p', 'props-note', text('suggest.noSafe')),
+      el('p', 'props-hint', text('suggest.noSafe')),
       button(text('suggest.ask'), 'suggest-ask', () => actions.ask(ask, offer.label)),
     );
     return box;
   }
   if (offer.dropped.length > 0) {
-    box.append(el('p', 'props-note', text('suggest.drops', { names: offer.dropped.join(', ') })));
+    box.append(el('p', 'props-hint', text('suggest.drops', { names: offer.dropped.join(', ') })));
   }
   box.append(
     button(text('suggest.replace'), 'suggest-replace', () => actions.replace(replace, offer.label)),

@@ -3,9 +3,10 @@
 // is segmented buttons or a short list; a background image is a file of the version, with Upload.
 // Stage 4c (spec goals 1 and 5): the row shows and writes the value at the edit context (a width,
 // a state), says where the value comes from, offers "Remove for this width" and "Apply to all
-// widths", and marks colour and size options that would fail a live check.
+// widths", and marks colour and size options that would fail a live check. Plan 18: a colour row
+// shows a swatch of the colour before its list; an off-kit value says so with a review chip.
 
-import type { EditOp, StyleProperty, StyleValue } from '../../../../src/edit/index.ts';
+import type { EditOp, StyleProperty, StyleValue, TokenOption } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import { isBase, sourceAt } from '../style/context-ops.ts';
 import {
@@ -36,10 +37,10 @@ import {
   plainValue,
   propKeywords,
 } from './kinds.ts';
-import { type Env, makeRow, resetButton } from './rows.ts';
+import { type Env, makeRow, resetButton, staticValue } from './rows.ts';
 import { attachScrub } from './scrub.ts';
 import { kitHolds } from './state-held.ts';
-import { isOffKit, styleValueOf, tokensFor } from './steps.ts';
+import { isOffKit, styleValueOf, tokensFor, varOf } from './steps.ts';
 import { allowsNegative, unitsFor } from './units.ts';
 import { optionWarning, resolveCss } from './warn.ts';
 
@@ -103,20 +104,22 @@ function keywordRow(style: Style, meta: HTMLElement): HTMLElement {
     const written = env.inspected.props.find((one) => one.name === source.prop);
     const value = written?.kind === 'literal' ? written.value.value : def.default;
     const current = keywordOfProp(property, def, value);
-    return keywordControl({ label: property, keywords, current, hint: style.hint, onPick: pick });
+    const hint = style.hint;
+    return keywordControl({ property, label: property, keywords, current, hint, onPick: pick });
   }
   const keywords = keywordsOf(property) ?? [];
   const current = held !== null && keywords.includes(held) ? held : null;
   if (held !== null && current === null) {
-    meta.append(el('span', 'props-note', text('props.keyword.other', { value: held })));
+    meta.append(el('span', 'props-hint', text('props.keyword.other', { value: held })));
   }
-  return keywordControl({ label: property, keywords, current, hint: style.hint, onPick: pick });
+  const hint = style.hint;
+  return keywordControl({ property, label: property, keywords, current, hint, onPick: pick });
 }
 
 function imageRow(style: Style): HTMLElement {
   const { env, property, held } = style;
   const current = held === null ? null : imageOfUrl(held);
-  const root = el('div', 'props-image');
+  const root = el('div', 'props-picture');
   root.append(
     imageControl({
       label: property,
@@ -134,14 +137,25 @@ function imageRow(style: Style): HTMLElement {
   return root;
 }
 
+/** The colour a colour row's swatch shows: what the frame computes, else the value held. */
+function sampleOf(style: Style, tokens: readonly TokenOption[]): string | null {
+  const computed = style.single ? style.env.state.computed?.[style.property] : undefined;
+  if (computed) return computed;
+  if (style.held === null) return null;
+  const name = varOf(style.held);
+  if (name === null) return style.held;
+  return tokens.find((token) => token.var === name)?.css ?? null;
+}
+
 function tokenRow(style: Style, label: HTMLElement): HTMLElement {
   const { env, property, held } = style;
   const tokens = tokensFor(env.tokens, property);
   const length = KIND[property] === 'dimension';
+  const colour = KIND[property] === 'color';
   const current = held === null ? null : styleValueOf(held, style.offKit);
   // A scale to scrub through: lengths, weights and numbers; colours have no order to drag along.
   // A covered property is never written, so there is nothing to scrub.
-  if (KIND[property] !== 'color' && !style.covered) {
+  if (!colour && !style.covered) {
     attachScrub(label, {
       tokens,
       min: allowsNegative(property) ? null : 0,
@@ -157,6 +171,7 @@ function tokenRow(style: Style, label: HTMLElement): HTMLElement {
     current,
     placeholder: style.hint,
     ...(length ? { length: { property, units: unitsFor(property) } } : {}),
+    ...(colour ? { sample: sampleOf(style, tokens) } : {}),
     warn: (token) => optionWarning(property, token.css, card, resolveCss),
     onPick: (value) => style.set(value),
   });
@@ -237,8 +252,8 @@ export function styleRow(env: Env, property: StyleProperty): HTMLElement {
   const style: Style = { env, property, single, covered, held, offKit, hint, start, set };
   const kind = KIND[property];
   if (reason) {
-    row.body.append(el('code', 'props-code', computed || '-'));
-    row.meta.append(el('span', 'props-note', text(`props.reason.${reason}`)));
+    row.body.append(staticValue(computed || '-'));
+    row.meta.append(el('span', 'props-hint', text(`props.reason.${reason}`)));
   } else if (kind === 'keyword') {
     row.body.append(keywordRow(style, row.meta));
   } else if (single && source?.kind === 'prop' && !covered) {
@@ -262,17 +277,19 @@ export function styleRow(env: Env, property: StyleProperty): HTMLElement {
   const tokenKind = kind !== 'keyword' && kind !== 'image';
   const fromRule = source?.kind !== 'prop' || !base;
   if (tokenKind && fromRule && held !== null && (offKit || isOffKit(held, env.tokens))) {
-    const mark = el('span', 'props-offkit', text('props.offkit'));
+    // A state, said in the review tone: the value is no kit token.
+    const mark = el('span', 'k-chip', text('props.offkit'));
+    mark.dataset.tone = 'review';
     mark.title = text('props.offkit.title');
     row.meta.append(mark);
   }
   if (single) {
-    const said = el('span', 'props-source', sourceText(env, property));
+    const said = el('span', 'props-from', sourceText(env, property));
     if (!base) said.dataset.context = sourceAt(inspected, property, context).kind;
     row.meta.append(said);
   }
   if (computed) {
-    row.meta.append(el('span', 'props-computed', text('props.computed', { value: computed })));
+    row.meta.append(el('span', 'props-calc', text('props.computed', { value: computed })));
   }
   return row.root;
 }

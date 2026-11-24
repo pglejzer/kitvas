@@ -2,6 +2,8 @@
 
 Read by the `sketcher` agent before it writes the three sketches of a craft draft. Each rule has an id; reports cite it.
 
+Also read `reference/anti-slop.md`, in this folder: the generic look a sketch must not have, and what to do instead.
+
 ## Files
 
 - R-CRAFT-1: Write exactly three sketch files, one per sketch: `v<N>/src/tsx/sketches/A.tsx`, `B.tsx` and `C.tsx` in the draft's latest version folder, and the reasons files of R-CRAFT-14. Nothing else, nothing outside the draft folder. Never edit the generated entry `v<N>/src/tsx/index.tsx`: it is the board and kitvas rewrites it.

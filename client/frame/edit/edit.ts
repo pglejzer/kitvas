@@ -16,6 +16,7 @@ import {
 } from '../../channel/edit-protocol.ts';
 import { placeRing, type Rect } from '../drag/place.ts';
 import { cut } from '../page/snapshot.ts';
+import { toned } from '../tones/tones.ts';
 import { choiceOf, chosenElements, type ItemChoice, itemOfPick, textElement } from './items.ts';
 import { type KeyLike, keyOf } from './keys.ts';
 import { drawLabels, LABEL_SHEET } from './label.ts';
@@ -25,14 +26,14 @@ const MARKED = '[data-ks]';
 /** More outlines than this are not drawn: a mapped list of thousands stays cheap to follow. */
 const MAX_BOXES = 500;
 
-// Colours come from the kit's variables in the prototype's own sheet (custom properties reach
-// into a shadow root). The system colours stand in for a kit that has no such variable.
+// Colours are the studio's tones (`toned`; custom properties reach into a shadow root). The
+// system colours stand in until the studio has said them.
 const SHEET = `
 .box {
   position: absolute; left: 0; top: 0; box-sizing: border-box; pointer-events: none;
-  outline: 2px solid var(--kit-color-focus, Highlight); outline-offset: 0;
+  outline: 2px solid var(--kv-select, Highlight); outline-offset: 0;
 }
-.box[data-kind="hover"] { outline: 1px solid var(--kit-color-ink-mid, GrayText); }
+.box[data-kind="hover"] { outline: 1px solid var(--kv-select, GrayText); }
 .off { display: none; }
 @media (forced-colors: active) {
   .box { outline-color: Highlight; }
@@ -124,6 +125,7 @@ function createLayer(): Layer {
   const host = document.createElement('kitvas-edit');
   host.setAttribute('aria-hidden', 'true');
   host.style.cssText = HOST_STYLE;
+  toned(host);
   const shadow = host.attachShadow({ mode: 'closed' });
   const sheet = document.createElement('style');
   sheet.textContent = SHEET;

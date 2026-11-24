@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { call, pageCookie, shopStudio } from '../../helpers/studio.ts';
+import { call, fakeAssets, pageCookie, shopStudio } from '../../helpers/studio.ts';
 
 test('the scripts need the page cookie, like the pages that load them', async () => {
   const { studio } = await shopStudio();
@@ -59,6 +59,7 @@ test('any other name under /assets is not found, and only GET is allowed', async
 
 test('a script that cannot be bundled is a server error, not a blank script', async () => {
   const failing = {
+    ...fakeAssets,
     script: () => Promise.reject(new Error('bundle failed')),
   };
   const { studio, errors } = await shopStudio({}, { assets: failing });

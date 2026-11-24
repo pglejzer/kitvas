@@ -1,19 +1,14 @@
 import assert from 'node:assert/strict';
-import { join } from 'node:path';
 import { test } from 'node:test';
-import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
-import { loadKit, tokensToCss } from '../../../src/kit/index.ts';
-import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
-import { EDIT_SKIN_SCREEN } from '../../../src/studio/pages/editor/edit-skin/screen.ts';
 import { editBlock } from '../../../src/studio/pages/editor/editor-bar.ts';
 import { html } from '../../../src/studio/pages/html.ts';
 import { pausedView } from '../../../src/studio/pages/paused.ts';
 import { page } from '../../../src/studio/pages/shell.ts';
-import { SKIN_RULES } from '../../../src/studio/pages/skin.ts';
+import { SKIN_EDITOR_BODY } from '../../../src/studio/pages/skin/editor/body.ts';
 import { t } from '../../helpers/translate.ts';
 
-const base = loadKit(createFolderKitStore(join(PLUGIN_ROOT, 'kits')), 'base');
-const SKIN = EDIT_SKIN_SCREEN;
+// The screen's own rules; what an area's rules may hold at all is in skin/area-rules.test.ts.
+const SKIN = SKIN_EDITOR_BODY;
 
 test('only the latest built version, outside compare, can be edited; else the reason', () => {
   const latest = { built: true, version: 3, latest: 3, compare: null };
@@ -37,51 +32,47 @@ test('the screen chrome drops the studio links, marks the body and keeps the pau
   };
   const screen = page({ ...frame, chrome: 'screen' });
   assert.ok(screen.includes('<body class="screen">'));
-  assert.ok(!screen.includes('<header class="top">'));
+  assert.ok(!screen.includes('<header class="k-bar">'));
   assert.ok(screen.includes(pausedView(t).text));
   const plain = page(frame);
-  assert.ok(plain.includes('<body>\n<header class="top">'));
+  assert.ok(plain.includes('<header class="k-bar">'));
   assert.ok(!plain.includes('class="screen"'));
 });
 
-test('the screen skin uses only Base tokens, no colours of its own, and grey text is ink-mid', () => {
-  const defined = new Set(
-    [...tokensToCss(base.tokens).matchAll(/(--kit-[a-z0-9-]+):/g)].map((match) => match[1]),
-  );
-  const used = [...SKIN.matchAll(/var\((--kit-[a-z0-9-]+)\)/g)].map((match) => match[1]);
-  assert.ok(used.length > 40);
-  for (const name of used) assert.ok(defined.has(name), `${name} is a Base token`);
-  // `white-space` is a property, not a colour.
-  assert.doesNotMatch(SKIN, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|\b(white|black)\b(?!-)/i);
-  assert.doesNotMatch(SKIN, /box-shadow|text-shadow|font-family: (?!var)/);
-  assert.ok(!SKIN.includes('--kit-color-ink-soft'));
-});
-
-test('the window never scrolls: the screen is a bar of 48 px over a body that fills the rest', () => {
+test('the window never scrolls: the screen is the bar over a body that fills the rest', () => {
   assert.match(SKIN, /html:has\(> body\.screen\) \{[^}]*overflow: hidden/);
   assert.match(SKIN, /body\.screen \{[^}]*height: 100dvh;[^}]*overflow: hidden;/);
   assert.match(
     SKIN,
-    /\.draft-page \{[^}]*grid-template-rows: var\(--kit-space-3xl\) minmax\(0, 1fr\)/,
+    /\.side-screen \{[^}]*grid-template-rows: var\(--st-size-bar\) minmax\(0, 1fr\)/,
   );
-  // Left panel, grip, canvas, grip, right panel; the panels' widths come from the script.
-  assert.ok(SKIN.includes('grid-template-columns: auto auto minmax(320px, 1fr) auto auto'));
-  assert.ok(SKIN.includes('width: var(--editor-left, 272px)'));
-  assert.ok(SKIN.includes('width: var(--editor-right, 320px)'));
-  // Each pane scrolls in itself, never sideways.
-  assert.match(SKIN, /\.editor-pane \{[^}]*overflow-x: hidden;[^}]*overflow-y: auto;/);
+  // The rail, the left panel, the canvas, the right panel; the panels' widths come from the script.
+  assert.ok(SKIN.includes('grid-template-columns: var(--st-size-rail) auto minmax(0, 1fr) auto;'));
+  assert.ok(SKIN.includes('width: var(--side-left, var(--st-size-left));'));
+  assert.ok(SKIN.includes('width: var(--side-right, var(--st-size-right));'));
+  // A pane host never scrolls itself: what it holds scrolls in one `.k-scroll`.
+  assert.match(
+    SKIN,
+    /\.side-panel > \[data-pane\] \{[^}]*flex-direction: column;[^}]*overflow: hidden;/,
+  );
 });
 
-test('a folded panel is a 40 px rail, and below 1100 px the panels open over the canvas', () => {
-  const wide = SKIN.split('@media (min-width: 1100px)')[1] ?? '';
-  assert.ok(wide.startsWith(' {\n  .editor-side[data-folded] { width: var(--kit-size-control); }'));
+test('a folded left panel takes no room and a folded right one is its rail; below 1100 px they open over the canvas', () => {
+  assert.ok(
+    SKIN.includes(
+      '.side-panel[data-side="left"][data-folded] { width: 0; margin-left: 0; visibility: hidden; }',
+    ),
+  );
+  assert.ok(
+    SKIN.includes('.side-panel[data-side="right"][data-folded] { width: var(--st-size-rail); }'),
+  );
   const narrow = SKIN.split('@media (max-width: 1099.98px)')[1] ?? '';
-  assert.match(narrow, /\.editor-side\[data-overlay\] \{[^}]*position: absolute;/);
-  assert.match(narrow, /\.editor-grip\[data-grip\] \{ display: none; \}/);
+  assert.match(narrow, /\.side-panel\[data-overlay\]\[data-side\] \{[^}]*position: absolute;/);
+  assert.ok(narrow.includes('.side-grip[data-grip] { display: none; }'));
 });
 
-test('the old draft layout and the edit toggle are gone from the studio skin', () => {
-  assert.ok(!SKIN_RULES.includes('.draft {'));
-  assert.ok(!SKIN_RULES.includes('.foot {'));
-  assert.ok(!SKIN.includes('.edit-toggle'));
+test('a panel moves only while the script marks the screen, so a drag and a resize take effect at once', () => {
+  assert.match(SKIN, /\.side-screen\[data-moving\] \.side-panel \{\s*transition:/);
+  const still = SKIN.replaceAll(/\.side-screen\[data-moving\][^{]*\{[^}]*\}/g, '');
+  assert.doesNotMatch(still, /\.side-panel[^{]*\{[^}]*transition/);
 });

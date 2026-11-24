@@ -1,9 +1,12 @@
-// The width of the cards, set in place (plan 15, task B): the dock's presets and number field,
-// and the drag handle on the card's right edge. A frame's width is a style of the frame that is
-// already there, so nothing loads again. The rules are in `width.ts`.
+// The width of the cards, set in place (plan 15, task B): the width pill's presets and number
+// field, and the drag handle on the card's right edge. A frame's width is a style of the frame
+// that is already there, so nothing loads again. The rules are in `width.ts`.
 
 import { isPlainClick } from '../clicks.ts';
+import { text } from '../edit/texts.ts';
+import { toast } from '../edit/toast.ts';
 import type { Frame } from '../frames.ts';
+import { cardSize } from './caption.ts';
 import {
   chooseWidth,
   dragWidth,
@@ -14,7 +17,6 @@ import {
   type Shown,
   sameShown,
   shownWidth,
-  sizeLabel,
   snapToPreset,
   stepView,
   widthAddress,
@@ -24,7 +26,7 @@ import {
 const SETTLE_MS = 250;
 
 const PRESET_LINK = 'a[data-dock-width]';
-const STATE_LINK = 'a.opt[data-state]';
+const STATE_LINK = '[data-dock="states"] a[data-state]';
 
 export type WidthDeps = {
   main: HTMLElement;
@@ -71,6 +73,9 @@ export function mountWidth(deps: WidthDeps): WidthControl {
   const field = main.querySelector<HTMLInputElement>('input[data-dock-view]');
   const form = field?.form ?? null;
   const note = main.querySelector<HTMLElement>('[data-dock-note]');
+  const said = main.querySelector<HTMLElement>('[data-dock-said]');
+  // The mark's words are its title; a press shows them to a hand that cannot hover.
+  note?.addEventListener('click', () => toast(main, note.title));
   const handle = main.querySelector<HTMLElement>('[data-canvas="handle"]');
 
   const fromAddress = new URL(location.href).searchParams.get('view');
@@ -117,7 +122,7 @@ export function mountWidth(deps: WidthDeps): WidthControl {
       frame.element.width = String(width);
     }
     for (const size of main.querySelectorAll<HTMLElement>(SIZE_LABELS)) {
-      size.textContent = sizeLabel(width);
+      size.textContent = cardSize(width, text);
     }
     main.dataset.width = String(shown.width);
     if (shown.view === null) delete main.dataset.view;
@@ -125,6 +130,9 @@ export function mountWidth(deps: WidthDeps): WidthControl {
     // A half-typed number stays while the person is in the field.
     if (field && (typed || document.activeElement !== field)) field.value = String(width);
     if (note) note.hidden = shown.view === null;
+    // A screen reader hears it once, when the marks go.
+    const words = shown.view === null ? '' : (note?.title ?? '');
+    if (said && said.textContent !== words) said.textContent = words;
     handle?.setAttribute('aria-valuenow', String(width));
     markLinks();
     tellMarks();

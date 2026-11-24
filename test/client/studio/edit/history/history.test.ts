@@ -107,9 +107,13 @@ function setup(answers: Answer<EditOutcome>[]) {
     now: () => clock,
   };
   const stub = {} as unknown as HTMLElement;
-  const bridge = { send: (body: EditStudioBody) => sent.push(body) } as unknown as Bridge;
+  const flashed: string[][] = [];
+  const bridge = {
+    send: (body: EditStudioBody) => sent.push(body),
+    flash: (ids: readonly string[]) => flashed.push([...ids]),
+  } as unknown as Bridge;
   const history = createHistory({ slug: 'demo', main: stub, panel: stub, store, bridge }, io);
-  return { store, history, requests, sent, tick: (ms: number) => (clock += ms) };
+  return { store, history, requests, sent, flashed, tick: (ms: number) => (clock += ms) };
 }
 
 test('apply, undo and redo send the op, its inverse, and the op again', async () => {
@@ -126,6 +130,31 @@ test('apply, undo and redo send the op, its inverse, and the op again', async ()
   assert.equal(store.get().undo.length, 1);
   assert.equal(store.get().redo.length, 0);
   assert.equal(store.get().etags[SCSS], '"new"');
+});
+
+test('an undo, a redo and a change a button made flash what they touched; an edit by hand does not', async () => {
+  const { history, flashed } = setup([applied(), applied(), applied(), applied(), applied()]);
+  await history.apply(gesture(gap('13px', '8px')));
+  assert.deepEqual(flashed, [], 'the hand on the element needs no ring');
+  await history.undo();
+  await history.redo();
+  assert.deepEqual(flashed, [[id], [id]]);
+  await history.apply({ ...gesture(variant(CARD), 'Use the outline card'), flash: true });
+  assert.deepEqual(flashed[2], [CARD]);
+  // What the answer renamed or created is named as it is after the change.
+  const moved = applied(false, {
+    renames: swap,
+    created: ['sections/Pricing:section/Stack/Card.3'],
+  });
+  const { history: other, flashed: rings } = setup([moved]);
+  await other.apply({ ops: [move], label: 'Move', flash: true });
+  assert.deepEqual(rings, [[CARD, 'sections/Pricing:section/Stack/Card.3']]);
+});
+
+test('a refused or lost change flashes nothing', async () => {
+  const { history, flashed } = setup([]);
+  await history.apply({ ...gesture(gap('13px', '8px')), flash: true });
+  assert.deepEqual(flashed, []);
 });
 
 test('undo of a structural gesture sends its undoOps, and redo the inverse the undo answered with', async () => {

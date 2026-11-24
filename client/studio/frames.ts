@@ -5,6 +5,7 @@ import type { EditStudioBody } from '../channel/edit-protocol.ts';
 import type { LiveStudioBody } from '../channel/live-protocol.ts';
 import {
   type FrameMessage,
+  flashIds,
   type Mark,
   parseFrameMessage,
   parseStudioMessage,
@@ -60,6 +61,13 @@ export function sendMeasure(frame: Frame, request: number): void {
 
 export function sendMarks(frame: Frame, marks: Mark[]): void {
   post(frame, { kitvas: 1, channel: frame.channel, type: 'marks', marks });
+}
+
+/** A ring flashes once on each of `ids` in the frame: a change was just applied to them. */
+export function sendFlash(frame: Frame, ids: readonly string[]): void {
+  const named = flashIds(ids);
+  if (named.length === 0) return;
+  post(frame, { kitvas: 1, channel: frame.channel, type: 'flash', ids: named });
 }
 
 export function sendState(frame: Frame, state: string): void {

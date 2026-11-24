@@ -39,6 +39,13 @@ export const MAX_TEXT = 200;
 export const MAX_STYLE = 600;
 /** The largest width or height, in CSS pixels, a message may carry. */
 export const MAX_SIZE = 1e6;
+/** The most elements one `flash` names: more rings at once than this point at nothing. */
+export const MAX_FLASH = 24;
+
+/** The elements one `flash` names: each id once, the first `MAX_FLASH` (a longer list is refused). */
+export function flashIds(ids: readonly string[]): string[] {
+  return [...new Set(ids)].slice(0, MAX_FLASH);
+}
 
 export type Tone = 'fix' | 'review' | 'changed' | 'added';
 export type Mark = { id: string; label: string; tone: Tone };
@@ -59,8 +66,20 @@ export type FrameMessage =
   | CanvasFrameMessage
   | LiveFrameMessage;
 
+/** The studio's theme as a frame hears it: the one that shows, never "system". */
+export const FRAME_THEMES = ['light', 'dark'] as const;
+export type FrameTheme = (typeof FRAME_THEMES)[number];
+
+/** The studio's accents (the same words as `VIEW_ACCENTS` of the settings). */
+export const FRAME_ACCENTS = ['copper', 'teal', 'coral', 'rose'] as const;
+export type FrameAccent = (typeof FRAME_ACCENTS)[number];
+
 export type StudioMessage =
   | { kitvas: 1; channel: string; type: 'measure'; request: number }
+  /** The studio's theme and accent, by name: the frame's own table has the colours. */
+  | { kitvas: 1; channel: string; type: 'tones'; theme: FrameTheme; accent: FrameAccent }
+  /** A change was just applied to these elements: a ring flashes once on each (ADR 0057). */
+  | { kitvas: 1; channel: string; type: 'flash'; ids: string[] }
   | { kitvas: 1; channel: string; type: 'state'; state: string }
   | { kitvas: 1; channel: string; type: 'marks'; marks: Mark[] }
   | EditStudioMessage
@@ -166,6 +185,19 @@ export function parseStudioMessage(data: unknown, channel: string): StudioMessag
     const { state } = message;
     return typeof state === 'string' && STATE_ID.test(state)
       ? { kitvas: 1, channel, type: 'state', state }
+      : undefined;
+  }
+  if (message.type === 'tones') {
+    const theme = FRAME_THEMES.find((name) => name === message.theme);
+    const accent = FRAME_ACCENTS.find((name) => name === message.accent);
+    return theme && accent ? { kitvas: 1, channel, type: 'tones', theme, accent } : undefined;
+  }
+  if (message.type === 'flash') {
+    const { ids } = message;
+    if (!Array.isArray(ids) || ids.length > MAX_FLASH) return undefined;
+    const checked = ids.filter((id): id is string => typeof id === 'string' && ELEMENT_ID.test(id));
+    return checked.length === ids.length
+      ? { kitvas: 1, channel, type: 'flash', ids: checked }
       : undefined;
   }
   if (message.type === 'marks') {

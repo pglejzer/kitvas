@@ -35,7 +35,7 @@ const HIDDEN = trusted(' hidden');
 export function catalogNotes(catalog: CatalogInput): Html {
   const { t, kit, stamp } = catalog;
   const building = stamp === undefined ? '' : HIDDEN;
-  return html`<p class="quiet" data-catalog-note="building"${building}>${t('studio.kit.catalog.building')}</p><p class="fix" data-catalog-note="failed"${HIDDEN}>${t('studio.kit.catalog.failed', { id: kit })}</p>`;
+  return html`<p class="k-quiet" data-catalog-note="building"${building}>${t('studio.kit.catalog.building')}</p><p class="k-fix" data-catalog-note="failed"${HIDDEN}>${t('studio.kit.catalog.failed', { id: kit })}</p>`;
 }
 
 /** One example: its title, its rendered frame when built, and its code. */
@@ -52,14 +52,15 @@ export function exampleFigure(
   // A fresh channel for every frame: it only tells the frames of one page apart.
   const channel = newChannel();
   const frame = shown
-    ? html`<iframe class="example-frame" data-example="${key}" data-channel="${channel}" src="${withChannel(catalog.src(key), channel, catalog.host)}" sandbox="allow-scripts" title="${t('studio.kit.exampleFrame', { component, title: example.title })}" loading="lazy"></iframe>`
+    ? html`<iframe class="kit-frame" data-example="${key}" data-channel="${channel}" src="${withChannel(catalog.src(key), channel, catalog.host)}" sandbox="allow-scripts" title="${t('studio.kit.exampleFrame', { component, title: example.title })}" loading="lazy"></iframe>`
     : '';
-  const note = html`<p class="quiet" data-preview-note="${key}"${skipped ? '' : HIDDEN}>${t('studio.kit.noPreview')}</p>`;
+  const note = html`<p class="k-quiet" data-preview-note="${key}"${skipped ? '' : HIDDEN}>${t('studio.kit.noPreview')}</p>`;
   const reference = referenceImage(catalog, key, component, example);
   const shownPair =
-    reference === '' ? frame : html`<div class="example-pair">${frame}${reference}</div>`;
+    reference === '' ? frame : html`<div class="kit-pair">${frame}${reference}</div>`;
   const look = lookNote(catalog, key, example.reference);
-  return html`<figure class="example"><figcaption>${example.title}</figcaption>${shownPair}${look}${note}<pre><code>${example.code}</code></pre></figure>`;
+  // The source line of the example. A scrolling box takes focus, so a keyboard can read all of it.
+  return html`<figure class="kit-example"><figcaption>${example.title}</figcaption>${shownPair}${look}${note}<pre class="kit-source" tabindex="0"><code>${example.code}</code></pre></figure>`;
 }
 
 /** The copied reference beside its frame; nothing when the build did not copy it. */
@@ -74,7 +75,7 @@ function referenceImage(
   const file = `${key}${extname(example.reference)}`;
   if (!refs.has(file)) return '';
   const alt = t('studio.kit.reference', { component, title: example.title });
-  return html`<img class="example-ref" data-reference="${key}" src="${refs.src(file)}" alt="${alt}" loading="lazy">`;
+  return html`<img class="kit-ref" data-reference="${key}" src="${refs.src(file)}" alt="${alt}" loading="lazy">`;
 }
 
 /** The score of an example with a reference, or the note that the kit changed since. */
@@ -84,7 +85,7 @@ function lookNote(catalog: CatalogInput, key: string, reference: string | undefi
   const { look } = refs;
   if (look.state === 'none') return '';
   if (look.state === 'stale') {
-    return html`<p class="quiet" data-look="stale">${t('studio.kit.lookStale', { id: kit })}</p>`;
+    return html`<p class="k-quiet" data-look="stale">${t('studio.kit.lookStale', { id: kit })}</p>`;
   }
   const entry = look.entries[key];
   if (entry === undefined) return '';
@@ -94,5 +95,5 @@ function lookNote(catalog: CatalogInput, key: string, reference: string | undefi
     colour: Math.round(entry.colour),
     structure: Math.round(entry.structure),
   });
-  return html`<p class="quiet" data-look="${key}">${score} <span>(${parts})</span></p>`;
+  return html`<p class="k-quiet" data-look="${key}">${score} <span>(${parts})</span></p>`;
 }

@@ -3,6 +3,7 @@
 // `slots.ts`, which re-exports it. Split out of `slots.ts` to keep both files under 500 lines.
 
 import type { Box, Point, Slot } from '../drag/slots.ts';
+import { toned } from '../tones/tones.ts';
 
 /** The indicator line's thickness. */
 const LINE = 2;
@@ -24,9 +25,9 @@ export function placeIndicator(slot: Slot, host: Point): { line: Box | null; box
 /** The indicator in the frame's overlay (not part of the page, like the marks). */
 export type Indicator = { show(slot: Slot | null): void; dispose(): void };
 
-// The kit's accent when it has one, else its ink (custom properties reach into a shadow root);
-// the system colour stands in for a kit with neither.
-const COLOUR = 'var(--kit-color-accent, var(--kit-color-ink, Highlight))';
+// The studio's selection colour (`toned`; custom properties reach into a shadow root); the
+// system colour stands in until the studio has said its tones.
+const COLOUR = 'var(--kv-select, Highlight)';
 
 const SHEET = `
 .line, .box { position: absolute; left: 0; top: 0; box-sizing: border-box; pointer-events: none; }
@@ -59,6 +60,7 @@ function createLayer(document: Document): Layer {
   const host = document.createElement('kitvas-slot');
   host.setAttribute('aria-hidden', 'true');
   host.style.cssText = HOST_STYLE;
+  toned(host);
   const shadow = host.attachShadow({ mode: 'closed' });
   const sheet = document.createElement('style');
   sheet.textContent = SHEET;

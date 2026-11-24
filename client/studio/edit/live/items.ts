@@ -16,6 +16,13 @@ import {
 import type { EditorState, Gesture, LiveItem } from '../store.ts';
 import { previewOf } from '../style/preview-of.ts';
 import { text } from '../texts.ts';
+import { type Evidence, evidenceOf, type Values } from './evidence.ts';
+
+/**
+ * A live item that keeps what its card measured (plan 18): the Checks tab shows it as evidence.
+ * A code finding has no values; its message is its evidence.
+ */
+export type MeasuredItem = LiveItem & { values?: Values };
 
 /**
  * The rule a measured fact is filed under: the full check's own where it has one, so a waiver
@@ -52,16 +59,17 @@ export function factText(fact: LiveFact): string {
   }
 }
 
-/** A card's facts as items, at the card's width. */
-export const frameItems = (facts: readonly LiveFact[], width: number): LiveItem[] =>
+/** A card's facts as items, at the card's width, with the values each fact measured. */
+export const frameItems = (facts: readonly LiveFact[], width: number): MeasuredItem[] =>
   facts.map(
-    (fact): LiveItem => ({
+    (fact): MeasuredItem => ({
       id: fact.id,
       rule: LIVE_RULE_IDS[fact.rule],
       severity: fact.severity,
       width,
       message: factText(fact),
       source: 'frame',
+      values: fact.values,
     }),
   );
 
@@ -94,10 +102,10 @@ export function coveredIds(
 
 /** The frame items after one card's answer: its earlier items of the covered elements make way. */
 export function withFrameAnswer(
-  items: readonly LiveItem[],
+  items: readonly MeasuredItem[],
   answer: { width: number; facts: readonly LiveFact[] },
   covered: ReadonlySet<string>,
-): LiveItem[] {
+): MeasuredItem[] {
   const replaced = (item: LiveItem): boolean => {
     if (item.source !== 'frame' || item.width !== answer.width) return false;
     return item.id !== null && covered.has(item.id);
@@ -163,6 +171,8 @@ export type LiveRow = {
   /** The card widths it was measured at, ascending; empty for a code finding. */
   widths: number[];
   waived: boolean;
+  /** What the first card that found it measured; a code finding's is its message. */
+  evidence: Evidence;
 };
 
 /** The findings of one element (`id: null`: those of no element), and its number on the canvas. */
@@ -178,7 +188,10 @@ const sameFinding = (row: LiveRow, item: LiveItem): boolean =>
   row.rule === item.rule && row.message === item.message && row.source === item.source;
 
 /** Items grouped by element in the order they came, the ones of no element last, then numbered. */
-export function liveGroups(items: readonly LiveItem[], waivers: readonly Waiver[]): LiveGroup[] {
+export function liveGroups(
+  items: readonly MeasuredItem[],
+  waivers: readonly Waiver[],
+): LiveGroup[] {
   const groups = new Map<string | null, LiveRow[]>();
   for (const item of items) {
     const rows = groups.get(item.id) ?? [];
@@ -198,6 +211,7 @@ export function liveGroups(items: readonly LiveItem[], waivers: readonly Waiver[
       source: item.source,
       widths: item.width === null ? [] : [item.width],
       waived: isWaived(waivers, item.rule, item.id),
+      evidence: evidenceOf({ message: item.message, values: item.values ?? null }),
     });
   }
   const last = (id: string | null): number => Number(id === null);

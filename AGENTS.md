@@ -47,3 +47,4 @@ claude plugin eval . --allow-tools Bash Write Edit --tag smoke   # skill evals (
 - Building a draft (bundle, styles, element ids): `src/render/`, rules in `src/render/AGENTS.md`. Code bundled into prototypes lives in the top-level `client/` folder.
 - Checks of a draft (findings, rules, `checks.json`): `src/checks/`, rules in `src/checks/AGENTS.md`.
 - The local studio (servers, API routes, security checks, pages): `src/studio/`, rules in `src/studio/AGENTS.md`.
+- The studio's look (tokens, light and dark, Cards and Flush, accents, skin, icons, the frame's tones): `src/studio/theme/`, `src/studio/pages/skin/`, `src/studio/pages/icons/`, `client/frame/tones/`, rules in `src/studio/AGENTS.md`; the rules against the generic look for agents: `reference/anti-slop.md`. ADR 0057.

@@ -128,6 +128,23 @@ test('a forced state goes to every card, or to the one named', () => {
   assert.deepEqual(types(desk.posted), ['force']);
 });
 
+test('a flash goes to every card, each element once, and nothing when none is named', () => {
+  const { phone, tablet, desk, bridge } = setup();
+  bridge.flash?.([]);
+  for (const one of [phone, tablet, desk]) assert.deepEqual(one.posted, []);
+  bridge.flash?.(['sections/Hero:a', 'sections/Hero:b', 'sections/Hero:a']);
+  for (const one of [phone, tablet, desk]) {
+    assert.deepEqual(one.posted, [
+      {
+        kitvas: 1,
+        channel: one.frame.channel,
+        type: 'flash',
+        ids: ['sections/Hero:a', 'sections/Hero:b'],
+      },
+    ]);
+  }
+});
+
 test('without cards the bridge is the one frame, as before', () => {
   const alone = card('x', 390);
   const bridge = createBridge(alone.frame);

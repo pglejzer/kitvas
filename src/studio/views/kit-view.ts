@@ -61,7 +61,7 @@ export function swatchRules(tokens: FlatToken[]): string {
     .filter((token) => token.type === 'color')
     .map((token) => {
       const name = cssVarName(token.path);
-      return `.swatch[data-token="${name}"] { background: ${formatTokenValue(token)}; }`;
+      return `.kit-swatch[data-token="${name}"] { background: ${formatTokenValue(token)}; }`;
     })
     .join('\n');
 }

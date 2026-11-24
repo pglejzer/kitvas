@@ -108,7 +108,7 @@ test('fit shows the whole card, by the tighter of width and height', () => {
   assert.equal(fitZoom({ width: 2000, height: 422 }, { width: 390, height: 844 }, NO_PAD), 0.5);
 });
 
-test('fit keeps the room around the card free, deeper at the bottom for the dock', () => {
+test('fit keeps the room around the card free for the pills, deeper at the bottom', () => {
   const room = { width: 1280 / 2 + 2 * PAD.x, height: 800 / 2 + PAD.top + PAD.bottom };
   assert.equal(fitZoom(room, { width: 1280, height: 800 }), 0.5);
   assert.ok(PAD.bottom > PAD.top);
@@ -144,11 +144,11 @@ test('fit follows the room: a narrower room gives a smaller zoom, a wider one a 
   }
 });
 
-test('a world that fits sits in the middle, above the room kept for the dock', () => {
+test('a world that fits sits in the middle, between the rooms kept for the pills', () => {
   const place = placeWorld({ width: 1000, height: 800 }, { width: 400, height: 400 }, 1);
   assert.equal(place.left, 300);
   assert.equal(place.centred, true);
-  // 800 high, 400 of world, 32 above and 96 below kept free: the rest is shared.
+  // 800 high, 400 of world, the pills' rooms above and below kept free: the rest is shared.
   assert.equal(place.top, PAD.top + (800 - 400 - PAD.top - PAD.bottom) / 2);
   assert.ok(place.width <= 1000 && place.height <= 800);
 });
@@ -212,4 +212,20 @@ test('a point of a frame is on the page at the frame corner plus the point times
   assert.deepEqual(fromFramePoint({ x: 100, y: 50 }, corner, 2), { x: 300, y: 140 });
   // A zoom that is no number counts as 100 %.
   assert.deepEqual(fromFramePoint({ x: 1, y: 1 }, corner, 0), { x: 101, y: 41 });
+});
+
+test('a panel that opens moves the draft half its width, a little on every frame, with no jump', () => {
+  // The canvas follows its room on each frame of the move (`canvas.ts`). The room starts 248 px
+  // further right at the end and is 248 px narrower; the draft stays in its middle all the way.
+  const world = { width: 390, height: 844 };
+  const at = (panel: number): number =>
+    panel + placeWorld({ width: 1076 - panel, height: 852 }, world, 0.81).left;
+  const frames = [0, 31, 62, 124, 186, 217, 248].map(at);
+  assert.equal(frames[0], 380);
+  assert.equal(frames.at(-1), 504);
+  for (let index = 1; index < frames.length; index += 1) {
+    const step = (frames[index] ?? 0) - (frames[index - 1] ?? 0);
+    // Never back, and never more than the panel itself moved in that frame.
+    assert.ok(step >= 0 && step <= 62, `frame ${index} moved ${step}`);
+  }
 });

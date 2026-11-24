@@ -6,6 +6,7 @@ import { openPageRoute, type PageRoute } from '../http/router.ts';
 import { type OpenLinks, pagePathAllowed } from '../security/open-links.ts';
 import { pageCookieHeader } from '../security/page-cookie.ts';
 import { lockedPage } from './locked.ts';
+import type { Skin } from './skin.ts';
 
 export type OpenRouteDeps = {
   links: OpenLinks;
@@ -14,7 +15,7 @@ export type OpenRouteDeps = {
   port: number;
   pageSecret: string;
   /** The studio's style sheet, for the page a used link gets. */
-  skin: string;
+  skin: Skin;
 };
 
 export function openRoute(deps: OpenRouteDeps): PageRoute {

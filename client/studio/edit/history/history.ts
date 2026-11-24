@@ -15,7 +15,7 @@ import type { EditOp, SimpleOp } from '../../../../src/edit/index.ts';
 import type { EditOutcome, EditRequest } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import { type Answer, postEdits } from '../api.ts';
 import type { History, HistoryDeps } from '../context.ts';
-import { type ChangeEntry, elementOf, type Gesture } from '../store.ts';
+import { elementOf, type Gesture } from '../store.ts';
 import { previewOf } from '../style/preview-of.ts';
 import {
   invertRenames,
@@ -27,6 +27,7 @@ import {
 } from '../sync/remap.ts';
 import { text } from '../texts.ts';
 import { appliedNote } from './applied.ts';
+import { opChips, type StepEntry } from './chips.ts';
 
 /** Two edits of one property this close together are one undo step (R13): a stepper drag. */
 export const GROUP_MS = 800;
@@ -212,13 +213,15 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
     return next;
   }
 
-  const entry = (ops: readonly EditOp[], label: string, id: string | null): ChangeEntry => ({
+  // The Changes rail shows what each step changed as chips (plan 18): the line carries them.
+  const entry = (ops: readonly EditOp[], label: string, id: string | null): StepEntry => ({
     by: 'person',
     id,
     label,
     files: [],
     offKit: isOffKit(ops),
     at: io.now(),
+    chips: opChips(ops),
   });
 
   /** The step a stack keeps for an applied request: what was sent, and the answer's inverse. */
@@ -323,7 +326,11 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
     if (outcome.outcome === 'applied') {
       pending = null;
       finish(kind, sent, original, outcome);
-      store.set({ busy: false, applied: appliedNote(store.get().applied, sent.ops, outcome) });
+      const note = appliedNote(store.get().applied, sent.ops, outcome);
+      store.set({ busy: false, applied: note });
+      // An undo, a redo or a change a button made: the ring shows where it landed. An edit by
+      // the person's own hand on the element needs none.
+      if (kind !== 'apply' || original.flash) bridge.flash?.(note.ids);
     } else if (outcome.outcome === 'conflict') {
       bridge.send({ type: 'unpreview' });
       store.set({ busy: false, conflict: { gesture: sent, outcome } });

@@ -17,14 +17,14 @@ test('options are plain links; the current one says so', () => {
   ];
   assert.equal(
     optionRow('Width', options).text,
-    '<p class="row"><span class="label">Width</span>' +
-      '<a class="opt" href="/drafts/shop?width=390" aria-current="true">Phone</a>' +
-      '<a class="opt" href="/drafts/shop?a=1&amp;b=2">Tablet</a></p>',
+    '<div class="k-row"><span class="k-label">Width</span><nav class="k-seg" aria-label="Width">' +
+      '<a href="/drafts/shop?width=390" aria-current="true">Phone</a>' +
+      '<a href="/drafts/shop?a=1&amp;b=2">Tablet</a></nav></div>',
   );
   assert.equal(
     filterRow('Which drafts', options.slice(0, 1)).text,
-    '<nav class="row" aria-label="Which drafts">' +
-      '<a class="opt" href="/drafts/shop?width=390" aria-current="true">Phone</a></nav>',
+    '<nav class="k-seg" aria-label="Which drafts">' +
+      '<a href="/drafts/shop?width=390" aria-current="true">Phone</a></nav>',
   );
 });
 
@@ -34,11 +34,9 @@ test('a state option carries its id; other options carry no data attribute', () 
     { label: 'Full', href: '/d?state=full', current: false, state: 'full' },
     { label: 'Phone', href: '/d?width=390', current: false },
   ]).text;
-  assert.ok(
-    text.includes('<a class="opt" data-state="empty" href="/d?state=empty" aria-current="true">'),
-  );
-  assert.ok(text.includes('<a class="opt" data-state="full" href="/d?state=full">Full</a>'));
-  assert.ok(text.includes('<a class="opt" href="/d?width=390">Phone</a>'));
+  assert.ok(text.includes('<a data-state="empty" href="/d?state=empty" aria-current="true">'));
+  assert.ok(text.includes('<a data-state="full" href="/d?state=full">Full</a>'));
+  assert.ok(text.includes('<a href="/d?width=390">Phone</a>'));
 });
 
 test('the channel ends the frame address with the studio port taken from the host', () => {
@@ -72,7 +70,7 @@ test('a page carries the skin on its nonce, and the studio links unless it is lo
   });
   assert.ok(text.includes('<style nonce="N0nce">body{}</style>'));
   assert.ok(text.includes('<title>Drafts - kitvas</title>'));
-  assert.ok(text.includes('<a class="opt" href="/" aria-current="page">Drafts</a>'));
+  assert.ok(text.includes('<a class="k-btn" href="/" aria-current="page">Drafts</a>'));
   const other = page({
     title: 'Shop',
     nonce: 'N',
@@ -80,7 +78,7 @@ test('a page carries the skin on its nonce, and the studio links unless it is lo
     nav: { t, current: null },
     body: html``,
   });
-  assert.ok(other.includes('<a class="opt" href="/">Drafts</a>'));
+  assert.ok(other.includes('<a class="k-btn" href="/">Drafts</a>'));
   const locked = lockedPage({ t, nonce: 'N', skin: 'body{}', reason: 'closed' });
   assert.ok(!locked.includes('<nav'));
   assert.ok(locked.includes('<h1>Open the studio from its link</h1>'));
@@ -111,29 +109,34 @@ test('findings are numbered across both groups, with their check and their detai
   ];
   const next = { key: 'studio.next.review', params: {} };
   const text = notesSection({ t, shown, elsewhere: 2, next }).text;
-  assert.ok(text.includes('<h2 class="fix">1 to fix</h2>'));
-  assert.ok(text.includes('<h2 class="review">2 to review</h2>'));
-  assert.ok(text.includes('<li class="note" data-tone="fix" data-element="Draft:main/Input.0">'));
-  // A finding without an element leaves the attribute out.
-  assert.ok(
-    text.includes('<li class="note" data-tone="review" data-element="Draft:main/Input.0">'),
-  );
-  assert.ok(text.includes('<li class="note" data-tone="review"><span class="num">3</span>'));
-  assert.ok(
-    text.includes(
-      '<span class="num">1</span><div>The phone field has no label.<small>Accessibility</small>',
-    ),
-  );
+  assert.ok(text.includes('<h2 class="checks-group-title">1 to fix</h2>'));
+  assert.ok(text.includes('<h2 class="checks-group-title">2 to review</h2>'));
+  const row = (tone: string, rule: string, rest: string): string =>
+    `<li class="note k-item checks-finding" data-tone="${tone}" data-rule="${rule}"${rest}>`;
+  assert.ok(text.includes(row('fix', 'a11y/label', ' data-element="Draft:main/Input.0"')));
+  assert.ok(text.includes(row('review', 'ds/raw-color', ' data-element="Draft:main/Input.0"')));
+  // A finding without an element leaves the attribute out, and names no element.
+  assert.ok(text.includes(row('review', 'runtime/console', '')));
+  const head = (tone: string, n: number, title: string, meta: string): string =>
+    `<span class="num checks-num" data-tone="${tone}">${n}</span><div class="checks-finding-text">` +
+    `<span class="checks-finding-title">${title}</span><small class="k-meta">${meta}</small>`;
   assert.ok(
     text.includes(
-      '<span class="num">3</span><div>The console shows an error.<small>Runtime</small>',
+      head('fix', 1, 'The phone field has no label.', 'Accessibility · Draft / Input.0'),
     ),
+  );
+  assert.ok(text.includes(head('review', 3, 'The console shows an error.', 'Runtime')));
+  // The filter counts what each segment shows; a segment with nothing to show is off.
+  assert.ok(text.includes('data-checks-filter="all" data-count="3" aria-pressed="true"'));
+  assert.ok(text.includes('data-checks-filter="fix" data-count="1" aria-pressed="false"'));
+  assert.ok(
+    text.includes('data-checks-filter="accepted" data-count="0" aria-pressed="false" disabled'),
   );
   assert.ok(text.includes('<p><code>a11y/label</code> src/tsx/Draft.tsx, line 12</p>'));
   assert.ok(text.includes('<p><code>ds/raw-color</code> src/scss/Draft.scss</p>'));
   assert.ok(text.includes('<p><code>runtime/console</code></p>'));
   assert.ok(text.includes('2 more in other widths or states.'));
-  assert.ok(text.includes(`<p class="next">${t('studio.next.review')}</p>`));
+  assert.ok(text.includes(`<p class="k-meta checks-next">${t('studio.next.review')}</p>`));
 });
 
 test('with nothing to show, only the next step is there', () => {

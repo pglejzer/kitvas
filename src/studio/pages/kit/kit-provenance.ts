@@ -20,16 +20,16 @@ function verifyNote(t: Translate, kitId: string, view: VerifyView): string {
 export function provenanceSection(t: Translate, input: Provenance): Html {
   const { verify } = input;
   const note = verifyNote(t, input.kitId, verify);
-  const cls = verify.state === 'failed' ? 'fix' : 'quiet';
+  const cls = verify.state === 'failed' ? 'k-fix' : 'k-quiet';
   const issues =
     verify.issues.length === 0
       ? ''
-      : html`<ul class="plain">${verify.issues.map(
+      : html`<ul class="kit-list">${verify.issues.map(
           (issue) =>
             html`<li data-verify-step="${issue.step}">${t(issue.key, issue.params)} <code>${issue.path}</code></li>`,
         )}</ul>`;
-  return html`<section class="kit-part" data-kit-provenance>
-<p class="meta"><span data-kit-source>${input.source}</span></p>
+  return html`<section class="kit-part kit-provenance" data-kit-provenance>
+<p class="k-meta"><span data-kit-source>${input.source}</span></p>
 <p class="${cls}" data-verify="${verify.state}">${note}</p>${issues}
 </section>`;
 }

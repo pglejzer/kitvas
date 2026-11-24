@@ -2,9 +2,11 @@
 // element with a live finding, at the element's top-left corner, so it never sits on the full
 // check's dots at the top-right. Like the full check's marks, everything is in one overlay at the
 // end of `body`, in a closed shadow root, hidden from assistive technology and never taking the
-// pointer. System colours only: nothing of the kit's or the studio's look reaches the prototype.
+// pointer. Colours are the studio's tones (`toned`), with system colours until it says them:
+// nothing of the studio's look reaches a build.
 
 import type { Point, Rect } from '../drag/place.ts';
+import { toned } from '../tones/tones.ts';
 
 /** One live mark as the page sends it. */
 export type LiveMarkLike = { id: string; label: string; tone: 'fix' | 'review' };
@@ -19,9 +21,12 @@ const SHEET = `
   display: flex; align-items: center; justify-content: center; white-space: nowrap;
   font: 700 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: 0;
   font-variant-numeric: tabular-nums;
-  background: Canvas; color: CanvasText; border: 2px dashed CanvasText;
+  background: var(--kv-review, Canvas); color: var(--kv-on-tone, CanvasText);
+  border: 2px dashed var(--kv-on-tone, CanvasText);
 }
-.tag[data-tone="fix"] { background: CanvasText; color: Canvas; border-style: solid; }
+.tag[data-tone="fix"] {
+  background: var(--kv-fix, CanvasText); color: var(--kv-on-tone, Canvas); border-style: solid;
+}
 .off { display: none; }
 `;
 
@@ -134,6 +139,7 @@ export function createLiveMarks(): LiveMarks {
     host = document.createElement('kitvas-live-marks');
     host.setAttribute('aria-hidden', 'true');
     host.style.cssText = HOST_STYLE;
+    toned(host);
     const shadow = host.attachShadow({ mode: 'closed' });
     const sheet = document.createElement('style');
     sheet.textContent = SHEET;

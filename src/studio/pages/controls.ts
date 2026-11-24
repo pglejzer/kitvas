@@ -1,6 +1,8 @@
-// Options shown as plain text: the current one dark, the others grey links.
+// Options shown as links in a segmented control (`.k-seg`, plan 18): one of several views, the
+// current one marked with `aria-current`, which the shared skin shows as the chosen segment. They
+// are plain links, so they work without a script.
 
-import { type Html, html } from './html.ts';
+import { type Html, html, trusted } from './html.ts';
 
 export type Option = {
   label: string;
@@ -10,19 +12,19 @@ export type Option = {
   state?: string;
 };
 
+const CURRENT = trusted(' aria-current="true"');
+
 function link(option: Option): Html {
   const state = option.state === undefined ? '' : html` data-state="${option.state}"`;
-  return option.current
-    ? html`<a class="opt"${state} href="${option.href}" aria-current="true">${option.label}</a>`
-    : html`<a class="opt"${state} href="${option.href}">${option.label}</a>`;
+  return html`<a${state} href="${option.href}"${option.current ? CURRENT : ''}>${option.label}</a>`;
 }
 
-/** A row with a visible label: Width, Show, Version. */
+/** A row with a visible label (Width, Show, Version): the label, then the options. */
 export function optionRow(label: string, options: Option[]): Html {
-  return html`<p class="row"><span class="label">${label}</span>${options.map((option) => link(option))}</p>`;
+  return html`<div class="k-row"><span class="k-label">${label}</span><nav class="k-seg" aria-label="${label}">${options.map((option) => link(option))}</nav></div>`;
 }
 
-/** A row without a visible label, named for screen readers. */
+/** Options without a visible label, named for screen readers: the gallery's filter. */
 export function filterRow(name: string, options: Option[]): Html {
-  return html`<nav class="row" aria-label="${name}">${options.map((option) => link(option))}</nav>`;
+  return html`<nav class="k-seg" aria-label="${name}">${options.map((option) => link(option))}</nav>`;
 }

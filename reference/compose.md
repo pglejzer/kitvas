@@ -2,6 +2,8 @@
 
 Read by the `maker` agent before it writes a section. Each rule has an id; reports cite it.
 
+Also read `reference/anti-slop.md`, in this folder: the generic look a generated screen must not have, and what to do instead.
+
 ## Structure
 
 - R-COMPOSE-1: Write exactly three files per section: the TSX file and the SCSS file named in `files` of the context, and the reasons file of R-COMPOSE-46. Nothing else, nothing outside the draft folder.

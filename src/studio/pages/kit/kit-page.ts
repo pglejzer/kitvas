@@ -1,77 +1,43 @@
 // `/kit`: every kit. `/kit/<id>`: one kit's catalog, with its tokens, components and problems.
 
 import { type KitStore, loadKit } from '../../../kit/index.ts';
-import { KitvasError, type Translate } from '../../../shared/index.ts';
+import type { Translate } from '../../../shared/index.ts';
 import { readStampFile, readVerifyJson, refFileExists } from '../../frame/catalog-files.ts';
 import { lookView, sourceLine, verifyView } from '../../views/kit-status.ts';
-import { groupComponents, groupTokens, swatchRules } from '../../views/kit-view.ts';
+import { scaleRules, splitTokens, typeRules } from '../../views/kit-tokens.ts';
+import { groupComponents, swatchRules } from '../../views/kit-view.ts';
 import { catalogRefSrc, catalogSrc, type FrameOrigin } from '../draft/frame-src.ts';
-import { type Html, html, trusted } from '../html.ts';
+import { html, trusted } from '../html.ts';
 import { page } from '../shell.ts';
+import type { Skin } from '../skin.ts';
+import { entries, kitTiles } from './kit-list.ts';
+import { kitSide } from './kit-nav.ts';
 import { provenanceSection } from './kit-provenance.ts';
-import { componentsSection, problemsSection, tokensSection } from './kit-sections.ts';
+import { categoryId, componentsSection, problemsSection } from './kit-sections.ts';
+import { type Anchor, tokenAnchors, tokenSections } from './kit-token-view.ts';
 
 export type KitPageDeps = {
   kits: KitStore;
   /** The project folder, where the built examples are; without it no example is built. */
   project?: string | undefined;
   t: Translate;
-  skin: string;
+  skin: Skin;
   frame: FrameOrigin;
 };
 export type KitRequest = { nonce: string };
 /** The kit page also needs the Host, for the address of its example frames. */
 export type KitPageRequest = KitRequest & { host: string };
 
-type Entry =
-  | { id: string; kind: 'kit'; name: string; version: string; components: number; problems: number }
-  | { id: string; kind: 'unreadable' };
-
-function entries(kits: KitStore): Entry[] {
-  return kits.list().map((id): Entry => {
-    try {
-      const { kit, issues } = loadKit(kits, id);
-      return {
-        id,
-        kind: 'kit',
-        name: kit.name,
-        version: kit.version,
-        components: kit.components.length,
-        problems: issues.length,
-      };
-    } catch (error) {
-      if (!(error instanceof KitvasError)) throw error;
-      return { id, kind: 'unreadable' };
-    }
-  });
-}
-
-function entryRow(t: Translate, entry: Entry): Html {
-  if (entry.kind === 'unreadable') {
-    return html`<li class="kit-row"><span>${entry.id}</span><span class="quiet">${t('studio.kit.unreadable')}</span></li>`;
-  }
-  const status =
-    entry.problems === 0
-      ? html`<span>${t('studio.kit.valid')}</span>`
-      : html`<span class="fix">${t('studio.kit.problems', { count: entry.problems })}</span>`;
-  const summary = t('studio.kit.summary', { version: entry.version, count: entry.components });
-  return html`<li class="kit-row"><a href="/kit/${entry.id}">${entry.name}</a><code>${entry.id}</code><span class="quiet">${summary}</span>${status}</li>`;
-}
-
 export function kitListPage(deps: KitPageDeps, request: KitRequest): string {
   const { t } = deps;
   const title = t('studio.kit.title');
-  const rows = entries(deps.kits);
-  const content =
-    rows.length === 0
-      ? html`<p class="quiet">${t('studio.kit.empty')}</p>`
-      : html`<ul class="kit-list" role="list">${rows.map((entry) => entryRow(t, entry))}</ul>`;
+  const content = kitTiles(t, entries(deps.kits));
   return page({
     title,
     nonce: request.nonce,
     skin: deps.skin,
     nav: { t, current: 'kit' },
-    body: html`<main><h1>${title}</h1>${content}</main>`,
+    body: html`<main class="k-page"><h1 class="kit-title">${title}</h1>${content}</main>`,
   });
 }
 
@@ -80,7 +46,10 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
   const { t } = deps;
   const loaded = loadKit(deps.kits, id);
   const { kit } = loaded;
-  const swatches = swatchRules(loaded.tokens);
+  const rules = [swatchRules, scaleRules, typeRules]
+    .map((rulesOf) => rulesOf(loaded.tokens))
+    .filter((text) => text !== '')
+    .join('\n');
   const { project } = deps;
   const stamp = project === undefined ? undefined : readStampFile(project, kit.id);
   const verified = project === undefined ? undefined : readVerifyJson(project, kit.id);
@@ -108,21 +77,47 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
   };
   const ready = stamp === undefined ? 'missing' : 'ready';
   const script = html`<script type="module" nonce="${request.nonce}" src="/assets/kit.js"></script>`;
-  const body = html`<main data-kit="${kit.id}" data-catalog="${ready}">
-<h1>${kit.name}</h1>
-<p class="meta"><code>${kit.id}</code><span>${t('studio.kit.summary', { version: kit.version, count: kit.components.length })}</span></p>
+
+  const tokens = splitTokens(loaded.tokens);
+  const groups = groupComponents(kit.components);
+  const sections: Anchor[] = [
+    ...(loaded.issues.length === 0
+      ? []
+      : [
+          { id: 'kit-problems', label: t('studio.kit.problemsTitle'), count: loaded.issues.length },
+        ]),
+    ...tokenAnchors(t, tokens),
+    ...(kit.components.length === 0
+      ? []
+      : [
+          { id: 'kit-components', label: t('studio.kit.components'), count: kit.components.length },
+        ]),
+  ];
+  const categories = groups.map((group) => ({
+    id: categoryId(group.category),
+    label: t(`studio.kit.category.${group.category}`),
+    count: group.components.length,
+  }));
+  const side = kitSide(t, entries(deps.kits), kit.id, sections, categories);
+
+  const body = html`<main class="k-page kit-layout" data-kit="${kit.id}" data-catalog="${ready}">
+${side}
+<div class="kit-main">
+<header class="kit-head"><h1>${kit.name}</h1>
+<p class="k-meta"><code>${kit.id}</code><span>${t('studio.kit.summary', { version: kit.version, count: kit.components.length })}</span></p></header>
 ${provenanceSection(t, provenance)}
 ${problemsSection(t, loaded.issues)}
-${tokensSection(t, groupTokens(loaded.tokens))}
-${componentsSection(t, groupComponents(kit.components), catalog)}
+${tokenSections(t, tokens)}
+${componentsSection(t, groups, catalog)}
+</div>
 ${script}
 </main>`;
-  const swatchStyle = html`<style nonce="${request.nonce}">${trusted(swatches)}</style>`;
+  const ruleBlock = html`<style nonce="${request.nonce}">${trusted(rules)}</style>`;
   return page({
     title: kit.name,
     nonce: request.nonce,
     skin: deps.skin,
     nav: { t, current: 'kit' },
-    body: html`${swatchStyle}${body}`,
+    body: html`${ruleBlock}${body}`,
   });
 }

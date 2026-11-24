@@ -59,7 +59,7 @@ test('the page names the source and says the kit was never verified', () => {
   assert.ok(text.includes('<span data-kit-source>Built in</span>'));
   assert.ok(
     text.includes(
-      '<p class="quiet" data-verify="never">Not verified yet. Run &quot;kitvas kit verify base&quot;.</p>',
+      '<p class="k-quiet" data-verify="never">Not verified yet. Run &quot;kitvas kit verify base&quot;.</p>',
     ),
   );
 });
@@ -68,7 +68,9 @@ test('a passed verification shows its date', () => {
   const project = tempDir('kitvas-project-');
   writeVerify(project, {});
   assert.ok(
-    basePage(project).includes('<p class="quiet" data-verify="passed">Verified on 2026-11-23.</p>'),
+    basePage(project).includes(
+      '<p class="k-quiet" data-verify="passed">Verified on 2026-11-23.</p>',
+    ),
   );
 });
 
@@ -93,7 +95,9 @@ test('a failed verification shows the count and each problem in words', () => {
     ],
   });
   const text = basePage(project);
-  assert.ok(text.includes('<p class="fix" data-verify="failed">Verification found 1 problem(s).'));
+  assert.ok(
+    text.includes('<p class="k-fix" data-verify="failed">Verification found 1 problem(s).'),
+  );
   assert.ok(
     text.includes(
       '<li data-verify-step="render">Example Button.1 did not render. <code>components.0.examples.0</code></li>',

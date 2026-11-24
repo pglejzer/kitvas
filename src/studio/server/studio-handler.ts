@@ -7,6 +7,7 @@ import { issueEntries, problemReply, RequestError } from '../http/problem.ts';
 import { HTML_TYPE, jsonReply, send } from '../http/reply.ts';
 import { findRoute, type Route } from '../http/router.ts';
 import { lockedPage } from '../pages/locked.ts';
+import type { Skin } from '../pages/skin.ts';
 import type { DeniedLog } from '../security/denied-log.ts';
 import { cookieName, cookieValue } from '../security/page-cookie.ts';
 import { bearerToken, originAllowed, studioSiteAllowed } from '../security/request-checks.ts';
@@ -20,7 +21,7 @@ export type StudioContext = {
   /** The per-start secret of the page cookie. */
   pageSecret: string;
   /** The style sheet of the studio's pages, the locked page included. */
-  skin: string;
+  skin: Skin;
   port: number;
   framePort: number;
   bodyLimit: number;

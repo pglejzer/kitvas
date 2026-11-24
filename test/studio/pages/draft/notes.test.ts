@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { type Guideline, guidelineFor } from '../../../../src/checks/index.ts';
 import type { Translate } from '../../../../src/shared/index.ts';
-import { guidelineNote, notesSection } from '../../../../src/studio/pages/draft/notes.ts';
+import {
+  checkCounts,
+  elementLabel,
+  guidelineNote,
+  notesSection,
+} from '../../../../src/studio/pages/draft/notes.ts';
 import { escapeHtml } from '../../../../src/studio/pages/html.ts';
 import { finding } from '../../../helpers/findings.ts';
 import { t } from '../../../helpers/translate.ts';
@@ -78,17 +83,84 @@ test('accepted findings are listed apart: no number, never marked, with their re
     next: NEXT,
     waived: [accepted],
   }).text;
-  assert.ok(text.includes('<li class="note" data-tone="fix" data-element="Draft:main/Input.0">'));
-  assert.ok(text.includes('<h2 class="accepted">[studio.notes.accepted]</h2>'));
   assert.ok(
     text.includes(
-      '<li class="accepted-note" data-rule="ds/raw-color" data-waived-element="Draft:main/Input.1">',
+      '<li class="note k-item checks-finding" data-tone="fix" data-rule="a11y/label" ' +
+        'data-element="Draft:main/Input.0">',
+    ),
+  );
+  assert.ok(text.includes('<h2 class="checks-group-title">[studio.notes.accepted]</h2>'));
+  assert.ok(
+    text.includes(
+      '<li class="accepted-note k-item checks-finding" data-rule="ds/raw-color" ' +
+        'data-waived-element="Draft:main/Input.1">',
     ),
   );
   // The canvas reads `data-element` of `li.note` for its marks: an accepted row has neither.
   assert.equal(text.split('data-element=').length - 1, 1);
-  assert.equal(text.split('class="num"').length - 1, 1);
-  assert.ok(text.includes('<p class="accepted-reason">[studio.notes.reason]</p>'));
+  assert.equal(text.split('class="num checks-num"').length - 1, 1);
+  assert.ok(text.includes('<p class="k-meta checks-reason">[studio.notes.reason]</p>'));
+  // A script puts each finding's controls in its actions (the waivers' Accept and Withdraw).
+  assert.equal(text.split('data-checks-actions').length - 1, 2);
+});
+
+test('each finding has its number, its words, and the check and element it comes from', () => {
+  const one = finding({ element: 'sections/Pricing:section/Stack/Card.2' });
+  const text = notesSection({ t: keys, shown: [one], elsewhere: 0, next: NEXT }).text;
+  assert.ok(
+    text.includes(
+      '<span class="num checks-num" data-tone="fix">1</span><div class="checks-finding-text">' +
+        '<span class="checks-finding-title">The phone field has no label.</span>' +
+        '<small class="k-meta">[studio.check.a11y] · Pricing / Card.2</small></div>',
+    ),
+  );
+});
+
+test('the filter carries each count; one with nothing to show cannot be chosen', () => {
+  const shown = [
+    finding({ severity: 'fix' }),
+    finding({ severity: 'fix', rule: 'a11y/name' }),
+    finding({ severity: 'review', rule: 'ui/line-length' }),
+  ];
+  const text = notesSection({ t: keys, shown, elsewhere: 0, next: NEXT }).text;
+  assert.ok(text.includes('<div class="k-seg checks-filter" role="group"'));
+  assert.ok(
+    text.includes(
+      '<button type="button" data-checks-filter="all" data-count="3" aria-pressed="true">' +
+        '<b class="checks-filter-count">3</b><span>[studio.notes.filter.all]</span></button>',
+    ),
+  );
+  assert.ok(text.includes('data-checks-filter="fix" data-count="2" aria-pressed="false">'));
+  assert.ok(text.includes('data-checks-filter="review" data-count="1" aria-pressed="false">'));
+  assert.ok(
+    text.includes('data-checks-filter="accepted" data-count="0" aria-pressed="false" disabled>'),
+  );
+  // Each group says which filter shows it.
+  assert.ok(text.includes('<div class="checks-group" data-checks-group="fix">'));
+  assert.ok(text.includes('<div class="checks-group" data-checks-group="review">'));
+  assert.ok(!text.includes('data-checks-group="accepted"'));
+});
+
+test('the counts: every finding listed, those to fix, those to review, the accepted ones', () => {
+  const shown = [finding({ severity: 'fix' }), finding({ severity: 'review' })];
+  const waived = [{ ...finding({ rule: 'ds/raw-color' }), reason: 'brand' }];
+  assert.deepEqual(checkCounts(shown, waived), { all: 3, fix: 1, review: 1, accepted: 1 });
+  assert.deepEqual(checkCounts([], []), { all: 0, fix: 0, review: 0, accepted: 0 });
+});
+
+test('nothing listed is one quiet line with the next step, and no filter', () => {
+  const text = notesSection({ t: keys, shown: [], elsewhere: 2, next: NEXT }).text;
+  assert.ok(text.includes('<div class="k-empty checks-empty">'));
+  assert.ok(text.includes('[studio.notes.elsewhere]'));
+  assert.ok(text.includes('<p class="checks-next">[studio.next.review]</p>'));
+  assert.ok(!text.includes('checks-filter'));
+});
+
+test('an element is named by its section and its last tag, as the editor names it', () => {
+  assert.equal(elementLabel('sections/Pricing:section/Stack/Card.2'), 'Pricing / Card.2');
+  assert.equal(elementLabel('Draft:main/Input.0'), 'Draft / Input.0');
+  assert.equal(elementLabel(':main'), 'main');
+  assert.equal(elementLabel('plain'), 'plain');
 });
 
 test('an accepted finding with no element has no element attribute, and none means no heading', () => {
@@ -100,7 +172,12 @@ test('an accepted finding with no element has no element attribute, and none mea
     next: NEXT,
     waived: [accepted],
   }).text;
-  assert.ok(withOne.includes('<li class="accepted-note" data-rule="ds/raw-size"><div>'));
+  assert.ok(
+    withOne.includes(
+      '<li class="accepted-note k-item checks-finding" data-rule="ds/raw-size">' +
+        '<div class="checks-finding-head">',
+    ),
+  );
   assert.ok(!withOne.includes('data-waived-element'));
   const none = notesSection({ t: keys, shown: [], elsewhere: 0, next: NEXT }).text;
   assert.ok(!none.includes('accepted'));

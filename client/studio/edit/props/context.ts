@@ -95,7 +95,7 @@ export function wantedOp(
 }
 
 function actionButton(label: string, title: string, onClick: () => void): HTMLButtonElement {
-  const button = el('button', 'props-reset', label);
+  const button = el('button', 'k-btn props-act', label);
   button.type = 'button';
   button.title = title;
   button.addEventListener('click', onClick);
@@ -150,7 +150,7 @@ export function askCovered(
 export function heldNote(env: Env): HTMLElement {
   const state = env.state.context.state ?? 'hover';
   const name = text(`context.state.${state === 'focus-visible' ? 'focus' : state}`);
-  return el('span', 'props-note', text('context.kitState', { state: name }));
+  return el('span', 'props-hint', text('context.kitState', { state: name }));
 }
 
 /** The notes each panel build has shown; `env` is made anew for every build of the panel. */
@@ -172,5 +172,5 @@ export function noteOnce(env: object, key: string): boolean {
 export function coveredNote(env: Env): HTMLElement | null {
   if (!noteOnce(env, 'covered')) return null;
   const canAsk = env.inspected.scss !== null && env.inspected.styleClass !== null;
-  return el('span', 'props-note', text(canAsk ? 'context.covered.ask' : 'context.covered'));
+  return el('span', 'props-hint', text(canAsk ? 'context.covered.ask' : 'context.covered'));
 }

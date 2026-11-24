@@ -1,6 +1,7 @@
-// The rules of the timeline strip (spec 4d, goal 5; plan 17, task D), pure so they are tested
-// without a DOM: the points, the marks of the selected element's changes, which point a drag is
-// over, whether Bring back has anything to bring, and the words of its request to Claude.
+// The rules of the Versions list (spec 4d, goal 5; plan 17, task D; plan 18, task B), pure so they
+// are tested without a DOM: the points and their rows, the marks of the selected element's
+// changes, which versions are new, whether Bring back has anything to bring, and the words of its
+// request to Claude.
 
 import type { Zod } from '../../../../src/shared/index.ts';
 import type {
@@ -60,14 +61,25 @@ export function pointsOf(
 }
 
 /**
- * The index of the point nearest to `x` on a track `width` wide whose `count` points are spread
- * evenly from its left edge to its right; `-1` for a track without points.
+ * The rows of the Versions list: "Now" first, then each older version, newest first, each with
+ * the mark of the selected element's change in it. Same arguments as `pointsOf`.
  */
-export function pointAt(x: number, width: number, count: number): number {
-  if (count <= 0) return -1;
-  if (count === 1 || width <= 0) return 0;
-  const index = Math.round((x / width) * (count - 1));
-  return Math.min(count - 1, Math.max(0, index));
+export function versionRows(
+  versions: readonly number[],
+  viewing: number | null,
+  steps: readonly ElementStep[] | null,
+): Point[] {
+  return pointsOf(versions, viewing, steps).reverse();
+}
+
+/**
+ * The versions of `read` that `known` did not have: a version saved while the page is open, which
+ * slides into the list. Nothing is new on the first read (`known` empty), or the whole list would.
+ */
+export function newVersions(known: readonly number[], read: readonly number[]): number[] {
+  if (known.length === 0) return [];
+  const had = new Set(known);
+  return read.filter((version) => !had.has(version));
 }
 
 /** The element's id in `version`; `null` when it was not there or nothing is known of it. */

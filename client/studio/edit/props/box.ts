@@ -80,7 +80,8 @@ export function sideText(
 
 /**
  * The box: margin around padding around the element, a button per side that shows its computed
- * value and picks it, and the link switch. The panel puts the picked side's row under it.
+ * value and picks it, and the link switch. The panel puts the picked side's row under it. Plan 18:
+ * margin is a dashed outline, padding the one fill inside it, the picked sides in the accent.
  */
 export function boxView(options: {
   state: BoxState;
@@ -89,17 +90,18 @@ export function boxView(options: {
   onLink(link: BoxLink): void;
 }): HTMLElement {
   const { state } = options;
-  const root = el('div', 'props-box');
+  const root = el('div', 'props-boxmodel');
   root.dataset.row = 'box';
   const marked = new Set(linkedSides(state));
   const layerBox = (layer: BoxLayer, inner: HTMLElement | null): HTMLElement => {
-    const box = el('div', `props-box-${layer}`);
+    const box = el('div', 'props-layer');
+    box.dataset.layer = layer;
     box.setAttribute('role', 'group');
     box.setAttribute('aria-label', text(`props.box.${layer}`));
-    box.append(el('span', 'props-box-name', text(`props.box.${layer}`)));
+    box.append(el('span', 'props-layer-name', text(`props.box.${layer}`)));
     for (const side of BOX_SIDES) {
       const at = SIDE_PROPERTY[layer][side];
-      const button = el('button', 'props-box-side', sideText(options.computed, at));
+      const button = el('button', 'props-side', sideText(options.computed, at));
       button.type = 'button';
       button.dataset.side = side;
       button.dataset.control = at;
@@ -114,16 +116,16 @@ export function boxView(options: {
       button.addEventListener('click', () => options.onPick(layer, side));
       box.append(button);
     }
-    box.append(inner ?? el('div', 'props-box-core'));
+    box.append(inner ?? el('div', 'props-core'));
     return box;
   };
   root.append(layerBox('margin', layerBox('padding', null)));
 
-  const link = el('div', 'props-seg props-box-link');
+  const link = el('div', 'k-seg props-link');
   link.setAttribute('role', 'group');
   link.setAttribute('aria-label', text('props.box.link'));
   for (const one of BOX_LINKS) {
-    const button = el('button', 'props-seg-item', text(`props.box.link.${one}`));
+    const button = el('button', undefined, text(`props.box.link.${one}`));
     button.type = 'button';
     button.dataset.control = `link-${one}`;
     button.setAttribute('aria-pressed', String(state.link === one));

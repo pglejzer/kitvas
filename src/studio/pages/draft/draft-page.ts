@@ -1,8 +1,9 @@
-// `/drafts/<slug>`: the editor screen (plan 15, C4). The top bar picks the version, compare and the
-// mode; the canvas between the side panels frames the version at a width, in a state; the right
-// panel holds its findings. The window never scrolls: the panels and the canvas do, each alone.
+// `/drafts/<slug>`: the editor screen (plan 15, C4; plan 18, C8). The top bar picks the version,
+// compare and the mode; the rail opens the left panel's panes; the canvas between the side panels
+// frames the version at a width, in a state; the right panel holds its findings. The window never
+// scrolls: the panes and the canvas do, each alone.
 
-import { CHECKS, type ChecksFile, readChecks } from '../../../checks/index.ts';
+import { CHECKS, type ChecksFile, type Finding, readChecks } from '../../../checks/index.ts';
 import {
   type Draft,
   type DraftStore,
@@ -21,16 +22,17 @@ import {
   pickView,
   pickWidth,
 } from '../../views/draft-query.ts';
-import { findingsFor, nextStep, versionStatus } from '../../views/status.ts';
+import { type DraftStatus, findingsFor, nextStep, versionStatus } from '../../views/status.ts';
 import { editMenu, editTexts } from '../editor/edit-panel.ts';
 import { editBlock, editorBar } from '../editor/editor-bar.ts';
-import { grip, leftSide, rightSide } from '../editor/editor-side.ts';
+import { grip, leftSide, lockedNote, rail, rightSide } from '../editor/editor-side.ts';
 import type { PageRequest } from '../gallery.ts';
 import { type Html, html } from '../html.ts';
 import { page } from '../shell.ts';
+import type { Skin } from '../skin.ts';
 import { craftPick } from './craft-board.ts';
 import { choiceLink } from './draft-links.ts';
-import { dock, stage } from './draft-stage.ts';
+import { pills, stage } from './draft-stage.ts';
 import { type FrameOrigin, frameSrc } from './frame-src.ts';
 import { notesSection } from './notes.ts';
 import { originalPane } from './original-pane.ts';
@@ -39,7 +41,7 @@ export type DraftPageDeps = {
   drafts: DraftStore;
   kits: KitStore;
   t: Translate;
-  skin: string;
+  skin: Skin;
   frame: FrameOrigin;
 };
 
@@ -125,6 +127,18 @@ function cards(view: View): Html {
   });
 }
 
+/** What the bar counts: the findings at the state and width shown, as the Checks pane lists them. */
+function shownStatus(
+  built: boolean,
+  checks: ChecksFile | undefined,
+  shown: Finding[],
+): DraftStatus {
+  if (!built) return { kind: 'notBuilt' };
+  if (!checks) return { kind: 'notChecked' };
+  const fix = shown.filter((finding) => finding.severity === 'fix').length;
+  return { kind: 'checked', fix, review: shown.length - fix };
+}
+
 /** `main`'s data (C4): what the page's scripts read of the view, and whether it can be edited. */
 function mainAttrs(view: View, editable: boolean): Html {
   const { choice, compare } = view;
@@ -160,15 +174,17 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   const block = editBlock({ built: info.built, version, latest, compare });
   const editable = block === null;
 
-  const bar = editorBar({ t, draft, choice, link, latest, block });
+  const status = shownStatus(info.built, checks, shown);
+  const bar = editorBar({ t, draft, choice, link, latest, block, status });
   const sides = {
     t,
-    locked: block === null ? null : t(`studio.edit.shell.reason.${block}`),
+    locked: block === null ? null : lockedNote({ t, block, link, latest, slug }),
     checks: html`${checksLines(t, kitName(deps.kits, draft.kit.id), info.built, checks)}${notesSection({ t, shown, elsewhere, next, waived: checks?.waived ?? [] })}`,
     sketches: craftPick(t, draft),
+    timeline: info.built && compare === null,
   };
-  const canvas = html`<section class="editor-canvas stage" data-shell="canvas" aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${dock({ t, choice, states: info.states, link })}</section>`;
-  const body = html`<main class="draft-page"${mainAttrs(view, editable)}>${bar}<div class="editor-body">${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
+  const canvas = html`<section class="stage-canvas" data-shell="canvas" aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link })}</section>`;
+  const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
   return page({
     title: draft.title,
     nonce: request.nonce,

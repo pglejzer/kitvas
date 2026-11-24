@@ -55,16 +55,49 @@ test('the Base kit catalog shows every token and component', async () => {
   for (const component of loaded.kit.components) {
     assert.ok(text.includes(`<h3>${component.name}`), component.name);
   }
-  assert.ok(text.includes('<h2 id="kit-tokens">Tokens</h2>'));
+  assert.ok(text.includes('<h2 id="kit-colors">Colors</h2>'));
   assert.ok(text.includes('<h2 id="kit-components">Components</h2>'));
+});
+
+test('the page links to each of its sections, and the picker marks the current kit', async () => {
+  const text = await pages(builtinKits())('kit', { id: 'base' });
+  for (const id of ['kit-colors', 'kit-spacing', 'kit-radius', 'kit-type', 'kit-components']) {
+    assert.ok(text.includes(`href="#${id}"`), id);
+    assert.ok(text.includes(`id="${id}"`), `${id} has its heading`);
+  }
+  assert.ok(text.includes('<a class="kit-pick" href="/kit/base" aria-current="page">'));
+});
+
+test('a colour shows its contrast on white and on black, and a value with no hex shows none', async () => {
+  const text = await pages(createFolderKitStore(FIXTURE_KITS))('kit', { id: 'tiny' });
+  assert.ok(text.includes('<span class="k-meta">On white 16.3:1, on black 1.2:1</span>'));
+  // The veil has an alpha: it is written as rgb(…), so no ratio is made up for it.
+  const veil = /<li class="kit-color">(?:(?!<\/li>)[\s\S])*--kit-color-veil[\s\S]*?<\/li>/.exec(
+    text,
+  );
+  assert.ok(veil);
+  assert.ok(!veil[0].includes('On white'));
+});
+
+test('spacing is drawn as a bar a rule of the style block sizes, never a style attribute', async () => {
+  const text = await pages(createFolderKitStore(FIXTURE_KITS))('kit', { id: 'tiny' });
+  assert.ok(text.includes('<span class="kit-bar" data-token="--kit-space-sm"></span>'));
+  assert.ok(text.includes('.kit-bar[data-token="--kit-space-sm"] { --size: 8px; }'));
+  assert.ok(text.includes('.kit-bar[data-token="--kit-space-none"] { --size: 0px; }'));
 });
 
 test('a component shows its props table, examples and accessibility notes', async () => {
   const text = await pages(createFolderKitStore(FIXTURE_KITS))('kit', { id: 'tiny' });
-  assert.ok(text.includes('<div class="scroll" role="region" tabindex="0" aria-label="Button">'));
+  assert.ok(
+    text.includes('<div class="kit-scroll" role="region" tabindex="0" aria-label="Button">'),
+  );
   assert.ok(text.includes('<th scope="col">Required</th>'));
   assert.ok(text.includes('<td>solid, plain</td><td>solid</td><td>No</td>'));
-  assert.ok(text.includes('<pre><code>&lt;Button&gt;Save&lt;/Button&gt;</code></pre>'));
+  assert.ok(
+    text.includes(
+      '<pre class="kit-source" tabindex="0"><code>&lt;Button&gt;Save&lt;/Button&gt;</code></pre>',
+    ),
+  );
   assert.ok(text.includes('Needs a visible label or aria-label'));
   assert.ok(text.includes('<h4>Accessibility</h4>'));
 });
@@ -83,11 +116,15 @@ test('the swatch style block uses the page nonce and only token values', async (
   assert.equal(blocks.length, 2, 'the skin and the swatches');
   const swatches = blocks[1]?.[1] ?? '';
   assert.deepEqual(swatches.split('\n'), [
-    '.swatch[data-token="--kit-color-ink"] { background: #1d2025; }',
-    '.swatch[data-token="--kit-color-accent"] { background: #1d2025; }',
-    '.swatch[data-token="--kit-color-veil"] { background: rgb(0 0 0 / 0.5); }',
+    '.kit-swatch[data-token="--kit-color-ink"] { background: #1d2025; }',
+    '.kit-swatch[data-token="--kit-color-accent"] { background: #1d2025; }',
+    '.kit-swatch[data-token="--kit-color-veil"] { background: rgb(0 0 0 / 0.5); }',
+    '.kit-bar[data-token="--kit-space-sm"] { --size: 8px; }',
+    '.kit-bar[data-token="--kit-space-none"] { --size: 0px; }',
+    '.kit-sample { font-family: Inter, "Segoe UI", sans-serif; }',
+    '.kit-sample[data-token="--kit-font-weight-bold"] { font-weight: 700; }',
   ]);
-  assert.ok(text.includes('<span class="swatch" data-token="--kit-color-ink"></span>'));
+  assert.ok(text.includes('<span class="kit-swatch" data-token="--kit-color-ink"></span>'));
   assert.ok(!/ style="/.test(text), 'no inline style attributes');
 });
 
@@ -106,13 +143,13 @@ test('values from the kit are escaped', async () => {
 
 test('the list shows each kit with its component count and its state', async () => {
   const text = await pages(createFolderKitStore(FIXTURE_KITS))('kits');
-  assert.ok(text.includes('<h1>Kits</h1>'));
-  assert.ok(text.includes('<a href="/kit/tiny">Tiny</a>'));
+  assert.ok(text.includes('<h1 class="kit-title">Kits</h1>'));
+  assert.ok(text.includes('<a class="kit-tile-name" href="/kit/tiny">Tiny</a>'));
   assert.ok(text.includes('Version 1.0.0, 2 components'));
-  assert.ok(text.includes('<span>Valid</span>'));
+  assert.ok(text.includes('<span class="k-quiet">Valid</span>'));
   assert.ok(text.includes('Cannot be read'), 'the broken fixture is listed, not fatal');
   const withProblems = await pages(kitWithProblems())('kits');
-  assert.ok(withProblems.includes('<span class="fix">Problems: 1</span>'));
+  assert.ok(withProblems.includes('<span class="k-fix">Problems: 1</span>'));
 });
 
 test('an unknown kit is KIT_NOT_FOUND', async () => {
@@ -125,11 +162,11 @@ test('an unknown kit is KIT_NOT_FOUND', async () => {
 test('the nav marks the current page', async () => {
   const view = pages(builtinKits());
   const kit = await view('kit', { id: 'base' });
-  assert.ok(kit.includes('<a class="opt" href="/kit" aria-current="page">Kit</a>'));
-  assert.ok(kit.includes('<a class="opt" href="/">Drafts</a>'));
+  assert.ok(kit.includes('<a class="k-btn" href="/kit" aria-current="page">Kit</a>'));
+  assert.ok(kit.includes('<a class="k-btn" href="/">Drafts</a>'));
   const list = await view('kits');
-  assert.ok(list.includes('<a class="opt" href="/kit" aria-current="page">Kit</a>'));
+  assert.ok(list.includes('<a class="k-btn" href="/kit" aria-current="page">Kit</a>'));
   const home = await view('home');
-  assert.ok(home.includes('<a class="opt" href="/" aria-current="page">Drafts</a>'));
-  assert.ok(home.includes('<a class="opt" href="/kit">Kit</a>'));
+  assert.ok(home.includes('<a class="k-btn" href="/" aria-current="page">Drafts</a>'));
+  assert.ok(home.includes('<a class="k-btn" href="/kit">Kit</a>'));
 });

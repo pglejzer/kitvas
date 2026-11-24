@@ -86,9 +86,6 @@ export function frameHeight(width: number): number {
   return 800;
 }
 
-/** The card caption's size, "W × H". */
-export const sizeLabel = (width: number): string => `${width} × ${frameHeight(width)}`;
-
 /**
  * The address of a view at the width shown: `width` names the preset; `view` is there only for
  * another width. Everything else in the address stays, so it serves the page's own address and

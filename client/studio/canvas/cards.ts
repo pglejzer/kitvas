@@ -1,14 +1,14 @@
-// The width cards on the canvas (spec 4c, goal 4; plan 16, task B): the dock's Cards control shows
-// one card (the width shown), two (that and the next preset) or all three presets side by side,
-// and "Every width" shows all three zoomed to the selection. The card of the width shown is the
-// server's `current` frame and follows the dock; the others are frames of the same version at a
+// The width cards on the canvas (spec 4c, goal 4; plan 16, task B): the Cards pill shows one card
+// (the width shown), two (that and the next preset) or all three presets side by side, and
+// "Every width" shows all three zoomed to the selection. The card of the width shown is the
+// server's `current` frame and follows the width pill; the others are frames of the version at a
 // preset each, on channels of their own. Cards are added and removed, never moved, so no frame
 // loads again: the order on screen is CSS `order`. The rules are in `card-rules.ts`.
 
 import { isPlainClick } from '../clicks.ts';
 import { text } from '../edit/texts.ts';
 import type { Frame } from '../frames.ts';
-import { fitMark } from './caption.ts';
+import { cardSize, fitMark } from './caption.ts';
 import type { CardList } from './card-list.ts';
 import {
   type CardCount,
@@ -18,7 +18,7 @@ import {
   extraWidths,
   parseCards,
 } from './card-rules.ts';
-import { frameHeight, readShown, shownWidth, sizeLabel } from './width.ts';
+import { frameHeight, readShown, shownWidth } from './width.ts';
 
 export type CardsDeps = {
   main: HTMLElement;
@@ -43,8 +43,8 @@ export type Cards = {
 type Extra = { width: number; figure: HTMLElement; frame: Frame };
 
 const COUNT_LINK = 'a[data-dock-cards]';
-/** The dock's other links keep the cards shown. */
-const KEEP_LINKS = 'a[data-dock-width], a.opt[data-state]';
+/** The pills' other links keep the cards shown. */
+const KEEP_LINKS = 'a[data-dock-width], [data-dock="states"] a[data-state]';
 
 function replaceAddress(href: string): void {
   try {
@@ -67,15 +67,18 @@ function sizeFrame(element: HTMLIFrameElement, width: number): void {
   element.width = String(width);
 }
 
-/** The caption's "Editing" mark, made once per card and shown by the skin on the edit card. */
+/** The label's "Editing" chip, made once per card and shown by the skin on the edit card. */
 function markOf(figure: HTMLElement): void {
   const caption = figure.querySelector('.card-caption');
   if (!caption || caption.querySelector('[data-card-mark]')) return;
   const mark = document.createElement('span');
-  mark.className = 'card-mark';
+  mark.className = 'k-chip card-mark';
+  // The edit card is the active one: the accent says so.
+  mark.dataset.tone = 'accent';
   mark.dataset.cardMark = '';
   mark.textContent = text('canvas.editing');
-  caption.querySelector('.card-name')?.after(mark);
+  // After the name and the width, so the name and the width read together.
+  caption.append(mark);
 }
 
 export function mountCards(deps: CardsDeps): Cards {
@@ -123,7 +126,7 @@ export function mountCards(deps: CardsDeps): Cards {
     const src = cardAddress(lead.element.src, channel, main.dataset.state);
     if (src === undefined) return;
     const figure = document.createElement('figure');
-    figure.className = 'canvas-card pane';
+    figure.className = 'card-box';
     figure.dataset.card = 'width';
     figure.dataset.cardWidth = String(width);
     const caption = document.createElement('figcaption');
@@ -134,10 +137,10 @@ export function mountCards(deps: CardsDeps): Cards {
     const size = document.createElement('span');
     size.className = 'card-size';
     size.dataset.cardSize = '';
-    size.textContent = sizeLabel(width);
+    size.textContent = cardSize(width, text);
     caption.append(name, size);
     const box = document.createElement('div');
-    box.className = 'frame-box';
+    box.className = 'card-frame';
     const element = document.createElement('iframe');
     // The sandbox is on before the frame is in the page, so it never loads without it.
     element.setAttribute('sandbox', 'allow-scripts');
@@ -163,7 +166,7 @@ export function mountCards(deps: CardsDeps): Cards {
     for (const extra of extras.values()) {
       extra.figure.style.order = String(extra.width);
       const size = extra.figure.querySelector<HTMLElement>('[data-card-size]');
-      if (size) size.textContent = sizeLabel(extra.width);
+      if (size) size.textContent = cardSize(extra.width, text);
     }
   }
 
