@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="kitvas">
+  <rect width="512" height="512" fill="#1d2025"/>
+  <g transform="translate(72 72) scale(5.75)" fill="#ffffff">
+    <path d="M0 0H44V33.46L27.2 27.2L33.46 44H0Z"/>
+    <path d="M0 0H9L16 15.3L23 0H32L16 35Z" transform="translate(34 34) rotate(135) scale(0.83) translate(-16 -35)"/>
+  </g>
+</svg>
