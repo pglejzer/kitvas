@@ -243,6 +243,7 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       t,
       links,
       view,
+      ...(live ? { live: { settle: (slug: string) => live.settle(slug) } } : {}),
       ...(deps.shutdown ? { shutdown: deps.shutdown } : {}),
       ...(edit ? { edit } : {}),
       ...(deps.imageStore ? { imageStore: deps.imageStore } : {}),

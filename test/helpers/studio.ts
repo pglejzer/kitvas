@@ -84,7 +84,14 @@ export function call(port: number, input: CallInput): Promise<Answer> {
         method: input.method ?? 'GET',
         path: input.path,
         agent: false,
-        headers: { host: `127.0.0.1:${port}`, ...input.headers },
+        headers: {
+          host: `127.0.0.1:${port}`,
+          // Node sends no length of its own for a DELETE, and a body without one is not read.
+          ...(input.body === undefined
+            ? {}
+            : { 'content-length': String(Buffer.byteLength(input.body)) }),
+          ...input.headers,
+        },
       },
       (res) => {
         const chunks: Buffer[] = [];

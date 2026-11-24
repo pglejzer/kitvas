@@ -64,6 +64,8 @@ export const ERROR_TABLE = {
   NOTE_LIMIT: { exit: 59, http: 409 },
   // Plan 18b: `kitvas doctor` found a failing check.
   DOCTOR_FAILED: { exit: 60, http: 500 },
+  // Plan 18b (ADR 0064): another program holds a draft's files, so it cannot be moved.
+  DRAFT_LOCKED: { exit: 61, http: 409 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;

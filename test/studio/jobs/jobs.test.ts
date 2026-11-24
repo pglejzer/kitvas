@@ -180,3 +180,23 @@ test('a build and a check of one draft exclude each other; the kind is the comma
   await tick();
   assert.equal(jobs.start('build', 'shop').kind, 'build');
 });
+
+test('stopFor cancels the running build and check of a draft and waits for them to end', async () => {
+  const { jobs, runner } = setup();
+  const build = jobs.start('build', 'shop');
+  const other = jobs.start('build', 'cart');
+  const catalog = jobs.start('catalog', 'shop');
+  await jobs.stopFor('shop');
+  assert.deepEqual(
+    runner.started.map((entry) => entry.cancelled),
+    [1, 0, 0],
+    'only the draft own job stops; another draft and a kit of the same name run on',
+  );
+  await tick();
+  assert.equal(jobs.get(build.id).state, 'cancelled');
+  assert.equal(jobs.get(other.id).state, 'running');
+  assert.equal(jobs.get(catalog.id).state, 'running');
+  // Nothing running for a draft: it resolves at once.
+  await jobs.stopFor('shop');
+  await jobs.stopFor('nope');
+});

@@ -14,6 +14,8 @@ import { dirname, join, resolve, sep } from 'node:path';
 import { KitvasError } from '../../shared/index.ts';
 import { isSlug } from '../domain/names.ts';
 import type { DraftStore } from '../ports/draft-store.ts';
+import { createFsDraftTrash, type TrashIo } from './fs-draft-trash.ts';
+import { renameWithRetry, sleepSync } from './rename-retry.ts';
 
 /**
  * What `replaceAll` appends to a file's path for the text it writes before the move, and for a
@@ -38,7 +40,8 @@ const NODE_IO: ReplaceIo = {
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, text);
   },
-  rename: (from, to) => renameSync(from, to),
+  // A file the build or a scanner holds for a moment is tried again (rename-retry.ts).
+  rename: (from, to) => renameWithRetry(from, to, { rename: renameSync, wait: sleepSync }),
   remove: (file) => rmSync(file, { force: true }),
 };
 
@@ -109,8 +112,16 @@ function replaceFiles(targets: { file: string; text: string | null }[], io: Repl
   }
 }
 
-/** `io` replaces some of the calls `replaceAll` makes; only tests pass it. */
-export function createFsDraftStore(root: string, io: Partial<ReplaceIo> = {}): DraftStore {
+/**
+ * `io` replaces some of the calls `replaceAll` makes, `trash` some of the calls a delete makes;
+ * only tests pass them. Deleted drafts wait in `trash.dir`, by default the `trash` folder beside
+ * `root` (`.kitvas/trash` next to `.kitvas/drafts`).
+ */
+export function createFsDraftStore(
+  root: string,
+  io: Partial<ReplaceIo> = {},
+  trash: { dir?: string; io?: Partial<TrashIo> } = {},
+): DraftStore {
   const replaceIo: ReplaceIo = { ...NODE_IO, ...io };
 
   /** The absolute path of something in a draft, or `undefined` when it would leave the draft. */
@@ -133,6 +144,7 @@ export function createFsDraftStore(root: string, io: Partial<ReplaceIo> = {}): D
   };
 
   return {
+    trash: createFsDraftTrash(root, trash.dir ?? join(dirname(root), 'trash'), trash.io),
     list() {
       if (!existsSync(root)) return [];
       return readdirSync(root, { withFileTypes: true })

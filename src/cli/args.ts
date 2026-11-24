@@ -54,6 +54,10 @@ export type Flags = {
   reason: string | undefined;
   /** `doctor --report`: print the text to paste into an issue. */
   report: boolean;
+  /** `draft list --deleted`: the deleted drafts. */
+  deleted: boolean;
+  /** `draft purge --all`: every deleted draft, for good. */
+  all: boolean;
 };
 
 export type ParsedArgs = {
@@ -99,6 +103,8 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         message: { type: 'string' },
         reason: { type: 'string' },
         report: { type: 'boolean' },
+        deleted: { type: 'boolean' },
+        all: { type: 'boolean' },
       },
     });
     const [command, ...rest] = positionals;
@@ -134,6 +140,8 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         message: values.message,
         reason: values.reason,
         report: values.report === true,
+        deleted: values.deleted === true,
+        all: values.all === true,
       },
     };
   } catch (cause) {

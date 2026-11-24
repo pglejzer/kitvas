@@ -41,6 +41,7 @@ import {
   VersionSchema,
 } from './schemas.ts';
 import { settingsRoutes } from './settings/settings-routes.ts';
+import { trashRoutes } from './trash/trash-routes.ts';
 import { viewRoutes } from './view/view-routes.ts';
 import { waiverRoutes } from './waivers/waiver-routes.ts';
 import { whyRoutes } from './why/why-routes.ts';
@@ -69,6 +70,8 @@ export type ApiDeps = {
   imageStore?: ImageStore;
   /** The view the person chose (theme, panels, accent), kept in their own settings file. */
   view: ViewStore;
+  /** The live loop: a delete waits for the draft's running build to end (`live-loop.ts`). */
+  live?: { settle(slug: string): Promise<void> };
 };
 
 const draftPath = (slug: string): string => `/api/v1/drafts/${slug}`;
@@ -191,6 +194,8 @@ export function apiRoutes(deps: ApiDeps): ApiRoute[] {
     ...whyRoutes(deps),
     // The studio's look (plan 18).
     ...settingsRoutes(deps),
+    // Delete a draft, with a way back (plan 18b).
+    ...trashRoutes(deps),
   ];
   routes.push(
     apiRoute({

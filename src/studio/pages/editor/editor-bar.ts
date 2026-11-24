@@ -143,8 +143,11 @@ function moreMenu(input: BarInput): Html {
       ? html`<p class="k-meta bar-list-head">${t('studio.edit.shell.compareNone')}</p>`
       : html`<p class="k-meta bar-list-head">${t('studio.edit.shell.compareList')}</p>${links}`;
   const shortcuts = html`<button type="button" class="k-menu-item" data-shell="shortcuts">${t('studio.edit.shell.shortcuts')}<kbd class="k-kbd">?</kbd></button>`;
+  // Delete moves the draft to the trash, where it can be brought back (ADR 0064).
+  const { draft } = input;
+  const remove = html`<button type="button" class="k-menu-item" data-trash-delete data-slug="${draft.slug}" data-title="${draft.title}">${t('studio.trash.menuDelete')}</button>`;
   const name = t('studio.edit.shell.more');
-  return html`<details class="bar-menu"><summary class="k-icon-btn" aria-label="${name}" title="${name}">${icon('more')}</summary><div class="k-pop k-menu bar-list bar-list-end" data-shell="more">${compare}<div class="k-menu-sep"></div>${shortcuts}</div></details>`;
+  return html`<details class="bar-menu"><summary class="k-icon-btn" aria-label="${name}" title="${name}">${icon('more')}</summary><div class="k-pop k-menu bar-list bar-list-end" data-shell="more">${compare}<div class="k-menu-sep"></div>${shortcuts}<div class="k-menu-sep"></div>${remove}</div></details>`;
 }
 
 /** Preview and Edit; Edit is off, with the reason as its tooltip, on a version it cannot edit. */

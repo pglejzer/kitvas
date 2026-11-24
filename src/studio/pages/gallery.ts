@@ -4,6 +4,7 @@ import { readChecks } from '../../checks/index.ts';
 import {
   type DraftKind,
   type DraftStore,
+  listDeleted,
   listDrafts,
   loadDraft,
   versionInfo,
@@ -15,6 +16,8 @@ import { type Html, html } from './html.ts';
 import { page } from './shell.ts';
 import type { Skin } from './skin.ts';
 import { commandBox } from './states/command.ts';
+import { cardDelete, deletedList } from './trash/trash-list.ts';
+import { trashTexts } from './trash/trash-texts.ts';
 
 export type GalleryDeps = { drafts: DraftStore; t: Translate; skin: Skin; frame: FrameOrigin };
 
@@ -105,44 +108,81 @@ function card(t: Translate, item: Card): Html {
     item.version > 0
       ? html`<span>${t('studio.page.version', { version: item.version })}</span>`
       : '';
-  return html`<li class="gallery-card">${thumb}<h2>${name}</h2><p class="gallery-meta k-meta">${kind}${version}</p>${statusMark(t, item.status)}</li>`;
+  return html`<li class="gallery-card">${thumb}<h2>${name}</h2><p class="gallery-meta k-meta">${kind}${version}</p>${statusMark(t, item.status)}${cardDelete(t, item.slug, item.title)}</li>`;
 }
 
 function emptyState(t: Translate): Html {
   return html`<div class="k-empty gallery-empty"><h2>${t('studio.gallery.emptyTitle')}</h2><p>${t('studio.gallery.emptyBody')}</p>${commandBox(t, FIRST_DRAFT, { copy: true })}</div>`;
 }
 
-/** The filter as a segmented control of links: the current one is `aria-current`. */
-function filter(t: Translate, count: number, attention: number, onlyAttention: boolean): Html {
-  const all = onlyAttention
-    ? html`<a href="/">${t('studio.gallery.all', { count })}</a>`
-    : html`<a href="/" aria-current="true">${t('studio.gallery.all', { count })}</a>`;
-  const label = t('studio.gallery.attention', { count: attention });
-  const needs = onlyAttention
-    ? html`<a href="/?show=attention" aria-current="true">${label}</a>`
-    : html`<a href="/?show=attention">${label}</a>`;
-  return html`<nav class="k-seg" aria-label="${t('studio.gallery.filter')}">${all}${needs}</nav>`;
+type Shown = 'all' | 'attention' | 'deleted';
+
+/**
+ * The filter as a segmented control of links: the current one is `aria-current`. "Deleted" is
+ * there only while some draft is deleted (ADR 0064).
+ */
+function filter(
+  t: Translate,
+  counts: { all: number; attention: number; deleted: number },
+  shown: Shown,
+): Html {
+  const link = (view: Shown, href: string, label: string): Html =>
+    view === shown
+      ? html`<a href="${href}" aria-current="true">${label}</a>`
+      : html`<a href="${href}">${label}</a>`;
+  const all = link('all', '/', t('studio.gallery.all', { count: counts.all }));
+  const needs = link(
+    'attention',
+    '/?show=attention',
+    t('studio.gallery.attention', { count: counts.attention }),
+  );
+  const gone =
+    counts.deleted === 0
+      ? ''
+      : link(
+          'deleted',
+          '/?show=deleted',
+          t('studio.trash.filterDeleted', { count: counts.deleted }),
+        );
+  return html`<nav class="k-seg" aria-label="${t('studio.gallery.filter')}">${all}${needs}${gone}</nav>`;
 }
 
 export function galleryPage(deps: GalleryDeps, request: PageRequest): string {
   const { t } = deps;
   const title = t('studio.page.title');
   const cards = cardsOf(deps, request.host);
-  let controls: Html | '' = '';
+  const deleted = listDeleted(deps.drafts);
+  const asked = request.query.get('show');
+  // "Deleted" with nothing deleted shows all the drafts, as an unknown filter does.
+  const shown: Shown =
+    asked === 'deleted' && deleted.length > 0
+      ? 'deleted'
+      : asked === 'attention' && cards.length > 0
+        ? 'attention'
+        : 'all';
+  const attention = cards.filter((item) => needsAttention(item.status));
+  const controls =
+    cards.length === 0 && deleted.length === 0
+      ? ''
+      : filter(
+          t,
+          { all: cards.length, attention: attention.length, deleted: deleted.length },
+          shown,
+        );
   let content: Html;
-  if (cards.length === 0) {
+  if (shown === 'deleted') {
+    content = deletedList(t, deleted);
+  } else if (cards.length === 0) {
     content = emptyState(t);
   } else {
-    const attention = cards.filter((item) => needsAttention(item.status));
-    const onlyAttention = request.query.get('show') === 'attention';
-    controls = filter(t, cards.length, attention.length, onlyAttention);
-    const shown = onlyAttention ? attention : cards;
+    const list = shown === 'attention' ? attention : cards;
     content =
-      shown.length === 0
+      list.length === 0
         ? html`<p class="k-quiet">${t('studio.gallery.calm')}</p>`
-        : html`<ul class="gallery-grid" role="list">${shown.map((item) => card(t, item))}</ul>`;
+        : html`<ul class="gallery-grid" role="list">${list.map((item) => card(t, item))}</ul>`;
   }
-  const body = html`<main class="k-page"><header class="gallery-head"><h1>${title}</h1>${controls}</header>${content}<script type="module" src="/assets/gallery.js"></script></main>`;
+  const texts = trashTexts({ t, nonce: request.nonce });
+  const body = html`<main class="k-page"><header class="gallery-head"><h1>${title}</h1>${controls}</header><div data-gallery-body>${content}</div>${texts}<script type="module" src="/assets/gallery.js"></script></main>`;
   return page({
     title,
     nonce: request.nonce,

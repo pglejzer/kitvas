@@ -119,3 +119,24 @@ test('close waits for the running build and starts no more', async () => {
   builder.request('shop', 1);
   assert.equal(calls.length, 1);
 });
+
+test('settle drops the build waiting and resolves once the running one ended', async () => {
+  const { builder, calls, events } = setup();
+  builder.request('shop', 1);
+  builder.request('shop', 2);
+  let ended = false;
+  const waiting = builder.settle('shop').then(() => {
+    ended = true;
+  });
+  await settled();
+  assert.equal(ended, false, 'a build still runs');
+  calls[0]?.done({ ok: true, version: 1 });
+  await waiting;
+  assert.equal(calls.length, 1, 'the run that was asked for meanwhile does not start');
+  assert.equal(events.length, 1);
+  // A draft with no build running settles at once, and a later request builds again.
+  await builder.settle('shop');
+  await builder.settle('cart');
+  builder.request('shop', 2);
+  assert.equal(calls.length, 2);
+});
