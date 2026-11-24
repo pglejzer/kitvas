@@ -26,6 +26,7 @@ const child = (id: string, at: Box): SlotChild => ({ id, box: at });
 const entry = (id: string, over: Partial<FrameEntry> = {}): FrameEntry => ({
   id,
   movable: true,
+  item: false,
   accepts: true,
   mixed: false,
   interactive: false,
@@ -442,4 +443,24 @@ test('the indicator is a 2 px line centred on the slot, or the box, inside the o
   const card = box(20, 100, 160, 100);
   const inside: Slot = { anchor: 'S:Card', place: 'last', line: null, box: card };
   assert.deepEqual(placeIndicator(inside, host), { line: null, box: box(20, 300, 160, 100) });
+});
+
+test('the indicator line keeps its 2 px on the screen at any canvas zoom', () => {
+  const host = { x: 0, y: 0 };
+  const upright: Slot = {
+    anchor: 'S:row/b',
+    place: 'before',
+    line: { x: 100, y: 10, length: 40, axis: 'y' },
+    box: null,
+  };
+  // The canvas at 50 %: two frame pixels to one on the screen, so the line is 4 of the frame's.
+  assert.deepEqual(placeIndicator(upright, host, 2).line, box(98, 10, 4, 40));
+  // Zoomed in to 200 %: one frame pixel shows as two.
+  assert.deepEqual(placeIndicator(upright, host, 0.5).line, box(99.5, 10, 1, 40));
+  const flat: Slot = { ...upright, line: { x: 10, y: 100, length: 180, axis: 'x' } };
+  assert.deepEqual(placeIndicator(flat, host, 2).line, box(10, 98, 180, 4));
+  // The slot's length and a parent's box are the page's own measures: the zoom leaves them.
+  const card = box(20, 100, 160, 100);
+  const inside: Slot = { anchor: 'S:Card', place: 'last', line: null, box: card };
+  assert.deepEqual(placeIndicator(inside, host, 2).box, card);
 });

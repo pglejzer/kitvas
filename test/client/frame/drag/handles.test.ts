@@ -1,25 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { ScaleStep } from '../../../../client/channel/structure-protocol.ts';
-import {
-  distances,
-  gapSpots,
-  labelOf,
-  nearestStep,
-  type Spot,
-  showsGap,
-  spotAt,
-  spotsFor,
-} from '../../../../client/frame/drag/guides.ts';
+import { distances, labelOf, nearestStep } from '../../../../client/frame/drag/guides.ts';
 import {
   candidatesFor,
+  MAGNET,
   propertyOf,
   pxAfter,
+  reachOf,
   resolve,
   type Scales,
   snapTo,
   tracksOf,
-} from '../../../../client/frame/drag/handles.ts';
+} from '../../../../client/frame/drag/magnet.ts';
 
 type Box = { left: number; top: number; width: number; height: number };
 
@@ -44,15 +37,12 @@ const box = (left: number, top: number, width: number, height: number): Box => (
   width,
   height,
 });
-const even = { top: 16, right: 16, bottom: 16, left: 16 };
-/** The handles of a block element without children. */
-const plain = (of: Box, padding = even): Spot[] =>
-  spotsFor({ box: of, padding, display: 'block', children: [] });
-const kinds = (spots: readonly Spot[]): string[] => spots.map((spot) => spot.kind);
 const labels = (property: string, extras = {}): string[] =>
   candidatesFor(property, SCALES, extras).map((candidate) => candidate.label);
 
-test('a handle snaps to the nearest step, the earlier of two equally near', () => {
+// The magnet.
+
+test('the nearest step is found, the earlier of two equally near', () => {
   const candidates = candidatesFor('gap', SCALES);
   assert.equal(snapTo(11, candidates)?.label, 'sm');
   assert.equal(snapTo(13, candidates)?.label, 'md');
@@ -61,7 +51,20 @@ test('a handle snaps to the nearest step, the earlier of two equally near', () =
   assert.equal(snapTo(12, []), undefined);
 });
 
-test('a snapped value is the step token, previewed as its variable', () => {
+test('a step holds the handle only within the reach of the magnet', () => {
+  const candidates = candidatesFor('gap', SCALES);
+  assert.equal(snapTo(10, candidates, 2)?.label, 'sm');
+  assert.equal(snapTo(14, candidates, 2)?.label, 'md');
+  // Three pixels from the nearest step: free.
+  assert.equal(snapTo(11, candidates, 2), undefined);
+  assert.equal(snapTo(500, candidates, 6), undefined);
+  // Of two steps within reach the nearer one holds.
+  assert.equal(snapTo(7, candidates, 6)?.label, 'sm');
+  assert.equal(snapTo(5, candidates, 6)?.label, 'xs');
+});
+
+test('a held value is the step token, previewed as its variable, named with its pixels', () => {
+  assert.equal(MAGNET, 6);
   assert.deepEqual(resolve(15, false, candidatesFor('padding-top', SCALES)), {
     value: { token: '--kit-space-md' },
     css: 'var(--kit-space-md)',
@@ -69,18 +72,49 @@ test('a snapped value is the step token, previewed as its variable', () => {
   });
 });
 
-test('Shift releases the snap: the value is the raw rounded pixels', () => {
+test('away from every step the handle follows the pointer: the value is its pixels', () => {
+  const candidates = candidatesFor('gap', SCALES);
+  // 40 is 16 px past the largest step.
+  assert.deepEqual(resolve(40.4, false, candidates), {
+    value: { raw: '40px' },
+    css: '40px',
+    label: '40px',
+  });
+  // With a short reach also between two steps.
+  assert.deepEqual(resolve(12, false, candidates, 2).value, { raw: '12px' });
+  assert.deepEqual(resolve(12, false, candidates, 4).value, { token: '--kit-space-sm' });
+});
+
+test('Shift switches the magnet off: the value is the raw rounded pixels', () => {
   const candidates = candidatesFor('gap', SCALES);
   assert.deepEqual(resolve(15.4, true, candidates), {
     value: { raw: '15px' },
     css: '15px',
     label: '15px',
   });
+  assert.deepEqual(resolve(16, true, candidates).value, { raw: '16px' });
   assert.deepEqual(resolve(-5, true, candidates).value, { raw: '0px' });
 });
 
 test('a kit without a scale gives raw pixels', () => {
   assert.deepEqual(resolve(10, false, []).value, { raw: '10px' });
+});
+
+test('the magnet reaches 6 px on the screen, and all the way for a property a prop covers', () => {
+  const none = new Set<string>();
+  assert.equal(reachOf('gap', none), 6);
+  // The canvas at 50 %: 6 px on the screen are 12 of the element's.
+  assert.equal(reachOf('gap', none, 2), 12);
+  assert.equal(reachOf('gap', none, 0.5), 3);
+  const stepped = new Set(['gap']);
+  assert.equal(reachOf('gap', stepped, 2), Number.POSITIVE_INFINITY);
+  assert.equal(reachOf('padding-top', stepped), 6);
+  // A `gap` prop has no value between two steps: the nearest one holds wherever the pointer is.
+  const candidates = candidatesFor('gap', SCALES);
+  assert.deepEqual(resolve(40, false, candidates, reachOf('gap', stepped)).value, {
+    token: '--kit-space-lg',
+  });
+  assert.deepEqual(resolve(40, false, candidates, reachOf('gap', none)).value, { raw: '40px' });
 });
 
 test('100% and auto are offered for a width only', () => {
@@ -93,19 +127,21 @@ test('100% and auto are offered for a width only', () => {
   assert.deepEqual(labels('width'), ['sm', 'md', 'lg']);
 });
 
-test('a width snaps to 100% and to auto where they are the nearest', () => {
+test('a width is held by 100% and by auto where it comes near them', () => {
   const candidates = candidatesFor('width', SCALES, { auto: 200, full: 900 });
-  assert.deepEqual(resolve(880, false, candidates), {
+  assert.deepEqual(resolve(897, false, candidates), {
     value: { raw: '100%' },
     css: '100%',
-    label: '100%',
+    label: '100% · 900px',
   });
-  assert.deepEqual(resolve(210, false, candidates).value, { raw: 'auto' });
-  assert.deepEqual(resolve(330, false, candidates).value, { token: '--kit-size-sm' });
-  assert.deepEqual(resolve(880, true, candidates).value, { raw: '880px' });
+  assert.deepEqual(resolve(203, false, candidates).value, { raw: 'auto' });
+  assert.deepEqual(resolve(323, false, candidates).value, { token: '--kit-size-sm' });
+  // Twenty pixels short of the full width: free.
+  assert.deepEqual(resolve(880, false, candidates).value, { raw: '880px' });
+  assert.deepEqual(resolve(897, true, candidates).value, { raw: '897px' });
 });
 
-test('sizes snap to the size scale, padding and gap to the space scale', () => {
+test('sizes are held by the size scale, padding and gap by the space scale', () => {
   const tokens = (property: string): string[] =>
     candidatesFor(property, SCALES).map((candidate) =>
       'token' in candidate.value ? candidate.value.token : candidate.value.raw,
@@ -116,96 +152,14 @@ test('sizes snap to the size scale, padding and gap to the space scale', () => {
   assert.equal(tokens('gap')[0], '--kit-space-xs');
 });
 
-test('gap handles only for a flex or grid container with two or more children', () => {
-  assert.equal(showsGap('flex', 2), true);
-  assert.equal(showsGap('inline-grid', 3), true);
-  assert.equal(showsGap('grid', 2), true);
-  assert.equal(showsGap('block', 3), false);
-  assert.equal(showsGap('flex', 1), false);
-  assert.equal(showsGap('inline', 2), false);
-
-  const children = [box(16, 16, 50, 30), box(82, 16, 50, 30)];
-  const input = { box: box(0, 0, 200, 100), padding: even, children };
-  assert.equal(kinds(spotsFor({ ...input, display: 'flex' })).includes('gap'), true);
-  assert.equal(kinds(spotsFor({ ...input, display: 'block' })).includes('gap'), false);
-  const one = { ...input, display: 'flex', children: children.slice(0, 1) };
-  assert.equal(kinds(spotsFor(one)).includes('gap'), false);
-});
-
-test('a gap handle sits between two neighbours of a row', () => {
-  assert.deepEqual(gapSpots([box(0, 0, 50, 30), box(66, 0, 50, 30)]), [
-    { kind: 'gap', box: box(55, 3, 6, 24), axis: 'x', sign: 1 },
-  ]);
-});
-
-test('a gap handle sits between two neighbours of a column', () => {
-  assert.deepEqual(gapSpots([box(0, 0, 50, 30), box(0, 40, 50, 30)]), [
-    { kind: 'gap', box: box(13, 32, 24, 6), axis: 'y', sign: 1 },
-  ]);
-});
-
-test('a reversed row turns the direction that makes the gap larger', () => {
-  const [spot] = gapSpots([box(66, 0, 50, 30), box(0, 0, 50, 30)]);
-  assert.equal(spot?.axis, 'x');
-  assert.equal(spot?.sign, -1);
-  assert.equal(spot?.box.left, 55);
-});
-
-test('no gap handle between the end of one line and the start of the next', () => {
-  assert.deepEqual(gapSpots([box(100, 0, 50, 30), box(0, 40, 50, 30)]), []);
-  const wrapped = [box(0, 0, 50, 30), box(60, 0, 50, 30), box(0, 40, 50, 30)];
-  assert.equal(gapSpots(wrapped).length, 1);
-});
-
-test('an element gets size handles on its right edge, bottom edge and corner', () => {
-  const spots = plain(box(0, 0, 200, 100));
-  assert.deepEqual(kinds(spots), [
-    'size',
-    'width',
-    'height',
-    'padding-top',
-    'padding-bottom',
-    'padding-left',
-    'padding-right',
-  ]);
-  assert.deepEqual(spots[0]?.box, box(195, 95, 10, 10));
-  assert.deepEqual(spots[1]?.box, box(197, 38, 6, 24));
-  assert.deepEqual(spots[2]?.box, box(88, 97, 24, 6));
-});
-
-test('a padding handle sits in the middle of its padding, never on the edge', () => {
-  const wide = { top: 40, right: 0, bottom: 0, left: 0 };
-  const spots = plain(box(0, 0, 200, 100), wide);
-  const of = (kind: string): Spot | undefined => spots.find((spot) => spot.kind === kind);
-  assert.deepEqual(of('padding-top')?.box, box(92, 17, 16, 6));
-  assert.deepEqual(of('padding-bottom')?.box, box(92, 88, 16, 6));
-  assert.equal(of('padding-bottom')?.sign, -1);
-  assert.equal(of('padding-right')?.sign, -1);
-  assert.equal(of('padding-left')?.sign, 1);
-});
-
-test('a small element keeps its size handles and gets no padding handles', () => {
-  const spots = plain(box(0, 0, 40, 20));
-  assert.deepEqual(kinds(spots), ['size', 'width', 'height']);
-});
-
-test('the handle under the pointer is found, the corner first', () => {
-  const spots = plain(box(0, 0, 200, 100));
-  assert.equal(spotAt({ x: 200, y: 100 }, spots)?.kind, 'size');
-  assert.equal(spotAt({ x: 200, y: 50 }, spots)?.kind, 'width');
-  assert.equal(spotAt({ x: 100, y: 100 }, spots)?.kind, 'height');
-  assert.equal(spotAt({ x: 100, y: 9 }, spots)?.kind, 'padding-top');
-  assert.equal(spotAt({ x: 100, y: 50 }, spots), undefined);
-});
-
 test('the corner changes width and height, every other handle one property', () => {
-  const corner: Spot = { kind: 'size', box: box(0, 0, 10, 10), axis: 'both', sign: 1 };
-  assert.deepEqual(tracksOf(corner), [
+  assert.deepEqual(tracksOf({ kind: 'size', axis: 'both', sign: 1 }), [
     { property: 'width', axis: 'x', sign: 1 },
     { property: 'height', axis: 'y', sign: 1 },
   ]);
-  const low: Spot = { kind: 'padding-bottom', box: box(0, 0, 16, 6), axis: 'y', sign: -1 };
-  assert.deepEqual(tracksOf(low), [{ property: 'padding-bottom', axis: 'y', sign: -1 }]);
+  assert.deepEqual(tracksOf({ kind: 'padding-bottom', axis: 'y', sign: -1 }), [
+    { property: 'padding-bottom', axis: 'y', sign: -1 },
+  ]);
 });
 
 test('Alt moves both sides of a padding together', () => {
@@ -218,13 +172,16 @@ test('Alt moves both sides of a padding together', () => {
   assert.equal(propertyOf('width', true), 'width');
 });
 
-test('a drag changes the value along its axis and never under zero', () => {
+test('a drag changes the value along its axis, pixel for pixel, and never under zero', () => {
   const width = { property: 'width', axis: 'x', sign: 1 } as const;
   assert.equal(pxAfter(300, width, { x: 10, y: 0 }, { x: 50, y: 80 }), 340);
+  assert.equal(pxAfter(300, width, { x: 10, y: 0 }, { x: 11, y: 0 }), 301);
   const low = { property: 'padding-bottom', axis: 'y', sign: -1 } as const;
   assert.equal(pxAfter(16, low, { x: 0, y: 100 }, { x: 0, y: 90 }), 26);
   assert.equal(pxAfter(16, low, { x: 0, y: 100 }, { x: 0, y: 130 }), 0);
 });
+
+// The distance guides.
 
 test('the nearest space step names a distance', () => {
   assert.equal(nearestStep(20, SPACE)?.name, 'md');

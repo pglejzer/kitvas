@@ -3,7 +3,8 @@
 // element's live findings with its accessibility card above the Properties pane. Each is a block
 // of its own beside its pane, never inside it (the pane's own script redraws its content, and a
 // state switch swaps the Checks pane's), shown with the pane's tab through `data-pane`. A finding
-// is a `.k-item` with its short name, the evidence it carries and its actions (plan 18, task D).
+// is a `.k-item` with its short name, the evidence it carries and its actions (plan 18, task D):
+// Apply when kitvas can make the fix, else Ask Claude, beside Accept… (ADR 0061, `fix-view.ts`).
 
 import type { A11yCard } from '../../../channel/live-protocol.ts';
 import { icon } from '../../ui/icon.ts';
@@ -14,6 +15,7 @@ import { text } from '../texts.ts';
 import { renderCard } from './card.ts';
 import type { FullCheckStatus } from './check.ts';
 import { type Evidence, evidenceName, ratioWords } from './evidence.ts';
+import { createFixes, type Fixes, fixControl } from './fix-view.ts';
 import type { LiveGroup, LiveRow } from './items.ts';
 import { waiverControl } from './waivers.ts';
 
@@ -124,7 +126,12 @@ export function evidenceLine(evidence: Evidence, tone: 'fix' | 'review'): HTMLEl
   return line;
 }
 
-function rowOf(ctx: EditorContext, element: string | null, row: LiveRow): HTMLElement {
+function rowOf(
+  ctx: EditorContext,
+  fixes: Fixes,
+  element: string | null,
+  row: LiveRow,
+): HTMLElement {
   const item = el('li', `k-item ${LIVE_ROW}`);
   item.dataset.tone = row.severity;
   item.dataset.liveRule = row.rule;
@@ -141,15 +148,17 @@ function rowOf(ctx: EditorContext, element: string | null, row: LiveRow): HTMLEl
   const evidence = evidenceLine(row.evidence, row.severity);
   if (evidence) item.append(evidence);
   item.append(el('small', 'k-meta', whereOf(row)));
+  // What Apply will do (or why there is none) in one quiet line, then the buttons on one line.
+  const fix = fixControl(ctx, fixes, element, row);
   const actions = el('div', 'checks-actions');
-  actions.append(waiverControl(ctx, { rule: row.rule, element }));
-  item.append(actions);
+  actions.append(fix.button, waiverControl(ctx, { rule: row.rule, element }, { quiet: true }));
+  item.append(fix.line, actions);
   return item;
 }
 
-function rowsOf(ctx: EditorContext, group: LiveGroup): HTMLElement {
+function rowsOf(ctx: EditorContext, fixes: Fixes, group: LiveGroup): HTMLElement {
   const list = el('ul', 'k-stack checks-live-rows');
-  for (const row of group.rows) list.append(rowOf(ctx, group.id, row));
+  for (const row of group.rows) list.append(rowOf(ctx, fixes, group.id, row));
   return list;
 }
 
@@ -160,7 +169,7 @@ function labelOf(group: LiveGroup): HTMLElement | null {
   return tag;
 }
 
-function groupOf(ctx: EditorContext, group: LiveGroup): HTMLElement {
+function groupOf(ctx: EditorContext, fixes: Fixes, group: LiveGroup): HTMLElement {
   const item = el('li', 'checks-live-group');
   const id = group.id;
   if (id === null) {
@@ -177,7 +186,7 @@ function groupOf(ctx: EditorContext, group: LiveGroup): HTMLElement {
     button.addEventListener('click', () => ctx.store.set({ selection: [id] }));
     item.append(button);
   }
-  item.append(rowsOf(ctx, group));
+  item.append(rowsOf(ctx, fixes, group));
   return item;
 }
 
@@ -189,6 +198,8 @@ export function mountLiveView(ctx: EditorContext): LiveView {
   const propsPane = ctx.panel.querySelector('section[data-edit="props"]');
   const checks = blockBefore(checksPane, 'live-checks', text('live.label'));
   const props = blockBefore(propsPane, 'live-props', text('live.here'));
+  // The source views the fixes are made from, shared by both blocks.
+  const fixes = createFixes(ctx);
   let open = readOpen();
   let shownChecks = '';
   let shownProps = '';
@@ -220,7 +231,7 @@ export function mountLiveView(ctx: EditorContext): LiveView {
       return;
     }
     const list = el('ol', 'k-stack checks-live-groups');
-    for (const group of model.groups) list.append(groupOf(ctx, group));
+    for (const group of model.groups) list.append(groupOf(ctx, fixes, group));
     body.replaceChildren(list);
   }
 
@@ -243,7 +254,7 @@ export function mountLiveView(ctx: EditorContext): LiveView {
       const heading = el('h3', 'checks-live-title', text('live.here'));
       const tag = labelOf(group);
       if (tag) heading.prepend(tag);
-      findings.append(heading, rowsOf(ctx, group));
+      findings.append(heading, rowsOf(ctx, fixes, group));
       parts.push(findings);
     }
     if (model.card) {

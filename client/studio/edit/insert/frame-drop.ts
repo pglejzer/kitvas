@@ -32,6 +32,16 @@ export function frameMoveOps(
   });
 }
 
+/**
+ * Loads the edit card's frame again from the code as it is: it still shows the preview of a drop
+ * or of a reordered item that was not written.
+ */
+export function reloadFrame(bridge: Pick<EditorContext['bridge'], 'frame'>): void {
+  const frame = bridge.frame.element;
+  const again = frame.src;
+  frame.src = again;
+}
+
 export function mountFrameDrop(ctx: EditorContext): void {
   const { bridge, store, history } = ctx;
   // A file dragged in from the desktop (spec 4c, goal 10) is the same kind of drop.
@@ -44,11 +54,7 @@ export function mountFrameDrop(ctx: EditorContext): void {
     const ops = frameMoveOps(message.source.ids, slot, structure);
     if (ops.length === 0) return;
     void history.apply({ ops, label: text('layers.move') }).then((outcome) => {
-      if (outcome?.outcome === 'applied') return;
-      // The frame still shows the preview; load it again from the code as it is.
-      const frame = bridge.frame.element;
-      const again = frame.src;
-      frame.src = again;
+      if (outcome?.outcome !== 'applied') reloadFrame(bridge);
     });
   });
 }

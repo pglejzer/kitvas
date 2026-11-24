@@ -3,7 +3,7 @@
 // keys and menu read (`data-layer`, `data-section`, the `layers-row` class); lock and hide are
 // icon buttons at its end, shown on hover, on focus and always when on (the skin).
 
-import type { TreeNode } from '../../../channel/edit-protocol.ts';
+import { addsToSelection, type TreeNode } from '../../../channel/edit-protocol.ts';
 import { icon, iconButton } from '../../ui/icon.ts';
 import type { ListKind } from '../structure/lists.ts';
 import { text } from '../texts.ts';
@@ -96,7 +96,7 @@ function nameButton(item: LayerItem, level: number, env: RowEnv): HTMLButtonElem
   }
   button.addEventListener('click', (event) => {
     if (env.swallowClick()) return;
-    env.select(node.id, event.shiftKey);
+    env.select(node.id, addsToSelection(event));
   });
   button.addEventListener('mouseenter', () => env.hover(node.id));
   button.addEventListener('mouseleave', () => env.hover(null));

@@ -130,6 +130,7 @@ export const CLAUDE_TEXT_KEYS = [
   'notes.new',
   'notes.edit',
   'notes.text',
+  'notes.hint',
   'notes.on',
   'notes.was',
   'notes.onDraft',

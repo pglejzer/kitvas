@@ -149,6 +149,29 @@ test("editing an item's title writes that field, and undo puts the old title bac
   await roundTrip(op, pricing([FREE, "  { name: 'Pro\\'s', price: '20 a month' },", TEAM]));
 });
 
+test('a text written at its path changes its literal, and undo puts it back', async () => {
+  const op: EditOp = {
+    op: 'setItemText',
+    id: TEXT,
+    item: 1,
+    path: [1],
+    value: '25 a month',
+    before: '20 a month',
+  };
+  await roundTrip(op, pricing([FREE, "  { name: 'Pro', price: '25 a month' },", TEAM]));
+});
+
+test('a text at a path that no literal renders is refused; nothing is written', async () => {
+  const { store, deps } = setup();
+  const op: EditOp = { op: 'setItemText', id: TEXT, item: 1, path: [1], value: 'x', before: 'y' };
+  assert.deepEqual(await applyEdits(deps, request(store, 1, [op])), {
+    outcome: 'refused',
+    version: 1,
+    refusals: [{ index: 0, reason: 'computed' }],
+  });
+  assert.equal(store.readText('plans', `v2/${PRICING}`), undefined);
+});
+
 test('a later op of the same request finds the list where the earlier one left it', async () => {
   const { store, deps } = setup();
   const ops: EditOp[] = [

@@ -173,6 +173,8 @@ export type LiveRow = {
   waived: boolean;
   /** What the first card that found it measured; a code finding's is its message. */
   evidence: Evidence;
+  /** The values that card measured, for the fix Apply makes (ADR 0061); `null` for a code finding. */
+  values: Values | null;
 };
 
 /** The findings of one element (`id: null`: those of no element), and its number on the canvas. */
@@ -212,6 +214,7 @@ export function liveGroups(
       widths: item.width === null ? [] : [item.width],
       waived: isWaived(waivers, item.rule, item.id),
       evidence: evidenceOf({ message: item.message, values: item.values ?? null }),
+      values: item.values ?? null,
     });
   }
   const last = (id: string | null): number => Number(id === null);

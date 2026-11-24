@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MAX_NODES, MAX_SELECTED } from '../../../client/channel/edit-protocol.ts';
+import {
+  addsToSelection,
+  MAX_NODES,
+  MAX_SELECTED,
+  textEditOf,
+} from '../../../client/channel/edit-protocol.ts';
 import { parseFrameMessage, parseStudioMessage } from '../../../client/channel/protocol.ts';
 
 const CHANNEL = 'abcdefghijklmnop';
@@ -24,10 +29,41 @@ test('the frame may report picks, hovers, keys, trees, styles and inline text', 
     },
     { type: 'text', id, value: "Don't wait" },
     { type: 'text', id, value: null },
+    { type: 'text', id, value: 'Go', before: "Don't wait" },
+    { type: 'copy-located', request: 3, id, path: [1, 0], text: 'SSO' },
+    { type: 'copy-located', request: 3, id, path: [], text: '' },
+    { type: 'copy-located', request: 3, id, path: null, text: null },
   ];
   for (const fields of good) {
     assert.deepEqual(parseFrameMessage(sent(fields), CHANNEL), sent(fields));
   }
+});
+
+test('the frame cannot say a copy is where no list could put it', () => {
+  const bad = [
+    { type: 'text', id, value: 'Go', before: 3 },
+    { type: 'text', id, value: 'Go', before: 'x'.repeat(2001) },
+    { type: 'copy-located', request: 3, id, path: [-1], text: 'SSO' },
+    { type: 'copy-located', request: 3, id, path: [0.5], text: 'SSO' },
+    { type: 'copy-located', request: 3, id, path: Array.from({ length: 9 }, () => 0), text: '' },
+    { type: 'copy-located', request: 3, id, path: [0], text: 'x'.repeat(2001) },
+    { type: 'copy-located', request: 3, id, text: 'SSO' },
+  ];
+  for (const fields of bad) {
+    assert.equal(parseFrameMessage(sent(fields), CHANNEL), undefined, JSON.stringify(fields));
+  }
+});
+
+test('Shift, Ctrl and Cmd add; a double click with one held edits no text', () => {
+  const keys = { shiftKey: false, ctrlKey: false, metaKey: false };
+  assert.equal(addsToSelection(keys), false);
+  assert.equal(addsToSelection({ ...keys, ctrlKey: true }), true);
+  assert.equal(addsToSelection({ ...keys, metaKey: true }), true);
+  assert.equal(addsToSelection({ ...keys, shiftKey: true }), true);
+  assert.equal(textEditOf({ id, add: false, double: true }), id);
+  assert.equal(textEditOf({ id, add: true, double: true }), null);
+  assert.equal(textEditOf({ id, add: false, double: false }), null);
+  assert.equal(textEditOf({ id: null, add: false, double: true }), null);
 });
 
 test('the frame cannot send a bad edit message', () => {
@@ -53,6 +89,10 @@ test('the page may tell the frame to edit, select, hover, read and preview', () 
     { type: 'tree', request: 1 },
     { type: 'inspect', request: 2, id },
     { type: 'edit-text', id },
+    { type: 'edit-text', id, item: 2 },
+    { type: 'locate-copy', request: 5, id, roots: [] },
+    { type: 'locate-copy', request: 5, id, item: 4, roots: ['sections/Plans:section/Card', id] },
+    { type: 'text-back', id },
     {
       type: 'preview',
       changes: [
@@ -78,6 +118,12 @@ test('the page cannot send a bad edit message', () => {
     },
     { type: 'preview', changes: [{ id, kind: 'class', className: 'Bad Class', on: true }] },
     { type: 'preview', changes: [{ id, kind: 'script' }] },
+    { type: 'edit-text', id, item: -1 },
+    { type: 'locate-copy', request: 5, id, roots: ['<b>'] },
+    { type: 'locate-copy', request: 5, id, roots: Array.from({ length: 9 }, () => id) },
+    { type: 'locate-copy', request: 5, id, item: 'one', roots: [] },
+    { type: 'locate-copy', request: 5, id },
+    { type: 'text-back', id: null },
   ];
   for (const fields of bad) {
     assert.equal(parseStudioMessage(sent(fields), CHANNEL), undefined, String(fields.type));

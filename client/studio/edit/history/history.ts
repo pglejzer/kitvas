@@ -10,10 +10,18 @@
 // Ids: an answer's `renames` move the selection, the hover, hidden elements, the menu and the change
 // list (`remapCurrent`). The steps keep the ids of their own time: a step is sent only after every
 // later step was undone, which puts every id back as it left them (see `remap.ts`).
+//
+// A request that gets no answer, or an error, saves nothing: both stacks stay as they were and
+// `failed` tells the person (ADR 0061). The stacks and the change list are kept across a reload by
+// `keep.ts`, so a step carries its own renames.
 
 import type { EditOp, SimpleOp } from '../../../../src/edit/index.ts';
-import type { EditOutcome, EditRequest } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import { type Answer, postEdits } from '../api.ts';
+import type {
+  EditOutcome,
+  EditRequest,
+  EditState,
+} from '../../../../src/studio/api/edit/edit-schemas.ts';
+import { type Answer, getEditState, postEdits } from '../api.ts';
 import type { History, HistoryDeps } from '../context.ts';
 import { elementOf, type Gesture } from '../store.ts';
 import { previewOf } from '../style/preview-of.ts';
@@ -36,9 +44,11 @@ export const GROUP_MS = 800;
 export type HistoryIo = {
   post(slug: string, request: EditRequest): Promise<Answer<EditOutcome>>;
   now(): number;
+  /** The edit state, read again after the first edit of a session for its true `startedAt`. */
+  state?(slug: string): Promise<Answer<EditState>>;
 };
 
-const realIo: HistoryIo = { post: postEdits, now: () => Date.now() };
+const realIo: HistoryIo = { post: postEdits, now: () => Date.now(), state: getEditState };
 
 const SIMPLE: ReadonlySet<EditOp['op']> = new Set([
   'setProp',
@@ -202,9 +212,8 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
   let pending: Pending | null = null;
   /** The last gesture that was applied by `apply`, and when; the one a new step may join. */
   let last: { gesture: Gesture; at: number } | null = null;
-  /** The renames each step's own answer made, by the step as it was first stacked. */
-  const stepRenames = new WeakMap<Gesture, Renames>();
-  const renamesOf = (step: Gesture): Renames => stepRenames.get(originOf(step)) ?? {};
+  /** The renames the step's own answer made; a remapped copy carries those of its first stacking. */
+  const renamesOf = (step: Gesture): Renames => step.renames ?? originOf(step).renames ?? {};
 
   // One request at a time: a call made while one runs waits for it.
   function enqueue<T>(job: () => Promise<T>): Promise<T> {
@@ -229,8 +238,21 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
     const { ops, label } = sent;
     const step: Gesture =
       outcome.inverse.length > 0 ? { ops, label, undoOps: [...outcome.inverse] } : { ops, label };
-    stepRenames.set(step, renames);
+    if (Object.keys(renames).length > 0) step.renames = { ...renames };
     return step;
+  }
+
+  /**
+   * The first edit of a session opened it, and the page named its start by its own clock. The
+   * server's `startedAt` is read once, since it names the session the kept history belongs to.
+   */
+  async function learnSession(version: number): Promise<void> {
+    const answer = await io.state?.(slug);
+    const session = answer?.ok ? answer.body.session : null;
+    const { edit } = store.get();
+    if (!session || !edit?.session || session.version !== version) return;
+    if (edit.session.version !== version || edit.session.startedAt === session.startedAt) return;
+    store.set({ edit: { ...edit, session } });
   }
 
   function finish(kind: Kind, sent: Gesture, original: Gesture, outcome: Applied): void {
@@ -318,8 +340,9 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
       : null;
     const answer = request ? await io.post(slug, request) : null;
     if (!answer?.ok) {
+      // Nothing was saved: the stacks stay, and the person is told (no answer, or an error).
       bridge.send({ type: 'unpreview' });
-      store.set({ busy: false });
+      store.set({ busy: false, failed: { kind, gesture: sent, status: answer?.status ?? 0 } });
       return null;
     }
     const outcome = answer.body;
@@ -327,13 +350,14 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
       pending = null;
       finish(kind, sent, original, outcome);
       const note = appliedNote(store.get().applied, sent.ops, outcome);
-      store.set({ busy: false, applied: note });
+      store.set({ busy: false, applied: note, failed: null });
       // An undo, a redo or a change a button made: the ring shows where it landed. An edit by
       // the person's own hand on the element needs none.
       if (kind !== 'apply' || original.flash) bridge.flash?.(note.ids);
+      if (outcome.started) void learnSession(outcome.version);
     } else if (outcome.outcome === 'conflict') {
       bridge.send({ type: 'unpreview' });
-      store.set({ busy: false, conflict: { gesture: sent, outcome } });
+      store.set({ busy: false, conflict: { gesture: sent, outcome }, failed: null });
     } else {
       pending = null;
       bridge.send({ type: 'unpreview' });
@@ -341,6 +365,7 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
       store.set({
         busy: false,
         refused: first ? { gesture: sent, index: first.index, reason: first.reason } : null,
+        failed: null,
       });
     }
     return outcome;

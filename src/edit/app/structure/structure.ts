@@ -16,6 +16,7 @@ import {
 import type { KitComponent, KitStore, LoadedKit } from '../../../kit/index.ts';
 import { elementIds, readSites } from '../../../render/index.ts';
 import { KitvasError } from '../../../shared/index.ts';
+import { findList } from '../../domain/list/find.ts';
 import { ELEMENT_ID, fileOfId, hashOf } from '../../domain/ops.ts';
 import { contextOf, elementSpan, isMixed, parentOf } from '../../domain/structure/subtree.ts';
 import { offsetOf, openAt, plainText } from '../../domain/tsx/tsx-reader.ts';
@@ -46,6 +47,7 @@ export type StructureEntryView = {
   props: string[];
   component: string | null;
   movable: Refusal | null;
+  item: boolean;
   accepts: boolean;
   mixed: boolean;
   interactive: boolean;
@@ -185,6 +187,17 @@ function standingOf(text: string, at: number, memo: Map<number, boolean>): Stand
 export const movableAt = (text: string, at: number): Refusal | null =>
   standingOf(text, at, new Map<number, boolean>()).movable;
 
+/**
+ * The element is what a `.map` over a literal array of the file returns: the page renders one
+ * copy of it per item, so dragging a copy reorders the items of the data (ADR 0059). An element
+ * deeper in the callback is in the same list as its parent and is no item itself.
+ */
+function isListItem(text: string, at: number): boolean {
+  if (findList(text, at)?.kind !== 'literal') return false;
+  const parent = parentOf(text, at);
+  return parent === null || findList(text, parent) === null;
+}
+
 /** The build's ids of a file's elements and their `<`; none when the file does not compile. */
 async function sitesOf(compiler: EditCompiler, text: string, file: string): Promise<Site[]> {
   const code = await compiler.jsxDev(text, file);
@@ -220,6 +233,8 @@ function entryOf(context: FileContext, site: Site): StructureEntryView | null {
     props: open.attrs.map((attr) => attr.name),
     component: component?.name ?? null,
     movable,
+    // Read only for an element that cannot move as one: a mapped element is in an expression.
+    item: movable !== null && isListItem(text, site.at),
     accepts: acceptsChildren(site.tag, component),
     mixed: isMixed(text, site.at),
     interactive: isInteractive(site.tag, component),

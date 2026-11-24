@@ -23,6 +23,7 @@ import {
   offKitValues,
   sectionScss,
   sourceFiles,
+  textSourceOf,
 } from '../../../edit/index.ts';
 import { cssVarName, type KitStore } from '../../../kit/index.ts';
 import { elementIds, readSites } from '../../../render/index.ts';
@@ -40,6 +41,8 @@ import {
   InspectSchema,
   OffKitSchema,
   SOURCE_PATH,
+  TextSourceQuerySchema,
+  TextSourceSchema,
 } from './edit-schemas.ts';
 import type { LiveCodeFinding } from './live-schemas.ts';
 import { SessionReopenRequestSchema, SessionReopenSchema } from './session-schemas.ts';
@@ -75,6 +78,12 @@ export type EditRouteDeps = {
  * `src/tsx/sections/Hero.tsx`); one whose path would leave `src/tsx/` is refused.
  */
 const namesSourceFile = (id: string): boolean => SOURCE_PATH.test(fileOfId(id));
+
+/** `path=0,2` as places, `path=` as none; anything else is no path (the schema refuses it). */
+const pathOf = (raw: string | null): number[] | null =>
+  raw === null || !/^(?:\d{1,5}(?:,\d{1,5})*)?$/.test(raw)
+    ? null
+    : raw.split(',').flatMap((part) => (part === '' ? [] : [Number(part)]));
 
 export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
   const editor = (): EditDeps => {
@@ -230,6 +239,40 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
           parsed.data.id,
         );
         return { status: 200, body: inspected };
+      },
+    }),
+    apiRoute({
+      id: 'checkTextSource',
+      summary:
+        'Whether the text a copy of an element shows has one string literal of its file behind it (ADR 0060). Query: `id`, `text`, `path`.',
+      method: 'GET',
+      path: '/api/v1/drafts/{slug}/text-source',
+      policy: 'read',
+      params: SlugParams,
+      request: null,
+      response: { status: 200, schema: TextSourceSchema },
+      handle: async ({ params, query }) => {
+        const parsed = TextSourceQuerySchema.safeParse({
+          id: query.get('id'),
+          text: query.get('text'),
+          path: pathOf(query.get('path')),
+        });
+        if (!parsed.success || !namesSourceFile(parsed.data.id)) {
+          throw new RequestError(
+            'REQUEST_INVALID',
+            { detail: deps.t('studio.edit.badId') },
+            parsed.success ? {} : { errors: issueEntries(parsed.error.issues) },
+          );
+        }
+        const { id, text, path } = parsed.data;
+        const reason = await textSourceOf(
+          { drafts: deps.drafts, compiler: editor().compiler },
+          params.slug,
+          id,
+          text,
+          path,
+        );
+        return { status: 200, body: { reason } };
       },
     }),
     apiRoute({

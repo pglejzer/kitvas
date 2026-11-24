@@ -17,9 +17,12 @@ import {
 
 const ELEMENT_ID = /^[A-Za-z0-9_.:/$-]{1,200}$/;
 const PROPERTY = /^[a-z][a-z-]{0,47}$/;
-const CLASS = /^[a-z][a-z0-9-]{0,63}$/;
+/** `CLASS_NAME` of `src/edit/domain/ops.ts`: BEM names such as `plans__card` too. */
+const CLASS = /^[a-z][a-z0-9_-]{0,63}$/;
 
 export const MAX_SELECTED = 200;
+/** The most lists around one element a `locate-copy` names (`MAX_LIST_DEPTH` of the edit ops). */
+export const MAX_LIST_DEPTH = 8;
 export const MAX_NODES = 2000;
 export const MAX_NAME = 80;
 export const MAX_INLINE_TEXT = 2000;
@@ -66,6 +69,23 @@ export type PreviewChange =
   | { id: string; kind: 'style'; property: string; value: string }
   | { id: string; kind: 'class'; className: string; on: boolean };
 
+/** The keys held during a click, as a mouse event has them. */
+export type ClickKeys = { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean };
+
+/**
+ * A click held with Shift, Ctrl or Cmd adds to the selection, or takes a selected element out:
+ * a pick's `add`, in the frame and in the layers alike.
+ */
+export const addsToSelection = (click: ClickKeys): boolean =>
+  click.shiftKey || click.ctrlKey || click.metaKey;
+
+/** What a pick says of the click: the element, the add modifier, a double click. */
+export type PickLike = { id: string | null; add: boolean; double: boolean };
+
+/** The element a pick opens an inline text edit on: a double click's, never one with `add`. */
+export const textEditOf = (pick: PickLike): string | null =>
+  pick.double && !pick.add ? pick.id : null;
+
 type Head = { kitvas: 1; channel: string };
 
 export type EditFrameMessage =
@@ -87,8 +107,23 @@ export type EditFrameMessage =
             found: boolean;
             styles: Record<string, string>;
           }
-        /** The end of an inline text edit; `value: null` when the person cancelled it. */
-        | { type: 'text'; id: string; value: string | null }
+        /**
+         * The end of an inline text edit; `value: null` when the person cancelled it. `before`:
+         * the text the editor started from (ADR 0060), the `before` of the op that writes it.
+         */
+        | { type: 'text'; id: string; value: string | null; before?: string }
+        /**
+         * The answer to `locate-copy` (ADR 0060): the copy's place among the copies of each root,
+         * outer first, and the text it shows. `path: null` when a root around it is not there;
+         * `text: null` when the copy is not there or holds elements, so it cannot be typed in.
+         */
+        | {
+            type: 'copy-located';
+            request: number;
+            id: string;
+            path: number[] | null;
+            text: string | null;
+          }
       ));
 
 export type EditStudioMessage =
@@ -101,8 +136,19 @@ export type EditStudioMessage =
         | { type: 'hover'; id: string | null }
         | { type: 'tree'; request: number }
         | { type: 'inspect'; request: number; id: string }
-        /** Starts an inline text edit of the element; the frame answers with `text`. */
-        | { type: 'edit-text'; id: string }
+        /**
+         * Starts an inline text edit of the element; the frame answers with `text`. `item`: that
+         * rendered copy of it (ADR 0060), else the chosen one.
+         */
+        | { type: 'edit-text'; id: string; item?: number }
+        /**
+         * ADR 0060: where copy `item` of `id` stands in the lists whose root elements are `roots`
+         * (outer first): for each root, the place of the copy of it around the element among that
+         * root's copies inside the copy of the root before it. The frame answers `copy-located`.
+         */
+        | { type: 'locate-copy'; request: number; id: string; item?: number; roots: string[] }
+        /** ADR 0060: the last inline edit of `id` was not written, so its old text comes back. */
+        | { type: 'text-back'; id: string }
         | { type: 'preview'; changes: PreviewChange[] }
         /** Takes every preview back: a refused edit, or a build that replaced the page. */
         | { type: 'unpreview' }
@@ -115,6 +161,7 @@ export const EDIT_FRAME_TYPES = new Set([
   'tree',
   'inspected',
   'text',
+  'copy-located',
   ...STRUCTURE_FRAME_TYPES,
 ]);
 export const EDIT_STUDIO_TYPES = new Set([
@@ -124,6 +171,8 @@ export const EDIT_STUDIO_TYPES = new Set([
   'tree',
   'inspect',
   'edit-text',
+  'locate-copy',
+  'text-back',
   'preview',
   'unpreview',
   ...STRUCTURE_STUDIO_TYPES,
@@ -143,6 +192,9 @@ const isText = (value: unknown, max: number): value is string =>
   typeof value === 'string' && value.length <= max;
 const isCount = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 1e9;
+/** A copy's place in each list around an element (ADR 0060): list item places, outer first. */
+const isPath = (value: unknown): value is number[] =>
+  Array.isArray(value) && value.length <= MAX_LIST_DEPTH && value.every(isItem);
 
 function node(value: unknown): TreeNode | undefined {
   if (!isObject(value)) return undefined;
@@ -215,9 +267,20 @@ export function parseEditFrame(message: Loose, channel: string): EditFrameMessag
       return { ...head, type: 'inspected', request, id, found, styles: read };
     }
     case 'text': {
-      const { id, value } = message;
+      const { id, value, before } = message;
       if (!isId(id) || !(value === null || isText(value, MAX_INLINE_TEXT))) return undefined;
-      return { ...head, type: 'text', id, value };
+      if (before === undefined) return { ...head, type: 'text', id, value };
+      return isText(before, MAX_INLINE_TEXT)
+        ? { ...head, type: 'text', id, value, before }
+        : undefined;
+    }
+    case 'copy-located': {
+      const { request, id, path, text } = message;
+      if (!isCount(request) || !isId(id)) return undefined;
+      if (!(path === null || isPath(path))) return undefined;
+      if (!(text === null || isText(text, MAX_INLINE_TEXT))) return undefined;
+      const place = path === null ? null : [...path];
+      return { ...head, type: 'copy-located', request, id, path: place, text };
     }
     default:
       return parseStructureFrame(message, channel);
@@ -250,8 +313,22 @@ export function parseEditStudio(message: Loose, channel: string): EditStudioMess
       return isCount(message.request) && isId(message.id)
         ? { ...head, type: 'inspect', request: message.request, id: message.id }
         : undefined;
-    case 'edit-text':
-      return isId(message.id) ? { ...head, type: 'edit-text', id: message.id } : undefined;
+    case 'edit-text': {
+      const { id, item } = message;
+      if (!isId(id)) return undefined;
+      if (item === undefined) return { ...head, type: 'edit-text', id };
+      return isItem(item) ? { ...head, type: 'edit-text', id, item } : undefined;
+    }
+    case 'locate-copy': {
+      const { request, id, item, roots } = message;
+      if (!isCount(request) || !isId(id) || !Array.isArray(roots)) return undefined;
+      if (roots.length > MAX_LIST_DEPTH || !roots.every(isId)) return undefined;
+      const body = { ...head, type: 'locate-copy' as const, request, id, roots: [...roots] };
+      if (item === undefined) return body;
+      return isItem(item) ? { ...body, item } : undefined;
+    }
+    case 'text-back':
+      return isId(message.id) ? { ...head, type: 'text-back', id: message.id } : undefined;
     case 'preview': {
       const { changes } = message;
       if (!Array.isArray(changes) || changes.length > MAX_PREVIEW) return undefined;

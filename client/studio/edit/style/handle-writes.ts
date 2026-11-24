@@ -3,7 +3,9 @@
 // the kit's spacing and size scales as `tokens`. Since plan 15 a one-side padding handle writes
 // that side (`padding-top`); with Alt the frame sends the axis (`padding-block`) and that is
 // written.
-// A handle that writes nothing says why in the properties panel (`HANDLE_NOTE`).
+// The frame is also told which handles the selected element cannot take (`handles`, ADR 0059), so
+// it draws none of them. A handle that still writes nothing, because the server refuses it, says
+// why in the properties panel (`HANDLE_NOTE`).
 
 import type { EditOp, StyleProperty, TokenOption } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
@@ -67,12 +69,50 @@ export function opsForHandle(
   if (row === null) return { note: 'handles.notWritten' };
   const reason = readOnlyReason(inspected, row, format);
   if (reason) return { note: `props.reason.${reason}` };
-  // `100%` and `auto` belong to the size scale; only a Shift value is off the kit.
+  // `100%` and `auto` belong to the size scale; any other raw value is pixels off the kit.
   const keyword = 'raw' in value && (value.raw === '100%' || value.raw === 'auto');
   const style =
     'token' in value ? styleValueOf(`var(${value.token})`) : styleValueOf(value.raw, !keyword);
   const ops = opsForStyle(inspected, row, style, { format });
   return ops.length > 0 ? { ops } : { note: 'handles.notWritten' };
+}
+
+/** The CSS properties the frame's handles write: the size, each side's padding and the gap. */
+export const HANDLE_PROPERTIES = [
+  'width',
+  'height',
+  'padding-top',
+  'padding-right',
+  'padding-bottom',
+  'padding-left',
+  'gap',
+] as const;
+
+/** What the `handles` message says of the selected element. */
+export type HandleLimits = { blocked: string[]; stepped: string[] };
+
+/**
+ * What the handles may do on the element with the source view `inspected`. `blocked`: the
+ * properties a handle cannot write, whose handles the frame does not draw: every one in a
+ * Tailwind draft and while the source view is not read, else the ones the properties panel shows
+ * as read-only. `stepped`: the ones a kit prop covers, which have no value between two steps of
+ * the scale, so their handles go from step to step.
+ */
+export function handleLimits(
+  inspected: Inspect | null,
+  format: 'scss' | 'tailwind' | null,
+): HandleLimits {
+  if (inspected === null || format !== 'scss') {
+    return { blocked: [...HANDLE_PROPERTIES], stepped: [] };
+  }
+  const blocked: string[] = [];
+  const stepped: string[] = [];
+  for (const property of HANDLE_PROPERTIES) {
+    const row = styleOfHandle(property);
+    if (row === null || readOnlyReason(inspected, row, format) !== null) blocked.push(property);
+    else if (inspected.styles[row]?.kind === 'prop') stepped.push(property);
+  }
+  return { blocked, stepped };
 }
 
 /**
@@ -105,11 +145,31 @@ export function mountHandleWrites(ctx: EditorContext): void {
     const edit = store.get().edit;
     if (edit) bridge.send({ type: 'tokens', ...scalesOf(edit.tokens) });
   }
-  const sendHandles = (): void => bridge.send({ type: 'handles', on: store.get().on });
+
+  /** The last `handles` body sent, as text: the same one is not sent twice. */
+  let sent = '';
+  /** Whether handles are on, and what the selected element takes of them. */
+  function sendHandles(again = false): void {
+    // The store as it is now: a listener called from inside another `set` gets an older state.
+    const { on, inspected, selection, edit } = store.get();
+    // A source view of another element (the selection just changed) says nothing of this one.
+    const view = inspected !== null && inspected.id === selection[0] ? inspected : null;
+    const limits = handleLimits(view, edit?.format ?? null);
+    const body = { type: 'handles' as const, on, ...limits };
+    const key = JSON.stringify(body);
+    if (!again && key === sent) return;
+    sent = key;
+    bridge.send(body);
+  }
 
   store.subscribe((state, previous) => {
     if (state.edit !== previous.edit) sendScales();
-    if (state.on !== previous.on) sendHandles();
+    const changed =
+      state.on !== previous.on ||
+      state.inspected !== previous.inspected ||
+      state.selection !== previous.selection ||
+      state.edit !== previous.edit;
+    if (changed) sendHandles();
   });
 
   function write(id: string, property: string, value: HandleValue): void {
@@ -134,7 +194,7 @@ export function mountHandleWrites(ctx: EditorContext): void {
   bridge.on((message) => {
     if (message.type === 'tree') {
       sendScales();
-      sendHandles();
+      sendHandles(true);
     } else if (message.type === 'handle' && message.done) {
       write(message.id, message.property, message.value);
     }

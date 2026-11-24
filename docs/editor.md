@@ -1,0 +1,119 @@
+# The studio editor
+
+The full guide to editing a draft in the kitvas studio. For what kitvas is and how to install it, see the [README](../README.md).
+
+## The screen
+
+A draft opens as one screen that never scrolls: a bar on top, layers and the insert palette on the left, the prototype in the middle, and properties, changes, checks (and sketches, for a craft draft) on the right. The bar switches Preview and Edit, picks a version or one to compare, and holds undo, redo and "Save version". For 8 seconds after a save, "Undo save" brings the session back.
+
+Switch to Edit in the bar to change the draft.
+
+## Zoom, pan and panels
+
+- Drag the edge of a panel to resize it. The arrow keys step 16 px and a double click resets it.
+- Zoom runs from 10 % to 400 % with Ctrl and the wheel (also over the prototype), the buttons or a typed percent.
+- Hold Space and drag, or drag with the middle button, to pan.
+- The width has the presets 390, 768 and 1280, where the checks' marks show, and any width from 320 to 2560 px. Zooming never changes the prototype's real width.
+- Press `?` for every shortcut, searchable.
+
+| Key | Action |
+| --- | --- |
+| `[` and `]` | Fold the left and right panel |
+| `Ctrl+\` | Fold both panels |
+| `Shift+1` | Fit the prototype to the room; it stays fitted when panels move |
+| `Shift+2` | Zoom to the selection |
+| `Ctrl+0` | Zoom to 100 % |
+| `Space` and drag | Pan |
+| `Esc` | Clear the selection, or cancel a drag |
+| Arrow keys | Select the parent or the first child |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Shift+Z` or `Ctrl+Y` | Redo |
+| `Ctrl+Enter` (`Cmd+Enter`) | Save a note |
+
+The sizes of the panels are kept.
+
+## Selecting
+
+- Click an element, or find it in the layers list.
+- Shift, Ctrl or Cmd with a click adds an element to the selection, on the page and in Layers.
+- Press and drag on the page to move an element (see Structure). Drag a rectangle over empty space to select several elements. It takes the elements it touches that do not hold it whole, the outermost of those, never a locked element. A rectangle with Shift, Ctrl or Cmd held adds to the selection. A rectangle that takes nothing clears it.
+- A locked element is picked in the layers list only: a click on it in the prototype selects what is under it.
+
+## What you can change
+
+- A kit component's props: variant, size, gap and the rest.
+- Spacing, colour, typography, radius, border, width and height, with the kit's tokens offered first and the arrow keys stepping through the kit's scale.
+- The text, by a double click.
+
+Each row says where its value lives: a kit prop, the section's SCSS, or the kit's default. kitvas writes the change into the draft's TSX or SCSS itself, touching only the lines it changes. The studio takes each finished build into the prototype in place, with no reload: the page keeps its scroll and the editor's overlays, and the change shows within about a second. A value outside the kit is allowed. It is marked in the code and in the session's change list, and it can be mapped to the nearest token.
+
+Drafts that use Tailwind can edit props, text and styles. A style is written as a utility class of the element's own `className` string.
+
+### Text
+
+A double click edits an element's text in place. It works for a plain text, for a text held in a field of a list item, in a nested list, and for a text chosen by a condition (`?:`, `||`, `??`, `&&`), when the editor can find the one string literal in the same file that renders it. A double click with Shift, Ctrl or Cmd held starts no text edit. A text that comes from a prop, an import or a call is refused, and the refusal says why and offers Ask Claude. Text that spans several lines in the code is read-only.
+
+## Structure
+
+- Press and drag moves an element at once. The element is the one under the pointer if it is selected, else the nearest one that can move. A line shows where it will land, and Esc cancels. The page's selection follows it.
+- The layers list takes drags too.
+- Items of a list made from data (a `.map` over a literal array in the same file) can be dragged to reorder. The line shows the place, and the item is dimmed while it moves. Items can also be moved, duplicated and deleted, and have their text edited; each step changes only that item's text.
+- The palette inserts a kit component, an icon or a section of another draft that uses the same kit.
+- The right-click menu and the keys offer delete, duplicate, copy, cut, paste, copy and paste style, move up and down, wrap in a stack, a grid or a card, unwrap, replace with another component, reset to how it was when the session started, select similar, hide, lock, and copy code location (the file, line and column, ready to paste). Each menu item shows its key.
+- Sections can be reordered, deleted and inserted.
+- Handles on the selected element resize it and change its padding and gap. They keep their size on the screen at any zoom, and they follow the pointer pixel by pixel. They snap to a step of the kit's scale only when the pointer is within 6 px of it. Shift switches the snap off and writes a raw value, marked off the kit. A property that a kit prop covers takes steps only. A handle that cannot write is not drawn.
+- Every step is one undo.
+
+## Widths and states
+
+A page lives at several widths and in several states, and the editor sees both:
+
+- The Widths control in the dock shows one, two or all three preset widths side by side (390, 768, 1280). The card you last clicked in sets the width of an edit: at 390 it applies to all widths, at 768 or 1280 from that width up. It is written as a `@media (min-width: …)` block in the section's SCSS, or as an `md:` or `xl:` utility in a Tailwind draft. The kit may name its own breakpoints in `kit.json`.
+- The state bar (Default, Hover, Focus, Active) forces that state on the selected element in every card and sends your edits to it. They are written as `&:hover`, `&:focus-visible` or `&:active`, or as a `hover:` utility. A forced state is only a preview: it never reaches the build, and it ends with Edit or with the selection.
+- Each style row says where its value comes from (set here, from all widths, from 768 up, or the kit) and offers "Remove for this width" and "Apply to all widths".
+
+## Live checks
+
+After each edit's build the editor measures the changed elements in every card (text contrast, target size, content that overflows or is cut) and checks the code it wrote (values outside the kit, plain controls). A finding shows in the Checks tab, as a mark on the canvas and at the top of Properties. A colour or size option that would fail warns you before you pick it. The Properties panel also has an accessibility card: role, name, focus order, contrast and target size of the selected element.
+
+- A target that is too small and text of too low contrast can be fixed with Apply. The card says what Apply will set before you click. Apply is one undo step. Any other finding offers Ask Claude.
+- A finding you accept on purpose ("Accept…", with a reason) is kept in `waivers.json`, shown as accepted, left out of what must be fixed and out of `kitvas check`'s count, and carries to later versions while its element exists.
+- Save version starts the full check in the background and shows its result when it ends.
+
+## Images
+
+An image file (PNG, JPEG, WebP, AVIF or GIF, up to 5 MB; never SVG) can be uploaded from the background image picker, dropped on an element in the prototype, or dropped on the Insert tab. It goes into the version's `src/img/`. Dropped on an `img` it sets `src`; dropped on any other element it sets the background image. Either is one undo step.
+
+## Versions and saving
+
+The first edit starts a new version, and later edits go into it. "Save version" ends the session; the next edit starts another version. Claude can edit the same files while you work: you see its changes live, and when you both changed the same place you choose between yours and theirs.
+
+Undo and redo work with Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y. The undo history and the change list are kept in the browser per draft, so a reload of the page does not empty them. Save version ends the session and clears them; Undo save brings them back. A change that cannot be saved leaves the history as it was and the bar says so: "The change could not be saved. Try again."
+
+## With Claude
+
+The editor works with Claude, with notes, with locks and with time.
+
+- **Ask Claude to change things.** The AI tab takes a sentence about the selected elements, or "Improve", and Claude answers one to three variants. Each previews on hover with its checks (contrast, target size, overflow, changed text); a click applies it as one undo step. **This needs a Claude Code session that is listening:** run `/kitvas:edit <draft>` in Claude Code and leave it running. Without one, requests wait on disk and are answered when a session starts. Your text is data for Claude, never an instruction to its tools.
+- **Notes** (right click, "Note…") pin to an element, for you or for Claude, and follow it to later versions. A note is typed in a multi-line field: Enter starts a new line, and Ctrl or Cmd with Enter saves it.
+- **Locks** hold against Claude too: the editor refuses to change a locked element, Claude is told never to, and if a file changes one anyway kitvas shows it (also in `kitvas check`) and offers Restore. Lock and hide survive a reload. Nothing is reverted behind your back.
+- **The timeline** under the canvas shows any version read only, marks where the selected element changed, and brings one element back as a diff. An identifier the current file lacks refuses it with the name; a kit import it needs is added.
+- **Suggestions.** A plain `<button>`, input, heading or card-like `div` that a kit component covers shows "This looks like <Component> from the kit" with Replace.
+- **Why.** The Why tab lists, per section, the reasons Claude wrote when it made it, and says when the section changed since. An older section offers "Ask Claude for the reasons".
+
+What works offline: the studio, every edit above, the builds, the checks and the versions. No account, network or model is involved. What needs Claude: the AI tab and the reasons (a listening Claude Code session), and asking for a change kitvas cannot write itself.
+
+## What is refused
+
+Some things are refused with "Ask Claude". The refusal shows why, and Ask Claude sends the element, the change you wanted and the reason to Claude through the studio's notes:
+
+- an element inside a list that is not a literal array in the same file (a prop, an import or a computed one), or inside a condition (`&&`), when the change is not a text that the editor can trace to one literal;
+- a text that comes from a value computed in code, a prop or a call;
+- a prop passed through a spread, or a style set by a utility class;
+- a copy that uses variables of its old place when it goes to another section;
+- a style that a kit prop covers at another width or state;
+- the sections of a craft draft's sketches.
+
+## The studio's look
+
+The View button in the bar of every page sets how the studio looks: the theme (system, light or dark), the panels (Cards, as islands, or Flush, with hairlines) and the accent (Copper, Teal, Coral or Rose). The choice is yours, not the project's: it is kept in `~/.kitvas/config.json`, holds in every project and after a restart, and applies at once without reloading a prototype. The studio has its own colours and typeface (Figtree, served by the studio itself); your kit and your drafts are never touched by them.

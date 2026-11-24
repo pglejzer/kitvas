@@ -9,6 +9,7 @@ import {
   parseFrameMessage,
   parseStudioMessage,
   readHash,
+  SWAP_STEPS,
 } from '../../../client/channel/protocol.ts';
 
 const CHANNEL = 'abcdefghijklmnop';
@@ -77,6 +78,46 @@ test('the studio takes ready and shown from its channel', () => {
   const longState = `a${'b-1'.repeat(20)}xy`;
   assert.equal(longState.length, 63);
   assert.ok(parseFrameMessage(sent({ type: 'shown', state: longState }), CHANNEL));
+});
+
+test('the studio takes a ready that answers a swap, with the build it names', () => {
+  const ready = parseFrameMessage(sent({ type: 'ready', state: 'filled', live: 4 }), CHANNEL);
+  assert.deepEqual(ready, { kitvas: 1, channel: CHANNEL, type: 'ready', state: 'filled', live: 4 });
+  assert.ok(parseFrameMessage(sent({ type: 'ready', state: 'filled', live: 0 }), CHANNEL));
+  assert.ok(parseFrameMessage(sent({ type: 'ready', state: 'filled', live: 1e9 }), CHANNEL));
+  // `shown` names no build: the field goes like any other it does not know.
+  const shown = parseFrameMessage(sent({ type: 'shown', state: 'a', live: 4 }), CHANNEL);
+  assert.deepEqual(shown, { kitvas: 1, channel: CHANNEL, type: 'shown', state: 'a' });
+});
+
+test('the studio takes every step of a swap from its channel, and only its known fields', () => {
+  assert.deepEqual([...SWAP_STEPS], ['held', 'free', 'failed']);
+  for (const step of SWAP_STEPS) {
+    const parsed = parseFrameMessage(sent({ type: 'swap', live: 7, step, state: 'a' }), CHANNEL);
+    assert.deepEqual(parsed, { kitvas: 1, channel: CHANNEL, type: 'swap', live: 7, step });
+  }
+});
+
+test('the studio refuses an answer to a swap it cannot trust', () => {
+  const ready = (live: unknown) => sent({ type: 'ready', state: 'filled', live });
+  const swap = (fields: Record<string, unknown>) => sent({ type: 'swap', ...fields });
+  const refused: [string, unknown][] = [
+    ['ready with a build as text', ready('4')],
+    ['ready with a negative build', ready(-1)],
+    ['ready with a fractional build', ready(1.5)],
+    ['ready with a build too large', ready(1e9 + 1)],
+    ['ready with a build that is null', ready(null)],
+    ['a swap with no step', swap({ live: 1 })],
+    ['a swap with a step it does not know', swap({ live: 1, step: 'ready' })],
+    ['a swap with a step that is no text', swap({ live: 1, step: 1 })],
+    ['a swap with no build', swap({ step: 'failed' })],
+    ['a swap with a build as text', swap({ live: '1', step: 'failed' })],
+    ['a swap with a fractional build', swap({ live: 0.5, step: 'held' })],
+    ['a swap on another channel', { ...swap({ live: 1, step: 'free' }), channel: OTHER }],
+  ];
+  for (const [name, data] of refused) {
+    assert.equal(parseFrameMessage(data, CHANNEL), undefined, name);
+  }
 });
 
 test('the studio takes elements from its channel, up to the limits', () => {
@@ -195,6 +236,23 @@ test('a frame takes measure and state from its channel', () => {
   assert.deepEqual(measure, { kitvas: 1, channel: CHANNEL, type: 'measure', request: 9 });
   const state = parseStudioMessage(sent({ type: 'state', state: 'empty' }), CHANNEL);
   assert.deepEqual(state, { kitvas: 1, channel: CHANNEL, type: 'state', state: 'empty' });
+});
+
+test('a frame takes swap from its channel: a whole build number and nothing else', () => {
+  const swap = parseStudioMessage(sent({ type: 'swap', live: 3, step: 'failed' }), CHANNEL);
+  assert.deepEqual(swap, { kitvas: 1, channel: CHANNEL, type: 'swap', live: 3 });
+  assert.ok(parseStudioMessage(sent({ type: 'swap', live: 0 }), CHANNEL));
+  const refused: [string, unknown][] = [
+    ['no build', sent({ type: 'swap' })],
+    ['a negative build', sent({ type: 'swap', live: -1 })],
+    ['a fractional build', sent({ type: 'swap', live: 1.5 })],
+    ['a build as text', sent({ type: 'swap', live: '3' })],
+    ['a build too large', sent({ type: 'swap', live: 1e9 + 1 })],
+    ['another channel', { kitvas: 1, channel: OTHER, type: 'swap', live: 3 }],
+  ];
+  for (const [name, data] of refused) {
+    assert.equal(parseStudioMessage(data, CHANNEL), undefined, name);
+  }
 });
 
 test('a frame takes marks of every tone, and only their known fields', () => {

@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { EDIT_KEYS, parseEditFrame } from '../../../../client/channel/edit-protocol.ts';
+import {
+  addsToSelection,
+  EDIT_KEYS,
+  parseEditFrame,
+} from '../../../../client/channel/edit-protocol.ts';
 import {
   idOf,
   type KeyLike,
@@ -94,6 +98,21 @@ test('a click outside any marked element picks nothing', () => {
   assert.deepEqual(pickOf(inside(null), false, false), { id: null, add: false, double: false });
   // A target that is no element at all, such as the document.
   assert.deepEqual(pickOf(null, false, false), { id: null, add: false, double: false });
+});
+
+test('Shift, Ctrl and Cmd each add to the selection; a plain or Alt click does not', () => {
+  const held = (keys: Partial<KeyLike>) => addsToSelection({ ...press('x'), ...keys });
+  assert.equal(held({ shiftKey: true }), true);
+  assert.equal(held({ ctrlKey: true }), true);
+  assert.equal(held({ metaKey: true }), true);
+  assert.equal(held({}), false);
+  assert.equal(held({ altKey: true }), false);
+  // A Ctrl click picks the element with `add`, as a Shift click does.
+  assert.deepEqual(pickOf(inside('A:main'), held({ ctrlKey: true }), false), {
+    id: 'A:main',
+    add: true,
+    double: false,
+  });
 });
 
 test('Shift adds to the selection and a double click is marked as one', () => {

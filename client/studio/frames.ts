@@ -74,6 +74,14 @@ export function sendState(frame: Frame, state: string): void {
   post(frame, { kitvas: 1, channel: frame.channel, type: 'state', state });
 }
 
+/**
+ * Asks a frame to take the build on disk into the page it shows, without loading it again
+ * (ADR 0058). It answers `ready` with `live`, or `swap` with the step it is at.
+ */
+export function sendSwap(frame: Frame, live: number): void {
+  post(frame, { kitvas: 1, channel: frame.channel, type: 'swap', live });
+}
+
 /** One of the editor's messages (client/channel/edit-protocol.ts). */
 export function sendEdit(frame: Frame, body: EditStudioBody): void {
   post(frame, { kitvas: 1, channel: frame.channel, ...body } as StudioMessage);

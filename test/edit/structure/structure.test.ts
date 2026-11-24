@@ -170,6 +170,33 @@ test('an item of a mapped list and everything inside it cannot move: in-expressi
   assert.equal(entry(structure, `${P}/Stack/Button`).movable, null);
 });
 
+test('the element a map over a literal array returns is a list item, nothing else is', async () => {
+  const structure = await structureOf(shop());
+  assert.equal(entry(structure, `${P}/Stack/Card`).item, true);
+  // Deeper in the callback: part of the item, not an item of its own.
+  assert.equal(entry(structure, `${P}/Stack/Card/Text`).item, false);
+  // Outside any map, in an expression or not.
+  const plain = [P, `${P}/Stack`, `${P}/Stack/Text`, `${P}/Stack/Checkbox/Text`, `${P}/Stack/p`];
+  for (const id of plain) assert.equal(entry(structure, id).item, false, id);
+});
+
+test('an element mapped over a list the editor cannot change is no list item', async () => {
+  // The same section with its plans coming in as a prop.
+  const typed = PRICING_TSX.replace(
+    "const plans = [{ name: 'Free' }, { name: 'Pro' }];",
+    'type Plan = { name: string };',
+  );
+  const mapped = typed.replace(
+    'export function Pricing(_props: { state: string }) {',
+    'export function Pricing({ plans }: { state: string; plans: Plan[] }) {',
+  );
+  assert.notEqual(mapped, typed);
+  const structure = await structureOf(shop({ [PRICING_FILE]: mapped }));
+  const card = entry(structure, `${P}/Stack/Card`);
+  assert.equal(card.movable, 'in-expression');
+  assert.equal(card.item, false);
+});
+
 test('a section root moves only as a section; a slot root never leaves its prop', async () => {
   const structure = await structureOf(shop());
   const section = entry(structure, P);

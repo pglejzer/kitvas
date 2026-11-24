@@ -1,23 +1,32 @@
 // Edit mode in a prototype: while the studio has it on, a click picks an element instead of
 // acting, a few keys go to the studio, and the frame draws what the studio tells it: outlines
-// around the selected and the hovered elements, and an inline editor for one element's text.
-// The page owns the selection and the history; nothing here decides what is selected.
+// around the selected and the hovered elements, and an inline editor for one element's text
+// (`inline.ts`). The page owns the selection and the history; nothing here decides what is
+// selected.
 //
 // Outlines sit in an overlay of their own at the end of `body`, inside a closed shadow root, the
 // way the marks do: no style of a page element is ever changed, and the overlay takes no pointer
 // events. `keyOf` and `pickOf` are pure; the rest is the DOM around them.
 
 import {
+  addsToSelection,
   type EditFrameMessage,
   type EditStudioMessage,
-  MAX_INLINE_TEXT,
   type PreviewChange,
   parseEditFrame,
 } from '../../channel/edit-protocol.ts';
 import { placeRing, type Rect } from '../drag/place.ts';
-import { cut } from '../page/snapshot.ts';
 import { toned } from '../tones/tones.ts';
-import { choiceOf, chosenElements, type ItemChoice, itemOfPick, textElement } from './items.ts';
+import { createInline } from './inline.ts';
+import {
+  choiceOf,
+  chosenElements,
+  copyAt,
+  type ItemChoice,
+  itemOfPick,
+  locateCopy,
+  textElement,
+} from './items.ts';
 import { type KeyLike, keyOf } from './keys.ts';
 import { drawLabels, LABEL_SHEET } from './label.ts';
 import { elementsWith, inspectStyles, readTree } from './tree.ts';
@@ -71,9 +80,12 @@ export function idOf(target: TargetLike | null): string | null {
   return id;
 }
 
-/** What a click on `target` picks: Shift adds to the selection, a double click asks for more. */
-export function pickOf(target: TargetLike | null, shift: boolean, double: boolean): Picked {
-  return { id: idOf(target), add: shift, double };
+/**
+ * What a click on `target` picks: `add` (`addsToSelection`) adds to the selection, a double click
+ * asks for more. A double click with `add` only does what its first click did.
+ */
+export function pickOf(target: TargetLike | null, add: boolean, double: boolean): Picked {
+  return { id: idOf(target), add, double };
 }
 
 export type EditDeps = {
@@ -96,13 +108,6 @@ type Layer = {
   root: HTMLElement;
   boxes: HTMLElement[];
   labels: HTMLElement[];
-};
-type Inline = {
-  id: string;
-  element: HTMLElement;
-  before: string;
-  editable: string | null;
-  onBlur(): void;
 };
 
 /** Stopped while edit mode is on, so no link, button or handler of the page acts. */
@@ -135,27 +140,6 @@ function createLayer(): Layer {
   return { host, root, boxes: [], labels: [] };
 }
 
-/** Puts `value` into the element as one text node, keeping the node React made when it can. */
-function writeText(element: HTMLElement, value: string): void {
-  const first = element.firstChild;
-  if (first instanceof Text) {
-    first.data = value;
-    while (first.nextSibling) first.nextSibling.remove();
-  } else {
-    element.textContent = value;
-  }
-}
-
-function caretToEnd(element: HTMLElement): void {
-  const selection = getSelection();
-  if (!selection) return;
-  const range = document.createRange();
-  range.selectNodeContents(element);
-  range.collapse(false);
-  selection.removeAllRanges();
-  selection.addRange(range);
-}
-
 const nearest = (target: EventTarget | null): Element | null =>
   target instanceof Element ? target.closest(MARKED) : null;
 
@@ -171,7 +155,7 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
   let overId: string | null = null;
   /** The element the studio points at (a row of its layers tree). */
   let shownId: string | null = null;
-  let inline: Inline | undefined;
+  const inline = createInline({ channel, post, changed: () => schedule() });
   /** How much the name labels are scaled, so they keep their size on screen at any zoom. */
   let labelScale = 1;
   let drawFrame = 0;
@@ -245,58 +229,15 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
     });
   }
 
-  /** Ends the inline editor: `keep` sends the new text, otherwise the old text comes back. */
-  function endText(keep: boolean): void {
-    const ending = inline;
-    if (!ending) return;
-    // First, so the blur that follows does not end it a second time.
-    inline = undefined;
-    const { element } = ending;
-    element.removeEventListener('blur', ending.onBlur);
-    // A pasted line break becomes a space: JSX text shows it as one, and the write refuses breaks.
-    const typed = (element.textContent ?? '').replace(/\s*[\r\n]+\s*/g, ' ').trim();
-    const value = keep ? cut(typed, MAX_INLINE_TEXT) : null;
-    writeText(element, value ?? ending.before);
-    if (ending.editable === null) element.removeAttribute('contenteditable');
-    else element.setAttribute('contenteditable', ending.editable);
-    if (document.activeElement === element) element.blur();
-    post({ ...head, type: 'text', id: ending.id, value });
-    schedule();
+  /** An inline edit of `id`: exactly copy `item` when the page names one, else the chosen copy. */
+  function startText(id: string, item: number | undefined): void {
+    if (!on) inline.start(id, undefined);
+    else inline.start(id, item === undefined ? textElement(id, choice) : copyAt(id, item));
   }
-
-  function startText(id: string): void {
-    // Only one at a time: the one before keeps what was typed.
-    endText(true);
-    const element = on ? textElement(id, choice) : undefined;
-    // Only plain text is edited in place; the studio is told at once, so it never waits.
-    if (!(element instanceof HTMLElement) || element.childElementCount > 0) {
-      post({ ...head, type: 'text', id, value: null });
-      return;
-    }
-    const started: Inline = {
-      id,
-      element,
-      before: element.textContent ?? '',
-      editable: element.getAttribute('contenteditable'),
-      onBlur: () => endText(true),
-    };
-    element.setAttribute('contenteditable', 'plaintext-only');
-    // A browser that does not know the value reads it back as something else.
-    if (element.contentEditable !== 'plaintext-only') {
-      element.setAttribute('contenteditable', 'true');
-    }
-    element.addEventListener('blur', started.onBlur);
-    inline = started;
-    element.focus();
-    caretToEnd(element);
-  }
-
-  const inEditor = (target: EventTarget | null): boolean =>
-    inline !== undefined && target instanceof Node && inline.element.contains(target);
 
   function onPointer(event: MouseEvent): void {
     event.stopPropagation();
-    if (inEditor(event.target)) {
+    if (inline.holds(event.target)) {
       // The caret and the selection work as usual; only the click itself (a link, a button)
       // does nothing.
       if (event.type === 'click' || event.type === 'auxclick') event.preventDefault();
@@ -306,7 +247,7 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
     if (event.type === 'pointerdown' || event.type === 'pointerup') return;
     event.preventDefault();
     if (event.type === 'mousedown') {
-      endText(true);
+      inline.end(true);
       // The prevented press gave the frame no focus, and the keys below need it.
       window.focus();
       return;
@@ -315,18 +256,20 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
     const double = event.type === 'dblclick';
     if (!double && !(event.type === 'click' && event.detail <= 1)) return;
     const picked = nearest(event.target);
-    const pick = pickOf(picked, event.shiftKey, double);
+    const pick = pickOf(picked, addsToSelection(event), double);
     post({ ...head, type: 'pick', ...pick, ...itemOfPick(picked, pick.id) });
   }
 
   function onKey(event: KeyboardEvent): void {
-    if (inline) {
+    if (inline.open()) {
       // Typing belongs to the text: arrows move the caret and undo is the browser's.
       event.stopPropagation();
       if (event.isComposing) return;
       if (event.key === 'Enter' || event.key === 'Escape') {
         event.preventDefault();
-        endText(event.key === 'Enter');
+        inline.end(event.key === 'Enter');
+      } else if (event.key === ' ' && inline.space()) {
+        event.preventDefault();
       }
       return;
     }
@@ -399,7 +342,7 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
 
   function turnOff(): void {
     if (!on) return;
-    endText(false);
+    inline.end(false);
     on = false;
     for (const stop of unlisten) stop();
     unlisten = [];
@@ -452,7 +395,16 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
           });
           break;
         case 'edit-text':
-          startText(message.id);
+          startText(message.id, message.item);
+          break;
+        case 'locate-copy': {
+          // ADR 0060: which item of each list around it the copy shows, and its text.
+          const { request, id, item, roots } = message;
+          post({ ...head, type: 'copy-located', request, id, ...locateCopy(id, item, roots) });
+          break;
+        }
+        case 'text-back':
+          inline.back(message.id);
           break;
         case 'preview':
           preview.apply(message.changes);

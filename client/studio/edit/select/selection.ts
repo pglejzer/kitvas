@@ -2,7 +2,10 @@
 
 import type { TreeNode } from '../../../channel/edit-protocol.ts';
 
-/** A click replaces the selection, Shift adds or removes; a click outside clears unless Shift. */
+/**
+ * A click replaces the selection; with the add modifier (Shift, Ctrl or Cmd: `add`) it adds the
+ * element, or removes it when it is selected already. A click outside clears, unless with it.
+ */
 export function nextSelection(
   current: string[],
   pick: { id: string | null; add: boolean },

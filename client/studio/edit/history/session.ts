@@ -122,11 +122,16 @@ export function mountSession(ctx: EditorContext): void {
     if (redoButton) redoButton.disabled = disabled.redo;
     for (const save of saveButtons()) save.disabled = disabled.save;
     if (line) {
+      // A change the studio could not save is said here until a request is answered (ADR 0061).
+      const failed = note === null && state.failed !== null;
       line.textContent =
         note ??
-        sessionLine(state.edit?.session ?? null, state.undo)
-          .map((part) => text(part.key, part.params))
-          .join(' · ');
+        (failed
+          ? text('props.reason.failed')
+          : sessionLine(state.edit?.session ?? null, state.undo)
+              .map((part) => text(part.key, part.params))
+              .join(' · '));
+      line.classList.toggle('k-fix', failed);
     }
     if (unsaveButton) {
       unsaveButton.hidden = !undoSaveVisible(kept, Date.now(), state.edit?.session ?? null);
@@ -208,7 +213,8 @@ export function mountSession(ctx: EditorContext): void {
       state.edit !== previous.edit ||
       state.undo !== previous.undo ||
       state.redo !== previous.redo ||
-      state.busy !== previous.busy
+      state.busy !== previous.busy ||
+      state.failed !== previous.failed
     ) {
       render();
     }

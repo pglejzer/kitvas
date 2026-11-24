@@ -10,6 +10,7 @@ import type {
   EditState,
   Inspect,
   OffKit,
+  TextSource,
 } from '../../../src/studio/api/edit/edit-schemas.ts';
 import { etagOf } from '../../../src/studio/http/etag.ts';
 import { NOW, tempDrafts } from '../../helpers/drafts.ts';
@@ -373,9 +374,60 @@ test('the API document lists the five edit routes', async () => {
     assert.equal(paths[`${base}/edits/end`]?.post?.operationId, 'endEditSession');
     assert.equal(paths[`${base}/edits/reopen`]?.post?.operationId, 'reopenEditSession');
     assert.equal(paths[`${base}/off-kit`]?.get?.operationId, 'listOffKit');
+    assert.equal(paths[`${base}/text-source`]?.get?.operationId, 'checkTextSource');
   } finally {
     await studio.close();
   }
+});
+
+/** The pricing section with its plans in a `.map`, each name in a condition (ADR 0060). */
+const LISTED_TSX = [
+  "import { Stack, Text } from '@kit';",
+  '',
+  "const plans = [{ name: 'Free' }, { name: 'Pro' }];",
+  '',
+  'export function Pricing(_props: { state: string }) {',
+  '  return (',
+  '    <section className="pricing">',
+  '      <Stack gap="md">',
+  '        {plans.map((plan) => (',
+  "          <Text key={plan.name}>{plan.name === 'Pro' ? 'Pro plan' : plan.name}</Text>",
+  '        ))}',
+  '      </Stack>',
+  '    </section>',
+  '  );',
+  '}',
+  '',
+].join('\n');
+
+test('text-source says whether one literal renders the text a copy shows', async () => {
+  const { drafts, studio, errors, get } = await editStudio();
+  drafts.writeText('shop', `v1/${TSX_FILE}`, LISTED_TSX);
+  const id = encodeURIComponent(`${STACK}/Text`);
+  const ask = async (query: string) => {
+    const answer = await get(`/api/v1/drafts/shop/text-source?id=${id}&${query}`);
+    assert.equal(answer.status, 200, answer.text);
+    return json<TextSource>(answer.text).reason;
+  };
+  try {
+    assert.equal(await ask('text=Pro%20plan&path=1'), null);
+    assert.equal(await ask('text=Free&path=0'), null);
+    assert.equal(await ask('text=Free&path=1'), 'computed');
+    assert.equal(await ask('text=Free&path=0,1'), 'not-found');
+    // The inspect answer names the list root the frame counts the copies by.
+    const inspected = await get(`/api/v1/drafts/shop/inspect?id=${id}`);
+    assert.deepEqual(json<Inspect>(inspected.text).expression, { roots: [`${STACK}/Text`] });
+    // No path, no text, a path that is no list of places, no id.
+    const queries = [`id=${id}&text=Free`, `id=${id}&path=0`, `id=${id}&text=a&path=x`];
+    for (const query of [...queries, 'text=a&path=']) {
+      const bad = await get(`/api/v1/drafts/shop/text-source?${query}`);
+      assert.equal(bad.status, 400, query);
+      assert.equal(json<Problem>(bad.text).code, 'REQUEST_INVALID', query);
+    }
+  } finally {
+    await studio.close();
+  }
+  assert.deepEqual(errors, []);
 });
 
 test('a studio started without the editor still answers the state, but not inspect', async () => {

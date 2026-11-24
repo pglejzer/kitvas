@@ -11,7 +11,9 @@ import {
   HASH,
   IMAGE_FILE,
   MAX_IMAGES,
+  MAX_LIST_DEPTH,
   MAX_OPS,
+  MAX_TEXT,
   REFUSALS,
   STYLE_PROPERTIES,
   StyleContextSchema,
@@ -77,6 +79,22 @@ export const EditStateSchema = z.strictObject({
 
 /** The query of `GET /api/v1/drafts/{slug}/inspect?id=<element id>`. */
 export const InspectQuerySchema = z.strictObject({ id: ElementIdSchema });
+
+/** A copy's place in each `.map` around an element, outer first (ADR 0060). */
+const PathSchema = z.array(z.number().int().min(0).max(10_000)).max(MAX_LIST_DEPTH);
+
+/**
+ * The query of `GET /api/v1/drafts/{slug}/text-source?id=…&text=…&path=0,2` (ADR 0060): the
+ * element, the text its copy shows as the frame read it, and the copy's path (`path=` for none).
+ */
+export const TextSourceQuerySchema = z.strictObject({
+  id: ElementIdSchema,
+  text: z.string().max(MAX_TEXT),
+  path: PathSchema,
+});
+
+/** Whether that text has one string literal of the file behind it: `reason: null` when it has. */
+export const TextSourceSchema = z.strictObject({ reason: z.enum(REFUSALS).nullable() });
 
 /** `GET /api/v1/drafts/{slug}/inspect`: one element as its source writes it. */
 export const InspectSchema = z.strictObject({
@@ -177,6 +195,16 @@ export const InspectSchema = z.strictObject({
       source: z.string().max(20_000),
       dropped: z.array(z.string().max(80)).max(40),
     })
+    .nullable()
+    .optional(),
+  /**
+   * ADR 0060: the element shows text through `{…}` (text and expressions, no element), so a
+   * double click asks `text-source` first. `roots`: the ids of the root elements of the `.map`
+   * lists around it, outer first, by whose copies the frame counts the path; `null` when a list
+   * around it has no such root. `null`: no such text.
+   */
+  expression: z
+    .strictObject({ roots: z.array(ElementIdSchema).max(MAX_LIST_DEPTH).nullable() })
     .nullable()
     .optional(),
   /**
@@ -292,6 +320,7 @@ export const BuildEventSchema = z.strictObject({
 
 export type EditState = Zod.infer<typeof EditStateSchema>;
 export type Inspect = Zod.infer<typeof InspectSchema>;
+export type TextSource = Zod.infer<typeof TextSourceSchema>;
 export type EditRequest = Zod.infer<typeof EditRequestSchema>;
 export type EditOutcome = Zod.infer<typeof EditOutcomeSchema>;
 export type EditEnd = Zod.infer<typeof EditEndSchema>;

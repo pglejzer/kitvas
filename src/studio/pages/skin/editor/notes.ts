@@ -33,6 +33,15 @@ export const SKIN_EDITOR_NOTES = `
 .notes-action { min-height: 24px; padding: 0 var(--st-space-6); font-size: var(--st-font-size-sm); }
 /* The foot: the field that adds a note, who it is for, and Add. */
 .notes-foot { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+textarea.notes-field {
+  field-sizing: content;
+  min-height: calc(3 * 1.5em + 2 * var(--st-space-6));
+  max-height: 33vh;
+  line-height: 1.5;
+  font-size: inherit;
+  resize: none;
+}
+.notes-hint { margin: 0; }
 .notes-foot-row { display: flex; align-items: center; justify-content: space-between; gap: var(--st-space-8); }
 /* The note form. */
 .notes-form-body { display: grid; gap: var(--st-space-10); }

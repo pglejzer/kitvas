@@ -20,18 +20,32 @@ export const SKIN_EDITOR_CHECKS = `
 .checks-notes { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 .checks-head { flex: none; padding-bottom: 0; }
 /* The filter: four equal parts, the count over its word. */
-.checks-filter { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); width: 100%; }
+.checks-filter {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-flow: column;
+  gap: var(--st-space-2);
+  width: 100%;
+  min-width: 0;
+}
 .checks-filter > button {
   display: grid;
   justify-items: start;
   align-content: center;
   gap: 0;
+  min-width: 0;
   min-height: 40px;
-  padding: var(--st-space-4) var(--st-space-8);
+  padding: var(--st-space-4) var(--st-space-6);
   text-align: left;
-  white-space: normal;
+  white-space: nowrap;
 }
-.checks-filter > button > span { font-size: var(--st-font-size-sm); }
+.checks-filter > button > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--st-font-size-sm);
+}
 .checks-filter-count {
   color: var(--st-color-ink);
   font-size: var(--st-font-size-lg);
@@ -153,6 +167,16 @@ export const SKIN_EDITOR_CHECKS = `
 }
 .checks-live-element:hover > .k-clip { text-decoration: underline; text-underline-offset: 3px; }
 .checks-live-row[data-accepted] .checks-finding-title { color: var(--st-color-ink-mid); }
+/* A live finding's fix (ADR 0061): what Apply will do in one quiet line, then Apply or Ask Claude
+   and the quiet Accept… on one line that never wraps; only the reason form takes a line of its own. */
+.checks-fix-line { overflow-wrap: anywhere; }
+.checks-fix-line:empty { display: none; }
+.checks-fix { display: inline-flex; flex: none; }
+.checks-fix:empty { display: none; }
+.checks-live-row .checks-actions { flex-wrap: nowrap; min-width: 0; }
+.checks-live-row .checks-actions:has(.checks-waiver-form, .checks-waiver-state) { flex-wrap: wrap; }
+.checks-live-row .checks-actions .k-btn { flex: none; }
+.checks-live-row .checks-waiver:not(:has(.checks-waiver-form, .checks-waiver-state)) { flex-wrap: nowrap; }
 .checks-here { display: grid; gap: var(--st-space-8); align-content: start; padding: var(--st-space-4) var(--st-space-12); }
 .checks-here-findings { display: grid; gap: var(--st-space-8); }
 /* The accessibility card of the selected element. */

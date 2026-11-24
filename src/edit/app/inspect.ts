@@ -11,15 +11,25 @@ import {
   kitBreakpoints,
   type LoadedKit,
 } from '../../kit/index.ts';
+import { elementIds, readSites } from '../../render/index.ts';
 import { KitvasError } from '../../shared/index.ts';
+import { constantClass } from '../domain/expr/class-start.ts';
 import { itemTexts } from '../domain/list/edit.ts';
 import { type ListInfo, listInfo } from '../domain/list/find.ts';
-import { CLASS_NAME, fileOfId, hashOf, type PropValue, type StyleContext } from '../domain/ops.ts';
+import { listRoots, showsExpression, textSource } from '../domain/list/source.ts';
+import {
+  CLASS_NAME,
+  ELEMENT_ID,
+  fileOfId,
+  hashOf,
+  type PropValue,
+  type StyleContext,
+} from '../domain/ops.ts';
 import { elementSpan } from '../domain/structure/subtree.ts';
 import { IMAGE_FILE, MAX_IMAGES, readRule, scssOverrides } from '../domain/style/apply-scss.ts';
 import { type SourceInput, styleSource, tokenGroupsOf } from '../domain/style/source.ts';
 import { utilityOverrides } from '../domain/style/utilities.ts';
-import { readTag } from '../domain/tsx/apply-tsx.ts';
+import { offsetOf, readTag } from '../domain/tsx/apply-tsx.ts';
 import {
   type PropView,
   type Refusal,
@@ -107,12 +117,48 @@ export type InspectView = {
   list: (ListInfo & { texts: (string | null)[] | null }) | null;
   /** Spec 4d, goal 6: the kit component a plain element looks like; `null`: nothing to offer. */
   suggest: Suggest | null;
+  /**
+   * ADR 0060: the element may show text through `{…}` (its children are text and expressions, no
+   * element, and an expression has an operand that is no element), so a double click asks
+   * `textSourceOf`. `roots`: the ids of the root elements of the `.map` lists around it, outer
+   * first, whose copies the frame counts; `null` when a list around it has no such root.
+   * `null`: the element shows no such text.
+   */
+  expression: { roots: string[] | null } | null;
 };
 
 /** Spec 4c, goal 9: the `.map` the element is rendered by, with its items' texts when literal. */
 function listOf(text: string, at: number): InspectView['list'] {
   const info = listInfo(text, at);
   return info === null ? null : { ...info, texts: itemTexts(text, at) };
+}
+
+/**
+ * ADR 0060: an element that shows text through `{…}`, with the ids of the list roots around it.
+ * Their ids come from the text compiled as the build compiles it, as `locateElement` finds one.
+ */
+async function expressionOf(
+  compiler: EditCompiler,
+  text: string,
+  file: string,
+  at: number,
+): Promise<InspectView['expression']> {
+  if (!showsExpression(text, at)) return null;
+  const roots = listRoots(text, at);
+  if (roots === null) return { roots: null };
+  if (roots.length === 0) return { roots: [] };
+  const code = await compiler.jsxDev(text, file);
+  const sites = code === null ? undefined : readSites(code);
+  if (sites === undefined) return { roots: null };
+  const ids = new Map(
+    elementIds(file, sites).map((entry) => [offsetOf(text, entry.line, entry.column), entry.id]),
+  );
+  const named = roots.flatMap((root) => {
+    const id = ids.get(root);
+    // An id the API could not carry (`ElementIdSchema`) names no root the frame could count.
+    return id !== undefined && id.length <= 200 && ELEMENT_ID.test(id) ? [id] : [];
+  });
+  return { roots: named.length === roots.length ? named : null };
 }
 
 /** The 1-based line `at` is on. */
@@ -205,18 +251,22 @@ function freeClassName(tag: string, tsx: string, scss: string): string {
 
 /**
  * The class a style edit writes (decision 3): the first class with a rule in the section SCSS,
- * else the first class, else a new one (`exists: false`: the edit adds it first). `null` when no
- * class can carry a style: a kit component without `className`, a `className` built in code, or
- * only classes kitvas cannot write.
+ * else the first class, else a new one (`exists: false`: the edit adds it first). A `className`
+ * built in code gives the class every one of its values starts with (ADR 0060,
+ * `constantClass`). `null` when no class can carry a style: a kit component without `className`,
+ * a `className` built in code without such a class, or only classes kitvas cannot write.
  */
-function pickStyleClass(
+export function pickStyleClass(
   tag: TagView,
   component: KitComponent | null,
   tsx: string,
   scss: string | undefined,
 ): { className: string; exists: boolean } | null {
   if (component !== null && !component.styling.includes('className')) return null;
-  if (tag.className?.kind === 'expr') return null;
+  if (tag.className?.kind === 'expr') {
+    const constant = constantClass(tag.className.source);
+    return constant === null ? null : { className: constant, exists: true };
+  }
   const classes = classesOf(tag);
   const writable = classes.filter((name) => CLASS_NAME.test(name));
   const ruled =
@@ -343,5 +393,28 @@ export async function inspectElement(
       properties: (rule?.declarations ?? []).map((declaration) => declaration.property),
       classes: classesOf(tag),
     }),
+    expression: await expressionOf(deps.compiler, text, file, at),
   };
+}
+
+/**
+ * ADR 0060: why the text `shown` of the element `id`, in the copy at `path` (its place in each
+ * list around it, outer first), has no one string literal of its file behind it in the latest
+ * version; `null` when it has one, so a double click may open the inline editor. Reads only.
+ */
+export async function textSourceOf(
+  deps: Pick<InspectDeps, 'drafts' | 'compiler'>,
+  slug: string,
+  id: string,
+  shown: string,
+  path: readonly number[],
+): Promise<Refusal | null> {
+  const base = versionFolder(latestVersion(loadDraft(deps.drafts, slug)));
+  const file = fileOfId(id);
+  const text = deps.drafts.readText(slug, `${base}/${file}`);
+  if (text === undefined) return 'not-found';
+  const at = await locateElement(deps.compiler, text, file, id);
+  if (typeof at !== 'number') return at;
+  const found = textSource(text, at, shown, path);
+  return 'refused' in found ? found.refused : null;
 }

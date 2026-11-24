@@ -24,6 +24,7 @@ export function frameEntries(structure: Structure): FrameEntry[] {
   return structure.elements.slice(0, MAX_ENTRIES).map((entry) => ({
     id: entry.id,
     movable: entry.movable === null,
+    item: entry.item === true,
     accepts: entry.accepts,
     mixed: entry.mixed,
     interactive: entry.interactive,
