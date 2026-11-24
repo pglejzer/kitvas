@@ -19,9 +19,9 @@ import {
   WEB_URL,
 } from '../../kit/index.ts';
 import { KitvasError, type Translate } from '../../shared/index.ts';
-import { scanPolicy } from '../domain/addresses.ts';
-import { REFERENCE_DIR, SourceRecordSchema } from '../domain/before.ts';
-import { SCAN_HEIGHT } from '../domain/scan-facts.ts';
+import { REFERENCE_DIR, SourceRecordSchema } from '../domain/rework/before.ts';
+import { scanPolicy } from '../domain/scan/addresses.ts';
+import { SCAN_HEIGHT } from '../domain/scan/scan-facts.ts';
 import type { Browser } from '../ports/browser.ts';
 
 export type StartCraftDeps = {

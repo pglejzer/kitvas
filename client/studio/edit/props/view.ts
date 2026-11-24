@@ -20,6 +20,7 @@ import { GROUPS, type GroupId, groupView, STYLE_GROUPS, type StyleGroup } from '
 import { headerView } from './header.ts';
 import { type Env, propRows, textRow } from './rows.ts';
 import { styleRow } from './style.ts';
+import { suggestActions } from './suggest.ts';
 
 /** The panel's own state the view reads and changes: the folds and the box. */
 export type PanelUi = {
@@ -94,6 +95,7 @@ export function propsView(env: Env, ui: PanelUi): HTMLElement[] {
       inspected: env.inspected,
       count: env.views.length,
       select: (id) => env.select(id),
+      suggest: suggestActions(env),
     }),
     contextBarView({ context: env.state.context, pick: (state) => env.pickState(state) }),
     ...notes(env),

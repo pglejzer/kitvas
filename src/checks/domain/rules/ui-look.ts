@@ -1,7 +1,6 @@
 // Rules: ui-look (hierarchy, colour, media, the wireframe look).
 
-import type { PageFacts } from '../facts.ts';
-import type { RawFinding } from '../finding.ts';
+import type { RawFinding } from '../findings/finding.ts';
 import {
   UI_FLAT_HIERARCHY,
   UI_HUE_COUNT,
@@ -10,6 +9,7 @@ import {
   UI_PLACEHOLDER_MEDIA,
   UI_WIREFRAME,
 } from '../guidelines/ui-look.ts';
+import type { PageFacts } from '../page/facts.ts';
 import { hueBucket, isNeutral, parseColour } from './colour.ts';
 import { subtreeHas, textNodes } from './geometry.ts';
 import type { VisitInput, VisitRule } from './types.ts';

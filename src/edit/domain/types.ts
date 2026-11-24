@@ -80,6 +80,8 @@ export const REFUSALS = [
   'utility-unknown',
   /** The kit's own rule for this state weighs more than the editor's: the value would not show. */
   'kit-state-wins',
+  /** The element, or one it would remove, is locked (spec 4d, goal 4). */
+  'locked',
 ] as const;
 export type Refusal = (typeof REFUSALS)[number];
 

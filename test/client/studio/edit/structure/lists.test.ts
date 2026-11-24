@@ -19,6 +19,7 @@ import {
 } from '../../../../../client/studio/edit/structure/actions.ts';
 import {
   itemTarget,
+  keyFieldOf,
   listOps,
   listReason,
   noteText,
@@ -285,6 +286,26 @@ test('the note says which item of a data list it is, or why the list is read-onl
   const imported: List = { kind: 'import', count: null, reason: 'list-not-literal' };
   assert.equal(at(imported, 3, 1), 'lists.note.import');
   assert.equal(noteText(null), null);
+});
+
+test('a key read from another field of the item is named, as a copy keeps it', () => {
+  const keyed = (source: string) => keyFieldOf({ props: [{ name: 'key', kind: 'expr', source }] });
+  assert.equal(keyed('plan.id'), 'id');
+  assert.equal(keyed(' plan?.slug '), 'slug');
+  // A literal `key` field is made unique by Duplicate; an index or a call is no field.
+  assert.equal(keyed('plan.key'), null);
+  assert.equal(keyed('index'), null);
+  assert.equal(keyed('makeKey(plan)'), null);
+  assert.equal(
+    keyFieldOf({
+      props: [{ name: 'key', kind: 'literal', value: { kind: 'string', value: 'a' } }],
+    }),
+    null,
+  );
+  assert.equal(keyFieldOf(null), null);
+  const target = itemTarget(stateWith(CARD, LITERAL, 3, 1));
+  assert.equal(noteText(target, 'id'), 'lists.note.item lists.note.keyField');
+  assert.equal(noteText(itemTarget(stateWith(CARD, LITERAL, 3, null)), 'id'), 'lists.note.pick');
 });
 
 test('the menu says the list actions act on the item', () => {

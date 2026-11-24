@@ -1,7 +1,7 @@
 // What every step of `kit verify` returns.
 
 import type { BuildError } from '../../../render/index.ts';
-import type { StepState, VerifyIssue, VerifyStep } from '../../domain/kit-verify.ts';
+import type { StepState, VerifyIssue, VerifyStep } from '../../domain/kit/kit-verify.ts';
 import type { Inspect, InspectReport } from '../../ports/browser.ts';
 
 /** The part of a browser session the steps use. */

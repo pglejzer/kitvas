@@ -11,7 +11,7 @@ import {
   syncGeneratedEntry,
 } from '../../../kit/index.ts';
 import { KitvasError } from '../../../shared/index.ts';
-import type { VerifyIssue } from '../../domain/kit-verify.ts';
+import type { VerifyIssue } from '../../domain/kit/kit-verify.ts';
 import { ran, type StepResult } from './step.ts';
 
 export type SchemaDeps = {

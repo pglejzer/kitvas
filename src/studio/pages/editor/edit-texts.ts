@@ -1,8 +1,11 @@
 // The texts the editor's script shows, as short keys under `studio.edit.` in locales/en.json. The
 // page hands them to the script in one JSON block (`edit-panel.ts`); the script never writes text
-// of its own. A key a panel uses goes into this list and into the locale file.
+// of its own. A key a panel uses goes into this list and into the locale file. The panels of the
+// editor with Claude (stage 4d) keep theirs in `edit-texts-claude.ts`.
 
-export const EDIT_TEXT_KEYS = [
+import { CLAUDE_TEXT_KEYS } from './edit-texts-claude.ts';
+
+const PANEL_TEXT_KEYS = [
   'save',
   'session.none',
   'session.open',
@@ -353,6 +356,7 @@ export const EDIT_TEXT_KEYS = [
   'lists.note.item',
   'lists.note.pick',
   'lists.note.mismatch',
+  'lists.note.keyField',
   'lists.note.prop',
   'lists.note.import',
   'lists.note.computed',
@@ -401,3 +405,5 @@ export const EDIT_TEXT_KEYS = [
   'waiver.failed',
   'waiver.full',
 ] as const;
+
+export const EDIT_TEXT_KEYS: readonly string[] = [...PANEL_TEXT_KEYS, ...CLAUDE_TEXT_KEYS];

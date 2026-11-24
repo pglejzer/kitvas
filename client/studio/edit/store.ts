@@ -6,6 +6,8 @@ import type { EditOp, Refusal, StyleContext } from '../../../src/edit/index.ts';
 import type { EditOutcome, EditState, Inspect } from '../../../src/studio/api/edit/edit-schemas.ts';
 import type { LiveCodeFinding } from '../../../src/studio/api/edit/live-schemas.ts';
 import type { Structure } from '../../../src/studio/api/edit/structure-schemas.ts';
+import type { NoteView } from '../../../src/studio/api/notes/note-schemas.ts';
+import type { Listening, RequestView } from '../../../src/studio/api/requests/request-schemas.ts';
 import type { Waiver } from '../../../src/studio/api/waivers/waiver-schemas.ts';
 import type { TreeNode } from '../../channel/edit-protocol.ts';
 import type { A11yCard } from '../../channel/live-protocol.ts';
@@ -80,7 +82,10 @@ export type EditorState = {
   clipboard: Clip | null;
   /** Elements hidden in the frame only (spec 4b, decision 14). */
   hidden: string[];
-  /** Elements the canvas cannot select or drag; Layers still can. For this page only. */
+  /**
+   * Elements the canvas cannot select or drag and the editor will not change (spec 4d, goal 4:
+   * kept in `view.json` by task C, so they survive a reload).
+   */
   locked: string[];
   // Stage 4c (plan 16).
   /** Which rendered copy of `selection[0]` was picked, for a `.map` item; `null` otherwise. */
@@ -99,6 +104,19 @@ export type EditorState = {
   a11y: A11yCard | null;
   /** What the kit's own rules of the edited state hold on `selection[0]` (ADR 0055). */
   stateHeld: StateHeld | null;
+  // Stage 4d (plan 17).
+  /** The draft's requests to Claude, newest first (task A's routes; task B shows them). */
+  requests: RequestView[];
+  /** Whether a Claude Code session takes requests now. */
+  listening: Listening;
+  /** The draft's notes, with each element's id in the latest version (task C). */
+  notes: NoteView[];
+  /** Locked ids another writer changed since they were locked: `edit/locked-changed` (task C). */
+  lockChanged: string[];
+  /** The version the timeline shows, read only; `null` for the current one (task D). */
+  viewing: number | null;
+  /** The variant previewed in the frame now (task B). */
+  variant: { request: string; index: number } | null;
   /** The frame box's scale, 0.25 to 2 (task D7). */
   zoom: number;
   menu: Menu | null;
@@ -150,6 +168,12 @@ export function initialState(slug: string): EditorState {
     builds: 0,
     a11y: null,
     stateHeld: null,
+    requests: [],
+    listening: { state: 'off', since: null },
+    notes: [],
+    lockChanged: [],
+    viewing: null,
+    variant: null,
     zoom: 1,
     menu: null,
   };

@@ -3,13 +3,13 @@
 
 import { type FlatToken, formatTokenValue, type LoadedKit } from '../../../kit/index.ts';
 import type { CatalogReport } from '../../../render/index.ts';
-import type { VerifyIssue } from '../../domain/kit-verify.ts';
+import type { VerifyIssue } from '../../domain/kit/kit-verify.ts';
 import {
   colorHex,
   compareToken,
   type TokenExpected,
   tokenRgba,
-} from '../../domain/token-compare.ts';
+} from '../../domain/kit/token-compare.ts';
 import { EXAMPLE_VIEWPORT, exampleSearch } from './render.ts';
 import { type Inspector, ran, SKIPPED, type StepResult } from './step.ts';
 

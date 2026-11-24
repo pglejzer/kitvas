@@ -1,4 +1,6 @@
-// Notes people leave in the studio for Claude, queued until `kitvas inbox` takes them.
+// Notes people leave in the studio for Claude, queued until `kitvas inbox` takes them. The take
+// is also how Claude listens for the editor's requests (spec 4d, goal 1): a request that comes
+// while a take waits ends the wait at once (`wake`), and `waiting` tells the listening state.
 
 import { randomUUID } from 'node:crypto';
 import { SLUG } from '../../drafts/index.ts';
@@ -32,7 +34,16 @@ export type InboxLimits = {
 export const INBOX_LIMITS: InboxLimits = { items: 100, maxWaitMs: 600_000 };
 
 /** A held take: its notes once they come or the time is up. `cancel` when the caller left. */
-export type InboxWait = { items: Promise<InboxItem[]>; cancel(): void };
+export type InboxWait = {
+  items: Promise<InboxItem[]>;
+  cancel(): void;
+  /**
+   * Once `items` is settled: true when the take ended for its caller (notes came, a request came,
+   * the time was up), false when a newer take replaced it, its caller left or the studio stopped.
+   * Only a take that ended for its caller is handed the waiting requests.
+   */
+  given(): boolean;
+};
 
 export type Inbox = {
   add(note: NewNote): InboxItem;
@@ -42,8 +53,14 @@ export type Inbox = {
    */
   wait(timeoutMs: number): InboxWait;
   pending(): number;
+  /** Whether a take waits now: Claude listens (spec 4d). */
+  waiting(): boolean;
+  /** Ends a waiting take now with the notes there are: a request came for it (spec 4d). */
+  wake(): void;
   /** Ends the waiter with nothing: the studio is stopping. */
   close(): void;
+  /** Hears the studio stopping, after the waiter has ended. */
+  onClose(listener: () => void): void;
 };
 
 export type InboxDeps = {
@@ -53,20 +70,21 @@ export type InboxDeps = {
   limits?: Partial<InboxLimits>;
 };
 
-type Waiter = { resolve(items: InboxItem[]): void; timer: NodeJS.Timeout };
+type Waiter = { resolve(items: InboxItem[], given: boolean): void; timer: NodeJS.Timeout };
 
 export function createInbox(deps: InboxDeps): Inbox {
   const { items: cap, maxWaitMs } = { ...INBOX_LIMITS, ...deps.limits };
   const queue: InboxItem[] = [];
+  const closers: (() => void)[] = [];
   let waiter: Waiter | undefined;
 
   /** Answers the waiter, if there is one. */
-  const answer = (items: InboxItem[]): void => {
+  const answer = (items: InboxItem[], given: boolean): void => {
     const current = waiter;
     if (!current) return;
     waiter = undefined;
     clearTimeout(current.timer);
-    current.resolve(items);
+    current.resolve(items, given);
   };
 
   /** Hands every waiting note over. */
@@ -81,22 +99,26 @@ export function createInbox(deps: InboxDeps): Inbox {
       if (queue.length >= cap) throw new KitvasError('INBOX_FULL', { count: cap });
       const item: InboxItem = { id: randomUUID(), at: deps.now().toISOString(), ...note };
       queue.push(item);
-      if (waiter) answer(takeAll());
+      if (waiter) answer(takeAll(), true);
       else deps.publish(queue.length);
       return item;
     },
     wait(timeoutMs) {
-      answer([]);
+      answer([], false);
       if (queue.length > 0 || timeoutMs <= 0) {
-        return { items: Promise.resolve(takeAll()), cancel: () => undefined };
+        return { items: Promise.resolve(takeAll()), cancel: () => undefined, given: () => true };
       }
-      let resolve: (items: InboxItem[]) => void = () => undefined;
-      const items = new Promise<InboxItem[]>((settle) => {
-        resolve = settle;
+      let settle: (items: InboxItem[]) => void = () => undefined;
+      let given = false;
+      const items = new Promise<InboxItem[]>((resolve) => {
+        settle = resolve;
       });
       const mine: Waiter = {
-        resolve,
-        timer: setTimeout(() => answer([]), Math.min(timeoutMs, maxWaitMs)),
+        resolve: (found, forCaller) => {
+          given = forCaller;
+          settle(found);
+        },
+        timer: setTimeout(() => answer([], true), Math.min(timeoutMs, maxWaitMs)),
       };
       waiter = mine;
       return {
@@ -105,11 +127,20 @@ export function createInbox(deps: InboxDeps): Inbox {
           if (waiter !== mine) return;
           waiter = undefined;
           clearTimeout(mine.timer);
-          resolve([]);
+          settle([]);
         },
+        given: () => given,
       };
     },
     pending: () => queue.length,
-    close: () => answer([]),
+    waiting: () => waiter !== undefined,
+    wake: () => answer(takeAll(), true),
+    close: () => {
+      answer([], false);
+      for (const listener of closers.splice(0, closers.length)) listener();
+    },
+    onClose: (listener) => {
+      closers.push(listener);
+    },
   };
 }

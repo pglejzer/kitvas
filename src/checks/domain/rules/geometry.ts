@@ -1,7 +1,7 @@
 // What the layout and look rules share: children, ancestors, frames, bands and rows of boxes.
 
-import type { FactNode, PageFacts } from '../facts.ts';
 import { UI_NESTED_FRAME } from '../guidelines/ui-layout.ts';
+import type { FactNode, PageFacts } from '../page/facts.ts';
 import { parseColour } from './colour.ts';
 
 const FRAME = UI_NESTED_FRAME.thresholds;

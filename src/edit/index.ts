@@ -2,8 +2,11 @@
 
 export * from './app/apply-edits.ts';
 export * from './app/edit-state.ts';
+export * from './app/history/element-history.ts';
+export * from './app/history/restore.ts';
 export * from './app/inspect.ts';
 export * from './app/locate.ts';
+export * from './app/locks/lock-restore.ts';
 export * from './app/structure/palette.ts';
 export * from './app/structure/reset.ts';
 export * from './app/structure/section-files.ts';

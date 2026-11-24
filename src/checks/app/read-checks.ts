@@ -2,8 +2,8 @@
 
 import { type DraftStore, versionFolder } from '../../drafts/index.ts';
 import { KitvasError } from '../../shared/index.ts';
-import { ChecksFileSchema } from '../domain/checks-file.ts';
-import type { ChecksFile } from '../domain/finding.ts';
+import { ChecksFileSchema } from '../domain/findings/checks-file.ts';
+import type { ChecksFile } from '../domain/findings/finding.ts';
 
 /** `undefined` when the version was never checked, or its file is broken or of another version. */
 export function readChecks(

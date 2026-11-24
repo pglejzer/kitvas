@@ -8,7 +8,8 @@ Drafts in a project's workspace: `.kitvas/drafts/<slug>/`, one folder per versio
 - `src/tsx/index.tsx` and `src/scss/index.scss` are generated from the layout (`domain/entry.ts`). Never edit them by hand; `kitvas layout <slug>` rewrites them.
 - A problem in a draft is an `Issue` with a message key (`draftIssue.<name>` in `locales/en.json`). Only a missing draft, a draft.json that fails the schema, or a path outside the draft throws.
 - All file access goes through `DraftStore`; paths inside a draft are relative with forward slashes. The store refuses anything outside the draft folder.
-- A new version copies `md/` and `src/` of the latest one and never `build/`.
+- A new version copies `md/`, `src/` and `why/` of the latest one and never `build/`.
+- Stage 4d (ADR 0056): `notes.json` and `view.json` sit beside `draft.json`, with ids as the version that wrote them named them; `app/notes.ts` and `app/view.ts` bring them to the latest version through the rename log, as waivers do. `<version>/why/<Section>.json` holds a section's reasons (`domain/why.ts`); `app/why.ts` reads them, `stampWhy` replaces an agent's 64 zeros with the sha256 of the section's TSX, and a hash that no longer matches is `stale`. A file that does not read is left out.
 - This module reads kits only through `src/kit/index.ts`.
 - The optional `edit` field of `draft.json` (`{ version, startedAt }`, ADR 0049) is the open editing session: open only while `edit.version` is the latest version (`app/edit-session.ts`). Never write it by hand; the editor starts and ends it.
 - `DraftStore.replaceAll(slug, files)` writes several files all or none: each to a temporary file, then renames; a failed rename puts the files already renamed back. Use it when one change spans files. A path outside the draft throws `DRAFT_INVALID` before anything is written.

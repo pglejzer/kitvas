@@ -4,7 +4,7 @@
 
 import { type Zod, z } from '../../../shared/index.ts';
 
-/** One code finding of a changed file, worded for the person (`src/checks/domain/code.ts`). */
+/** One code finding of a changed file, worded for the person (`src/checks/domain/code/code.ts`). */
 export const LiveCodeFindingSchema = z.strictObject({
   /** `<check>/<name>`: `ds/raw-color`. */
   rule: z.string().max(80),

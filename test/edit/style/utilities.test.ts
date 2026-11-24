@@ -290,8 +290,14 @@ test('a className built in code, an unknown class and a doubled one are refused'
   assert.deepEqual(apply(' className="p-4 p-6"', utility('p-6', 'p-4')), { refused: 'ambiguous' });
   assert.deepEqual(apply(' className="a" className="b"', add), { refused: 'ambiguous' });
   assert.deepEqual(apply(' className="flex"', utility(null, null)), { refused: 'invalid' });
-  // An empty string would not come back as it was when the class is taken out again.
-  assert.deepEqual(apply(' className=""', add), { refused: 'utility-unknown' });
+});
+
+test('a utility added to an empty className is written inside its quotes', () => {
+  const add = utility('md:p-6', null);
+  assert.equal(textOf(apply(' className=""', add)), tsx(' className="md:p-6"').text);
+  assert.equal(textOf(apply(" className=''", add)), tsx(" className='md:p-6'").text);
+  // Whitespace alone counts as empty: the class goes in at the start, the rest stays.
+  assert.equal(textOf(apply(' className=" "', add)), tsx(' className="md:p-6 "').text);
 });
 
 test('a class that is not what the person saw is a conflict, unless they keep theirs', () => {

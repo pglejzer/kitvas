@@ -6,6 +6,7 @@
 import type { EditFrameMessage } from '../../channel/edit-protocol.ts';
 import type { LiveFrameMessage } from '../../channel/live-protocol.ts';
 import type { Frame } from '../frames.ts';
+import { mountAi } from './ai/ai.ts';
 import { getEditState } from './api.ts';
 import { createBridge } from './bridge.ts';
 import type { EditorContext } from './context.ts';
@@ -19,6 +20,7 @@ import { mountPalette } from './insert/palette.ts';
 import { mountLayers } from './layers/layers.ts';
 import { mountLive } from './live/live.ts';
 import { mountWaivers } from './live/waivers.ts';
+import { mountNotes } from './notes/notes.ts';
 import { mountContextBar } from './props/context-bar.ts';
 import { mountProps } from './props/panel.ts';
 import { mountStateHeld } from './props/state-held.ts';
@@ -31,6 +33,9 @@ import { mountStructure } from './structure/structure.ts';
 import { mountHandleWrites } from './style/handle-writes.ts';
 import { mountConflict } from './sync/conflict.ts';
 import { watchSources } from './sync/live-frame.ts';
+import { mountTimeline } from './timeline/timeline.ts';
+import { mountView } from './view/view.ts';
+import { mountWhy } from './why/why.ts';
 
 export type Editor = {
   /** An edit message of the current frame. */
@@ -71,6 +76,12 @@ export function startEditor(main: HTMLElement, frame: Frame): Editor | undefined
   // Stage 4c (plan 16).
   mountContextBar(ctx);
   mountStateHeld(ctx);
+  // Stage 4d (plan 17).
+  mountAi(ctx);
+  mountNotes(ctx);
+  mountView(ctx);
+  mountTimeline(ctx);
+  mountWhy(ctx);
   mountLive(ctx);
   mountLists(ctx);
   mountImages(ctx);

@@ -1,14 +1,20 @@
 // The "Ask Claude" button on an edit kitvas cannot write itself (plan 13, task K): a refused edit,
-// or a conflict where the place is gone. It leaves a note in the inbox that `kitvas inbox` hands to
-// Claude. The note is written for Claude, in English, so its words are constants here and not
+// or a conflict where the place is gone. Since stage 4d (plan 17, task B) it sends an `ask`
+// request of the draft, with the edit the person wanted (its ops) and its words: the request is
+// kept on disk until a listening Claude Code session takes it, and the AI tab shows its status
+// and answer. The words are written for Claude, in English, so they are constants here and not
 // page texts; the button and its status lines come from `text()`.
 
-import type { EditOp, Refusal } from '../../../../src/edit/index.ts';
+import type { EditOp, Refusal, StyleContext } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
+import type { NewRequest } from '../../../../src/studio/api/requests/request-schemas.ts';
+import { postRequest } from '../ai/api.ts';
+import { MAX_REQUEST_ELEMENTS, MAX_REQUEST_TEXT, MAX_VARIANT_CHANGES } from '../ai/requests.ts';
 import type { EditorContext } from '../context.ts';
 import type { Conflict, Gesture, Refused } from '../store.ts';
 import { elementOf as opElement } from '../store.ts';
 import { text } from '../texts.ts';
+import { toast } from '../toast.ts';
 
 /** What Claude is asked to do: a gesture the editor could not write, and why. */
 export type AskSubject = {
@@ -18,7 +24,7 @@ export type AskSubject = {
   reason: Refusal | 'gone' | 'changed';
 };
 
-/** The longest note the inbox takes (`NewNoteSchema`). */
+/** The longest note the studio-wide inbox takes (`NewNoteSchema`). */
 export const MAX_NOTE = 4_000;
 
 const REASONS: Record<AskSubject['reason'], string> = {
@@ -55,6 +61,7 @@ const REASONS: Record<AskSubject['reason'], string> = {
   'list-item-gone': 'the list has no item at that place any more',
   'list-text-not-literal': 'the text is not a plain string field of the list item',
   'utility-unknown': 'kitvas does not know how to change this utility class',
+  locked: 'the element is locked, so the editor keeps it as it is',
   'kit-state-wins':
     "the kit's own style for this state is more specific than a class rule, so a value set there would not show",
 };
@@ -132,22 +139,28 @@ export function elementOf(subject: AskSubject): string | null {
   return op ? opElement(op) : null;
 }
 
-/** The note's text: the element, the wanted change in words, and the reason. */
-export function askText(subject: AskSubject, inspected: Inspect | null): string {
+/**
+ * The words for Claude: the element, the wanted change, and the reason, at most `max` long. A
+ * long change (an inserted subtree) is cut short, so the reason always reaches Claude.
+ */
+export function askText(subject: AskSubject, inspected: Inspect | null, max = MAX_NOTE): string {
   const ops = subject.gesture.ops;
   const first = ops[subject.index] ?? ops[0];
   const id = first ? opElement(first) : null;
   const where = id ? ` (element ${id})` : '';
   const tag = inspected && inspected.id === id ? ` The element is a ${inspected.tag}.` : '';
   const file = inspected && inspected.id === id ? ` Its file is ${inspected.file}.` : '';
-  const wanted = ops.map(opWords).join('; then ');
-  const lines = [
-    `Please make this change in the draft source${where}: ${wanted || 'a change'}.`,
-    `The studio could not write it itself because ${REASONS[subject.reason]}.${tag}${file}`,
-  ];
-  return lines.join(' ').slice(0, MAX_NOTE);
+  const all = ops.map(opWords).join('; then ') || 'a change';
+  const head = `Please make this change in the draft source${where}: `;
+  const why = REASONS[subject.reason];
+  const reason = `The studio could not write it itself because ${why}.${tag}${file}`;
+  // Room for the change between the head and ". " before the reason.
+  const room = max - head.length - reason.length - 2;
+  const wanted = all.length <= room ? all : `${all.slice(0, Math.max(0, room - 1))}…`;
+  return `${head}${wanted}. ${reason}`.slice(0, max);
 }
 
+/** The studio-wide inbox's note form (before stage 4d); Ask Claude sends `askRequestOf` now. */
 export type NoteBody = {
   kind: 'note';
   slug: string;
@@ -164,6 +177,28 @@ export function noteOf(slug: string, subject: AskSubject, inspected: Inspect | n
   };
 }
 
+/**
+ * The `ask` request of a subject (spec 4d, goal 1): the elements its ops name (the one the reason
+ * is about first), the edit context it was made in, the words, and the ops themselves, so Claude
+ * sees exactly the edit the person wanted.
+ */
+export function askRequestOf(
+  subject: AskSubject,
+  inspected: Inspect | null,
+  context: StyleContext,
+): NewRequest {
+  const named = subject.gesture.ops.map(opElement);
+  const ids = [elementOf(subject), ...named].filter((id): id is string => id !== null);
+  const ops = subject.gesture.ops.slice(0, MAX_VARIANT_CHANGES);
+  return {
+    kind: 'ask',
+    elements: [...new Set(ids)].slice(0, MAX_REQUEST_ELEMENTS),
+    context: { width: context.width, state: context.state },
+    text: askText(subject, inspected, MAX_REQUEST_TEXT).trim(),
+    ...(ops.length > 0 ? { ops } : {}),
+  };
+}
+
 /** The subject to ask about now: a refused edit, else a conflict whose place is gone. */
 export function subjectOf(refused: Refused | null, conflict: Conflict | null): AskSubject | null {
   if (refused) return { gesture: refused.gesture, index: refused.index, reason: refused.reason };
@@ -171,20 +206,6 @@ export function subjectOf(refused: Refused | null, conflict: Conflict | null): A
     return { gesture: conflict.gesture, index: conflict.outcome.index, reason: 'gone' };
   }
   return null;
-}
-
-async function postNote(body: NoteBody): Promise<boolean> {
-  try {
-    const response = await fetch('/api/v1/inbox', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
 }
 
 export function mountAsk(ctx: EditorContext): void {
@@ -223,9 +244,12 @@ export function mountAsk(ctx: EditorContext): void {
     if (!subject) return;
     button.disabled = true;
     status.textContent = '';
-    void postNote(noteOf(ctx.slug, subject, ctx.store.get().inspected)).then((sent) => {
-      status.textContent = text(sent ? 'ask.sent' : 'ask.failed');
+    const { inspected, context } = ctx.store.get();
+    void postRequest(ctx.slug, askRequestOf(subject, inspected, context)).then((sent) => {
+      status.textContent = text(sent ? 'ask.sent' : 'ask.requestFailed');
       button.disabled = sent;
+      // The answer comes in the AI tab, where the request shows with its status.
+      if (sent) toast(ctx.main, text('ask.sentAi'));
     });
   });
 

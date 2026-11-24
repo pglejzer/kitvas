@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { KitvasError, PLUGIN_ROOT, packageDirFrom, resolveDep } from '../../shared/index.ts';
-import { parseTscOutput, projectPaths, typesConfig } from '../domain/tsc.ts';
+import { parseTscOutput, projectPaths, typesConfig } from '../domain/code/tsc.ts';
 import type { TypeChecker } from '../ports/type-checker.ts';
 
 const TIMEOUT_MS = 60_000;

@@ -1,6 +1,6 @@
 // Rules: ux actions and links (primary actions, button and link text).
 
-import type { RawFinding } from '../finding.ts';
+import type { RawFinding } from '../findings/finding.ts';
 import {
   UX_BUTTON_TEXT,
   UX_DANGER_PRIMARY,

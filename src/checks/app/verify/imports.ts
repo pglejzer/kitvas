@@ -9,7 +9,7 @@
 import { join, sep } from 'node:path';
 import { isWrittenKit, type Kit, type KitComponent, type LoadedKit } from '../../../kit/index.ts';
 import type { Bundler } from '../../../render/index.ts';
-import type { VerifyIssue } from '../../domain/kit-verify.ts';
+import type { VerifyIssue } from '../../domain/kit/kit-verify.ts';
 import { componentAtEntryLine, entryFile, isEntryFile } from './kit-entry.ts';
 import { buildErrorText, ran, type StepResult, toolIssue } from './step.ts';
 

@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
-import { createPlaywrightBrowser } from '../../../src/checks/adapters/playwright-browser.ts';
+import { createPlaywrightBrowser } from '../../../src/checks/adapters/browser/playwright-browser.ts';
 import type { BrowserSession, ScanPolicy } from '../../../src/checks/ports/browser.ts';
 import { KitvasError, PLUGIN_ROOT } from '../../../src/shared/index.ts';
 import { tempDir } from '../../helpers/tmp.ts';

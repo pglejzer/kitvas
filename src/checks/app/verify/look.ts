@@ -5,8 +5,8 @@
 import { join } from 'node:path';
 import { isWrittenKit, type LoadedKit } from '../../../kit/index.ts';
 import { type CatalogReport, exampleKey } from '../../../render/index.ts';
-import type { LookEntry, VerifyIssue } from '../../domain/kit-verify.ts';
-import { LOOK_LINE, lookScore } from '../../domain/look-score.ts';
+import type { LookEntry, VerifyIssue } from '../../domain/kit/kit-verify.ts';
+import { LOOK_LINE, lookScore } from '../../domain/kit/look-score.ts';
 import type { Capture, CaptureReport } from '../../ports/browser.ts';
 import type { ParsedExample } from './example-parse.ts';
 import { exampleSearch } from './render.ts';

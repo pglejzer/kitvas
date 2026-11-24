@@ -5,7 +5,7 @@
 import { join } from 'node:path';
 import type { LoadedKit } from '../../kit/index.ts';
 import { catalogDir, KitvasError } from '../../shared/index.ts';
-import { readVerifyFile, VERIFY_FILE, type VerifyStep } from '../domain/kit-verify.ts';
+import { readVerifyFile, VERIFY_FILE, type VerifyStep } from '../domain/kit/kit-verify.ts';
 
 export const BLOCKING_STEPS: readonly VerifyStep[] = ['schema', 'imports', 'types'];
 

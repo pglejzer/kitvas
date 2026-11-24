@@ -9,7 +9,7 @@ import {
   sameText,
   tokenRgba,
   toPx,
-} from '../../../src/checks/domain/token-compare.ts';
+} from '../../../src/checks/domain/kit/token-compare.ts';
 
 const INK = tokenRgba([0.102, 0.102, 0.102]);
 

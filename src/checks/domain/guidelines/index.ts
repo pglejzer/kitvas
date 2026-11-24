@@ -1,5 +1,6 @@
 // The whole guideline book and how to look entries up.
 
+import { LOCK_GUIDELINES } from '../locks/guideline.ts';
 import { A11Y_GUIDELINES } from './a11y.ts';
 import { CRAFT_GUIDELINES } from './craft.ts';
 import { DEEP_GUIDELINES } from './deep.ts';
@@ -32,6 +33,7 @@ export const GUIDELINES: readonly Guideline[] = [
   ...DEEP_GUIDELINES,
   ...REWORK_GUIDELINES,
   ...CRAFT_GUIDELINES,
+  ...LOCK_GUIDELINES,
   ...MANUAL_GUIDELINES,
 ];
 

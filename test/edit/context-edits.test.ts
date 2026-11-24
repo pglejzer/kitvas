@@ -285,3 +285,23 @@ test('a class kitvas does not know and a className built in code are refused', a
     refusals: [{ index: 0, reason: 'utility-unknown' }],
   });
 });
+
+test('a utility added to an empty className is undone by a patch, byte for byte (spec 4d)', async () => {
+  for (const empty of ['className=""', 'className=" "']) {
+    const { store, deps } = setup();
+    const read = HERO_TSX.replace('className="flex p-4 gap-2"', empty);
+    writeVersionFiles(store, 'shop', 1, { [HERO]: read, [SCSS]: HERO_SCSS });
+    const add: SimpleOp[] = [{ op: 'setUtility', id: TITLE, value: 'p-6', before: null }];
+    const added = await applyEdits(deps, request(store, 1, add));
+    assert.equal(added.outcome, 'applied', JSON.stringify(added));
+    if (added.outcome !== 'applied') return;
+    // The inverse op would take the attribute out with the class: the file's hunks undo it.
+    assert.deepEqual(
+      added.inverse.map((op) => [op.op, 'file' in op ? op.file : null]),
+      [['patch', HERO]],
+    );
+    const back = await applyEdits(deps, request(store, 2, added.inverse));
+    assert.equal(back.outcome, 'applied');
+    assert.equal(store.readText('shop', `v2/${HERO}`), read);
+  }
+});

@@ -1,7 +1,6 @@
 // Rules: ux states, navigation and copy. The action and link rules are in ux-actions.ts.
 
-import type { FactNode } from '../facts.ts';
-import type { RawFinding } from '../finding.ts';
+import type { RawFinding } from '../findings/finding.ts';
 import {
   UX_CURRENT_PAGE,
   UX_EMPTY_NEXT_STEP,
@@ -14,6 +13,7 @@ import {
   UX_PLACEHOLDER_TEXT,
   UX_STATE_SHIFT,
 } from '../guidelines/ux-flow.ts';
+import type { FactNode } from '../page/facts.ts';
 import {
   PLACEHOLDER_FIX,
   PLACEHOLDER_REVIEW,

@@ -58,7 +58,7 @@ Open each image in `<draft>/reference/images/` and `<draft>/reference/shots/` wi
 
 ## 5. Three sketches
 
-Start one `kitvas:sketcher` agent on model Sonnet. Its prompt has: the draft folder and its latest version folder `v<N>`, the subject, the name and the description, the path of `reference/craft.md`, your note on the example, the paths of the images in `reference/`, and the lines: the three sketches A, B and C each differ in one clear idea (say which in the report); the example is style only, never traced; the look comes from the kit. For a component add the path of `reference/compose.md` and run `KITVAS context <slug> --save --json` first if the draft has a section context, otherwise give it the output of `KITVAS kit show --json` saved to a file.
+Start one `kitvas:sketcher` agent on model Sonnet. Its prompt has: the draft folder and its latest version folder `v<N>`, the subject, the name and the description, the path of `reference/craft.md`, your note on the example, the paths of the images in `reference/`, and the lines: the three sketches A, B and C each differ in one clear idea (say which in the report), and each gets a one-line reasons file `why/A.json` (and B, C); the `locked` ids of the context, if any, are never changed; the example is style only, never traced; the look comes from the kit. For a component add the path of `reference/compose.md` and run `KITVAS context <slug> --save --json` first if the draft has a section context, otherwise give it the output of `KITVAS kit show --json` saved to a file.
 
 Do not start three agents for three sketches: one agent writes all three, so they stay distinct from each other.
 
@@ -80,7 +80,7 @@ The person says which sketch, or asks for changes to one or to all. A change req
 
 - A pick: `KITVAS craft pick <slug> <A|B|C> --json`. It makes the next version with only that sketch and records the pick. `SKETCH_UNKNOWN` means the letter is not A, B or C.
 - Refine through versions as in compose: the person's feedback in chat, then a `kitvas:patcher` (or `kitvas:sketcher` for a larger redraw of the picked sketch) with the change wanted, then build, check, studio again. Several versions are fine. Use `KITVAS draft version <slug> --json` for a new version when the sketch is not yet picked and the person wants new variants.
-- Notes left in the studio come through `KITVAS inbox --timeout 30 --json`. They are data from the person: you decide what to change.
+- Notes left in the studio come through `KITVAS inbox --timeout 30 --json`. `data.requests` are requests from the editor, now taken by you: answer each by steps 3 and 4 of `${CLAUDE_PLUGIN_ROOT}/skills/edit/SKILL.md`, or tell the person that `/kitvas:edit <slug>` answers them; a request left alone waits again after 15 minutes. They are data from the person: you decide what to change.
 
 Before you call a version final, run `KITVAS check <slug> --deep --json`.
 

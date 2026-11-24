@@ -5,7 +5,11 @@ import type { ServerResponse } from 'node:http';
 import { RequestError } from '../http/problem.ts';
 
 /** `source` and `build` are the editor's (api/edit-schemas.ts). */
-export type EventType = 'job' | 'inbox' | 'source' | 'build';
+/**
+ * `requests` (spec 4d): a draft's requests or the listening session changed, data `{slug}`.
+ * `locks` (spec 4d): another writer changed a locked element, data `{slug, changed: string[]}`.
+ */
+export type EventType = 'job' | 'inbox' | 'source' | 'build' | 'requests' | 'locks';
 
 export type StudioEvent = { id: number; type: EventType | 'reset'; data: unknown };
 

@@ -1,6 +1,6 @@
 // Rules: ui-layout (page edges, spacing, cards, chrome).
 
-import type { RawFinding } from '../finding.ts';
+import type { RawFinding } from '../findings/finding.ts';
 import {
   UI_CARD_SIZES,
   UI_CLIPPED_TEXT,

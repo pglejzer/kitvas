@@ -1,7 +1,7 @@
 // Step `render`: every example of the built catalog shows in the browser without an error.
 
 import type { Bundler, CatalogReport } from '../../../render/index.ts';
-import type { VerifyIssue } from '../../domain/kit-verify.ts';
+import type { VerifyIssue } from '../../domain/kit/kit-verify.ts';
 import { type ParsedExample, parseError } from './example-parse.ts';
 import { buildErrorText, type Inspector, type StepResult, toolIssue } from './step.ts';
 

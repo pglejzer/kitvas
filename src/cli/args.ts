@@ -46,6 +46,12 @@ export type Flags = {
   figmaImage: string | undefined;
   /** `rework new --note <file>`: the frame's structure note, with `--figma-image`. */
   note: string | undefined;
+  /** `request answer --file <variants.json>`. */
+  file: string | undefined;
+  /** `request done --message <text>`. */
+  message: string | undefined;
+  /** `request fail --reason <text>`. */
+  reason: string | undefined;
 };
 
 export type ParsedArgs = {
@@ -87,6 +93,9 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         kit: { type: 'string' },
         'figma-image': { type: 'string' },
         note: { type: 'string' },
+        file: { type: 'string' },
+        message: { type: 'string' },
+        reason: { type: 'string' },
       },
     });
     const [command, ...rest] = positionals;
@@ -118,6 +127,9 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         kit: values.kit,
         figmaImage: values['figma-image'],
         note: values.note,
+        file: values.file,
+        message: values.message,
+        reason: values.reason,
       },
     };
   } catch (cause) {

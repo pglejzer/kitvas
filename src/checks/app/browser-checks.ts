@@ -2,11 +2,12 @@
 // ui, ux and a11y rules over what each visit measured (ADR 0044).
 
 import { join } from 'node:path';
-import { DEEP_VIEWPORTS } from '../domain/facts.ts';
-import type { RawFinding, Shot } from '../domain/finding.ts';
+import type { IdEntry } from '../domain/code/ids.ts';
+import type { RawFinding, Shot } from '../domain/findings/finding.ts';
 import { MAX_FINDINGS_PER_RULE } from '../domain/guidelines/index.ts';
-import type { IdEntry } from '../domain/ids.ts';
-import { a11yFindings, componentsOf, runtimeFindings, VIEWPORTS } from '../domain/page.ts';
+import { DEEP_VIEWPORTS } from '../domain/page/facts.ts';
+import { a11yFindings, componentsOf, runtimeFindings, VIEWPORTS } from '../domain/page/page.ts';
+import { type CatalogComponent, usageFindings } from '../domain/page/usage.ts';
 import {
   CRAFT_RULES,
   type CraftRule,
@@ -20,7 +21,6 @@ import {
   type VisitInput,
   type VisitRule,
 } from '../domain/rules/index.ts';
-import { type CatalogComponent, usageFindings } from '../domain/usage.ts';
 import type { Browser, Pass } from '../ports/browser.ts';
 
 export type BrowserInput = {

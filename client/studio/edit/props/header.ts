@@ -9,6 +9,7 @@ import { firstChildOf, parentOf, tagOfId } from '../select/selection.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { el } from './controls.ts';
+import { type SuggestActions, suggestView } from './suggest.ts';
 
 export type Crumb = { id: string; label: string };
 
@@ -87,6 +88,8 @@ export function headerView(options: {
   inspected: Inspect;
   count: number;
   select(id: string): void;
+  /** Spec 4d, goal 6: what Replace and Ask Claude do; without it no suggestion shows. */
+  suggest?: SuggestActions | undefined;
 }): HTMLElement {
   const { inspected, count, select } = options;
   const head = el('header', 'props-head');
@@ -106,6 +109,8 @@ export function headerView(options: {
   const place = el('p', 'props-place');
   place.append(el('code', undefined, placeOf(inspected)));
   head.append(title, place);
+  const offer = suggestView(inspected, options.suggest);
+  if (offer !== null) head.append(offer);
 
   const crumbs = crumbsOf(options.state, inspected.id);
   if (crumbs.length > 0) {

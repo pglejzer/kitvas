@@ -36,6 +36,7 @@ import {
 } from '../request-state.ts';
 import { carryAcross, carryCopy, checkPaste, checkScope } from './carry.ts';
 import { applyListOp } from './list-ops.ts';
+import { replaceNeeds } from './replace-scope.ts';
 import { replaceTagOpen } from './replace-tag.ts';
 import { resolveReset } from './reset.ts';
 import { applySectionOp } from './sections.ts';
@@ -329,8 +330,14 @@ async function replaceElement(
   const target = await locate(work, op.id);
   if (!('at' in target)) return target;
   const { loaded, names } = kitOf(work);
-  const refusal = checkPaste(op.source, names, { text: target.text, at: target.at });
-  if (refusal !== null) return { refused: refusal };
+  const place = { text: target.text, at: target.at };
+  const refusal = checkPaste(op.source, names, place);
+  // Spec 4d (bring back, kit suggestions): a source that stands where an element stood may read
+  // what the file has there. The paste rule's refusal stays when a name is still missing.
+  if (refusal !== null) {
+    const needs = refusal === 'invalid' ? null : replaceNeeds(op.source, names, place);
+    if (needs === null || needs.missing.length > 0) return { refused: refusal };
+  }
   const around = parentOf(target.text, target.at);
   const nested =
     interactiveIn(loaded, op.source, whole(op.source)) &&

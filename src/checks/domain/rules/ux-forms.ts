@@ -1,7 +1,6 @@
 // Rules: ux forms and errors (ADR 0043). Thresholds and word lists come from the guideline entries.
 
-import type { FactNode, FieldFacts } from '../facts.ts';
-import type { RawFinding } from '../finding.ts';
+import type { RawFinding } from '../findings/finding.ts';
 import {
   INPUT_CONTACT_WORDS,
   INPUT_QUANTITY_WORDS,
@@ -21,6 +20,7 @@ import {
   UX_VISIBLE_LABEL,
   VAGUE_ERROR_WORDS,
 } from '../guidelines/ux-forms.ts';
+import type { FactNode, FieldFacts } from '../page/facts.ts';
 import type { StatesInput, StatesRule, VisitInput, VisitRule } from './types.ts';
 import { ruleFinding } from './types.ts';
 
