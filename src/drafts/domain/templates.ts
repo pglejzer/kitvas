@@ -86,6 +86,45 @@ export const briefTemplate = (title: string): string =>
     '',
   ].join('\n');
 
+/** What the Goal of a craft brief asks for, and the sections between it and the example. */
+const CRAFT_BRIEF: Record<CraftSubject, { goal: string; sections: [string, string][] }> = {
+  logo: {
+    goal: 'What the logo stands for and what it must say about the brand, in one or two sentences.',
+    sections: [
+      ['Name', 'The exact name, and whether the logo shows it as a word mark.'],
+      [
+        'Uses',
+        'Where it appears and how small: a favicon, a header, on light and on dark grounds.',
+      ],
+    ],
+  },
+  icon: {
+    goal: 'The thing or the action the icon stands for, in one sentence.',
+    sections: [
+      ['Uses', "Where it sits, at which sizes, and which of the kit's icons stand beside it."],
+    ],
+  },
+  component: {
+    goal: 'What the component is for and where it is used, in one or two sentences.',
+    sections: [
+      ['Content', 'The real texts, numbers and items its example shows.'],
+      ['States', 'Which states it has: default, hover, focus, disabled, empty, loading, error.'],
+    ],
+  },
+};
+
+/** The brief of a craft draft: a logo, an icon or a component is no screen, so each has its own. */
+export const craftBriefTemplate = (title: string, subject: CraftSubject): string => {
+  const { goal, sections } = CRAFT_BRIEF[subject];
+  const example = "What the person's example gives: its style and idea. It is never traced.";
+  const parts: [string, string][] = [['Goal', goal], ...sections, ['Example', example]];
+  return [
+    `# Brief: ${title}`,
+    '',
+    ...parts.flatMap(([head, line]) => [`## ${head}`, '', line, '']),
+  ].join('\n');
+};
+
 export const layoutTemplate = (title: string): string =>
   [
     `# Layout: ${title}`,

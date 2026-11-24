@@ -1,6 +1,7 @@
 // Public API of the drafts module. Adapters are wired in src/main.ts, not exported here.
 
 export * from './app/context.ts';
+export * from './app/craft-context.ts';
 export * from './app/craft-pick.ts';
 export * from './app/create-draft.ts';
 export * from './app/draft-map.ts';

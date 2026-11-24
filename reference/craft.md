@@ -19,7 +19,7 @@ Also read `reference/anti-slop.md`, in this folder: the generic look a sketch mu
 
 ## The kit decides the look
 
-- R-CRAFT-4: An icon uses the kit's icon grid: the `viewBox` of the kit's icons, given in the board's kit row (`kit.icons` and the kit's icon notes in the prompt). The same stroke width, caps and joins, or the same fill style. Do not choose your own grid.
+- R-CRAFT-4: An icon uses the kit's icon grid: the `viewBox` of the kit's icons, from the craft context (`kit.icons` and the icon component's entry in `kit.components`) and the notes on the kit's icons in the prompt. The same stroke width, caps and joins, or the same fill style. Do not choose your own grid.
 - R-CRAFT-5: An icon uses `currentColor` only, and no other fixed colour (`none` and `transparent` are fine). No raster, no `<image>`, no `<text>`.
 - R-CRAFT-6: At 16 px, no detail is thinner than one device pixel: keep strokes at the kit's weight, leave gaps wide enough, and drop detail rather than shrink it.
 - R-CRAFT-7: A logo has a mono variant, is legible at 32 px, and keeps a contrast of at least 3 to 1 against both a light and a dark ground, either by itself or through its tones. A logo has no raster image.
