@@ -26,6 +26,8 @@ function pages(store: DraftStore) {
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
+    version: '0.1.0',
+    projectKit: () => 'base',
   });
   return async (id: string, ask: Ask = {}): Promise<string> => {
     const route = routes.find((candidate) => candidate.id === id);

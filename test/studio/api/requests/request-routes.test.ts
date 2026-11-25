@@ -5,6 +5,7 @@ import { createEsbuildCompiler } from '../../../../src/edit/adapters/esbuild-com
 import { PLUGIN_ROOT } from '../../../../src/shared/index.ts';
 import type { EditDeps } from '../../../../src/studio/api/edit/edit-routes.ts';
 import type {
+  Listening,
   RequestContext,
   Requests,
   RequestView,
@@ -234,6 +235,51 @@ test('show reads the elements now; a change after the answer makes it stale', as
     // Another writer changed its text: the variants were made for the old one.
     drafts.writeText('shop', `v1/${TSX_FILE}`, pricing('Prices'));
     assert.equal(await stale(), true);
+  } finally {
+    await studio.close();
+  }
+  assert.deepEqual(errors, []);
+});
+
+test('the listening read answers the state, and with no drafts a change is told once', async () => {
+  const { store } = tempDrafts();
+  const { studio, errors } = await studioOver(store);
+  const auth = { authorization: `Bearer ${studio.token}` };
+  const write = { ...auth, origin: studio.url, 'content-type': 'application/json' };
+  const read = () => call(studio.port, { path: '/api/v1/listening', headers: auth });
+  const post = (path: string, body: unknown) =>
+    call(studio.port, { method: 'POST', path, headers: write, body: JSON.stringify(body) });
+  try {
+    const before = await read();
+    assert.equal(before.status, 200, before.text);
+    assert.deepEqual(json<Listening>(before.text), { state: 'off', since: null });
+    assert.equal(
+      (await call(studio.port, { path: '/api/v1/listening' })).status,
+      401,
+      'it needs the token or the page cookie',
+    );
+
+    const stream = await openEvents(studio.port, auth);
+    // A take that ends at once: Claude's session was seen, so it listens for the grace.
+    const taken = await post('/api/v1/inbox/take', {});
+    assert.equal(taken.status, 200, taken.text);
+    // A note after it: its `inbox` event comes after whatever the take told.
+    const note = { kind: 'note', slug: null, element: null, text: 'Look at the footer' };
+    assert.equal((await post('/api/v1/inbox', note)).status, 202);
+    const heard: { event: string; data: string }[] = [];
+    for (let event = await stream.next(); event.event !== 'inbox'; event = await stream.next()) {
+      heard.push(event);
+    }
+    stream.close();
+    const told = heard.filter((event) => event.event === 'listening');
+    assert.equal(told.length, 1, JSON.stringify(heard));
+    const state = json<Listening>(told[0]?.data ?? '');
+    assert.equal(state.state, 'listening');
+    assert.equal(typeof state.since, 'string');
+    assert.ok(!heard.some((event) => event.event === 'requests'), 'no draft to tell');
+
+    const after = await read();
+    assert.deepEqual(json<Listening>(after.text), state);
   } finally {
     await studio.close();
   }

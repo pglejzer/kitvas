@@ -6,17 +6,27 @@ import { test } from 'node:test';
 import { plainValue } from '../../../../../client/studio/edit/props/kinds.ts';
 import {
   allowedValue,
+  heldBySides,
   heldText,
+  keepsPart,
   opsForAll,
   opsForPropAll,
   opsForStyle,
   readOnlyReason,
+  ruleHeld,
   sharedProperties,
   sharedText,
 } from '../../../../../client/studio/edit/style/ops.ts';
 import {
+  heldBy,
+  SHORTHANDS,
+  type Shorthand,
+  withPart,
+} from '../../../../../src/edit/domain/style/shorthand.ts';
+import {
   STYLE_PROPERTIES,
   type StyleContext,
+  type StyleProperty,
   type StyleValue,
   type TokenOption,
 } from '../../../../../src/edit/index.ts';
@@ -396,4 +406,162 @@ test('the text a row shows for several elements, or mixed', () => {
   const row = stack({ props: [literal('direction', 'row')] });
   assert.equal(heldText(row, 'flex-direction'), 'row');
   assert.equal(heldText(stack(), 'flex-direction'), null);
+});
+
+// ---- Shorthands (ADR 0070) ----------------------------------------------------------------------
+
+type Source = NonNullable<Inspect['styles'][StyleProperty]>;
+
+/** The source of a property a shorthand of `.plans` holds, as the inspect answer says it. */
+const part = (via: Shorthand, value: string, offKit = false): Source => ({
+  kind: 'scss',
+  className: 'plans',
+  value,
+  offKit,
+  via,
+});
+
+/** `.plans { padding: var(--kit-space-sm) 13px; }` with the marker, as the server reads it. */
+function boxed(): Inspect {
+  const value = 'var(--kit-space-sm) 13px';
+  const view = ruled(ID, 'plans', [{ property: 'padding', value, offKit: true }]);
+  return {
+    ...view,
+    styles: {
+      ...view.styles,
+      padding: { kind: 'scss', className: 'plans', value, offKit: true },
+      'padding-block': part('padding', 'var(--kit-space-sm)'),
+      'padding-inline': part('padding', '13px', true),
+      'padding-top': part('padding', 'var(--kit-space-sm)'),
+      'padding-right': part('padding', '13px', true),
+      'padding-bottom': part('padding', 'var(--kit-space-sm)'),
+      'padding-left': part('padding', '13px', true),
+    },
+  };
+}
+
+test('a property a shorthand holds is read and written as its part', () => {
+  const view = boxed();
+  assert.deepEqual(ruleHeld(view, 'padding-right'), {
+    value: '13px',
+    offKit: true,
+    via: 'padding',
+  });
+  // The shorthand itself is its own declaration, and nothing holds the gap.
+  assert.deepEqual(ruleHeld(view, 'padding'), { value: 'var(--kit-space-sm) 13px', offKit: true });
+  assert.equal(ruleHeld(view, 'gap'), null);
+  assert.equal(heldText(view, 'padding-top'), 'var(--kit-space-sm)');
+  // The part as read is the change's before; the token it holds already is no change.
+  assert.deepEqual(opsForStyle(view, 'padding-right', MD), [
+    {
+      op: 'setStyle',
+      id: ID,
+      className: 'plans',
+      property: 'padding-right',
+      value: MD,
+      before: { raw: '13px' },
+      newRule: false,
+    },
+  ]);
+  assert.deepEqual(opsForStyle(view, 'padding-top', { token: '--kit-space-sm' }), []);
+  // A part of a shorthand without the marker is named as it is written.
+  const plain = { ...view, styles: { ...view.styles, 'padding-right': part('padding', '13px') } };
+  const [op] = opsForStyle(plain, 'padding-right', MD);
+  assert.deepEqual(op?.op === 'setStyle' ? op.before : null, { raw: '13px', mark: false });
+});
+
+test('a side of a box or a pair has no reset; a part of a border has one', () => {
+  const view = boxed();
+  assert.deepEqual(opsForStyle(view, 'padding-right', null), []);
+  assert.deepEqual(opsForStyle(view, 'padding-block', null), []);
+  assert.equal(heldBySides([view], 'padding-right'), true);
+  assert.equal(heldBySides([view, view], 'padding-block'), true);
+  // The whole padding is its own declaration, with its reset.
+  assert.equal(heldBySides([view], 'padding'), false);
+  assert.equal(opsForStyle(view, 'padding', null)[0]?.op, 'removeStyle');
+  // One element that can give the value up keeps the reset of the selection.
+  const own = ruled(`${ID}/own`, 'note', [
+    { property: 'padding-right', value: '2px', offKit: true },
+  ]);
+  assert.equal(heldBySides([view, own], 'padding-right'), false);
+  assert.equal(heldBySides([], 'padding-right'), false);
+
+  const lined = ruled(ID, 'plans', [{ property: 'border', value: '1px solid red', offKit: true }]);
+  const border = {
+    ...lined,
+    styles: { ...lined.styles, 'border-color': part('border', 'red', true) },
+  };
+  assert.equal(heldBySides([border], 'border-color'), false);
+  assert.deepEqual(opsForStyle(border, 'border-color', null), [
+    {
+      op: 'removeStyle',
+      id: ID,
+      className: 'plans',
+      property: 'border-color',
+      before: { raw: 'red' },
+      dropRule: false,
+    },
+  ]);
+});
+
+test('the shorthands a part cannot leave are the ones the server refuses to take one from', () => {
+  const values: Record<Shorthand, string> = {
+    padding: '1px 2px',
+    margin: '1px 2px',
+    'padding-block': '1px 2px',
+    'padding-inline': '1px 2px',
+    'margin-block': '1px 2px',
+    'margin-inline': '1px 2px',
+    border: '1px solid red',
+    outline: '1px solid red',
+    background: 'red url(../img/a.png)',
+    'flex-flow': 'row wrap',
+  };
+  for (const shorthand of SHORTHANDS) {
+    const [first] = heldBy(shorthand);
+    assert.ok(first !== undefined, shorthand);
+    const without = withPart(shorthand, values[shorthand], first, null, () => null);
+    assert.equal(keepsPart(shorthand), without === null, shorthand);
+  }
+  assert.equal(keepsPart(undefined), false);
+});
+
+test('a part a shorthand holds at a width is changed there, and a side stays in it', () => {
+  const view = {
+    ...ruled(ID, 'plans', []),
+    overrides: [
+      { ...override(AT_768, 'padding-top', '2px'), via: 'padding' as const },
+      { ...override(AT_768, 'border-color', 'red'), via: 'border' as const },
+    ],
+  };
+  const at = { id: ID, className: 'plans', context: AT_768 };
+  assert.deepEqual(opsForStyle(view, 'padding-top', MD, { context: AT_768 }), [
+    {
+      op: 'setStyle',
+      ...at,
+      property: 'padding-top',
+      value: MD,
+      before: { raw: '2px' },
+      newRule: false,
+      newBlock: false,
+    },
+  ]);
+  assert.deepEqual(opsForStyle(view, 'padding-top', null, { context: AT_768 }), []);
+  assert.deepEqual(opsForStyle(view, 'border-color', null, { context: AT_768 }), [
+    {
+      op: 'removeStyle',
+      ...at,
+      property: 'border-color',
+      before: { raw: 'red' },
+      dropRule: false,
+      dropBlock: true,
+    },
+  ]);
+});
+
+test('a property its rule holds in a shorthand is not read-only for a nested block', () => {
+  const view = boxed();
+  const blocked = { ...view, scss: view.scss && { ...view.scss, nested: ['padding-top', 'gap'] } };
+  assert.equal(readOnlyReason(blocked, 'padding-top', 'scss'), null);
+  assert.equal(readOnlyReason(blocked, 'gap', 'scss'), 'nested');
 });

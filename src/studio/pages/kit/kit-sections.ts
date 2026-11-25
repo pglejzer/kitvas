@@ -5,13 +5,19 @@ import type { Translate } from '../../../shared/index.ts';
 import type { CategoryGroup, ComponentRow, PropRow } from '../../views/kit-view.ts';
 import { type Html, html } from '../html.ts';
 import { type CatalogInput, catalogNotes, exampleFigure } from './kit-examples.ts';
+import { cardPart } from './kit-token-view.ts';
 
 export function problemsSection(t: Translate, issues: KitIssue[]): Html | '' {
   if (issues.length === 0) return '';
   const items = issues.map(
     (issue) => html`<li>${t(issue.key, issue.params)} <code>${issue.path}</code></li>`,
   );
-  return html`<section class="kit-part" aria-labelledby="kit-problems"><h2 id="kit-problems">${t('studio.kit.problemsTitle')}</h2><ul class="kit-list">${items}</ul></section>`;
+  return cardPart(
+    'kit-problems',
+    t('studio.kit.problemsTitle'),
+    issues.length,
+    html`<ul class="kit-list">${items}</ul>`,
+  );
 }
 
 function propRow(t: Translate, prop: PropRow): Html {

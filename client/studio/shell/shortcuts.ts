@@ -1,19 +1,20 @@
 // Every shortcut of the editor screen in one table (plan 15, task A, spec goal 10). The `?` list
 // reads it, and so may the context menu for its key hints: `shortcutHint(id)`. Keys are written
 // as the browser names them (`event.key`), parts joined by `+`; `Mod` is Ctrl, or Cmd on a Mac.
-// A word that is not a key's name (wheel, drag, click) is a text key, said through `say`.
+// A word that is not a key's name (wheel, drag, click) is a text key, said through `say`. The rows
+// are `src/studio/views/shortcuts.ts`, which the Shortcuts page reads too.
 
+import {
+  KEY_SHOWN,
+  KEY_WORDS,
+  SHORTCUT_GROUPS,
+  SHORTCUT_ROWS,
+  type ShortcutGroup,
+} from '../../../src/studio/views/shortcuts.ts';
 import type { ShellKey } from '../../channel/canvas-protocol.ts';
 import type { EditKey } from '../../channel/edit-protocol.ts';
 
-export type ShortcutGroup = 'screen' | 'canvas' | 'selection' | 'history' | 'structure';
-export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
-  'screen',
-  'canvas',
-  'selection',
-  'history',
-  'structure',
-];
+export { SHORTCUT_GROUPS, type ShortcutGroup };
 
 /** Pointer gestures listed beside the keys. */
 export type GestureId = 'add' | 'zoom-wheel' | 'pan';
@@ -28,55 +29,14 @@ export type Shortcut = {
   group: ShortcutGroup;
 };
 
-export const SHORTCUTS: readonly Shortcut[] = [
-  { id: 'fold-left', keys: ['['], label: 'shortcuts.fold-left', group: 'screen' },
-  { id: 'fold-right', keys: [']'], label: 'shortcuts.fold-right', group: 'screen' },
-  { id: 'fold-both', keys: ['Mod+\\'], label: 'shortcuts.fold-both', group: 'screen' },
-  { id: 'shortcuts', keys: ['?'], label: 'shortcuts.shortcuts', group: 'screen' },
-  { id: 'fit', keys: ['Shift+1'], label: 'shortcuts.fit', group: 'canvas' },
-  { id: 'selection', keys: ['Shift+2'], label: 'shortcuts.selection', group: 'canvas' },
-  { id: 'actual', keys: ['Mod+0'], label: 'shortcuts.actual', group: 'canvas' },
-  { id: 'zoom-wheel', keys: ['Mod+Wheel', 'Pinch'], label: 'shortcuts.zoom', group: 'canvas' },
-  { id: 'pan', keys: ['Space+Drag', 'MiddleDrag'], label: 'shortcuts.pan', group: 'canvas' },
-  { id: 'clear', keys: ['Escape'], label: 'shortcuts.clear', group: 'selection' },
-  { id: 'parent', keys: ['ArrowUp'], label: 'shortcuts.parent', group: 'selection' },
-  { id: 'child', keys: ['ArrowDown'], label: 'shortcuts.child', group: 'selection' },
-  { id: 'add', keys: ['Shift+Click'], label: 'shortcuts.add', group: 'selection' },
-  { id: 'select-all', keys: ['Mod+A'], label: 'shortcuts.select-all', group: 'selection' },
-  { id: 'undo', keys: ['Mod+Z'], label: 'shortcuts.undo', group: 'history' },
-  { id: 'redo', keys: ['Mod+Shift+Z', 'Ctrl+Y'], label: 'shortcuts.redo', group: 'history' },
-  { id: 'delete', keys: ['Delete', 'Backspace'], label: 'shortcuts.delete', group: 'structure' },
-  { id: 'duplicate', keys: ['Mod+D'], label: 'shortcuts.duplicate', group: 'structure' },
-  { id: 'copy', keys: ['Mod+C'], label: 'shortcuts.copy', group: 'structure' },
-  { id: 'cut', keys: ['Mod+X'], label: 'shortcuts.cut', group: 'structure' },
-  { id: 'paste', keys: ['Mod+V'], label: 'shortcuts.paste', group: 'structure' },
-  { id: 'move-up', keys: ['Alt+ArrowUp'], label: 'shortcuts.move-up', group: 'structure' },
-  { id: 'move-down', keys: ['Alt+ArrowDown'], label: 'shortcuts.move-down', group: 'structure' },
-  { id: 'wrap', keys: ['Mod+G'], label: 'shortcuts.wrap', group: 'structure' },
-  { id: 'unwrap', keys: ['Mod+Shift+G'], label: 'shortcuts.unwrap', group: 'structure' },
-  { id: 'menu', keys: ['Shift+F10', 'ContextMenu'], label: 'shortcuts.menu', group: 'structure' },
-];
+/** The table's rows; the test holds each id to a screen key, an editor key or a gesture. */
+export const SHORTCUTS: readonly Shortcut[] = SHORTCUT_ROWS.map((row) => ({
+  ...row,
+  id: row.id as Shortcut['id'],
+}));
 
 /** Says a text key (`text` from `edit/texts.ts`; a plain function in tests). */
 export type Say = (key: string) => string;
-
-/** Names that are words for people, not a key's name. */
-const WORDS: Readonly<Record<string, string>> = {
-  Wheel: 'shortcuts.key.wheel',
-  Pinch: 'shortcuts.key.pinch',
-  Drag: 'shortcuts.key.drag',
-  MiddleDrag: 'shortcuts.key.middle',
-  Click: 'shortcuts.key.click',
-  ContextMenu: 'shortcuts.key.menu',
-};
-
-const SHOWN: Readonly<Record<string, string>> = {
-  Escape: 'Esc',
-  ArrowUp: '↑',
-  ArrowDown: '↓',
-  ArrowLeft: '←',
-  ArrowRight: '→',
-};
 
 /** Whether the platform is Apple's, where Ctrl reads Cmd and Alt reads Option. */
 export function isMac(platform: string): boolean {
@@ -88,9 +48,9 @@ export function keyNames(combo: string, mac: boolean, say: Say): string[] {
   return combo.split('+').map((part) => {
     if (part === 'Mod') return mac ? 'Cmd' : 'Ctrl';
     if (part === 'Alt' && mac) return 'Option';
-    const word = WORDS[part];
+    const word = KEY_WORDS[part];
     if (word !== undefined) return say(word);
-    return SHOWN[part] ?? part;
+    return KEY_SHOWN[part] ?? part;
   });
 }
 

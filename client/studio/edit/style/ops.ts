@@ -7,6 +7,7 @@ import type {
   EditOp,
   PropValue,
   Refusal,
+  Shorthand,
   StyleContext,
   StyleProperty,
   StyleValue,
@@ -72,6 +73,47 @@ export function opsForProp(inspected: Inspect, name: string, value: PropValue | 
   ];
 }
 
+/**
+ * What the class rule's own body holds for a property (ADR 0070): the part of a shorthand written
+ * after it (`via`), as the inspect answer's source says, else its own declaration.
+ */
+export type RuleHeld = { value: string; offKit: boolean; via?: Shorthand };
+
+export function ruleHeld(inspected: Inspect, property: StyleProperty): RuleHeld | null {
+  const source = inspected.styles[property];
+  if (source?.kind === 'scss' && source.via !== undefined) {
+    return { value: source.value, offKit: source.offKit, via: source.via };
+  }
+  const own = inspected.scss?.declarations.find((each) => each.property === property);
+  return own ? { value: own.value, offKit: own.offKit } : null;
+}
+
+/**
+ * The shorthands no part leaves alone: a box and a pair say every side, so a side has no reset.
+ * As `withPart` with `null` answers in `src/edit/domain/style/shorthand.ts`; a test keeps them
+ * equal.
+ */
+const WHOLE: ReadonlySet<string> = new Set([
+  'padding',
+  'margin',
+  'padding-block',
+  'padding-inline',
+  'margin-block',
+  'margin-inline',
+]);
+
+/** The value is held by a shorthand it cannot leave: the server would refuse to remove it. */
+export const keepsPart = (via: Shorthand | undefined): boolean =>
+  via !== undefined && WHOLE.has(via);
+
+/**
+ * No element could give the row's value up: on each of them a box or a pair holds it, so the row
+ * offers no reset. The whole `padding` or `margin` is reset by its own row.
+ */
+export function heldBySides(views: readonly Inspect[], property: StyleProperty): boolean {
+  return views.length > 0 && views.every((view) => keepsPart(ruleHeld(view, property)?.via));
+}
+
 /** The enum value a token stands for: `--kit-space-md` is `md` when the prop has `md`. */
 function enumValueOf(values: string[], value: StyleValue): string | null {
   if ('raw' in value) return values.includes(value.raw) ? value.raw : null;
@@ -111,7 +153,7 @@ export function readOnlyReason(
   if (className?.kind === 'expr' && !styleClass.exists) return 'computed';
   // The base cannot be written beside a block kitvas does not read; the server checks a context's.
   if (!isBase(context)) return null;
-  const own = scss.declarations.some((declaration) => declaration.property === property);
+  const own = ruleHeld(inspected, property) !== null;
   return !own && scss.nested.includes(property) ? 'nested' : null;
 }
 
@@ -174,7 +216,9 @@ function opsInContext(
   const before = held ? styleValueOf(held.value, held.offKit) : null;
   const at = { id, className, property, context };
   if (value === null) {
-    return before ? [{ op: 'removeStyle', ...at, before, dropRule: false, dropBlock: true }] : [];
+    // A side stays in the box or the pair that holds it.
+    if (before === null || keepsPart(held?.via)) return [];
+    return [{ op: 'removeStyle', ...at, before, dropRule: false, dropBlock: true }];
   }
   if (before && JSON.stringify(before) === JSON.stringify(value)) return [];
   const ops: EditOp[] = styleClass.exists ? [] : [{ op: 'addClass', id, className }];
@@ -215,10 +259,13 @@ export function opsForStyle(
   const { id, scss, styleClass } = inspected;
   if (!scss || !styleClass) return [];
   const { className } = styleClass;
-  const declaration = scss.declarations.find((own) => own.property === property);
-  const before = declaration ? styleValueOf(declaration.value, declaration.offKit) : null;
+  // The value as read: a declaration's, or the part of the shorthand that holds the property.
+  const held = ruleHeld(inspected, property);
+  const before = held ? styleValueOf(held.value, held.offKit) : null;
   if (value === null) {
-    return before ? [{ op: 'removeStyle', id, className, property, before, dropRule: false }] : [];
+    // A side stays in the box or the pair that holds it.
+    if (before === null || keepsPart(held?.via)) return [];
+    return [{ op: 'removeStyle', id, className, property, before, dropRule: false }];
   }
   if (before && JSON.stringify(before) === JSON.stringify(value)) return [];
   const ops: EditOp[] = styleClass.exists ? [] : [{ op: 'addClass', id, className }];
@@ -270,14 +317,17 @@ export function sharedProperties(
   );
 }
 
-/** What a style row holds on an element as text: its declaration, else its covering prop. */
+/**
+ * What a style row holds on an element as text: its declaration or the part of a shorthand that
+ * holds it, else its covering prop.
+ */
 export function heldText(view: Inspect, property: StyleProperty): string | null {
   const source = view.styles[property];
   if (source?.kind === 'prop') {
     const written = view.props.find((prop) => prop.name === source.prop);
     return written?.kind === 'literal' ? String(written.value.value) : null;
   }
-  return view.scss?.declarations.find((own) => own.property === property)?.value ?? null;
+  return ruleHeld(view, property)?.value ?? null;
 }
 
 /** The text every element holds for the row (`null`: none holds one), or `mixed`. */

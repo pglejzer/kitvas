@@ -350,6 +350,7 @@ test('status and the generated OpenAPI document', async () => {
       '/api/v1/jobs/{id}/cancel',
       '/api/v1/kits/{id}/catalog',
       '/api/v1/links',
+      '/api/v1/listening',
       '/api/v1/openapi.json',
       '/api/v1/requests/{id}',
       '/api/v1/requests/{id}/answer',

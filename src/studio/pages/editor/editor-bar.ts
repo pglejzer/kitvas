@@ -1,10 +1,13 @@
 // The editor screen's top bar (plan 15, C4; plan 18, task A), the shared `.k-bar` in three parts:
-// the kitvas mark, "Drafts / title" and the version menu; Preview | Edit; and the end. On a version
-// that can be edited the end holds the listening status, the session line, undo and redo (in
-// Edit) or the findings, the notes and Compare (in Preview), View, More and Save version
+// the kitvas mark (a link home), "Drafts / title" and the version menu; Preview | Edit; and the
+// end. On a version that can be edited the end holds Claude's status, the session line, undo and
+// redo (in Edit) or the findings, the notes and Compare (in Preview), View, More and Save version
 // (`client/studio/edit/history/session.ts` runs the session's controls). On any other version it
-// holds the findings, Compare, View and More. The menus are plain links in `<details>`, so they
-// work without the script; More holds Compare and the list of shortcuts, which `?` opens too.
+// holds Claude's status, the findings, Compare, View and More. The status is the slot every bar
+// has (`barStatusSlot`, painted by `client/studio/shell/bar-status.ts`). The menus are plain
+// links in `<details>`, so they work without the script; More holds Compare and the list of
+// shortcuts, which `?` opens too. A word beside an icon (`k-bar-word`) gives way in a narrow bar
+// (`skin/editor/bar.ts`); the icon and the name stay.
 
 import type { Draft } from '../../../drafts/index.ts';
 import type { Translate } from '../../../shared/index.ts';
@@ -13,6 +16,7 @@ import { type DraftStatus, statusLine } from '../../views/status.ts';
 import type { ChoiceLink } from '../draft/draft-links.ts';
 import { type Html, html, trusted } from '../html.ts';
 import { icon } from '../icons/icon.ts';
+import { barStatusSlot, homeLink } from '../shell.ts';
 import { viewButton } from '../view-settings.ts';
 
 /** Why Edit is off for the version shown: comparing, an older version, or one not built. */
@@ -82,13 +86,17 @@ function versionMenu(input: BarInput): Html {
   return pickMenu('version', t('studio.edit.shell.versions'), summary, items, false);
 }
 
+/** An icon and its word; the word gives way in a narrow bar and still names the control. */
+const iconWord = (name: 'compare' | 'more', word: string): Html =>
+  html`${icon(name)}<span class="k-bar-word">${word}</span>`;
+
 function compareSummary(t: Translate, compare: number | undefined): Html {
-  if (compare === undefined) return html`${icon('compare')}${t('studio.edit.shell.compare')}`;
+  if (compare === undefined) return iconWord('compare', t('studio.edit.shell.compare'));
   const label =
     compare === 0
       ? t('studio.edit.shell.comparingOriginal')
       : t('studio.edit.shell.comparing', { version: compare });
-  return html`${icon('compare')}${label}`;
+  return iconWord('compare', label);
 }
 
 /** What compare can show: the other versions, newest first, then a rework's original. */
@@ -128,7 +136,7 @@ function compareMenu(input: BarInput): Html {
   const { t, choice } = input;
   const links = compareLinks(input);
   if (links.length === 0) {
-    return html`<button type="button" class="k-btn" data-shell="compare" disabled title="${t('studio.edit.shell.compareNone')}">${icon('compare')}${t('studio.edit.shell.compare')}</button>`;
+    return html`<button type="button" class="k-btn" data-shell="compare" disabled title="${t('studio.edit.shell.compareNone')}">${iconWord('compare', t('studio.edit.shell.compare'))}</button>`;
   }
   const name = t('studio.edit.shell.compareList');
   return pickMenu('compare', name, compareSummary(t, choice.compare), links, true);
@@ -147,7 +155,7 @@ function moreMenu(input: BarInput): Html {
   const { draft } = input;
   const remove = html`<button type="button" class="k-menu-item" data-trash-delete data-slug="${draft.slug}" data-title="${draft.title}">${t('studio.trash.menuDelete')}</button>`;
   const name = t('studio.edit.shell.more');
-  return html`<details class="bar-menu"><summary class="k-icon-btn" aria-label="${name}" title="${name}">${icon('more')}</summary><div class="k-pop k-menu bar-list bar-list-end" data-shell="more">${compare}<div class="k-menu-sep"></div>${shortcuts}<div class="k-menu-sep"></div>${remove}</div></details>`;
+  return html`<details class="bar-menu"><summary class="k-btn" aria-label="${name}" title="${name}">${iconWord('more', name)}</summary><div class="k-pop k-menu bar-list bar-list-end" data-shell="more">${compare}<div class="k-menu-sep"></div>${shortcuts}<div class="k-menu-sep"></div>${remove}</div></details>`;
 }
 
 /** Preview and Edit; Edit is off, with the reason as its tooltip, on a version it cannot edit. */
@@ -188,21 +196,24 @@ function notesButton(t: Translate): Html {
 
 function barEnd(input: BarInput): Html {
   const { t } = input;
+  const status = barStatusSlot(t);
   const findings = findingsButton(input);
   const compare = compareMenu(input);
   const tail = html`<span class="k-sep bar-sep" aria-hidden="true"></span>${viewButton(t)}${moreMenu(input)}`;
-  if (input.block !== null) return html`<div class="k-bar-end">${findings}${compare}${tail}</div>`;
+  if (input.block !== null) {
+    return html`<div class="k-bar-end">${status}${findings}${compare}${tail}</div>`;
+  }
   const undo = t('studio.edit.shell.undo');
   const redo = t('studio.edit.shell.redo');
   const edit = html`<span class="bar-group bar-in-edit"><button type="button" class="k-icon-btn" data-edit-undo disabled aria-label="${undo}" title="${undo}">${icon('undo')}</button><button type="button" class="k-icon-btn" data-edit-redo disabled aria-label="${redo}" title="${redo}">${icon('redo')}</button></span>`;
   const preview = html`<span class="bar-group bar-in-preview">${findings}${notesButton(t)}${compare}</span>`;
-  const session = html`<span class="bar-listen" data-edit-listening></span><span class="bar-session k-clip" data-edit-session role="status"></span>`;
+  const session = html`<span class="bar-session k-clip" data-edit-session role="status"></span>`;
   const save = html`<button type="button" class="k-btn" data-edit-unsave hidden>${t('studio.edit.shell.unsave')}</button><button type="button" class="k-btn k-btn-primary bar-save" data-edit-save disabled>${t('studio.edit.save')}</button>`;
-  return html`<div class="k-bar-end">${session}${edit}${preview}${tail}${save}</div>`;
+  return html`<div class="k-bar-end">${status}${session}${edit}${preview}${tail}${save}</div>`;
 }
 
 export function editorBar(input: BarInput): Html {
   const { t, draft } = input;
-  const start = html`<div class="k-bar-start"><span class="k-mark">kitvas</span><a class="k-btn bar-crumb" href="/">${t('studio.nav.drafts')}</a><span class="bar-slash" aria-hidden="true">/</span><h1 class="bar-title k-clip" title="${draft.title}">${draft.title}</h1>${versionMenu(input)}</div>`;
+  const start = html`<div class="k-bar-start">${homeLink(t, 'mark')}<a class="k-btn bar-crumb" href="/">${t('studio.nav.drafts')}</a><span class="bar-slash" aria-hidden="true">/</span><h1 class="bar-title k-clip" title="${draft.title}">${draft.title}</h1>${versionMenu(input)}</div>`;
   return html`<header class="k-bar bar-editor">${start}<div class="k-bar-mid">${modeSwitch(input)}</div>${barEnd(input)}</header>`;
 }

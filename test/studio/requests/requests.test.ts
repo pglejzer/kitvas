@@ -13,7 +13,7 @@ import { createInbox, type Inbox } from '../../../src/studio/inbox/inbox.ts';
 import type { Timers } from '../../../src/studio/requests/listening.ts';
 import { readRequests } from '../../../src/studio/requests/request-file.ts';
 import { createRequestService } from '../../../src/studio/requests/requests.ts';
-import { NOW, shopDraft, TINY } from '../../helpers/drafts.ts';
+import { NOW, shopDraft, TINY, tempDrafts } from '../../helpers/drafts.ts';
 import { fakeClock } from '../../helpers/fake-clock.ts';
 import { builtinKits } from '../../helpers/kits.ts';
 import { t } from '../../helpers/translate.ts';
@@ -49,8 +49,12 @@ function setup(store: DraftStore = shopDraft().store) {
   const inbox: Inbox = createInbox({ now, publish: () => undefined });
   const host = { drafts: store, kits: builtinKits(), events, inbox, now, t };
   const service = createRequestService(host, timers);
-  /** Slugs told since the last call. */
-  const told = (): string[] => heard.splice(0, heard.length).map((one) => slugOf(one));
+  /** Slugs told by `requests` events since the last call; the `listening` events go with them. */
+  const told = (): string[] =>
+    heard
+      .splice(0, heard.length)
+      .filter((one) => one.type !== 'listening')
+      .map((one) => slugOf(one));
   return { store, clock, heard, inbox, service, told };
 }
 
@@ -185,6 +189,35 @@ test('a new listening state is told to every draft, a request change only to its
   assert.equal(waiting.given(), false, 'a take whose caller left is handed nothing');
   assert.deepEqual(service.ended(waiting.given()), []);
   assert.equal(service.hasWaiting(), true);
+});
+
+test('a new listening state is told once for the studio, also with no drafts', async () => {
+  const { heard, inbox, service } = setup(tempDrafts().store);
+  assert.deepEqual(service.listening(), { state: 'off', since: null });
+  const waiting = inbox.wait(60_000);
+  service.began();
+  const listening = { state: 'listening', since: NOW.toISOString() };
+  assert.deepEqual(heard, [{ type: 'listening', data: listening }]);
+  assert.deepEqual(service.listening(), listening);
+  // The same state read again is no change.
+  service.began();
+  assert.equal(heard.length, 1);
+  waiting.cancel();
+  await waiting.items;
+});
+
+test('a new state with drafts is told once for the studio and once to each draft', async () => {
+  const { store } = shopDraft();
+  createDraft(store, { slug: 'blog', title: 'Blog', kit: TINY, now: NOW });
+  const { heard, inbox, service } = setup(store);
+  const waiting = inbox.wait(60_000);
+  service.began();
+  assert.deepEqual(
+    heard.map((one) => one.type),
+    ['listening', 'requests', 'requests'],
+  );
+  waiting.cancel();
+  await waiting.items;
 });
 
 test('once the studio stops, a take is handed nothing and no timer is left', async () => {

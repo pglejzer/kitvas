@@ -1,6 +1,6 @@
 # 0057. The studio's own theme
 
-Date: 2026-11-24. Status: accepted. Spec: `docs/specs/2026-11-24-kitvas-studio-redesign-design.md`, Part 1. Replaces the rule that the studio's skin takes its colours, sizes and type from the Base kit's tokens: that rule stood behind ADR 0018 and was repeated in ADR 0054, which left the look plain "until a studio-wide design pass". This is that pass. Builds on ADRs 0018, 0042 and 0054.
+Date: 2026-11-24. Status: accepted, changed in part by ADR 0068. Spec: `docs/specs/2026-11-24-kitvas-studio-redesign-design.md`, Part 1. Replaces the rule that the studio's skin takes its colours, sizes and type from the Base kit's tokens: that rule stood behind ADR 0018 and was repeated in ADR 0054, which left the look plain "until a studio-wide design pass". This is that pass. Builds on ADRs 0018, 0042 and 0054.
 
 ## Context
 

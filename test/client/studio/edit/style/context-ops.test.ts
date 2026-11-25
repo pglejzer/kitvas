@@ -300,3 +300,56 @@ test('"Apply to all widths" in Tailwind keeps the class without its screen', () 
   const side = classed([override(AT_768, 'padding-top', '6', 'md:p-6')]);
   assert.equal(applyToAllWidths(side, 'padding-top', AT_768), null);
 });
+
+// ---- Shorthands (ADR 0070) ----------------------------------------------------------------------
+
+test('a value a shorthand of the block holds is here, with the shorthand named', () => {
+  const view = ruled(
+    [],
+    [
+      { ...override(AT_768, 'padding-top', '2px'), via: 'padding' },
+      { ...override(AT_768, 'border-color', 'red'), via: 'border' },
+    ],
+  );
+  assert.deepEqual(sourceAt(view, 'padding-top', AT_768), {
+    kind: 'here',
+    value: '2px',
+    offKit: true,
+    via: 'padding',
+  });
+  // At a wider width it comes from below, as any value does.
+  assert.deepEqual(sourceAt(view, 'padding-top', AT_1280), {
+    kind: 'below',
+    width: 768,
+    state: null,
+    value: '2px',
+  });
+});
+
+test('a side stays in the box that holds it at a width; a part of a border can leave', () => {
+  const view = ruled(
+    [],
+    [
+      { ...override(AT_768, 'padding-top', '2px'), via: 'padding' },
+      { ...override(AT_768, 'border-color', 'red'), via: 'border' },
+    ],
+  );
+  assert.equal(removeForContext(view, 'padding-top', AT_768), null);
+  assert.equal(applyToAllWidths(view, 'padding-top', AT_768), null);
+  // One width that holds the side in a box is enough: the others would stay behind.
+  const two = ruled(
+    [],
+    [
+      override(AT_768, 'padding-top', '2px'),
+      { ...override(AT_1280, 'padding-top', '4px'), via: 'padding' },
+    ],
+  );
+  assert.equal(applyToAllWidths(two, 'padding-top', AT_768), null);
+  assert.equal(removeForContext(two, 'padding-top', AT_768)?.[0]?.op, 'removeStyle');
+
+  assert.equal(removeForContext(view, 'border-color', AT_768)?.[0]?.op, 'removeStyle');
+  assert.deepEqual(
+    (applyToAllWidths(view, 'border-color', AT_768) ?? []).map((op) => op.op),
+    ['setStyle', 'removeStyle'],
+  );
+});

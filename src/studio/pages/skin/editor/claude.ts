@@ -80,18 +80,4 @@ export const SKIN_EDITOR_CLAUDE = `
 /* The foot: what Apply does, Discard and Apply. */
 .claude-foot { flex: none; }
 .claude-foot-note { margin-right: auto; min-width: 0; }
-/* The bar's listening status (\`[data-edit-listening]\`). */
-.claude-bar {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--st-space-6);
-  min-width: 0;
-  padding: 0 var(--st-space-6);
-  color: var(--st-color-ink-mid);
-  font-size: var(--st-font-size-sm);
-  white-space: nowrap;
-}
-/* The words are cut short where the bar has no room; the dot keeps its size. */
-.claude-bar > .k-dot { flex: none; }
-.claude-bar-words { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 `;

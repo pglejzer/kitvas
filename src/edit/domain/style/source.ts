@@ -1,10 +1,11 @@
 // Where a style property's value comes from, so that an edit goes to that place (spec 4a,
-// decision 9, ADR 0050): a kit prop that sets it, the element's class rule in the section SCSS, a
-// utility class in a Tailwind draft, or else the kit's own default. A wrong answer writes the
-// wrong layer: an SCSS override on top of a kit prop that sets the same thing, or a prop change
-// for a property the prop does not set. So the prop match asks for a name from the table and,
-// for a name that is only a hint (`p`, `size`, `align`), values that are a token scale of the
-// property, or for a keyword property values that each name one of its keywords (plan 15).
+// decision 9, ADR 0050): a kit prop that sets it, the element's class rule in the section SCSS
+// (the property's own declaration, or a shorthand that holds it, ADR 0070), a utility class in a
+// Tailwind draft, or else the kit's own default. A wrong answer writes the wrong layer: an SCSS
+// override on top of a kit prop that sets the same thing, or a prop change for a property the
+// prop does not set. So the prop match asks for a name from the table and, for a name that is
+// only a hint (`p`, `size`, `align`), values that are a token scale of the property, or for a
+// keyword property values that each name one of its keywords (plan 15).
 
 import {
   type Declaration,
@@ -15,6 +16,8 @@ import {
   type TokenOption,
   tokenTypeOf,
 } from '../types.ts';
+import type { Shorthand, VarKind } from './shorthand.ts';
+import { answerFor, type Said, varKindOf } from './shorthand-source.ts';
 import { keywordOfWord } from './style-values.ts';
 
 export type SourceInput = {
@@ -149,15 +152,8 @@ export function styleSource(input: SourceInput): StyleSource {
   const prop = propFor(input);
   if (prop !== null) return { kind: 'prop', prop };
   const { rule } = input;
-  const declaration = rule === null ? undefined : declarationOf(rule, input.property);
-  if (rule !== null && declaration !== undefined) {
-    return {
-      kind: 'scss',
-      className: rule.className,
-      value: declaration.value,
-      offKit: declaration.offKit,
-    };
-  }
+  const held = rule === null ? null : heldOf(rule, input.property, varKindOf(input.tokenGroups));
+  if (rule !== null && held !== null) return { kind: 'scss', className: rule.className, ...held };
   if (input.format === 'tailwind') {
     const className = utilityFor(input.property, input.classes);
     if (className !== null) return { kind: 'utility', className };
@@ -255,16 +251,34 @@ function propFor(input: SourceInput): string | null {
 
 // Step 2: the class rule.
 
+/** A declaration under the name the cascade knows it by. */
+const said = (declaration: Declaration): Said => ({
+  property: declaration.property.trim().toLowerCase(),
+  value: declaration.value,
+  offKit: declaration.offKit,
+});
+
 /**
- * The declaration of the property in the rule's own body (or, for a class with several rules,
- * in any of their bodies): the last one, which the browser applies (two of them in one rule make
- * a write `ambiguous`). One only in a nested block or a media query is in `rule.nested`, never
- * here.
+ * What the rule's own body (or, for a class with several rules, their bodies together) holds for
+ * the property: its last declaration, which the browser applies (two of them in one rule make a
+ * write `ambiguous`), or the part of a shorthand written after it, with `via` (ADR 0070). A
+ * shorthand that does not split, or that leaves the part out, holds nothing. A declaration only
+ * in a nested block or a media query is in `rule.nested`, never here.
  */
-function declarationOf(rule: RuleView, property: StyleProperty): Declaration | undefined {
-  return rule.declarations
-    .filter((declaration) => declaration.property.trim().toLowerCase() === property)
-    .at(-1);
+function heldOf(
+  rule: RuleView,
+  property: StyleProperty,
+  kindOf: VarKind,
+): { value: string; offKit: boolean; via?: Shorthand } | null {
+  // A class's rules read together list each property once, by its first place: its last
+  // declaration is found by where it stands.
+  const ordered = [...rule.declarations].sort((a, b) => a.span.start - b.span.start);
+  const answer = answerFor(ordered, property, said, kindOf);
+  if (answer.kind === 'none') return null;
+  if (answer.kind === 'part') {
+    return { value: answer.value, offKit: answer.offKit, via: answer.via };
+  }
+  return { value: answer.declaration.value, offKit: answer.declaration.offKit };
 }
 
 // Step 3: the utility class.

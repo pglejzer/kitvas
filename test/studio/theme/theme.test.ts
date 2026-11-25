@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { contrastRatio, laidOver, withAlpha } from '../../../src/studio/theme/contrast.ts';
-import { themeCss, themeNames } from '../../../src/studio/theme/theme-css.ts';
+import { inverseColors, themeCss, themeNames } from '../../../src/studio/theme/theme-css.ts';
 import {
   ACCENT_COLORS,
   ACCENTS,
@@ -122,4 +122,43 @@ test('rules read the public names only', () => {
     assert.ok(names.has(name), name);
   }
   assert.ok([...names].every((name) => !name.startsWith('--st-raw-')));
+});
+
+test('in the inverted scope text reads on the ground and on the chosen option, in both themes', () => {
+  for (const theme of THEMES) {
+    const scope = inverseColors(theme);
+    assert.equal(scope.canvas, THEME_COLORS[theme].ink);
+    assert.equal(scope.ink, THEME_COLORS[theme].panel);
+    assert.ok(ratio(scope.ink, scope.canvas) >= 7, `${theme}: ink on the ground`);
+    assert.ok(ratio(scope['ink-mid'], scope.canvas) >= 4.5, `${theme}: quiet ink on the ground`);
+    assert.ok(ratio(scope.ink, scope.pressed) >= 4.5, `${theme}: ink on the chosen option`);
+    assert.ok(ratio(scope.ink, scope.panel) >= 4.5, `${theme}: ink on a panel`);
+  }
+});
+
+test('the inverted scope is written for each theme, takes the other theme accent, and adds no name', () => {
+  const css = themeCss();
+  for (const selector of [
+    ':root .k-inverse',
+    ':root:not([data-theme]) .k-inverse',
+    ':root[data-theme="dark"] .k-inverse',
+    ':root[data-theme="light"] .k-inverse',
+  ]) {
+    assert.ok(css.includes(`${selector} {`), selector);
+  }
+  const dark = /:root\[data-theme="dark"\] \.k-inverse \{([^}]*)\}/.exec(css)?.[1] ?? '';
+  const light = /:root\[data-theme="light"\] \.k-inverse \{([^}]*)\}/.exec(css)?.[1] ?? '';
+  assert.ok(dark.includes(`--st-color-canvas: ${THEME_COLORS.dark.ink};`));
+  assert.ok(light.includes(`--st-color-canvas: ${THEME_COLORS.light.ink};`));
+  assert.ok(dark.includes('--st-color-accent: var(--st-raw-accent-light);'));
+  assert.ok(light.includes('--st-color-accent: var(--st-raw-accent-dark);'));
+  assert.ok(
+    dark.includes('--st-shadow-low: none;') && light.includes('--st-shadow-pressed: none;'),
+  );
+  const known = themeNames();
+  for (const scope of [dark, light]) {
+    for (const match of scope.matchAll(/(--st-[a-z0-9-]+):/g)) {
+      assert.ok(known.has(match[1] ?? ''), `${match[1]} is a name the theme already has`);
+    }
+  }
 });

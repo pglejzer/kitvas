@@ -1,11 +1,20 @@
 // The kits as the pages list them: the grid of `/kit` and the picker on the left of a kit's page.
 
-import { type KitStore, loadKit } from '../../../kit/index.ts';
+import { type KitSource, type KitStore, loadKit } from '../../../kit/index.ts';
 import { KitvasError, type Translate } from '../../../shared/index.ts';
+import { sourceLine } from '../../views/kit-status.ts';
 import { type Html, html } from '../html.ts';
 
 export type Entry =
-  | { id: string; kind: 'kit'; name: string; version: string; components: number; problems: number }
+  | {
+      id: string;
+      kind: 'kit';
+      name: string;
+      version: string;
+      source: KitSource;
+      components: number;
+      problems: number;
+    }
   | { id: string; kind: 'unreadable' };
 
 export function entries(kits: KitStore): Entry[] {
@@ -17,6 +26,7 @@ export function entries(kits: KitStore): Entry[] {
         kind: 'kit',
         name: kit.name,
         version: kit.version,
+        source: kit.source,
         components: kit.components.length,
         problems: issues.length,
       };
@@ -34,25 +44,27 @@ function stateOf(t: Translate, entry: Entry): { dot: 'good' | 'fix'; words: stri
   return { dot: 'fix', words: t('studio.kit.problems', { count: entry.problems }) };
 }
 
-function tile(t: Translate, entry: Entry): Html {
+function tile(t: Translate, entry: Entry, projectKit: string): Html {
   if (entry.kind === 'unreadable') {
-    return html`<li class="kit-tile"><span class="kit-tile-name">${entry.id}</span><span class="k-quiet">${t('studio.kit.unreadable')}</span></li>`;
+    return html`<li class="kit-tile"><a class="kit-tile-name" href="/kit/${entry.id}">${entry.id}</a><span class="k-quiet">${t('studio.kit.unreadable')}</span></li>`;
   }
   const state = stateOf(t, entry);
   const summary = t('studio.kit.summary', { version: entry.version, count: entry.components });
+  const line = sourceLine(entry.source);
   const mark =
     state === null
       ? ''
       : html`<span class="kit-state"><span class="k-dot" data-state="${state.dot}"></span><span class="${state.dot === 'fix' ? 'k-fix' : 'k-quiet'}">${state.words}</span></span>`;
-  return html`<li class="kit-tile"><a class="kit-tile-name" href="/kit/${entry.id}">${entry.name}</a><code>${entry.id}</code><span class="k-meta">${summary}</span>${mark}</li>`;
+  const used =
+    entry.id === projectKit
+      ? html`<span class="k-chip" data-tone="accent">${t('studio.kit.usedBy')}</span>`
+      : '';
+  return html`<li class="kit-tile"><span class="kit-tile-head"><a class="kit-tile-name" href="/kit/${entry.id}">${entry.name}</a>${used}</span><code>${entry.id}</code><span class="k-meta">${summary}</span><span class="k-meta kit-tile-source">${t(line.key, line.params)}</span>${mark}</li>`;
 }
 
-/** `/kit`: one tile per kit. */
-export function kitTiles(t: Translate, rows: Entry[]): Html {
-  if (rows.length === 0) {
-    return html`<div class="k-empty"><p>${t('studio.kit.empty')}</p></div>`;
-  }
-  return html`<ul class="kit-tiles" role="list">${rows.map((entry) => tile(t, entry))}</ul>`;
+/** `/kit`: one card per kit; `projectKit` is the id of the one the project uses. */
+export function kitTiles(t: Translate, rows: Entry[], projectKit: string): Html {
+  return html`<ul class="kit-tiles" role="list">${rows.map((entry) => tile(t, entry, projectKit))}</ul>`;
 }
 
 function pick(t: Translate, entry: Entry, current: string): Html {

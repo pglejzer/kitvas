@@ -24,13 +24,6 @@ export const SKIN_SURFACES = `
   min-width: 0;
 }
 .k-bar-end { justify-content: flex-end; }
-.k-mark {
-  padding: 0 var(--st-space-4);
-  color: var(--st-color-ink);
-  font-weight: var(--st-font-weight-bold);
-  letter-spacing: -0.01em;
-  text-decoration: none;
-}
 .k-nav { display: flex; gap: var(--st-space-2); }
 .k-nav > a[aria-current="page"] { background: var(--st-color-raised); color: var(--st-color-ink); }
 /* A thin divider between groups of controls in a bar or a pill. */

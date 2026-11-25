@@ -2,6 +2,22 @@
 
 The full guide to editing a draft in the kitvas studio. For what kitvas is and how to install it, see the [README](../README.md).
 
+## The studio
+
+`kitvas studio --open` opens the project's studio. It shows a gallery of drafts; each draft at every width, state and version, with findings marked on the page; two versions side by side (a rework also next to its original); a craft draft's sketches; and your kit's tokens, components and examples.
+
+A draft is deleted from its card in the gallery or from the editor's menu. It moves to Deleted (the folder `.kitvas/trash/`), where it can be restored or removed for good.
+
+Switch a draft to Edit to change it by hand:
+
+- a kit component's props, and spacing, colour, typography, radius, border and size, with the kit's tokens offered first;
+- text, by a double click;
+- structure: drag, insert, delete, wrap and reorder elements and sections;
+- widths and states: an edit at 768 or 1280 px is written as a media query, a hover or focus edit as `&:hover` or `&:focus-visible`;
+- live findings after each edit, with Apply for a target that is too small and for text of too low contrast.
+
+Everything above works with no network, no account and no model: the studio, the edits, the builds, the checks and the versions. The AI tab (variants for a sentence or "Improve"), requests for changes kitvas cannot write itself, and the reasons behind a section need a listening session: run `/kitvas:edit <draft>` in Claude Code and leave it running.
+
 ## The screen
 
 A draft opens as one screen that never scrolls: a bar on top, layers and the insert palette on the left, the prototype in the middle, and properties, changes, checks (and sketches, for a craft draft) on the right. The bar switches Preview and Edit, picks a version or one to compare, and holds undo, redo and "Save version". For 8 seconds after a save, "Undo save" brings the session back.

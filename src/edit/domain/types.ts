@@ -2,6 +2,7 @@
 // Offsets are UTF-16 indexes into the file's text, as JavaScript strings count them.
 
 import type { PropValue, StyleValue } from './ops.ts';
+import type { Shorthand } from './style/shorthand.ts';
 
 /** A range of the text: `start` inclusive, `end` exclusive. */
 export type Span = { start: number; end: number };
@@ -148,10 +149,14 @@ export type RuleView = {
   nested: string[];
 };
 
-/** Where a style property's value comes from (C6, spec decision 9). */
+/**
+ * Where a style property's value comes from (C6, spec decision 9). `via`: the shorthand of the
+ * class rule that holds the value (`border` for a `border-color`), with `value` and `offKit` those
+ * of its part (ADR 0070); left out for the property's own declaration.
+ */
 export type StyleSource =
   | { kind: 'prop'; prop: string }
-  | { kind: 'scss'; className: string; value: string; offKit: boolean }
+  | { kind: 'scss'; className: string; value: string; offKit: boolean; via?: Shorthand }
   | { kind: 'utility'; className: string }
   | { kind: 'kit' };
 

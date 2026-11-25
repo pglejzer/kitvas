@@ -29,6 +29,7 @@ import {
   opsForProp,
   opsForStyle,
   readOnlyReason,
+  ruleHeld,
 } from '../style/ops.ts';
 import { currentUtility, utilityFor } from '../style/utility-ops.ts';
 
@@ -174,7 +175,7 @@ function styleAlready(
   }
   const { width, state } = env.context;
   const held = isBase(env.context)
-    ? view.scss?.declarations.find((one) => one.property === property)
+    ? ruleHeld(view, property)
     : (view.overrides ?? []).find(
         (one) =>
           one.utility === null &&
@@ -182,7 +183,8 @@ function styleAlready(
           one.context.width === width &&
           one.context.state === state,
       );
-  return held !== undefined && same(styleValueOf(held.value, held.offKit), value);
+  if (held === undefined || held === null) return false;
+  return same(styleValueOf(held.value, held.offKit), value);
 }
 
 /** The ops of one change, or why the panel would not write it. */

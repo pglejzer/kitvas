@@ -1,8 +1,8 @@
 // Edit mode in a prototype: while the studio has it on, a click picks an element instead of
-// acting, a few keys go to the studio, and the frame draws what the studio tells it: outlines
-// around the selected and the hovered elements, and an inline editor for one element's text
-// (`inline.ts`). The page owns the selection and the history; nothing here decides what is
-// selected.
+// acting (inside a list the row first, `row-pick.ts`), a few keys go to the studio, and the frame
+// draws what the studio tells it: outlines around the selected and the hovered elements, and an
+// inline editor for one element's text (`inline.ts`). The page owns the selection and the
+// history; a pick only names the element a click takes.
 //
 // Outlines sit in an overlay of their own at the end of `body`, inside a closed shadow root, the
 // way the marks do: no style of a page element is ever changed, and the overlay takes no pointer
@@ -29,6 +29,7 @@ import {
 } from './items.ts';
 import { type KeyLike, keyOf } from './keys.ts';
 import { drawLabels, LABEL_SHEET } from './label.ts';
+import { type Listed, PLAIN, type Press, pressedElement } from './row-pick.ts';
 import { elementsWith, inspectStyles, readTree } from './tree.ts';
 
 const MARKED = '[data-ks]';
@@ -155,8 +156,11 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
   let selected: ReadonlySet<string> = new Set();
   /** The copies the page chose (`select`'s `copies`); an id without one keeps every copy. */
   let chosen: Chosen = chosenOf(undefined);
-  /** The lists around each element (the structure's `FrameEntry.lists`): a pick's `path`. */
-  let lists: ReadonlyMap<string, string[] | null> = new Map();
+  /**
+   * The structure's `FrameEntry` of each element: the lists around it (a pick's `path`), and
+   * whether it is a list item (the row a click takes first).
+   */
+  let entries: ReadonlyMap<string, Listed> = new Map();
   /** A drag runs: nothing is drawn here until it ends. */
   let hushed = false;
   /** What the pointer is over in the frame. */
@@ -239,6 +243,15 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
     });
   }
 
+  /** The element a press on `target` takes: inside a list the row first (ADR 0069). */
+  const taken = (target: EventTarget | null, press: Press): Element | null =>
+    pressedElement(nearest(target), press, { entries, selected, chosen });
+
+  /** The selection or the structure changed: what a click under the pointer takes may too. */
+  function rehover(): void {
+    if (pointerAt !== null && hoverFrame === 0) hoverFrame = requestAnimationFrame(flushHover);
+  }
+
   /** An inline edit of `id`: exactly copy `item` when the page names one, else the chosen copy. */
   function startText(id: string, item: number | undefined): void {
     if (!on) inline.start(id, undefined);
@@ -265,9 +278,10 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
     // A double click comes as two clicks and a `dblclick`: the second click picks nothing more.
     const double = event.type === 'dblclick';
     if (!double && !(event.type === 'click' && event.detail <= 1)) return;
-    const picked = nearest(event.target);
-    const pick = pickOf(picked, addsToSelection(event), double);
-    const around = pick.id === null ? null : lists.get(pick.id);
+    const add = addsToSelection(event);
+    const picked = taken(event.target, { add, double });
+    const pick = pickOf(picked, add, double);
+    const around = pick.id === null ? undefined : entries.get(pick.id)?.lists;
     post({ ...head, type: 'pick', ...pick, ...copyOfPick(picked, pick.id, around) });
   }
 
@@ -293,7 +307,8 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
 
   function flushHover(): void {
     hoverFrame = 0;
-    const element = nearest(pointerAt);
+    // The hover shows what a plain click would take.
+    const element = taken(pointerAt, PLAIN);
     const id = idOf(element);
     const moved = element !== overElement;
     overElement = id === null ? null : element;
@@ -388,9 +403,11 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
           selected = new Set(message.ids);
           chosen = chosenOf(message.copies);
           draw();
+          rehover();
           break;
         case 'structure':
-          lists = new Map(message.entries.map((entry) => [entry.id, entry.lists]));
+          entries = new Map(message.entries.map((entry) => [entry.id, entry]));
+          rehover();
           break;
         case 'hover':
           if (!on) break;

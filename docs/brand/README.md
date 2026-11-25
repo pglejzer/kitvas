@@ -14,3 +14,5 @@ Made with `/kitvas:craft` (draft `kitvas-logo-blocks`, sketch A). The SVG files 
 - `kitvas-icon.svg`: the white mark on an ink square, 512 px. `.claude-plugin/icon.png` is this file as a PNG.
 
 The colours are the Base kit's ink (`#1d2025`) and white.
+
+The studio draws its logo from the paths of `kitvas-logo.svg` (`src/studio/pages/brand/logo.ts`, in the text's colour); a test fails when they differ, so change both together.

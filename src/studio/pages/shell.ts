@@ -1,7 +1,9 @@
 // The frame of every studio page: language, title, the view the person chose, the skin on the
-// response's nonce, the icons, the bar with the studio's links, and the View popover.
+// response's nonce, the icons, the bar with the logo, the studio's links and Claude's status, and
+// the View popover.
 
 import type { Translate, ViewSettings } from '../../shared/index.ts';
+import { logo } from './brand/logo.ts';
 import { type Html, html, trusted } from './html.ts';
 import { iconSprite } from './icons/icon.ts';
 import { pausedView } from './paused.ts';
@@ -26,11 +28,27 @@ export type PageFrame = {
 
 export type NavCurrent = 'drafts' | 'kit' | null;
 
+/**
+ * The logo of a bar, a link home: the full logo in a page's bar, the mark alone in the editor's.
+ * Its pointer shows that Claude works (`data-claude`, `skin/logo.ts`).
+ */
+export function homeLink(t: Translate, kind: 'full' | 'mark'): Html {
+  return html`<a class="k-logo-link" href="/">${logo(kind, { label: t('studio.nav.home'), working: true })}</a>`;
+}
+
+/**
+ * Claude's status in a bar: empty until the page's script paints the dot and the words it finds
+ * here (`client/studio/shell/bar-status.ts`). The page bar and the editor bar both use it.
+ */
+export function barStatusSlot(t: Translate): Html {
+  return html`<span class="k-bar-status" data-bar-listening role="status" data-text-listening="${t('studio.edit.ai.bar.listening')}" data-text-working="${t('studio.edit.ai.bar.working')}"></span>`;
+}
+
 function navBar(nav: { t: Translate; current: NavCurrent }): Html {
   const here = trusted(' aria-current="page"');
   const drafts = nav.current === 'drafts' ? here : '';
   const kit = nav.current === 'kit' ? here : '';
-  return html`<header class="k-bar"><div class="k-bar-start"><a class="k-mark" href="/">kitvas</a><nav class="k-nav" aria-label="${nav.t('studio.nav.label')}"><a class="k-btn" href="/"${drafts}>${nav.t('studio.nav.drafts')}</a><a class="k-btn" href="/kit"${kit}>${nav.t('studio.nav.kit')}</a></nav></div><div class="k-bar-mid"></div><div class="k-bar-end">${viewButton(nav.t)}</div></header>`;
+  return html`<header class="k-bar"><div class="k-bar-start">${homeLink(nav.t, 'full')}<nav class="k-nav" aria-label="${nav.t('studio.nav.label')}"><a class="k-btn" href="/"${drafts}>${nav.t('studio.nav.drafts')}</a><a class="k-btn" href="/kit"${kit}>${nav.t('studio.nav.kit')}</a></nav></div><div class="k-bar-mid"></div><div class="k-bar-end">${barStatusSlot(nav.t)}${viewButton(nav.t)}</div></header>`;
 }
 
 /**

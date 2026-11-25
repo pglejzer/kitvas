@@ -19,6 +19,8 @@ function basePage(project: string): string {
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
+    version: '0.1.0',
+    projectKit: () => 'base',
   });
   const route = routes.find((candidate) => candidate.id === 'kit');
   assert.ok(route);
@@ -56,12 +58,18 @@ function writeVerify(project: string, overrides: Partial<VerifyFile>): void {
 
 test('the page names the source and says the kit was never verified', () => {
   const text = basePage(tempDir('kitvas-project-'));
-  assert.ok(text.includes('<span data-kit-source>Built in</span>'));
+  assert.ok(text.includes('<span class="kit-lead-line" data-kit-source>Built in</span>'));
   assert.ok(
     text.includes(
-      '<p class="k-quiet" data-verify="never">Not verified yet. Run &quot;kitvas kit verify base&quot;.</p>',
+      '<span class="kit-lead-line k-quiet" data-verify="never">Not verified yet. Run this command to verify it.</span>',
     ),
   );
+  assert.ok(
+    text.includes(
+      '<div class="kit-cmd"><div class="k-cmd"><code>node &lt;plugin folder&gt;/bin/kitvas.ts kit verify base</code>',
+    ),
+  );
+  assert.ok(!text.includes('&quot;kitvas kit verify'), 'the command is a box, not a quoted phrase');
 });
 
 test('a passed verification shows its date', () => {
@@ -69,9 +77,10 @@ test('a passed verification shows its date', () => {
   writeVerify(project, {});
   assert.ok(
     basePage(project).includes(
-      '<p class="k-quiet" data-verify="passed">Verified on 2026-11-23.</p>',
+      '<span class="kit-lead-line k-quiet" data-verify="passed">Verified on 2026-11-23.</span>',
     ),
   );
+  assert.ok(!basePage(project).includes('class="kit-cmd"'), 'a passed kit needs no command');
 });
 
 test('a failed verification shows the count and each problem in words', () => {
@@ -96,7 +105,9 @@ test('a failed verification shows the count and each problem in words', () => {
   });
   const text = basePage(project);
   assert.ok(
-    text.includes('<p class="k-fix" data-verify="failed">Verification found 1 problem(s).'),
+    text.includes(
+      '<span class="kit-lead-line k-fix" data-verify="failed">Verification found 1 problem(s).',
+    ),
   );
   assert.ok(
     text.includes(

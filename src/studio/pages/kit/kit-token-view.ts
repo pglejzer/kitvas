@@ -10,6 +10,11 @@ import { type Html, html } from '../html.ts';
 /** The sections the page's left side links to, with their counts. */
 export type Anchor = { id: string; label: string; count: number };
 
+/** A section as a card: its heading (the id the side links point at) and its count beside it. */
+export function cardPart(id: string, title: string, count: number, body: Html): Html {
+  return html`<section class="kit-part kit-card" aria-labelledby="${id}"><header class="kit-part-head"><h2 id="${id}">${title}</h2><span class="k-meta">${count}</span></header>${body}</section>`;
+}
+
 function colorRow(t: Translate, row: ColorRow): Html {
   const contrast =
     row.contrast === null
@@ -20,7 +25,12 @@ function colorRow(t: Translate, row: ColorRow): Html {
 
 function colors(t: Translate, rows: ColorRow[]): Html | '' {
   if (rows.length === 0) return '';
-  return html`<section class="kit-part" aria-labelledby="kit-colors"><h2 id="kit-colors">${t('studio.kit.tokenType.color')}</h2><ul class="kit-colors" role="list">${rows.map((row) => colorRow(t, row))}</ul></section>`;
+  return cardPart(
+    'kit-colors',
+    t('studio.kit.tokenType.color'),
+    rows.length,
+    html`<ul class="kit-colors" role="list">${rows.map((row) => colorRow(t, row))}</ul>`,
+  );
 }
 
 function spacing(t: Translate, rows: ValueRow[]): Html | '' {
@@ -29,7 +39,12 @@ function spacing(t: Translate, rows: ValueRow[]): Html | '' {
     (row) =>
       html`<li class="kit-scale-row"><code>${row.name}</code><span class="k-meta">${row.value}</span><span class="kit-bar" data-token="${row.name}"></span></li>`,
   );
-  return html`<section class="kit-part" aria-labelledby="kit-spacing"><h2 id="kit-spacing">${t('studio.kit.section.spacing')}</h2><ul class="kit-scale" role="list">${lines}</ul></section>`;
+  return cardPart(
+    'kit-spacing',
+    t('studio.kit.section.spacing'),
+    rows.length,
+    html`<ul class="kit-scale" role="list">${lines}</ul>`,
+  );
 }
 
 function radius(t: Translate, rows: ValueRow[]): Html | '' {
@@ -38,7 +53,12 @@ function radius(t: Translate, rows: ValueRow[]): Html | '' {
     (row) =>
       html`<li class="kit-corner-item"><span class="kit-corner" data-token="${row.name}"></span><code>${row.name}</code><span class="k-meta">${row.value}</span></li>`,
   );
-  return html`<section class="kit-part" aria-labelledby="kit-radius"><h2 id="kit-radius">${t('studio.kit.section.radius')}</h2><ul class="kit-corners" role="list">${corners}</ul></section>`;
+  return cardPart(
+    'kit-radius',
+    t('studio.kit.section.radius'),
+    rows.length,
+    html`<ul class="kit-corners" role="list">${corners}</ul>`,
+  );
 }
 
 /** Sizes and weights as sample lines in the kit's family; families as rows. */
@@ -51,7 +71,12 @@ function typeSection(t: Translate, tokens: KitTokens): Html | '' {
   const family = (row: ValueRow): Html =>
     html`<li class="kit-type-row"><code>${row.name}</code><span class="k-meta kit-type-wide">${row.value}</span></li>`;
   const rows = [...families.map(family), ...sizes.map(line), ...weights.map(line)];
-  return html`<section class="kit-part" aria-labelledby="kit-type"><h2 id="kit-type">${t('studio.kit.section.type')}</h2><ul class="kit-types" role="list">${rows}</ul></section>`;
+  return cardPart(
+    'kit-type',
+    t('studio.kit.section.type'),
+    rows.length,
+    html`<ul class="kit-types" role="list">${rows}</ul>`,
+  );
 }
 
 function other(t: Translate, rows: ValueRow[]): Html | '' {
@@ -59,7 +84,12 @@ function other(t: Translate, rows: ValueRow[]): Html | '' {
   const lines = rows.map(
     (row) => html`<li class="kit-other-row"><code>${row.name}</code><span>${row.value}</span></li>`,
   );
-  return html`<section class="kit-part" aria-labelledby="kit-other"><h2 id="kit-other">${t('studio.kit.section.other')}</h2><ul class="kit-other" role="list">${lines}</ul></section>`;
+  return cardPart(
+    'kit-other',
+    t('studio.kit.section.other'),
+    rows.length,
+    html`<ul class="kit-other" role="list">${lines}</ul>`,
+  );
 }
 
 export function tokenSections(t: Translate, tokens: KitTokens): Html {

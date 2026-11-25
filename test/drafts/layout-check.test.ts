@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync, rmSync } from 'node:fs';
+import { readFileSync, rmSync, statSync, utimesSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { addVersion, checkLayout } from '../../src/drafts/index.ts';
@@ -57,6 +57,26 @@ test('a valid layout writes the entry files and lists the section files', () => 
     /<OrderSummary state=\{state\} \/>/,
   );
   assert.match(readFileSync(join(dir, 'scss', 'index.scss'), 'utf8'), /@use 'sections\/hero';/);
+});
+
+test('a check that changes nothing leaves the entry files as they are, time and all', () => {
+  // A build checks the layout each time; the start page orders drafts by their newest source file.
+  const { store, root } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  checkLayout(store, kits, 'shop');
+  const files = ['tsx/index.tsx', 'scss/index.scss'].map((name) =>
+    join(root, 'shop', 'v1', 'src', name),
+  );
+  const then = new Date('2026-01-02T03:04:05.000Z');
+  for (const file of files) utimesSync(file, then, then);
+  const report = checkLayout(store, kits, 'shop');
+  assert.deepEqual(report.generated, ['v1/src/tsx/index.tsx', 'v1/src/scss/index.scss']);
+  for (const file of files) assert.equal(statSync(file).mtimeMs, then.getTime(), file);
+  // A layout that changed is written again.
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT.replace('## order-summary', '## basket'));
+  checkLayout(store, kits, 'shop');
+  assert.match(readFileSync(files[0] ?? '', 'utf8'), /<Basket state=\{state\} \/>/);
+  assert.notEqual(statSync(files[0] ?? '').mtimeMs, then.getTime());
 });
 
 test('it works on the latest version', () => {

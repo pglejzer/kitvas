@@ -28,7 +28,7 @@ const cardsLeft = (): number => document.querySelectorAll('.gallery-card').lengt
 
 /** The focus goes to the page's heading when what held it is gone. */
 function focusHeading(): void {
-  const heading = document.querySelector<HTMLElement>('.gallery-head h1');
+  const heading = document.querySelector<HTMLElement>('.gallery-head h2');
   if (!heading) return;
   heading.tabIndex = -1;
   heading.focus();

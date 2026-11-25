@@ -5,11 +5,12 @@
 // sets both as raw values and each theme block picks its own; a rule only ever reads
 // `--st-color-accent`.
 
-import { withAlpha } from './contrast.ts';
+import { laidOver, withAlpha } from './contrast.ts';
 import {
   ACCENT_COLORS,
   ACCENTS,
   type Accent,
+  INVERSE_MIX,
   ON_SELECT,
   ON_TONE,
   SCALES,
@@ -68,21 +69,68 @@ function themeLines(theme: Theme): string[] {
   ];
 }
 
+/** The colour tokens inside the inverted scope of a theme, as solid `#rrggbb` values. */
+export type InverseColors = Record<'canvas' | 'ink' | keyof typeof INVERSE_MIX, string>;
+
+/**
+ * The inverted scope (`.k-inverse`) of a theme: the theme's ink is the ground and its panel colour
+ * the text, so a block on the page reads as a slab of the other theme. Computed here, not mixed in
+ * CSS, so the contrast tests can read the values.
+ */
+export function inverseColors(theme: Theme): InverseColors {
+  const ground = THEME_COLORS[theme].ink;
+  const text = THEME_COLORS[theme].panel;
+  const over = (name: keyof typeof INVERSE_MIX): string =>
+    laidOver(text, INVERSE_MIX[name], ground) ?? ground;
+  return {
+    canvas: ground,
+    ink: text,
+    'ink-mid': over('ink-mid'),
+    'ink-soft': over('ink-soft'),
+    panel: over('panel'),
+    raised: over('raised'),
+    'raised-strong': over('raised-strong'),
+    pressed: over('pressed'),
+    line: over('line'),
+  };
+}
+
+function inverseLines(theme: Theme): string[] {
+  const other = theme === 'dark' ? 'light' : 'dark';
+  return [
+    ...Object.entries(inverseColors(theme)).map(([name, value]) => `--st-color-${name}: ${value};`),
+    // The accent is the other theme's, which reads on this ground.
+    `--st-color-accent: var(--st-raw-accent-${other});`,
+    `--st-color-on-accent: var(--st-raw-on-accent-${other});`,
+    `--st-color-accent-soft: var(--st-raw-accent-soft-${other});`,
+    '--st-shadow-low: none;',
+    '--st-shadow-pressed: none;',
+  ];
+}
+
 /**
  * The token sheet. Light is the base; a dark system picks dark while the person has chosen no
- * theme; `data-theme` overrides both ways.
+ * theme; `data-theme` overrides both ways. After each theme's set comes the same set for
+ * `.k-inverse` inside it.
  */
 export function themeCss(): string {
   const accents = ACCENTS.filter((accent) => accent !== DEFAULT_ACCENT).map((accent) =>
     block(`:root[data-accent="${accent}"]`, accentLines(accent)),
   );
   const dark = themeLines('dark');
+  const darkScope = inverseLines('dark');
+  const light = themeLines('light');
+  const lightScope = inverseLines('light');
+  const system = `${block(':root:not([data-theme])', dark)}${block(':root:not([data-theme]) .k-inverse', darkScope)}`;
   return [
-    block(':root', [...scaleLines(), ...accentLines(DEFAULT_ACCENT), ...themeLines('light')]),
+    block(':root', [...scaleLines(), ...accentLines(DEFAULT_ACCENT), ...light]),
+    block(':root .k-inverse', lightScope),
     ...accents,
-    `@media (prefers-color-scheme: dark) {\n${block(':root:not([data-theme])', dark)}}\n`,
+    `@media (prefers-color-scheme: dark) {\n${system}}\n`,
     block(':root[data-theme="dark"]', dark),
-    block(':root[data-theme="light"]', themeLines('light')),
+    block(':root[data-theme="dark"] .k-inverse', darkScope),
+    block(':root[data-theme="light"]', light),
+    block(':root[data-theme="light"] .k-inverse', lightScope),
   ].join('');
 }
 

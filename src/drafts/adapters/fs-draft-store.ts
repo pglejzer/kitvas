@@ -8,6 +8,7 @@ import {
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
@@ -166,6 +167,21 @@ export function createFsDraftStore(
       } catch {
         throw new KitvasError('DRAFT_INVALID', { slug, detail: relPath });
       }
+    },
+    modifiedAt(slug, relPath) {
+      const folder = inside(slug, relPath);
+      if (!folder || !existsSync(folder)) return undefined;
+      let newest: number | undefined;
+      for (const entry of readdirSync(folder, { recursive: true, withFileTypes: true })) {
+        if (!entry.isFile()) continue;
+        try {
+          const time = statSync(join(entry.parentPath, entry.name)).mtimeMs;
+          if (newest === undefined || time > newest) newest = time;
+        } catch {
+          // A file that went while the folder was read has no time to give.
+        }
+      }
+      return newest === undefined ? undefined : new Date(newest);
     },
     writeText(slug, relPath, text) {
       const file = required(slug, relPath);

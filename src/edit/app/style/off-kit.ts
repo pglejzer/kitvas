@@ -11,6 +11,14 @@ import {
 import { cssVarName, formatTokenValue, type KitStore, loadKit } from '../../../kit/index.ts';
 import { KitvasError } from '../../../shared/index.ts';
 import { readRules } from '../../domain/style/scss-rules.ts';
+import {
+  isShorthand,
+  leavesOf,
+  splitShorthand,
+  type VarKind,
+} from '../../domain/style/shorthand.ts';
+import { answerFor, varKindOf } from '../../domain/style/shorthand-source.ts';
+import { tokenGroupsOf } from '../../domain/style/source.ts';
 import { nearestToken } from '../../domain/tsx/nearest.ts';
 import { kindOf, type TokenOption, tokenTypeOf } from '../../domain/types.ts';
 
@@ -49,6 +57,34 @@ export type OffKit = {
   }[];
 };
 
+type Declaration = { property: string; value: string; offKit: boolean };
+
+/**
+ * The raw parts of an off-kit shorthand that splits, each under the property `styleSource` names
+ * it (`border-color` for a `border`); a part a later declaration overrides is left out. A
+ * shorthand written as one raw value for all its sides (`margin: 13px`) stays one item under its
+ * own name, and so does one that does not split (`null`).
+ */
+function rawParts(
+  declarations: readonly Declaration[],
+  declaration: Declaration,
+  kindOf: VarKind,
+): { property: string; value: string }[] | null {
+  const { property: shorthand, value } = declaration;
+  if (!isShorthand(shorthand) || splitShorthand(shorthand, value, kindOf) === null) return null;
+  const parts: { property: string; value: string }[] = [];
+  for (const leaf of leavesOf(shorthand)) {
+    const answer = answerFor(declarations, leaf, (each) => each, kindOf);
+    if (answer.kind === 'part' && answer.declaration === declaration && answer.offKit) {
+      parts.push({ property: leaf, value: answer.value });
+    }
+  }
+  // One value written for every side is one value to the person: it is listed once, as written.
+  const [first] = parts;
+  const whole = parts.length === leavesOf(shorthand).length && value.trim() === first?.value;
+  return whole ? [{ property: shorthand, value: value.trim() }] : parts;
+}
+
 export function offKitValues(deps: OffKitDeps, slug: string): OffKit {
   const draft = loadDraft(deps.drafts, slug);
   const version = latestVersion(draft);
@@ -56,6 +92,7 @@ export function offKitValues(deps: OffKitDeps, slug: string): OffKit {
   const layout = deps.drafts.readText(slug, `${base}/md/layout.md`);
   const ids = layout === undefined ? [] : parseLayout(layout).sections.map((section) => section.id);
   const tokens = kitTokens(deps.kits, draft.kit.id);
+  const kindOf = varKindOf(tokenGroupsOf(tokens));
   const items: OffKit['items'] = [];
   for (const id of ids) {
     // A section's SCSS is `<id>.scss`, or a partial `_<id>.scss`.
@@ -67,14 +104,17 @@ export function offKitValues(deps: OffKitDeps, slug: string): OffKit {
       for (const { view: rule } of readRules(text)) {
         for (const declaration of rule.declarations) {
           if (!declaration.offKit || neverOffKit(declaration.property)) continue;
-          const type = tokenTypeOf(declaration.property);
-          items.push({
-            file,
-            className: rule.className,
-            property: declaration.property,
-            value: declaration.value,
-            nearest: type === null ? null : nearestToken(declaration.value, type, tokens),
-          });
+          const parts = rawParts(rule.declarations, declaration, kindOf) ?? [declaration];
+          for (const { property, value } of parts) {
+            const type = tokenTypeOf(property);
+            items.push({
+              file,
+              className: rule.className,
+              property,
+              value,
+              nearest: type === null ? null : nearestToken(value, type, tokens),
+            });
+          }
         }
       }
       break;

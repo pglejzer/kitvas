@@ -3,9 +3,6 @@
 // `edit-texts.ts` stays under the size limit; see that file for how the keys reach the script.
 
 export const LOOK_TEXT_KEYS = [
-  'ai.bar.listening',
-  'ai.bar.off',
-  'ai.bar.working',
   'ai.foot.apply',
   'ai.foot.discard',
   'ai.foot.none',

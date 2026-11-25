@@ -27,11 +27,11 @@ function clientWith(source: string): string {
   return clientDir;
 }
 
-test('both real studio entries bundle, so a broken client file fails here', async (context) => {
+test('the real studio entries bundle, so a broken client file fails here', async (context) => {
   const skip = esbuildMissing();
   if (skip) return context.skip(skip);
   const assets = createEsbuildAssets({ roots, clientDir: join(PLUGIN_ROOT, 'client') });
-  for (const name of ['draft', 'gallery'] as const) {
+  for (const name of ['draft', 'gallery', 'page'] as const) {
     const text = await assets.script(name);
     assert.ok(text.length > 0, name);
     assert.ok(!/^\s*import\s/m.test(text), `${name} is one self-contained module`);

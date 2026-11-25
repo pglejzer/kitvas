@@ -7,10 +7,20 @@ import { RequestError } from '../http/problem.ts';
 /** `source` and `build` are the editor's (api/edit-schemas.ts). */
 /**
  * `requests` (spec 4d): a draft's requests or the listening session changed, data `{slug}`.
+ * `listening` (plan 18d): the listening session changed, data `Listening` (`{state, since}`), once
+ *   for the studio, beside the `requests` of each draft; the bar of every page hears it.
  * `locks` (spec 4d): another writer changed a locked element, data `{slug, changed: string[]}`.
  * `drafts` (ADR 0064): a draft was deleted, restored or removed for good, data `{slug, change}`.
  */
-export type EventType = 'job' | 'inbox' | 'source' | 'build' | 'requests' | 'locks' | 'drafts';
+export type EventType =
+  | 'job'
+  | 'inbox'
+  | 'source'
+  | 'build'
+  | 'requests'
+  | 'listening'
+  | 'locks'
+  | 'drafts';
 
 export type StudioEvent = { id: number; type: EventType | 'reset'; data: unknown };
 

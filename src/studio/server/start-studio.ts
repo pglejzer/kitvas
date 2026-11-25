@@ -31,7 +31,7 @@ import { keepBrowser } from '../jobs/shared-browser.ts';
 import { type LiveTools, startLiveLoop } from '../live/index.ts';
 import { assetRoutes, type StudioAssets } from '../pages/asset-routes.ts';
 import { openRoute } from '../pages/open-route.ts';
-import { pageRoutes } from '../pages/routes.ts';
+import { type PageDeps, pageRoutes } from '../pages/routes.ts';
 import { type StudioSkin, studioSkin } from '../pages/skin.ts';
 import { createDeniedLog } from '../security/denied-log.ts';
 import { createOpenLinks } from '../security/open-links.ts';
@@ -84,6 +84,10 @@ export type StudioDeps = {
    * person's settings file; without it the view lives in memory and ends with the studio.
    */
   view?: ViewStore;
+  /** The id of the kit the project uses (`kit use`), for the start page; `base` without it. */
+  projectKit?: () => string;
+  /** `kitvas doctor` for the Doctor page, from `src/main.ts`; without it the page shows the commands. */
+  doctor?: PageDeps['doctor'];
 };
 
 export type StudioOptions = {
@@ -226,6 +230,9 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       t,
       skin,
       frame: { port: framePort, key },
+      version: deps.version,
+      projectKit: deps.projectKit ?? (() => 'base'),
+      doctor: deps.doctor,
     }),
     ...assetRoutes(deps.assets),
     openRoute({ links, t, port, pageSecret, skin }),

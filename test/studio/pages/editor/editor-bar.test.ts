@@ -8,6 +8,7 @@ import {
   editorBar,
 } from '../../../../src/studio/pages/editor/editor-bar.ts';
 import { escapeHtml } from '../../../../src/studio/pages/html.ts';
+import { barStatusSlot, homeLink } from '../../../../src/studio/pages/shell.ts';
 import type { DraftChoice } from '../../../../src/studio/views/draft-query.ts';
 import { t } from '../../../helpers/translate.ts';
 
@@ -55,10 +56,14 @@ test('the bar is the shared bar in three parts: the draft, the mode and the acti
   assert.ok(!text.includes('style='));
 });
 
-test('the start says Drafts / title, Drafts a link to the gallery, then the version menu', () => {
+test('the start is the mark, a link home, then Drafts / title and the version menu', () => {
   const text = bar();
   const start = between(text, 'k-bar-start', 'k-bar-mid');
-  assert.ok(start.includes('<span class="k-mark">kitvas</span>'));
+  assert.ok(start.startsWith(`k-bar-start">${homeLink(t, 'mark').text}<a class="k-btn bar-crumb"`));
+  const mark = homeLink(t, 'mark').text;
+  assert.ok(mark.includes('viewBox="0 0 64 64"'));
+  assert.ok(mark.includes(`aria-label="${t('studio.nav.home')}" data-claude>`));
+  assert.ok(!text.includes('k-mark'), 'the word is gone');
   assert.ok(start.includes(`<a class="k-btn bar-crumb" href="/">${t('studio.nav.drafts')}</a>`));
   assert.ok(start.includes('<span class="bar-slash" aria-hidden="true">/</span>'));
   assert.ok(start.includes('<h1 class="bar-title k-clip" title="Shop">Shop</h1>'));
@@ -98,8 +103,12 @@ test('Preview | Edit is one segmented control; Edit is off with the reason when 
 test('an editable version has every hook of the session in the bar', () => {
   const text = bar();
   const end = text.slice(text.indexOf('k-bar-end'));
+  // Claude's status first: the slot every bar has, with both its words.
+  assert.ok(end.startsWith(`k-bar-end">${barStatusSlot(t).text}<span class="bar-session`));
   for (const hook of [
-    '<span class="bar-listen" data-edit-listening></span>',
+    'data-bar-listening role="status"',
+    `data-text-listening="${t('studio.edit.ai.bar.listening')}"`,
+    `data-text-working="${t('studio.edit.ai.bar.working')}"`,
     'data-edit-session role="status"',
     'data-edit-undo disabled',
     'data-edit-redo disabled',
@@ -169,8 +178,28 @@ test('More holds Compare and the shortcuts, with the ? key beside them', () => {
       `<button type="button" class="k-menu-item" data-shell="shortcuts">${t('studio.edit.shell.shortcuts')}<kbd class="k-kbd">?</kbd></button>`,
     ),
   );
-  const summary = `<summary class="k-icon-btn" aria-label="${t('studio.edit.shell.more')}"`;
+  const name = t('studio.edit.shell.more');
+  const summary = `<summary class="k-btn" aria-label="${name}" title="${name}">`;
   assert.ok(text.includes(summary));
+});
+
+test('the words beside the icons of View, More and Compare can give way; the names stay', () => {
+  const text = bar();
+  const words = [...text.matchAll(/<span class="k-bar-word">([^<]*)<\/span>/g)].map(
+    (match) => match[1],
+  );
+  assert.deepEqual(words, [
+    t('studio.edit.shell.compare'),
+    t('studio.view.open'),
+    t('studio.edit.shell.more'),
+  ]);
+  assert.ok(text.includes(`aria-label="${t('studio.view.open')}"`));
+  assert.ok(text.includes(`aria-label="${t('studio.edit.shell.more')}"`));
+  // Preview | Edit and Save version keep their words whole.
+  const mid = between(text, 'k-bar-mid', 'k-bar-end');
+  assert.ok(mid.includes('bar-modes'));
+  assert.ok(!mid.includes('k-bar-word'));
+  assert.ok(text.includes(`data-edit-save disabled>${t('studio.edit.save')}</button>`));
 });
 
 test('compare lists the other versions and, while comparing, a way to stop', () => {
@@ -197,17 +226,14 @@ test('with nothing to compare, Compare keeps its place, off, and says why', () =
 
 test('a version that cannot be edited has no session controls, only the findings and Compare', () => {
   const text = bar({ choice: { ...CHOICE, version: 1 }, block: 'old' });
-  for (const hook of [
-    'data-edit-save',
-    'data-edit-undo',
-    'data-edit-listening',
-    'data-bar-notes',
-  ]) {
+  for (const hook of ['data-edit-save', 'data-edit-undo', 'data-edit-session', 'data-bar-notes']) {
     assert.ok(!text.includes(hook), hook);
   }
   assert.ok(text.includes('data-bar-findings'));
   assert.ok(text.includes('data-shell="compare"'));
   assert.ok(text.includes('data-view-open'));
+  // Claude's status is the studio's, so it shows on every version.
+  assert.ok(text.includes(`<div class="k-bar-end">${barStatusSlot(t).text}<button`));
 });
 
 test('only the latest built version, outside compare, can be edited', () => {

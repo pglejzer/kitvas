@@ -1,21 +1,23 @@
 // The listening line of the Claude tab (spec 4d, goal 1): whether a Claude Code session takes the
 // requests now. "Claude is listening" while a take waits or ended moments ago, "Claude is working"
 // while it has a request, otherwise the requests wait and the line gives the command that starts
-// a session, with Copy. Plan 18, task D: the same state in the bar (`[data-edit-listening]`, C8),
-// a `.k-dot` and the short words. The words are in `statusLine` and `barStatus`, pure;
-// `createStatus` draws them.
+// a session, with Copy. The bar shows the same state (`client/studio/shell/bar-status.ts`): the
+// tab paints it with each state it reads, so the bar and the tab cannot disagree. The words are
+// in `statusLine`, pure; `createStatus` draws them.
 
 import type { Listening } from '../../../../src/studio/api/requests/request-schemas.ts';
+import { barStateOf, LISTEN_RECHECK_MS, paintBarStatus } from '../../shell/bar-status.ts';
 import { iconButton } from '../../ui/icon.ts';
 import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 
 /**
- * The server tells a change of the listening state by an event only for drafts with open
- * requests, so while it says a session is there the tab reads it again this often.
+ * The server tells a change of the listening state by an event, but the end of the grace after a
+ * take may come with no event the page hears, so while a session is there the tab reads it again
+ * this often (the bar's own time).
  */
-export const LISTEN_RECHECK_MS = 20_000;
+export { LISTEN_RECHECK_MS };
 
 export type StatusLine = {
   state: Listening['state'];
@@ -35,20 +37,6 @@ export function statusLine(listening: Listening, slug: string): StatusLine {
   return { state, key: 'ai.status.off', command: commandOf(slug) };
 }
 
-/**
- * The bar's status: the dot's state (`.k-dot`: green while listening, fading while working,
- * grey when off) and its short words.
- */
-export function barStatus(listening: Listening): {
-  dot: 'listening' | 'working' | null;
-  key: string;
-} {
-  const { state } = listening;
-  if (state === 'listening') return { dot: 'listening', key: 'ai.bar.listening' };
-  if (state === 'working') return { dot: 'working', key: 'ai.bar.working' };
-  return { dot: null, key: 'ai.bar.off' };
-}
-
 /** The tab reads the requests again later: a session that ended says so on no event. */
 export const recheckLater = (listening: Listening): boolean => listening.state !== 'off';
 
@@ -61,28 +49,11 @@ function dotOf(): HTMLElement {
   return dot;
 }
 
-function setDot(dot: HTMLElement, state: 'listening' | 'working' | null): void {
+/** The dot's state, as the bar's (`.k-dot`: green while listening, fading while working, grey when off). */
+function setDot(dot: HTMLElement, listening: Listening): void {
+  const state = barStateOf(listening);
   if (state === null) dot.removeAttribute('data-state');
   else dot.dataset.state = state;
-}
-
-/** The bar's part, filled once; `null` on a page whose bar has none. */
-function barPart(main: HTMLElement): ((listening: Listening) => void) | null {
-  const host = main.querySelector<HTMLElement>('[data-edit-listening]');
-  if (!host) return null;
-  const dot = dotOf();
-  const words = el('span', 'claude-bar-words');
-  host.classList.add('claude-bar');
-  host.replaceChildren(dot, words);
-  return (listening) => {
-    const next = barStatus(listening);
-    setDot(dot, next.dot);
-    const said = text(next.key);
-    if (words.textContent === said) return;
-    words.textContent = said;
-    // The bar cuts the words short in a narrow window: the whole line is one hover away.
-    words.title = said;
-  };
 }
 
 /** The line, drawn once; `render` changes its words in place, so nothing is read twice. */
@@ -111,22 +82,25 @@ export function createStatus(slug: string, main: HTMLElement): Status {
   });
   start.append(el('p', 'k-meta', text('ai.status.start')), command);
   element.append(line, start);
-  const bar = barPart(main);
 
   let shown = '';
+  // The first render is the store's state before the tab read anything (`ai.ts` draws it at
+  // mount): the bar keeps the state it painted itself until the tab's first read comes.
+  let read = false;
   return {
     element,
     render(listening) {
       const next = statusLine(listening, slug);
       element.dataset.state = next.state;
-      setDot(dot, barStatus(listening).dot);
+      setDot(dot, listening);
       // The same words are not set again: a screen reader would read them out once more.
       if (next.key !== shown) {
         shown = next.key;
         words.textContent = text(next.key);
       }
       start.hidden = next.command === null;
-      bar?.(listening);
+      if (read) paintBarStatus(listening);
+      read = true;
     },
   };
 }

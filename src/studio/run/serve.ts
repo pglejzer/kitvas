@@ -10,7 +10,7 @@ import type { ImageStore } from '../api/images/image-rules.ts';
 import type { LiveTools } from '../live/index.ts';
 import type { StudioAssets } from '../pages/asset-routes.ts';
 import type { IdleClock } from '../server/idle-stop.ts';
-import { startStudio } from '../server/start-studio.ts';
+import { type StudioDeps, startStudio } from '../server/start-studio.ts';
 import { readPorts, writePorts } from './ports-file.ts';
 import { pageSecretOf } from './secret-file.ts';
 import { removeState, type StudioFiles, type StudioState, writeState } from './state-file.ts';
@@ -43,6 +43,10 @@ export type ServeDeps = {
   imageStore?: ImageStore;
   /** The view the person chose, kept in their settings file; in memory when absent. */
   view?: ViewStore;
+  /** The id of the kit the project uses, for the start page. */
+  projectKit?: () => string;
+  /** `kitvas doctor` for the Doctor page, from `src/main.ts`. */
+  doctor?: StudioDeps['doctor'];
 };
 
 /**
@@ -78,6 +82,8 @@ export async function serveStudio(deps: ServeDeps): Promise<StudioState> {
       ...(deps.live ? { live: deps.live } : {}),
       ...(deps.imageStore ? { imageStore: deps.imageStore } : {}),
       ...(deps.view ? { view: deps.view } : {}),
+      ...(deps.projectKit ? { projectKit: deps.projectKit } : {}),
+      ...(deps.doctor ? { doctor: deps.doctor } : {}),
       // The browser's pid goes into the state file: `kitvas studio stop` ends one that lingers.
       onBrowser: (browserPid) => {
         if (!state) return;

@@ -68,6 +68,14 @@ The kitvas studio is a local HTTP server that shows UI prototypes in the user's 
 - Killing the shared browser and its leftovers on exit has been tried on Windows only, not by hand on Linux or macOS.
 - `npm audit` runs at level high only, and `--ignore-scripts` is set by the hook and CI, not by `package.json`.
 
+## What leaves your machine
+
+- The studio binds to 127.0.0.1 and needs no account. Pages need a cookie that only a one-time link gives. Prototypes run in a sandboxed frame on a second port.
+- kitvas itself calls the network in three cases: the npm install of its own packages, the Chromium download when you ask for it, and a page you ask it to read. A local or private address is refused unless you pass `--allow-private`.
+- The `kitvas:scout` agent searches the public web through Claude Code's own tools. Its queries carry only the public terms of a question, never your name, paths, code or draft text (`reference/scout.md`).
+- Figma is read only through your own Figma MCP. kitvas holds no key.
+- kitvas sends your drafts to nobody. Claude Code itself sends what it reads to the model, as in any session. That is not a kitvas feature, and it applies to the files of a draft Claude reads.
+
 ## Reporting
 
 Report a vulnerability as described in `SECURITY.md`.

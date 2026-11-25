@@ -238,6 +238,52 @@ test('a change that is in place already gives nothing to apply', () => {
   assert.equal(outcome(buildVariant(raw, env([declared]))), 'same');
 });
 
+test('a value a shorthand holds is read as its part: before is the part, the same value is in place', () => {
+  // `padding: 8px 16px` holds `padding-left` as 16px (ADR 0070).
+  const view = ruled(ID, 'plans', [{ property: 'padding', value: '8px 16px', offKit: true }]);
+  view.styles = {
+    ...view.styles,
+    'padding-left': {
+      kind: 'scss',
+      className: 'plans',
+      value: '16px',
+      offKit: true,
+      via: 'padding',
+    },
+  };
+  assert.deepEqual(
+    opsOf(buildVariant(variant(style('padding-left', { raw: '12px' })), env([view]))),
+    [
+      {
+        op: 'setStyle',
+        id: ID,
+        className: 'plans',
+        property: 'padding-left',
+        value: { raw: '12px' },
+        before: { raw: '16px' },
+        newRule: false,
+      },
+    ],
+  );
+  const same = variant(style('padding-left', { raw: '16px' }));
+  assert.equal(outcome(buildVariant(same, env([view]))), 'same');
+  // The same in a width's block: its shorthand part is listed in `overrides`.
+  const wide = {
+    ...view,
+    overrides: [
+      {
+        context: AT_768,
+        property: 'padding-left' as const,
+        value: '16px',
+        offKit: true,
+        utility: null,
+        via: 'padding' as const,
+      },
+    ],
+  };
+  assert.equal(outcome(buildVariant(same, env([wide], { context: AT_768 }))), 'same');
+});
+
 test('a style the panel shows read-only makes the variant invalid with its reason', () => {
   const center = variant(style('justify-content', { raw: 'center' }));
   const atWidth = env([stack()], { context: AT_768 });

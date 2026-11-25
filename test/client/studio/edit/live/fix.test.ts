@@ -194,6 +194,40 @@ test('a source that cannot take the style gives its reason, and Apply does not s
   assert.equal(reasonKey('nested'), 'props.reason.nested');
 });
 
+test('a value a shorthand holds is read as its part: the op carries it as before, the same value is set', () => {
+  // `border: 1px solid #ddd` holds `border-color` (ADR 0070).
+  const view = ruled([{ property: 'border', value: '1px solid #ddd', offKit: true }]);
+  view.styles = {
+    ...view.styles,
+    'border-color': {
+      kind: 'scss',
+      className: 'plans-link',
+      value: '#ddd',
+      offKit: true,
+      via: 'border',
+    },
+  };
+  const change = (raw: string): FixPlan => ({
+    kind: 'contrast',
+    changes: [{ property: 'border-color', value: { raw }, words: { raw } }],
+  });
+  assert.deepEqual(fixOps(change('#999'), view, options), {
+    ops: [
+      {
+        op: 'setStyle',
+        id: ID,
+        className: 'plans-link',
+        property: 'border-color',
+        value: { raw: '#999' },
+        before: { raw: '#ddd' },
+        newRule: false,
+      },
+    ],
+    everyItem: false,
+  });
+  assert.deepEqual(fixOps(change('#ddd'), view, options), { reason: 'set' });
+});
+
 test('low contrast takes the nearest colour of its own family that reaches the ratio', () => {
   // `color.inkSoft` on white: `inkMid` reaches 4.5:1 and is nearer than `ink`; `fix` is no ink.
   const plan = planOf(contrast('rgb(164, 169, 178)'));

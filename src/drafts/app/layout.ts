@@ -80,12 +80,21 @@ export function inspectLayout(store: DraftStore, kits: KitStore, slug: string): 
   return { draft, version, base, kit, layout, issues };
 }
 
+/**
+ * Writes a generated file only when its text changed. Every build checks the layout, and a build
+ * that changes nothing must leave the file's time alone: the start page orders drafts by it.
+ */
+function writeGenerated(store: DraftStore, slug: string, relPath: string, text: string): void {
+  if (store.readText(slug, relPath) !== text) store.writeText(slug, relPath, text);
+}
+
 export function checkLayout(store: DraftStore, kits: KitStore, slug: string): LayoutReport {
   const { draft, kit, version, base, layout, issues } = inspectLayout(store, kits, slug);
   if (draft.craft) {
     const { icons } = kit.kit;
     const generated = [`${base}/src/tsx/index.tsx`, `${base}/src/scss/index.scss`];
-    store.writeText(
+    writeGenerated(
+      store,
       slug,
       generated[0] ?? '',
       craftEntryTsx({
@@ -96,7 +105,7 @@ export function checkLayout(store: DraftStore, kits: KitStore, slug: string): La
         ...(icons?.source === 'component' ? { iconComponent: icons.component } : {}),
       }),
     );
-    store.writeText(slug, generated[1] ?? '', craftEntryScss());
+    writeGenerated(store, slug, generated[1] ?? '', craftEntryScss());
     return { slug, version, valid: true, issues: [], sections: [], generated };
   }
   const sections = layout.sections.map((section) => {
@@ -116,7 +125,7 @@ export function checkLayout(store: DraftStore, kits: KitStore, slug: string): La
       [`${base}/src/scss/index.scss`, entryScss(layout.sections)],
     ] as const;
     for (const [relPath, text] of files) {
-      store.writeText(slug, relPath, text);
+      writeGenerated(store, slug, relPath, text);
       generated.push(relPath);
     }
   }

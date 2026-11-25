@@ -3,7 +3,13 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import type { Browser } from '../../src/checks/index.ts';
-import { createDoctorCommand, runCli, statusCommand } from '../../src/cli/index.ts';
+import {
+  createDoctorCommand,
+  type DoctorCommandDeps,
+  doctorReport,
+  runCli,
+  statusCommand,
+} from '../../src/cli/index.ts';
 import { createNodeMachine } from '../../src/doctor/adapters/node-machine.ts';
 import type { CheckResult, Machine } from '../../src/doctor/index.ts';
 import { createProjectFiles } from '../../src/kit/adapters/project-files.ts';
@@ -42,7 +48,7 @@ function harness(open: Browser['open'], workspace = true) {
     localesDir: doctorLocalesDir(),
   };
   const dataDir = tempDir();
-  const command = createDoctorCommand({
+  const deps: DoctorCommandDeps = {
     kits: layeredStore(cwd, join(PLUGIN_ROOT, 'kits')),
     projectFiles: createProjectFiles,
     browser: () => ({ open }),
@@ -51,11 +57,12 @@ function harness(open: Browser['open'], workspace = true) {
     dataDir,
     machine: machine(),
     now: () => new Date(),
-  });
+  };
+  const command = createDoctorCommand(deps);
   const run = (...argv: string[]) => runCli(['doctor', ...argv], [command], io);
   const data = (): { checks: CheckResult[]; report?: string } =>
     (JSON.parse(out.at(-1) ?? '') as { data: { checks: CheckResult[]; report?: string } }).data;
-  return { cwd, out, err, run, data };
+  return { cwd, out, err, run, data, deps, io };
 }
 
 const statuses = (checks: CheckResult[]) =>
@@ -142,4 +149,16 @@ test('--report adds the text to paste, with the project folder written out', asy
 
   assert.equal(await h.run('--report'), 0);
   assert.equal(h.out.at(-1), report);
+});
+
+test('doctorReport answers the checks and the report the command prints, for the studio', async () => {
+  const h = harness(found);
+  const t = (key: string): string => key;
+  const answer = await doctorReport(h.deps, { cwd: h.cwd, home: h.io.home, t });
+  assert.deepEqual(
+    answer.checks.map((check) => check.id),
+    ['node', 'deps', 'plugin', 'workspace', 'kit', 'browser', 'data', 'ports', 'studio'],
+  );
+  assert.match(answer.report, /doctor\.report\.title/);
+  assert.equal(answer.report.includes(h.cwd), false);
 });

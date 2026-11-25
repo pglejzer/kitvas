@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
-- License: PolyForm Shield 1.0.0 (LICENSE.md). kitvas may be used for any purpose except selling it or building a competing product.
+- License: PolyForm Shield 1.0.0 (LICENSE.md). kitvas may be used, modified and distributed, including for commercial purposes, provided it is not used to offer competing products or services.
 - `kitvas status` and `kitvas init`, each with `--json`.
 - Kit contract (`kit.json`), DTCG 2025.10 tokens turned into `--kit-*` custom properties, and `kitvas kit list | show | check | component | css`.
 - The built-in kit "Base": tokens, 12 components and 8 icons; the `/kitvas:kit` skill.

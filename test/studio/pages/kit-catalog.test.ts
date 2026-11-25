@@ -19,6 +19,8 @@ function kitPageOf(kits: KitStore, project: string | undefined, id: string): str
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
+    version: '0.1.0',
+    projectKit: () => 'base',
   });
   const route = routes.find((candidate) => candidate.id === 'kit');
   assert.ok(route);
@@ -38,7 +40,7 @@ const SOURCE =
 test('without a stamp the page is missing its catalog and shows the building note', () => {
   const text = kitPageOf(builtinKits(), tempDir('kitvas-project-'), 'base');
   assert.ok(
-    text.includes('<main class="k-page kit-layout" data-kit="base" data-catalog="missing">'),
+    text.includes('<main class="k-page start kit-page" data-kit="base" data-catalog="missing">'),
   );
   assert.ok(
     text.includes(
@@ -68,7 +70,9 @@ test('with a stamp a shown example gets a sandboxed frame on the prototype origi
   const project = tempDir('kitvas-project-');
   writeCatalog(project);
   const text = kitPageOf(builtinKits(), project, 'base');
-  assert.ok(text.includes('<main class="k-page kit-layout" data-kit="base" data-catalog="ready">'));
+  assert.ok(
+    text.includes('<main class="k-page start kit-page" data-kit="base" data-catalog="ready">'),
+  );
   assert.ok(text.includes('<p class="k-quiet" data-catalog-note="building" hidden>'));
   const frames = text.match(FRAME) ?? [];
   assert.equal(frames.length, 1, 'only the shown example');

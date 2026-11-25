@@ -1,31 +1,49 @@
-// `/`: every draft as a live thumbnail of its latest version, with its name, version and status.
+// `/`, the start page: the logo block, then every draft as a live thumbnail of its latest version
+// with its name, version, status and when it changed, newest first. Only the "All" view folds its
+// list to two rows (`start/fold.ts`); with no draft the first steps stand in its place.
 
 import { readChecks } from '../../checks/index.ts';
 import {
   type DraftKind,
   type DraftStore,
+  draftChangedAt,
   listDeleted,
   listDrafts,
   loadDraft,
   versionInfo,
 } from '../../drafts/index.ts';
+import type { KitStore } from '../../kit/index.ts';
 import type { Translate } from '../../shared/index.ts';
+import { agoOf, byChange } from '../views/start.ts';
 import { type DraftStatus, needsAttention, statusLine, versionStatus } from '../views/status.ts';
 import { type FrameOrigin, frameSrc } from './draft/frame-src.ts';
 import { type Html, html } from './html.ts';
 import { page } from './shell.ts';
 import type { Skin } from './skin.ts';
-import { commandBox } from './states/command.ts';
-import { cardDelete, deletedList } from './trash/trash-list.ts';
+import { kitLabel, startBlock } from './start/block.ts';
+import { foldedGrid, foldState } from './start/fold.ts';
+import { startFoot } from './start/foot.ts';
+import { firstSteps, stepsTitle } from './start/steps.ts';
+import { cardDelete, deletedList, utcText } from './trash/trash-list.ts';
 import { trashTexts } from './trash/trash-texts.ts';
 
-export type GalleryDeps = { drafts: DraftStore; t: Translate; skin: Skin; frame: FrameOrigin };
+export type GalleryDeps = {
+  drafts: DraftStore;
+  /** For the name of the kit the project uses, in the block's facts line. */
+  kits: KitStore;
+  t: Translate;
+  skin: Skin;
+  frame: FrameOrigin;
+  /** The running kitvas version, for the foot line. */
+  version: string;
+  /** The id of the kit the project uses; `base` when it chose none. */
+  projectKit(): string;
+  /** The clock; tests pass their own. */
+  now?: () => Date;
+};
 
 /** What a page handler passes on from its request. */
 export type PageRequest = { query: URLSearchParams; host: string; nonce: string };
-
-/** The command that makes the first draft. */
-const FIRST_DRAFT = '/kitvas:compose';
 
 type Card = {
   slug: string;
@@ -36,10 +54,21 @@ type Card = {
   status: DraftStatus;
   /** The frame address of the latest version in its default state; null when it is not built. */
   thumb: string | null;
+  /** When the draft last changed; null when that cannot be read. */
+  changed: Date | null;
 };
 
+/** A draft whose time cannot be read is shown without one, never left off the page. */
+function changedOf(store: DraftStore, slug: string): Date | null {
+  try {
+    return draftChangedAt(store, slug);
+  } catch {
+    return null;
+  }
+}
+
 function cardsOf(deps: GalleryDeps, host: string): Card[] {
-  return listDrafts(deps.drafts).map((item): Card => {
+  const cards = listDrafts(deps.drafts).map((item): Card => {
     if (!item.valid) {
       return {
         slug: item.slug,
@@ -48,6 +77,7 @@ function cardsOf(deps: GalleryDeps, host: string): Card[] {
         version: 0,
         status: { kind: 'unreadable' },
         thumb: null,
+        changed: null,
       };
     }
     const info = versionInfo(deps.drafts, item.slug, item.version);
@@ -60,8 +90,10 @@ function cardsOf(deps: GalleryDeps, host: string): Card[] {
       version: item.version,
       status: versionStatus(info.built, checks),
       thumb: info.built ? frameSrc(deps.frame, host, target) : null,
+      changed: changedOf(deps.drafts, item.slug),
     };
   });
+  return byChange(cards);
 }
 
 /** The dot beside a status: the tone the status words already say, grey when there is nothing yet. */
@@ -90,7 +122,15 @@ function statusMark(t: Translate, status: DraftStatus): Html {
   return html`<span class="gallery-status">${dot}<span class="${tone}">${words}</span></span>`;
 }
 
-function card(t: Translate, item: Card): Html {
+/** When the draft changed, in words, with the exact time in the element. */
+function changedMark(t: Translate, changed: Date | null, now: Date): Html {
+  if (changed === null) return html``;
+  const ago = agoOf(changed, now);
+  const iso = changed.toISOString();
+  return html`<time datetime="${iso}" title="${utcText(iso)}">${t(ago.key, ago.params)}</time>`;
+}
+
+function card(t: Translate, item: Card, now: Date): Html {
   // `inert`: the thumbnail is a picture; nothing in it takes focus or reaches screen readers.
   const thumb =
     item.thumb === null
@@ -108,11 +148,7 @@ function card(t: Translate, item: Card): Html {
     item.version > 0
       ? html`<span>${t('studio.page.version', { version: item.version })}</span>`
       : '';
-  return html`<li class="gallery-card">${thumb}<h2>${name}</h2><p class="gallery-meta k-meta">${kind}${version}</p>${statusMark(t, item.status)}${cardDelete(t, item.slug, item.title)}</li>`;
-}
-
-function emptyState(t: Translate): Html {
-  return html`<div class="k-empty gallery-empty"><h2>${t('studio.gallery.emptyTitle')}</h2><p>${t('studio.gallery.emptyBody')}</p>${commandBox(t, FIRST_DRAFT, { copy: true })}</div>`;
+  return html`<li class="gallery-card">${thumb}<h3>${name}</h3><p class="gallery-meta k-meta">${kind}${version}${changedMark(t, item.changed, now)}</p>${statusMark(t, item.status)}${cardDelete(t, item.slug, item.title)}</li>`;
 }
 
 type Shown = 'all' | 'attention' | 'deleted';
@@ -150,6 +186,7 @@ function filter(
 export function galleryPage(deps: GalleryDeps, request: PageRequest): string {
   const { t } = deps;
   const title = t('studio.page.title');
+  const now = (deps.now ?? (() => new Date()))();
   const cards = cardsOf(deps, request.host);
   const deleted = listDeleted(deps.drafts);
   const asked = request.query.get('show');
@@ -169,20 +206,33 @@ export function galleryPage(deps: GalleryDeps, request: PageRequest): string {
           { all: cards.length, attention: attention.length, deleted: deleted.length },
           shown,
         );
+  const firstRun = shown === 'all' && cards.length === 0;
   let content: Html;
   if (shown === 'deleted') {
     content = deletedList(t, deleted);
-  } else if (cards.length === 0) {
-    content = emptyState(t);
+  } else if (firstRun) {
+    content = firstSteps(t);
   } else {
     const list = shown === 'attention' ? attention : cards;
-    content =
-      list.length === 0
-        ? html`<p class="k-quiet">${t('studio.gallery.calm')}</p>`
-        : html`<ul class="gallery-grid" role="list">${list.map((item) => card(t, item))}</ul>`;
+    const items = list.map((item) => card(t, item, now));
+    if (list.length === 0) content = html`<p class="k-quiet">${t('studio.gallery.calm')}</p>`;
+    else if (shown === 'all') content = foldedGrid(t, items);
+    else content = html`<ul class="gallery-grid" role="list">${items}</ul>`;
   }
+  const count = cards.length === 0 ? '' : html`<span class="k-count">${cards.length}</span>`;
+  const heading = firstRun ? stepsTitle(t) : html`${title}${count}`;
+  const lastSlug = cards.find((item) => item.kind !== null)?.slug ?? null;
+  const block = startBlock({
+    t,
+    nonce: request.nonce,
+    kitName: kitLabel(deps.kits, deps.projectKit()),
+    drafts: cards.length,
+    attention: attention.length,
+    lastSlug,
+  });
+  const foot = startFoot({ t, version: deps.version, host: request.host });
   const texts = trashTexts({ t, nonce: request.nonce });
-  const body = html`<main class="k-page"><header class="gallery-head"><h1>${title}</h1>${controls}</header><div data-gallery-body>${content}</div>${texts}<script type="module" src="/assets/gallery.js"></script></main>`;
+  const body = html`<main class="k-page start">${foldState(request.nonce)}${block}<section class="start-drafts"><header class="gallery-head"><h2>${heading}</h2>${controls}</header><div data-gallery-body>${content}</div></section>${foot}${texts}<script type="module" src="/assets/gallery.js"></script></main>`;
   return page({
     title,
     nonce: request.nonce,

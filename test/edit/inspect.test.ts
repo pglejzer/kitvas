@@ -220,6 +220,15 @@ test("the answer lists the kit's breakpoints and every value of a width or a sta
   const drafts = draftWith({ ...PRICING, 'src/scss/sections/pricing.scss': scss });
   const section = await inspectIn(drafts, 'sections/Pricing:section');
   assert.deepEqual(section.breakpoints, [768, 1280]);
+  // What the width's `padding` holds (ADR 0070): its two pairs, then its four sides.
+  const held = ['block', 'inline', 'top', 'right', 'bottom', 'left'].map((part) => ({
+    context: { width: 768, state: null },
+    property: `padding-${part}`,
+    value: '40px',
+    offKit: true,
+    utility: null,
+    via: 'padding',
+  }));
   assert.deepEqual(section.overrides, [
     {
       context: { width: 768, state: null },
@@ -228,6 +237,7 @@ test("the answer lists the kit's breakpoints and every value of a width or a sta
       offKit: true,
       utility: null,
     },
+    ...held,
     {
       context: { width: 768, state: 'hover' },
       property: 'color',

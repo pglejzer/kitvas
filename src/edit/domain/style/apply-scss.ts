@@ -6,7 +6,9 @@
 // refused before anything is cut (plan 15, `style-values.ts`). An operation with a width or a
 // state goes to that block of the rule (spec 4c, `scss-context.ts`); the cuts and pastes both
 // share are in `scss-write.ts`. A class's rules are the top-level `.class` rules and the ones
-// nested as `&__part` (ADR 0067, `scss-rules.ts`), read together in file order.
+// nested as `&__part` (ADR 0067, `scss-rules.ts`), read together in file order. A property a
+// shorthand of the rule holds is written inside that shorthand, or right after one that does not
+// split (ADR 0070, `shorthand-write.ts`).
 
 import type { ApplyResult } from '../types.ts';
 import { applyScssContext } from './scss-context.ts';
@@ -17,18 +19,27 @@ import {
   declarationCut,
   declarationText,
   dropEmptyRule,
-  holds,
-  lastDeclaration,
   newRule,
   replaceValue,
   type ScssOp,
   type ScssOptions,
   splice,
 } from './scss-write.ts';
+import { untyped } from './shorthand-source.ts';
+import { heldIn, holdsHeld, setBeside, withoutPart } from './shorthand-write.ts';
 import { styleValueRefusal } from './style-values.ts';
 
 export { type ScssOverride, scssOverrides } from './scss-context.ts';
 export type { ScssOp, ScssOptions } from './scss-write.ts';
+export {
+  SHORTHANDS,
+  type Shorthand,
+  shorthandsOf,
+  splitShorthand,
+  type VarKind,
+  withPart,
+} from './shorthand.ts';
+export { varKindOf } from './shorthand-source.ts';
 export {
   IMAGE_FILE,
   imageOfUrl,
@@ -76,19 +87,28 @@ export function applyScss(text: string, op: ScssOp, options: ScssOptions): Apply
   }
   if (rules.some((rule) => !rule.closed)) return { refused: 'invalid' };
 
-  const found = lastDeclaration(rules, op.property);
-  if (found === 'ambiguous') return { refused: 'ambiguous' };
+  const kindOf = options.varKind ?? untyped;
+  const held = heldIn(rules, op.property, kindOf);
+  if (held === 'ambiguous') return { refused: 'ambiguous' };
   const nested = rules.some((rule) => rule.nested.includes(op.property));
-  if (found === undefined && nested) return { refused: 'nested' };
-  if (!options.force && !holds(found, op.before)) return { conflict: 'changed' };
+  if (held.kind === 'none' && nested) return { refused: 'nested' };
+  if (!options.force && !holdsHeld(held, op.before)) return { conflict: 'changed' };
 
   if (op.op === 'setStyle') {
-    return found === undefined
+    if (held.kind === 'own') return replaceValue(text, held.own, op.value);
+    // A shorthand answers for the property, or stands where it would go (ADR 0070).
+    const beside = held.kind === 'part' ? held : held.after;
+    return beside === null
       ? addDeclaration(text, home, home.outer, declarationText(op.property, op.value))
-      : replaceValue(text, found, op.value);
+      : setBeside(text, beside, beside.body.outer, op, kindOf);
   }
-  if (found === undefined) return { refused: 'not-found' };
-  const cut = declarationCut(text, found.view.span);
+  if (held.kind === 'none') return { refused: 'not-found' };
+  if (held.kind === 'part') {
+    const without = withoutPart(text, held, op.property, kindOf);
+    if (without !== 'last') return without;
+  }
+  // The property's own declaration, or the shorthand its last part has left.
+  const cut = declarationCut(text, held.own.view.span);
   const next = splice(text, cut.start, cut.end, '');
   const result: ApplyResult = { text: next, changed: [{ start: cut.start, end: cut.start }] };
   return (op.dropRule ? dropEmptyRule(next, op.className) : null) ?? result;

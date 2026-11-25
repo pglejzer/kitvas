@@ -3,6 +3,10 @@
 // editor loads only its frame again (`edit/live-frame.ts`), which hears the same stream through
 // `onStudioEvent`. While the studio is gone the page shows its paused view, and loads itself
 // again when it is back.
+//
+// A page has one events stream (`openStudioStream`), opened by the first part that needs it: the
+// reload, the kit page's catalog, or the bar's status (`client/studio/shell/bar-status.ts`). Its
+// events reach every `onStudioEvent` listener and its health every `onStudioHealth` listener.
 
 import { needsReload } from './job-events.ts';
 import { watchPause } from './paused.ts';
@@ -14,6 +18,10 @@ const RELOAD_DELAY_MS = 300;
 
 /** Other parts of the page that hear the stream: one stream per tab, never a second one. */
 const listeners = new Set<(event: StreamEvent) => void>();
+/** Parts of the page that hear when the stream opened and when it was lost. */
+const healths = new Set<StreamHealth>();
+/** The page's one stream, once a part opened it. */
+let pageStream: AbortController | undefined;
 
 /** Hears every event of the page's stream from now on; returns the way to stop. */
 export function onStudioEvent(listener: (event: StreamEvent) => void): () => void {
@@ -21,11 +29,28 @@ export function onStudioEvent(listener: (event: StreamEvent) => void): () => voi
   return () => listeners.delete(listener);
 }
 
+/** Hears each open and each loss of the page's stream from now on; returns the way to stop. */
+export function onStudioHealth(listener: StreamHealth): () => void {
+  healths.add(listener);
+  return () => healths.delete(listener);
+}
+
 /** One listener's bug is reported; the others still hear the event. */
 function tell(event: StreamEvent): void {
   for (const listener of [...listeners]) {
     try {
       listener(event);
+    } catch (error) {
+      reportError(error);
+    }
+  }
+}
+
+/** One part's bug is reported; the others still hear that the stream opened or was lost. */
+function tellHealth(heard: (health: StreamHealth) => void): void {
+  for (const health of [...healths]) {
+    try {
+      heard(health);
     } catch (error) {
       reportError(error);
     }
@@ -64,6 +89,28 @@ export function watchStudio(stream: AbortController): StreamHealth | undefined {
 }
 
 /**
+ * The page's events stream, opened now unless a part of the page opened it already; it works the
+ * paused view too. Abort the controller it returns only right before the page loads itself again.
+ */
+export function openStudioStream(): AbortController {
+  if (pageStream) return pageStream;
+  const stream = new AbortController();
+  pageStream = stream;
+  const pause = watchStudio(stream);
+  readEvents(EVENTS_URL, tell, stream.signal, {
+    opened: () => {
+      pause?.opened();
+      tellHealth((health) => health.opened());
+    },
+    lost: () => {
+      pause?.lost();
+      tellHealth((health) => health.lost());
+    },
+  });
+  return stream;
+}
+
+/**
  * Listens to the studio's events; `shows` says whether the page shows a draft, `editing` whether
  * the person is editing on it now (then the page stays as it is).
  */
@@ -71,7 +118,7 @@ export function reloadWhenJobsEnd(
   shows: (slug: string) => boolean,
   editing: () => boolean = () => false,
 ): void {
-  const stream = new AbortController();
+  const stream = openStudioStream();
   /** Counts the calls; only the timer of the last one reloads. */
   let calls = 0;
   const reloadSoon = (): void => {
@@ -85,13 +132,7 @@ export function reloadWhenJobsEnd(
       location.reload();
     }, RELOAD_DELAY_MS);
   };
-  readEvents(
-    EVENTS_URL,
-    (event) => {
-      tell(event);
-      if (needsReload(event, shows, editing())) reloadSoon();
-    },
-    stream.signal,
-    watchStudio(stream),
-  );
+  onStudioEvent((event) => {
+    if (needsReload(event, shows, editing())) reloadSoon();
+  });
 }

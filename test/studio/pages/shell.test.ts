@@ -4,7 +4,7 @@ import type { ViewSettings } from '../../../src/shared/settings/config.ts';
 import { html } from '../../../src/studio/pages/html.ts';
 import { iconSprite } from '../../../src/studio/pages/icons/icon.ts';
 import { lockedPage } from '../../../src/studio/pages/locked.ts';
-import { page, viewAttributes } from '../../../src/studio/pages/shell.ts';
+import { barStatusSlot, homeLink, page, viewAttributes } from '../../../src/studio/pages/shell.ts';
 import type { StudioSkin } from '../../../src/studio/pages/skin.ts';
 import { viewButton, viewPopover } from '../../../src/studio/pages/view-settings.ts';
 import { t } from '../../helpers/translate.ts';
@@ -44,20 +44,48 @@ test('the view is read for every page, so a change shows on the next one', () =>
   assert.ok(page({ ...frame, skin }).includes('<html lang="en" data-theme="light"'));
 });
 
-test('a page has the icons, then the bar: the mark, the links and the View button', () => {
+test('a page has the icons, then the bar: the logo, the links, the status and View', () => {
   const text = page({ ...frame, skin: '' });
   assert.ok(text.includes(`<body>\n${iconSprite().text}\n<header class="k-bar">`));
-  assert.ok(text.includes('<a class="k-mark" href="/">kitvas</a>'));
+  const home = homeLink(t, 'full').text;
+  assert.ok(text.includes(`<div class="k-bar-start">${home}<nav class="k-nav"`));
   assert.ok(text.includes('<nav class="k-nav" aria-label="Studio">'));
-  assert.ok(text.includes(`<div class="k-bar-end">${viewButton(t).text}</div></header>`));
+  assert.ok(
+    text.includes(
+      `<div class="k-bar-end">${barStatusSlot(t).text}${viewButton(t).text}</div></header>`,
+    ),
+  );
+  // The word is gone: the logo says it.
+  assert.ok(!text.includes('k-mark'));
 });
 
-test('the View button is an icon with a name and a tooltip, and says what it opens', () => {
+test('the logo in the bar is a link home with a name, and shows that Claude works', () => {
+  const home = homeLink(t, 'full').text;
+  assert.ok(
+    home.startsWith('<a class="k-logo-link" href="/"><svg class="k-logo" viewBox="0 0 245 64"'),
+  );
+  assert.ok(home.includes(`role="img" aria-label="${t('studio.nav.home')}" data-claude>`));
+  assert.ok(home.endsWith('</svg></a>'));
+  assert.ok(!home.includes('data-play'), 'only the start page plays the entrance');
+  assert.ok(homeLink(t, 'mark').text.includes('viewBox="0 0 64 64"'));
+});
+
+test("Claude's status slot is empty and holds the words the script shows", () => {
+  const slot = barStatusSlot(t).text;
+  assert.ok(slot.startsWith('<span class="k-bar-status" data-bar-listening role="status"'));
+  assert.ok(slot.includes(`data-text-listening="${t('studio.edit.ai.bar.listening')}"`));
+  assert.ok(slot.includes(`data-text-working="${t('studio.edit.ai.bar.working')}"`));
+  assert.ok(slot.endsWith('></span>'));
+});
+
+test('the View button is an icon and a word, with a name and a tooltip, and says what it opens', () => {
   const button = viewButton(t).text;
-  assert.ok(button.startsWith('<button type="button" class="k-icon-btn" data-view-open'));
+  assert.ok(button.startsWith('<button type="button" class="k-btn" data-view-open'));
   assert.ok(button.includes('aria-haspopup="dialog" aria-expanded="false"'));
   assert.ok(button.includes('aria-label="View" title="View"'));
   assert.ok(button.includes('<use href="#i-sliders"></use>'));
+  // The word gives way in a narrow bar; the name stays.
+  assert.ok(button.endsWith('</svg><span class="k-bar-word">View</span></button>'));
 });
 
 test('the popover starts hidden and marks the chosen value of each setting', () => {

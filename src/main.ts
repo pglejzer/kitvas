@@ -34,6 +34,7 @@ import {
   createReworkCommand,
   createStudioCommand,
   disposeRenderTools,
+  doctorReport,
   guidelinesCommand,
   initCommand,
   type RenderTools,
@@ -108,6 +109,7 @@ export function main(argv: string[]): Promise<number> {
           'frame/page/busy.ts',
           'frame/page/canvas.ts',
           'frame/edit/edit.ts',
+          'frame/edit/row-pick.ts',
           'frame/drag/preview.ts',
           'frame/drag/session.ts',
           'frame/drag/drag.ts',
@@ -288,6 +290,7 @@ export function main(argv: string[]): Promise<number> {
           dispose: () => compiler.dispose(),
         },
         imageStore: createImageStore(projectDrafts),
+        doctor: () => doctorReport(doctorDeps, { cwd: project, home: homedir(), t }),
         live: {
           watch: fsWatchPort(join(workspaceDir(project), 'drafts')),
           build: async (slug) => {
@@ -301,6 +304,17 @@ export function main(argv: string[]): Promise<number> {
         },
       });
     },
+  };
+  // The doctor's parts, for its command and for the studio's Doctor page.
+  const doctorDeps = {
+    kits,
+    projectFiles: createProjectFiles,
+    browser,
+    browsersDir,
+    lifecycle: studio.lifecycle,
+    dataDir,
+    machine: createNodeMachine({ roots: defaultDepRoots() }),
+    now: () => new Date(),
   };
   const commands = [
     statusCommand,
@@ -323,16 +337,7 @@ export function main(argv: string[]): Promise<number> {
     createBuildCommand({ ...drafts, render }),
     createCheckCommand({ ...drafts, render, types, browser }),
     createBrowserCommand({ browser, installer, browsersDir }),
-    createDoctorCommand({
-      kits,
-      projectFiles: createProjectFiles,
-      browser,
-      browsersDir,
-      lifecycle: studio.lifecycle,
-      dataDir,
-      machine: createNodeMachine({ roots: defaultDepRoots() }),
-      now: () => new Date(),
-    }),
+    createDoctorCommand(doctorDeps),
     createStudioCommand(studio),
     createInboxCommand({ lifecycle: studio.lifecycle }),
     createRequestCommand({ lifecycle: studio.lifecycle }),

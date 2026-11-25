@@ -50,7 +50,7 @@ import {
 } from './request-state.ts';
 import { applyStructural } from './structure/structural.ts';
 import { contextRefusal } from './style/context-checks.ts';
-import { imagesOf, undoableByOps } from './style/style-checks.ts';
+import { scssOptions, undoableByOps } from './style/style-checks.ts';
 
 /**
  * Called right before the files are written, with the version they go into and their new ETags,
@@ -203,7 +203,7 @@ async function applySimple(work: Work, index: number, op: SimpleOp): Promise<OpR
   const at = isScss(op) ? scssPlace(work, op) : await locate(work, op.id);
   if (!('at' in at)) return at;
   const result = isScss(op)
-    ? applyScss(at.text, op, { ...work.options, hasImage: imagesOf(work) })
+    ? applyScss(at.text, op, scssOptions(work))
     : applyTsx(at.text, at.at, op, work.options);
   if ('conflict' in result) return { conflict: 'changed', file: at.file };
   if ('refused' in result) return { refused: result.refused };

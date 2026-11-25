@@ -1,11 +1,11 @@
-// `/assets/draft.js`, `gallery.js` and `kit.js`: the studio's browser scripts, bundled on first
+// `/assets/draft.js`, `gallery.js`, `kit.js` and `page.js`: the studio's browser scripts, bundled on first
 // use. `/assets/fonts/<file>`: the studio's typeface, from the font package (`fonts.ts`).
 
 import { z } from '../../shared/index.ts';
 import { type PageRoute, pageRoute } from '../http/router.ts';
 import { FONT_FILES, FONT_TYPE, type FontFile } from './fonts.ts';
 
-export const SCRIPT_NAMES = ['draft', 'gallery', 'kit'] as const;
+export const SCRIPT_NAMES = ['draft', 'gallery', 'kit', 'page'] as const;
 export type ScriptName = (typeof SCRIPT_NAMES)[number];
 
 export type StudioAssets = {
@@ -24,7 +24,7 @@ export const SCRIPT_TYPE = 'text/javascript; charset=utf-8';
  */
 export const FONT_CACHE = 'private, max-age=2592000';
 
-const AssetParams = z.strictObject({ name: z.string().regex(/^(draft|gallery|kit)\.js$/) });
+const AssetParams = z.strictObject({ name: z.string().regex(/^(draft|gallery|kit|page)\.js$/) });
 
 const isFontFile = (name: string): name is FontFile => FONT_FILES.some((file) => file === name);
 

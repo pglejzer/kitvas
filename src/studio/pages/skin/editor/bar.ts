@@ -1,14 +1,39 @@
-// The editor bar (plan 18, task A): the shared bar (`.k-bar`) with "Drafts / title" and the
-// version menu at its start, Preview | Edit in the middle, and at its end the listening status,
-// the session line, undo and redo in Edit (the findings, the notes and Compare in Preview), View,
-// More and Save version. Studio tokens only (`--st-*`); shared classes are `../` (`k-`).
+// The editor bar (plan 18, task A): the shared bar (`.k-bar`) with the mark, "Drafts / title" and
+// the version menu at its start, Preview | Edit in the middle, and at its end Claude's status
+// (the shared `.k-bar-status`), the session line, undo and redo in Edit (the findings, the notes
+// and Compare in Preview), View, More and Save version. Studio tokens only (`--st-*`); shared
+// classes are `../` (`k-`).
 //
 // The menus are `<details>` of plain links, so they work without the script; the list a menu opens
 // is a `.k-pop.k-menu`, which rises in each time the menu opens.
+//
+// From 1024 px up nothing in the bar overlaps or leaves it (spec 6.4, fix 4), in Preview and in
+// Edit, by rules on the bar's width (a container query, no script). The end column is never
+// narrower than what the end holds and the start gives it the room, so the title is cut with an
+// ellipsis before anything meets Preview | Edit; that switch and Save version never shrink. As the
+// bar narrows, what gives way, in order: the session line, Claude's status words (the dot stays),
+// then the words of View, More and Compare (their icons stay). Each mode holds other things at the
+// end, so each has its own widths. What gives way is hidden for the eye only: it still names its
+// control, and a screen reader still reads the status.
+
+/** What gives way: out of the layout and out of sight, still in the page for assistive technology. */
+const AWAY = `position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;`;
 
 export const SKIN_EDITOR_BAR = `
 /* In Cards the bar's lower edge is its fill on the canvas ground; in Flush a hairline. */
-.bar-editor { position: relative; z-index: 30; border-bottom-color: transparent; }
+.bar-editor {
+  position: relative;
+  z-index: 30;
+  border-bottom-color: transparent;
+  container: editor-bar / inline-size;
+  grid-template-columns: minmax(0, 1fr) auto minmax(min-content, 1fr);
+}
 :root[data-panels="flush"] .bar-editor { border-bottom-color: var(--st-color-line); }
 .bar-crumb { flex: none; padding: 0 var(--st-space-6); }
 .bar-slash { flex: none; color: var(--st-color-ink-mid); }
@@ -47,30 +72,44 @@ export const SKIN_EDITOR_BAR = `
 .k-meta + .bar-tick { margin-left: 0; }
 
 /* Preview | Edit. */
+.bar-modes { flex: none; }
 .bar-modes > button { min-width: 64px; }
 
-/* The end: what Claude does, the session, the actions of the mode shown, then View, More, Save.
-   In a narrow window the status gives way first: it is cut short, never laid over Preview | Edit. */
-.bar-listen {
-  display: inline-flex;
-  flex: 0 1 auto;
-  min-width: 0;
-  align-items: center;
-  gap: var(--st-space-6);
-  padding: 0 var(--st-space-6);
-  color: var(--st-color-ink-mid);
-  font-size: var(--st-font-size-sm);
-  white-space: nowrap;
-}
+/* The end: what Claude does, the session, the actions of the mode shown, then View, More, Save. */
 .bar-session {
   max-width: 240px;
   padding: 0 var(--st-space-6);
   color: var(--st-color-ink-mid);
   font-size: var(--st-font-size-sm);
 }
-.bar-listen:empty, .bar-session:empty { display: none; }
+.bar-session:empty { display: none; }
 .bar-group { display: flex; flex: none; align-items: center; gap: var(--st-space-2); }
 [data-mode="edit"] .bar-in-preview, [data-mode="preview"] .bar-in-edit { display: none; }
 .bar-sep { margin: 0 var(--st-space-4); }
-.bar-save { margin-left: var(--st-space-4); }
+.bar-save { flex: none; margin-left: var(--st-space-4); }
+
+/* What gives way as the bar narrows (see the head of this file). */
+@container editor-bar (max-width: 1319px) {
+  .bar-session,
+  [data-mode="preview"] .bar-editor .k-bar-status-words {
+    ${AWAY}
+  }
+}
+@container editor-bar (max-width: 1179px) {
+  [data-mode="preview"] .bar-editor .k-bar-word {
+    ${AWAY}
+  }
+  [data-mode="preview"] .bar-editor .k-btn:has(> .k-bar-word) { padding: 0 var(--st-space-6); }
+}
+@container editor-bar (max-width: 1099px) {
+  [data-mode="edit"] .bar-editor .k-bar-status-words {
+    ${AWAY}
+  }
+}
+@container editor-bar (max-width: 979px) {
+  .bar-editor .k-bar-word {
+    ${AWAY}
+  }
+  .bar-editor .k-btn:has(> .k-bar-word) { padding: 0 var(--st-space-6); }
+}
 `;

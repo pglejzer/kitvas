@@ -2,6 +2,7 @@
 
 import { startDraftPage } from './draft/page.ts';
 import { mountChecksFilter } from './edit/live/filter.ts';
+import { mountBarStatus } from './shell/bar-status.ts';
 import { mountShell } from './shell/shell.ts';
 import { mountTrash } from './trash/mount.ts';
 import { mountCopyButtons } from './ui/copy.ts';
@@ -12,6 +13,8 @@ mountViewSettings();
 mountCopyButtons();
 mountFrameTones();
 mountTrash();
+// Claude's status in the editor bar, on every version; the Claude tab paints it too when it reads.
+mountBarStatus();
 const main = document.querySelector('main.draft-page');
 if (main instanceof HTMLElement) {
   // The screen first: the canvas and the editor mount into its regions.

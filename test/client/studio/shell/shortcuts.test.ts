@@ -16,6 +16,7 @@ import {
   shortcutHint,
   shortcutSections,
 } from '../../../../client/studio/shell/shortcuts.ts';
+import { SHORTCUT_ROWS } from '../../../../src/studio/views/shortcuts.ts';
 
 /** Texts as their keys, as the page shows a key it was not sent. */
 const say = (key: string): string => key;
@@ -112,6 +113,15 @@ test('the search keeps what matches every word, in the texts or in the keys', ()
   assert.deepEqual(idsOf('wrap stack'), ['wrap']);
   assert.deepEqual(idsOf('shift+g'), ['unwrap']);
   assert.deepEqual(idsOf('nothing like this'), []);
+});
+
+test('every row of the shared table is a screen key, an editor key or a gesture', () => {
+  const allowed: readonly string[] = [...SHELL_KEYS, ...EDIT_KEYS, 'add', 'zoom-wheel', 'pan'];
+  for (const row of SHORTCUT_ROWS) assert.ok(allowed.includes(row.id), row.id);
+  assert.deepEqual(
+    SHORTCUTS.map((item) => item.id),
+    SHORTCUT_ROWS.map((row) => row.id),
+  );
 });
 
 test('the context menu reads its key hint from the same table', () => {

@@ -4,6 +4,7 @@ import { FONT_FACES } from '../../../../src/studio/pages/fonts.ts';
 import { SKIN_BASE } from '../../../../src/studio/pages/skin/base.ts';
 import { SKIN_CONTROLS } from '../../../../src/studio/pages/skin/controls.ts';
 import { SHARED_RULES } from '../../../../src/studio/pages/skin/index.ts';
+import { SKIN_LOGO } from '../../../../src/studio/pages/skin/logo.ts';
 import { SKIN_MOTION } from '../../../../src/studio/pages/skin/motion.ts';
 import { SKIN_SURFACES } from '../../../../src/studio/pages/skin/surfaces.ts';
 import { SKIN_VIEW } from '../../../../src/studio/pages/skin/view.ts';
@@ -13,11 +14,12 @@ const PARTS = {
   base: SKIN_BASE,
   controls: SKIN_CONTROLS,
   surfaces: SKIN_SURFACES,
+  logo: SKIN_LOGO,
   motion: SKIN_MOTION,
   view: SKIN_VIEW,
 };
 
-test('the shared rules are the five parts, in the order they apply', () => {
+test('the shared rules are the six parts, in the order they apply', () => {
   assert.equal(SHARED_RULES, Object.values(PARTS).join(''));
 });
 
@@ -56,6 +58,41 @@ test('every animation a rule names has its keyframes', () => {
   }
 });
 
+test("the logo's motion: an entrance once for a tab, a working sign, nothing on hover", () => {
+  // The entrance plays only on a logo that plays, while the page started one.
+  for (const part of ['k-logo-block', 'k-logo-letter', 'k-logo-pointer']) {
+    assert.ok(
+      SKIN_LOGO.includes(`:root[data-logo-enter] .k-logo[data-play] .${part} {`),
+      `${part} enters`,
+    );
+  }
+  // Six letters, 45 ms apart from 160 ms, set by their place: no inline style.
+  const delays = [...SKIN_LOGO.matchAll(/:nth-child\((\d)\) \{ animation-delay: (\d+)ms; \}/g)];
+  assert.deepEqual(
+    delays.map((match) => [Number(match[1]), Number(match[2])]),
+    [1, 2, 3, 4, 5, 6].map((n) => [n, 160 + (n - 1) * 45]),
+  );
+  // The pointer docks where its rule places it: the last frame of the flight is that place.
+  const place = /\.k-logo-pointer \{ transform: ([^;]+); \}/.exec(SKIN_LOGO)?.[1];
+  assert.ok(place);
+  assert.ok(SKIN_LOGO.includes(`100% {\n    opacity: 1;\n    transform: ${place};`));
+  assert.match(
+    SKIN_LOGO,
+    /:root\[data-claude="working"\] \.k-logo\[data-claude\] \.k-logo-pointer \{\s*fill: var\(--st-color-accent\);\s*animation: k-logo-tap 1\.2s ease-in-out infinite;/,
+  );
+  // Opacity and transform move; the colour of the flight and of the working pointer is the
+  // accent's. Nothing moves on hover.
+  assert.doesNotMatch(SKIN_LOGO, /:hover/);
+  for (const frames of SKIN_LOGO.matchAll(/@keyframes [a-z-]+ \{([\s\S]*?\})\s*\}/g)) {
+    const properties = [...(frames[1] ?? '').matchAll(/([a-z-]+):/g)].map(
+      (match) => match[1] ?? '',
+    );
+    for (const property of properties) {
+      assert.ok(['opacity', 'transform', 'fill'].includes(property), property);
+    }
+  }
+});
+
 test('motion is off under reduced motion, and while the view changes', () => {
   assert.match(
     SKIN_MOTION,
@@ -80,7 +117,7 @@ test('the typeface is served by the studio itself, one face per file of the pack
 });
 
 test('shared classes start with k-, so they never meet a class of a page', () => {
-  const css = `${SKIN_BASE}${SKIN_CONTROLS}${SKIN_SURFACES}${SKIN_MOTION}`;
+  const css = `${SKIN_BASE}${SKIN_CONTROLS}${SKIN_SURFACES}${SKIN_LOGO}${SKIN_MOTION}`;
   const classes = new Set([...css.matchAll(/\.([a-z][a-z0-9-]*)/g)].map((match) => match[1] ?? ''));
   // Decimal numbers and file-like words are no classes.
   const own = [...classes].filter((name) => !/^\d/.test(name));

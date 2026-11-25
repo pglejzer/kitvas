@@ -1,8 +1,7 @@
 // The kit page's script: the example frames take the height they report, and the kit's examples
 // are built as a catalog job, with one reload when that gives new ones. The page works without it.
 
-import { watchStudio } from '../live/live.ts';
-import { readEvents } from '../live/sse.ts';
+import { onStudioEvent, openStudioStream } from '../live/live.ts';
 import {
   type CatalogStep,
   type CatalogWatch,
@@ -12,7 +11,6 @@ import {
 } from './catalog.ts';
 import { applyReport, exampleReport, findExampleFrames } from './frames.ts';
 
-const EVENTS_URL = '/api/v1/events';
 /** Set right before the page reloads itself; the page that loads next reads and removes it. */
 const RELOAD_MARK = 'kitvas.kit.reloaded';
 
@@ -74,7 +72,8 @@ function watchCatalog(main: HTMLElement, kit: string): void {
     job: undefined,
     reloaded: takeReloadMark(kit),
   };
-  const stream = new AbortController();
+  // The page's one stream, which the bar's status may have opened already (`live/live.ts`).
+  const stream = openStudioStream();
   let over = false;
   const end = (step: CatalogStep): void => {
     if (over) return;
@@ -90,18 +89,14 @@ function watchCatalog(main: HTMLElement, kit: string): void {
     // Otherwise the stream stays open, its events unheard, so the paused view still shows when
     // the studio goes away.
   };
-  // The stream is asked for before the job, so the job cannot end between the studio's answer and
-  // the stream opening; until the answer names the job, any catalog job of this kit counts.
-  readEvents(
-    EVENTS_URL,
-    (event) => {
-      if (over) return;
-      const step = catalogStep(watch, event);
-      if (step) end(step);
-    },
-    stream.signal,
-    watchStudio(stream),
-  );
+  // The stream is asked for (above) before the job, so the job cannot end between the studio's
+  // answer and the stream opening; until the answer names the job, any catalog job of this kit
+  // counts.
+  onStudioEvent((event) => {
+    if (over) return;
+    const step = catalogStep(watch, event);
+    if (step) end(step);
+  });
   askForCatalog(kit).then(({ status, body }) => {
     if (over) return;
     const step = postStep(status, watch.catalog);

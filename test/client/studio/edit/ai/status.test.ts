@@ -1,16 +1,16 @@
 // The Claude tab's listening line (spec 4d, goal 1; plan 17, task B): its words for each state,
-// the command only while no session listens, and the read again while one is seen. Plan 18: the
-// bar's dot and short words.
+// the command only while no session listens, and the read again while one is seen. The bar's dot
+// and words are the bar's own (`test/client/studio/shell/bar-status.test.ts`).
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  barStatus,
   commandOf,
   LISTEN_RECHECK_MS,
   recheckLater,
   statusLine,
 } from '../../../../../client/studio/edit/ai/status.ts';
+import { LISTEN_RECHECK_MS as BAR_RECHECK_MS } from '../../../../../client/studio/shell/bar-status.ts';
 import { LISTEN_GRACE_MS } from '../../../../../src/studio/api/requests/request-schemas.ts';
 
 const SINCE = '2026-11-24T10:00:00.000Z';
@@ -45,14 +45,7 @@ test('the tab reads again while a session is seen, after the listening grace is 
   assert.ok(LISTEN_RECHECK_MS > LISTEN_GRACE_MS);
 });
 
-test("the bar's status: a dot for listening and for working, none when off, and its words", () => {
-  assert.deepEqual(barStatus({ state: 'listening', since: SINCE }), {
-    dot: 'listening',
-    key: 'ai.bar.listening',
-  });
-  assert.deepEqual(barStatus({ state: 'working', since: SINCE }), {
-    dot: 'working',
-    key: 'ai.bar.working',
-  });
-  assert.deepEqual(barStatus({ state: 'off', since: null }), { dot: null, key: 'ai.bar.off' });
+test('the tab and the bar read again on the same time', () => {
+  assert.equal(LISTEN_RECHECK_MS, BAR_RECHECK_MS);
+  assert.equal(LISTEN_RECHECK_MS, 20_000);
 });

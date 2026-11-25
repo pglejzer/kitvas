@@ -17,7 +17,7 @@ import { type EditorState, elementOf } from '../store.ts';
 import { HANDLE_NOTE, readHandleNote } from '../style/handle-writes.ts';
 import { MAX_OPS, refusalKey } from '../style/ops.ts';
 import { text } from '../texts.ts';
-import { BOX_START, type BoxState, pickSide as withSide } from './box.ts';
+import { BOX_START, type BoxState, ruleLink, pickSide as withSide } from './box.ts';
 import { el, showCustom } from './controls.ts';
 import { readFolds, toggleFold, viewerStorage, writeFolds } from './groups.ts';
 import type { Env } from './rows.ts';
@@ -112,6 +112,9 @@ export function mountProps(ctx: EditorContext): void {
   const storage = viewerStorage();
   let folds = readFolds(storage);
   let box: BoxState = BOX_START;
+  /** The element the box's link was last read for, and whether the person picked a link on it. */
+  let opened: string | null = null;
+  let linked = false;
   let handleNote: string | null = null;
   let inflight: Promise<void> = Promise.resolve();
   let chain: Promise<void> = Promise.resolve();
@@ -133,11 +136,16 @@ export function mountProps(ctx: EditorContext): void {
       render();
     },
     pickSide(layer, side) {
+      const moved = layer !== box.layer;
       box = withSide(box, layer, side);
+      // Another layer opens on the link its own values say, unless the person picked a link.
+      const first = store.get().inspected;
+      if (moved && first && !linked) box = { ...box, link: ruleLink(first, layer) ?? box.link };
       render();
     },
     link(link) {
       box = { ...box, link };
+      linked = true;
       render();
     },
   });
@@ -169,8 +177,11 @@ export function mountProps(ctx: EditorContext): void {
     const views = viewsOf(state);
     const count = state.selection.length;
     let view: Drawn = { head: [], body: [] };
-    if (count === 0) view.body.push(emptyView(text('props.none')));
-    else if (count > MAX_MANY) {
+    if (count === 0) {
+      // With nothing selected the box is closed: the next element opens it again.
+      opened = null;
+      view.body.push(emptyView(text('props.none')));
+    } else if (count > MAX_MANY) {
       view.body.push(emptyView(text('props.many', { count }), text('props.many.tooMany')));
     } else if (!views || !state.edit) view.body.push(emptyView(text('props.loading')));
     else view = viewOf(state, views, state.edit);
@@ -194,6 +205,13 @@ export function mountProps(ctx: EditorContext): void {
   ): Drawn {
     const [inspected] = views;
     if (!inspected) return { head: [], body: [] };
+    // The box opens on the link the element's rule says (ADR 0070), once for each element: a
+    // link the person picks after that stays.
+    if (opened !== inspected.id) {
+      opened = inspected.id;
+      linked = false;
+      box = { ...box, link: ruleLink(inspected, box.layer) ?? box.link };
+    }
     const key = state.refused ? refusalKey(state.refused) : null;
     const first = state.refused?.gesture.ops[0];
     const own = first !== undefined && elementOf(first) === inspected.id;

@@ -5,7 +5,7 @@ import { call, fakeAssets, pageCookie, shopStudio } from '../../helpers/studio.t
 test('the scripts need the page cookie, like the pages that load them', async () => {
   const { studio } = await shopStudio();
   try {
-    for (const name of ['draft', 'gallery', 'kit']) {
+    for (const name of ['draft', 'gallery', 'kit', 'page']) {
       const locked = await call(studio.port, { path: `/assets/${name}.js` });
       assert.equal(locked.status, 401, name);
       assert.ok(!locked.text.includes('export'));
@@ -24,7 +24,7 @@ test('a script is served as JavaScript with the studio security headers', async 
   const { studio } = await shopStudio();
   try {
     const cookie = await pageCookie(studio);
-    for (const name of ['draft', 'gallery', 'kit']) {
+    for (const name of ['draft', 'gallery', 'kit', 'page']) {
       const answer = await call(studio.port, { path: `/assets/${name}.js`, headers: { cookie } });
       assert.equal(answer.status, 200, name);
       assert.equal(answer.headers['content-type'], 'text/javascript; charset=utf-8');
