@@ -1,8 +1,8 @@
 ---
 type: tool_used
 tool: Bash
-input_match: '(?:kitvas\.ts|\$\{?\w+\}?|\bK(?:ITVAS)?)\\?"?\s+studio\s'
+input_match: '\bstudio\s+\\?"?[a-z0-9]+(?:-[a-z0-9]+)*\b'
 min: 1
 ---
 
-The studio link comes from `studio <slug> --json`.
+The draft is opened in the studio.

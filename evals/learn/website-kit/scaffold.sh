@@ -12,6 +12,10 @@ if [ -z "$ROOT" ] || [ ! -f "$ROOT/bin/kitvas.ts" ] || [ ! -f "$SITE/index.html"
   exit 1
 fi
 
+# The eval's sandbox makes every command print a shell error; see evals/lib/sandbox.sh.
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/sandbox.sh"
+prepare_home
+
 cat > package.json <<'JSON'
 { "name": "site-project", "version": "1.0.0", "dependencies": { "react": "18.3.1", "react-dom": "18.3.1" } }
 JSON

@@ -11,5 +11,9 @@ if [ -z "$ROOT" ] || [ ! -f "$ROOT/bin/kitvas.ts" ] || [ ! -d "$FIXTURE" ]; then
   exit 1
 fi
 
+# The eval's sandbox makes every command print a shell error; see evals/lib/sandbox.sh.
+. "$(dirname "${BASH_SOURCE[0]}")/../../lib/sandbox.sh"
+prepare_home
+
 cp "$FIXTURE/package.json" package.json
 node "$ROOT/bin/kitvas.ts" init --json

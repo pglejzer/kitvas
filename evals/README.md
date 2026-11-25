@@ -68,11 +68,14 @@ Checked on 2026-11-25 with Claude Code 2.1.332 on Ubuntu 24.04 under WSL:
   `rework new --url` do not run, and `kit verify` skips `render`, `tokens` and `look`. A grader must
   not expect them; an answer that says they were skipped is right.
 - Some files cannot be read at all: the targets of the plugin's `node_modules/.bin` links (so kitvas
-  runs `typescript/lib/tsc.js`, not `bin/tsc`), and `.pnp.data.json`, `.pnp.cjs` and `.pnp.js` in the
-  case's home folder, the parent of the project. esbuild looks for those Yarn files above every file it
-  bundles and stops at one it cannot read: `Cannot read file "…/.pnp.data.json": permission denied`.
-  The scaffold of every case that builds, checks or verifies therefore sources `evals/lib/sandbox.sh`
-  and calls `pnp_folders`, which puts folders of those names there first; esbuild skips a folder.
+  runs `typescript/lib/tsc.js`, not `bin/tsc`), and `.pnp.data.json`, `.pnp.cjs`, `.pnp.js` and `.bashrc`
+  in the case's home folder, the parent of the project. esbuild looks for the Yarn files above every file
+  it bundles and stops at one it cannot read: `Cannot read file "…/.pnp.data.json": permission denied`.
+  The shell reads `.bashrc` in every Bash call, so each command's output starts with two lines
+  `.bashrc: Permission denied`; a model then adds `2>/dev/null` and no longer sees the error kitvas
+  prints. Every scaffold therefore sources `evals/lib/sandbox.sh` and calls `prepare_home`, which puts
+  folders with the Yarn names and an empty `.bashrc` there first: esbuild skips a folder, and a file that
+  is already there stays readable. A case without a scaffold still gets the two lines.
 - A scaffold runs outside the sandbox, with a 120 second limit and without `CLAUDE_PLUGIN_ROOT`. Each
   `scaffold.sh` finds the plugin folder from its own path.
 
@@ -82,12 +85,29 @@ Checked on 2026-11-25 with Claude Code 2.1.332 on Ubuntu 24.04 under WSL:
   written `\"` there. A model may also put the CLI in a shell variable or a function. Every pattern
   for a kitvas command therefore starts `(?:kitvas\.ts|\$\{?\w+\}?|\bK(?:ITVAS)?)\\?"?\s+`. A grader
   that expects one of a few names also takes a loop over them (`for c in Input Select; do … $c`).
+  A step of a draft (`build`, `check`, `layout`, `studio`) is matched by the step and the slug after
+  it, `\bbuild\s+<slug>`, so a shell function of any name still counts.
+- `tool_used` counts tool calls, not commands: `build shop; check shop` in one Bash call is one call.
+  Two steps that must both run get a grader each.
+- What a run wrote (section code, `states.json`, `checks.json`, `kit.json`) is checked by a `regex`
+  grader on the file, never by a judge. A judge with `focus: trace` is shown the first 12 and the last
+  12 events of the trace, with `[…N messages elided…]` between them. A run with agents has hundreds of
+  events, so a file written in the middle is not there, and the judge fails what it cannot see. The
+  prompt of such a case names the draft (`Name the draft "signup".`), so the grader knows the path.
+- A `regex` pattern made only of lookaheads, `(?=[\s\S]*a)(?=[\s\S]*b)`, starts with `^`. The eval
+  counts every match, and without the anchor the pattern matches again at each position of the text: on
+  a built bundle of 1.5 MB that took about an hour, with `^` two milliseconds.
 - `tool_used` needs at least one call unless `min` says otherwise. A grader for "this must not happen"
   sets `min: 0` and `max: 0`; with `max: 0` alone it can never pass.
-- An `llm` grader's judge reads only the last message. With `focus: trace` it also reads every tool call
-  and its result. A grader that compares the answer with what the commands printed sets it and names
-  that output as the truth, so the kit's facts are not copied into the criteria. A long case leaves
-  `focus` out: its trace holds every agent's steps.
+- A criterion names what the answer must state, never how it says it, and asks for no more than the
+  skill's report rule does. A judge takes the words literally: "an empty state for a customer with no
+  rentals" failed an answer that listed "Empty state: No rentals yet" with its button.
+- An `llm` grader's judge reads only the last message. The `honest-report` judge of a case that builds,
+  checks or verifies starts its criteria with what an eval run can never do (no browser, so which checks
+  or verify steps are skipped): that is the truth the answer is held to. With `focus: trace` the judge
+  also reads the tool calls and their results, the whole of them only in a run of up to 24 events. A
+  grader of such a short run that compares the answer with what the commands printed sets it and names
+  that output as the truth, so the kit's facts are not copied into the criteria.
 - `file_exists` counts a file the run created, and the CLI's own starting files count too: `craft new`
   writes placeholder sketches and `rework new --image` an empty inventory. To check what a file holds,
   use a `regex` grader with `target: { source: file, path: '<path from the project folder>' }`. That

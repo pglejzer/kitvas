@@ -1,7 +1,7 @@
 ---
 type: regex
 target: { source: file, path: '.kitvas/drafts/bike-rental/before/inventory.json' }
-pattern: '(?=[\s\S]*12 EUR per day)(?=[\s\S]*Book now)(?=[\s\S]*Email)'
+pattern: '^(?=[\s\S]*12 EUR per day)(?=[\s\S]*Book now)(?=[\s\S]*Email)'
 match: contains
 ---
 

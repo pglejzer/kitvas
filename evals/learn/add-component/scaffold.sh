@@ -13,7 +13,7 @@ fi
 
 # The eval's sandbox hides files esbuild reads above the project; see evals/lib/sandbox.sh.
 . "$(dirname "${BASH_SOURCE[0]}")/../../lib/sandbox.sh"
-pnp_folders
+prepare_home
 
 cp "$FIXTURE/package.json" package.json
 # The fixture keeps its fake packages in packages/ because git ignores node_modules.

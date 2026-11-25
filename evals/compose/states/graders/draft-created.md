@@ -1,8 +1,8 @@
 ---
 type: tool_used
 tool: Bash
-input_match: '(?:kitvas\.ts|\$\{?\w+\}?|\bK(?:ITVAS)?)\\?"?\s+draft\s+new'
+input_match: '\bdraft\s+new\s+\\?"?rentals\b'
 min: 1
 ---
 
-A draft is created with `draft new`.
+A new draft is started under the name the person gave.

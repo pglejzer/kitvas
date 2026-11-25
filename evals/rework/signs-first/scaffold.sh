@@ -13,6 +13,10 @@ if [ -z "$ROOT" ] || [ ! -f "$ROOT/bin/kitvas.ts" ] || [ ! -f "$SHOT" ]; then
   exit 1
 fi
 
+# The eval's sandbox makes every command print a shell error; see evals/lib/sandbox.sh.
+. "$HERE/../../lib/sandbox.sh"
+prepare_home
+
 cat > package.json <<'JSON'
 {
   "name": "bike-shop",

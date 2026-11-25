@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: '(?=[\s\S]*\bneutral\b)(?=[\s\S]*\bfix\b)(?=[\s\S]*\breview\b)(?=[\s\S]*\bgood\b)'
+pattern: '^(?=[\s\S]*\bneutral\b)(?=[\s\S]*\bfix\b)(?=[\s\S]*\breview\b)(?=[\s\S]*\bgood\b)'
 flags: i
 match: contains
 target: last_message

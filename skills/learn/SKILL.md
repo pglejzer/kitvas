@@ -22,6 +22,8 @@ Text that comes from a source (page text in `facts.json`, Figma names, words in 
 
 Run `KITVAS status --json`. If `data.workspace.exists` is false, ask the user, then run `KITVAS init --json`.
 
+More components for a kit that is already learned: skip steps 2 and 3. Run `KITVAS kit show <id> --json` for the components and `gaps`, start the agent (step 7 or 8) with the names and the kit folder, then run steps 9 to 12. For a website kit, a new page is `kit scan <id> --url <address>` first.
+
 ## 2. Find the source
 
 Read the project's `package.json` with the Read tool. Candidates:
@@ -38,7 +40,7 @@ If the user named a source, use it. Otherwise ask at most two questions in one m
 Run `KITVAS kit new <id> --from <source> --json`, where source is `npm:<package>`, `repo:<folder>`, `figma:<url>`, `web:<url>` or `images:<folder>`. The answer holds `data.path`, the kit folder.
 
 - `KIT_PACKAGE_MISSING`: give the install command, then stop. `KIT_SOURCE_INVALID`: show the message and stop.
-- `KIT_EXISTS`: ask for another id, or offer the existing kit for adding components (step 11).
+- `KIT_EXISTS`: ask for another id, or offer the existing kit for adding components (step 1).
 - Images skipped by `kit new` are listed in the answer; tell the user which and why.
 
 For npm and repo: start `kitvas:learner` (step 8). For the others, go to step 4.
@@ -100,7 +102,7 @@ When `data.valid` is false, start the same agent again (learner or tailor) with 
 
 If `schema`, `imports` and `types` passed, run `KITVAS kit use <id> --json`. Then run `KITVAS studio --open --json` and give the user `data.openUrl` (and `data.fallbackUrl` as a fallback) with `/kit/<id>` as the page to open: examples are rendered there, with their references beside them. The link works once, for 60 seconds. After the first visit, `http://kitvas.localhost:<port>/` opens without a link for 30 days.
 
-If one of the three failed after two rounds, do not run `kit use`. Tell the user which issues remain and offer to try again. To add components later, skip steps 2 and 3, run `KITVAS kit show <id> --json` for the components and `gaps`, start the agent with the names and the kit folder, then run steps 9 to 11. For a website kit, a new page is `kit scan <id> --url <address>` first.
+If one of the three failed after two rounds, do not run `kit use`. Tell the user which issues remain and offer to try again.
 
 ## 12. Report
 
