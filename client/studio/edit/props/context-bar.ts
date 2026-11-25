@@ -6,6 +6,7 @@
 // `context-rules.ts`; `contextBarView` is the bar the properties panel draws.
 
 import type { StyleContext, StyleState } from '../../../../src/edit/index.ts';
+import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import { frameWidth } from '../../canvas/card-list.ts';
 import type { EditorContext } from '../context.ts';
 import {
@@ -17,6 +18,7 @@ import {
   stateName,
   widthWords,
 } from '../style/context-rules.ts';
+import type { Format } from '../style/ops.ts';
 import { text } from '../texts.ts';
 import { el } from './controls.ts';
 
@@ -52,6 +54,57 @@ export function contextBarView(options: {
     states.append(button);
   }
   bar.append(where, width, states);
+  return bar;
+}
+
+/** The list scope switch: `chosen` is whether one copy of the item is picked on the canvas. */
+export type ScopeBar = {
+  mode: 'all' | 'item';
+  count: number;
+  chosen: boolean;
+  pick(mode: 'all' | 'item'): void;
+};
+
+/**
+ * The item count the "All N items | This item" switch shows, or `null` when there is no switch:
+ * one element only, an SCSS draft, a literal list of at least two items (ADR 0072).
+ */
+export function scopeOf(input: {
+  views: number;
+  count: number;
+  format: Format;
+  list: Inspect['list'];
+}): number | null {
+  const { views, count, format, list } = input;
+  if (views !== 1 || format !== 'scss' || list?.kind !== 'literal') return null;
+  return count >= 2 ? count : null;
+}
+
+/** The switch under the context bar: all the list's items, or the one picked on the canvas. */
+export function scopeBarView(scope: ScopeBar): HTMLElement {
+  const bar = el('div', 'k-seg props-scope');
+  bar.setAttribute('role', 'group');
+  bar.setAttribute('aria-label', text('props.scope.label'));
+  // A row key, so the panel puts the focus back on the same button after a redraw.
+  bar.dataset.row = 'scope';
+  const buttons: [mode: 'all' | 'item', label: string][] = [
+    ['all', text('props.scope.all', { count: scope.count })],
+    ['item', text('props.scope.item')],
+  ];
+  for (const [mode, label] of buttons) {
+    const button = el('button', undefined, label);
+    button.type = 'button';
+    button.dataset.control = `scope-${mode}`;
+    button.setAttribute('aria-pressed', String(mode === scope.mode));
+    if (mode === 'item' && !scope.chosen) {
+      button.disabled = true;
+      button.title = text('props.scope.pickCopy');
+    }
+    button.addEventListener('click', () => {
+      if (mode !== scope.mode) scope.pick(mode);
+    });
+    bar.append(button);
+  }
   return bar;
 }
 

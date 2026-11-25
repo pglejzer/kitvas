@@ -1,7 +1,8 @@
 // One element as its source writes it, for the properties panel (plan 13, task D2): the tag and
 // its props, the kit component it is, its text, the class a style edit writes and where each
 // style property's value comes from (spec decisions 3, 4 and 9). Plan 15 adds the element's line
-// and the version's images, for the panel's header and its background image picker.
+// and the version's images, for the panel's header and its background image picker. Plan 18f
+// (task 2) adds `source`, the facts of the panel's Source strip (`inspect-source.ts`).
 
 import { type DraftStore, latestVersion, loadDraft, versionFolder } from '../../drafts/index.ts';
 import {
@@ -14,6 +15,7 @@ import {
 import { elementIds, readSites } from '../../render/index.ts';
 import { KitvasError } from '../../shared/index.ts';
 import { constantClass } from '../domain/expr/class-start.ts';
+import { wrappedClass } from '../domain/list/item-class.ts';
 import { listRoots, showsExpression, textSource } from '../domain/list/source.ts';
 import { type ListView, listView } from '../domain/list/view.ts';
 import {
@@ -48,6 +50,8 @@ import {
 } from '../domain/types.ts';
 import type { EditCompiler } from '../ports/compiler.ts';
 import { editKit, styleFormat, tokenOptions } from './edit-state.ts';
+import { type ItemScope, itemScoped } from './inspect-item.ts';
+import { type InspectSource, lineAt, sourceOf } from './inspect-source.ts';
 import { locateElement } from './locate.ts';
 import { sectionScss } from './structure/section-files.ts';
 import { movableAt } from './structure/structure.ts';
@@ -105,6 +109,8 @@ export type InspectView = {
   movable: Refusal | null;
   /** The 1-based line of the element's `<` in `file`. */
   line: number;
+  /** The opening tag as one line, and where the element's class rule starts (plan 18f). */
+  source: InspectSource;
   /** The image files of the version a background image may name, sorted. */
   images: string[];
   /** The kit's breakpoints, ascending (spec 4c, goal 1). */
@@ -138,6 +144,11 @@ export type InspectView = {
    * `null`: the element shows no such text.
    */
   expression: { roots: string[] | null } | null;
+  /**
+   * ADR 0072: asked with `scope: 'item'`, the copy's own class the view is read for, or why
+   * there is none (`inspect-item.ts`); `null` when not asked.
+   */
+  itemScope: ItemScope | null;
 };
 
 /**
@@ -166,13 +177,6 @@ async function expressionOf(
     return id !== undefined && id.length <= 200 && ELEMENT_ID.test(id) ? [id] : [];
   });
   return { roots: named.length === roots.length ? named : null };
-}
-
-/** The 1-based line `at` is on. */
-function lineAt(text: string, at: number): number {
-  let line = 1;
-  for (let i = text.indexOf('\n'); i >= 0 && i < at; i = text.indexOf('\n', i + 1)) line += 1;
-  return line;
 }
 
 /** The names a style may write as `url(../img/<file>)`: others are left out, never escaped. */
@@ -253,7 +257,9 @@ export function pickStyleClass(
 ): { className: string; exists: boolean } | null {
   if (component !== null && !component.styling.includes('className')) return null;
   if (tag.className?.kind === 'expr') {
-    const constant = constantClass(tag.className.source);
+    // ADR 0072: "This item" wraps an expression as `` `${…} card--${plan.id}` ``.
+    const { source } = tag.className;
+    const constant = constantClass(source) ?? wrappedClass(source);
     return constant === null ? null : { className: constant, exists: true };
   }
   const classes = classesOf(tag);
@@ -283,13 +289,15 @@ function classNameOut(tag: TagView): InspectView['className'] {
 
 /**
  * The element `id` in the latest version. Throws EDIT_ELEMENT_NOT_FOUND when it is not there.
- * `path`: the rendered copy its `list` is read for (its place in each list around it).
+ * `path`: the rendered copy its `list` is read for (its place in each list around it). `scope:
+ * 'item'`: read for that copy's own class (ADR 0072, `itemScope`).
  */
 export async function inspectElement(
   deps: InspectDeps,
   slug: string,
   id: string,
   path?: readonly number[],
+  scope?: 'item',
 ): Promise<InspectView> {
   const draft = loadDraft(deps.drafts, slug);
   const version = latestVersion(draft);
@@ -345,7 +353,7 @@ export async function inspectElement(
   // The whole subtree, as a structural op names it (spec 4b, decision 5).
   const span = elementSpan(text, at);
 
-  return {
+  const view: InspectView = {
     id,
     version,
     file,
@@ -385,6 +393,14 @@ export async function inspectElement(
     hash: hashOf(span === null ? '' : text.slice(span.start, span.end)),
     movable: span === null ? 'not-found' : movableAt(text, at),
     line: lineAt(text, at),
+    // The rule of a class the element has; a new class (`exists: false`) has none yet.
+    source: sourceOf({
+      tsx: text,
+      tag: tag.span,
+      scssFile,
+      scss: scssText,
+      className: styleClass?.exists === true ? styleClass.className : null,
+    }),
     images: imageNames(deps.images?.(slug, version) ?? []),
     breakpoints: kit === null ? [...DEFAULT_BREAKPOINTS] : kitBreakpoints(kit.kit),
     overrides,
@@ -400,7 +416,10 @@ export async function inspectElement(
       classes: classesOf(tag),
     }),
     expression: await expressionOf(deps.compiler, text, file, at),
+    itemScope: null,
   };
+  if (scope !== 'item') return view;
+  return itemScoped(view, { text, at, path, format, scss: scssText, input });
 }
 
 /**

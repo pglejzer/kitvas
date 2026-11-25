@@ -5,6 +5,7 @@
 // in `edit-texts-look.ts`.
 
 import { CLAUDE_TEXT_KEYS } from './edit-texts-claude.ts';
+import { FIDELITY_TEXT_KEYS } from './edit-texts-fidelity.ts';
 import { LOOK_TEXT_KEYS } from './edit-texts-look.ts';
 
 const PANEL_TEXT_KEYS = [
@@ -26,6 +27,13 @@ const PANEL_TEXT_KEYS = [
   'props.custom.label',
   'props.custom.invalid',
   'props.mapped',
+  'props.select.search',
+  'props.select.none',
+  'props.raw.source',
+  'props.scope.label',
+  'props.scope.all',
+  'props.scope.item',
+  'props.scope.pickCopy',
   'props.tailwind',
   'props.spread',
   'props.group.component',
@@ -39,6 +47,7 @@ const PANEL_TEXT_KEYS = [
   'props.reset.label',
   'props.source.prop',
   'props.source.scss',
+  'props.source.scssAll',
   'props.source.shorthand',
   'props.source.utility',
   'props.source.kit',
@@ -61,6 +70,7 @@ const PANEL_TEXT_KEYS = [
   'props.reason.utility',
   'props.reason.nested',
   'props.reason.invalid',
+  'props.reason.item-key',
   'history.undo',
   'history.redo',
   'conflict.title',
@@ -262,6 +272,8 @@ const PANEL_TEXT_KEYS = [
   'menu.lock',
   'menu.unlock',
   'layers.changed',
+  'layers.expand',
+  'layers.collapse',
   'copy.done',
   'copy.failed',
   'copy.locationDone',
@@ -432,6 +444,16 @@ const PANEL_TEXT_KEYS = [
   'upload.stored',
   'upload.storedMany',
   'upload.insertHint',
+  'images.use',
+  'images.selectFirst',
+  'images.delete',
+  'images.deleteFinal',
+  'images.deleted',
+  'images.inUse',
+  'images.deleteFailed',
+  'upload.duplicate',
+  'upload.duplicateMany',
+  'upload.mixed',
   'upload.dropHint',
   'upload.err.type',
   'upload.err.size',
@@ -460,4 +482,5 @@ export const EDIT_TEXT_KEYS: readonly string[] = [
   ...PANEL_TEXT_KEYS,
   ...CLAUDE_TEXT_KEYS,
   ...LOOK_TEXT_KEYS,
+  ...FIDELITY_TEXT_KEYS,
 ];

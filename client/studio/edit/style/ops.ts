@@ -240,6 +240,33 @@ export function opsForStyle(
   value: StyleValue | null,
   options: StyleOptions = {},
 ): EditOp[] {
+  return withItemClass(inspected, styleOps(inspected, property, value, options));
+}
+
+/**
+ * ADR 0072, "This item": the class rules of an item whose `className` does not give the modifier
+ * yet start with `addItemClass`, once for the gesture. A write to a prop has no class rule, so it
+ * stays as it is.
+ */
+function withItemClass(inspected: Inspect, ops: EditOp[]): EditOp[] {
+  const scope = inspected.itemScope;
+  if (scope === null || scope === undefined || !('className' in scope) || scope.inTsx) return ops;
+  if (!ops.some((op) => op.op === 'setStyle' || op.op === 'removeStyle')) return ops;
+  const add: EditOp = {
+    op: 'addItemClass',
+    id: inspected.id,
+    path: scope.path,
+    className: scope.className,
+  };
+  return [add, ...ops];
+}
+
+function styleOps(
+  inspected: Inspect,
+  property: StyleProperty,
+  value: StyleValue | null,
+  options: StyleOptions,
+): EditOp[] {
   const format = options.format ?? 'scss';
   const { context } = options;
   if (readOnlyReason(inspected, property, format, context) !== null) return [];

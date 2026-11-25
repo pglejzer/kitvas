@@ -64,6 +64,7 @@ test('a relabelled button matches by containment either way', () => {
         disabled: false,
         menu: false,
         current: null,
+        lines: 1,
       },
     });
   const longer = at(390, [action('Start your free trial')]);
@@ -95,7 +96,10 @@ test('a field is found by its label, and a brand by its alt', () => {
       mark: null,
     },
   });
-  const logo = node({ tag: 'img', image: { natural: [40, 40], sized: true, alt: 'Acme logo' } });
+  const logo = node({
+    tag: 'img',
+    image: { natural: [40, 40], sized: true, alt: 'Acme logo', vector: false },
+  });
   const v = at(390, [field, logo]);
   assert.deepEqual(
     protectedFindings(

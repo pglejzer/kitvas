@@ -3,12 +3,15 @@
 // the stored name; the write is the store's (`src/edit/adapters/image-files.ts`).
 
 import { type DraftStore, latestVersion, loadDraft } from '../../../drafts/index.ts';
+import { IMAGE_FILE } from '../../../edit/index.ts';
 import { KitvasError, type Translate } from '../../../shared/index.ts';
 import { RequestError } from '../../http/problem.ts';
 import { type ApiRoute, apiRoute } from '../../http/router.ts';
-import { SlugParams } from '../schemas.ts';
+import { EmptyBody, SlugParams } from '../schemas.ts';
 import {
+  countUses,
   decodeBase64,
+  findDuplicate,
   type ImageStore,
   looksLikeMarkup,
   safeImageName,
@@ -16,6 +19,9 @@ import {
 } from './image-rules.ts';
 import {
   IMAGE_BODY_LIMIT,
+  ImageDeleteSchema,
+  ImageFileParams,
+  ImageListSchema,
   ImageUploadRequestSchema,
   ImageUploadSchema,
   MAX_IMAGE_BYTES,
@@ -42,6 +48,23 @@ export function imageRoutes(deps: ImageRouteDeps): ApiRoute[] {
 
   return [
     apiRoute({
+      id: 'listImages',
+      summary: "The image files in the latest version's src/img, sorted by name.",
+      method: 'GET',
+      path: '/api/v1/drafts/{slug}/images',
+      policy: 'read',
+      params: SlugParams,
+      request: null,
+      response: { status: 200, schema: ImageListSchema },
+      handle: ({ params }) => {
+        const images = store();
+        const version = latestVersion(loadDraft(deps.drafts, params.slug));
+        // Only names a stored file can have: nothing else in the folder is told to the page.
+        const files = images.list(params.slug, version).filter((file) => IMAGE_FILE.test(file));
+        return { status: 200, body: { version, files: [...files].sort() } };
+      },
+    }),
+    apiRoute({
       id: 'uploadImage',
       summary: 'Stores an image of up to 5 MB (PNG, JPEG, WebP, AVIF, GIF) in the latest src/img.',
       method: 'POST',
@@ -66,6 +89,11 @@ export function imageRoutes(deps: ImageRouteDeps): ApiRoute[] {
         if (sniffImageType(bytes) !== body.type) {
           throw new RequestError('IMAGE_CONTENT_MISMATCH', { type: body.type });
         }
+        // The same bytes under any name are not stored twice: 200 names the file already there.
+        const same = findDuplicate(bytes, images.list(params.slug, version), (file) =>
+          images.read(params.slug, version, file),
+        );
+        if (same !== null) return { status: 200, body: { version, file: same, duplicate: true } };
         for (let attempt = 1; ; attempt += 1) {
           const file = safeImageName(body.name, body.type, images.list(params.slug, version));
           try {
@@ -75,6 +103,31 @@ export function imageRoutes(deps: ImageRouteDeps): ApiRoute[] {
             if (!exists(error) || attempt >= WRITE_TRIES) throw error;
           }
         }
+      },
+    }),
+    apiRoute({
+      id: 'deleteImage',
+      summary:
+        "Removes an image from the latest version's src/img for good, unless the draft still uses it (then nothing is removed and `uses` counts the places).",
+      method: 'DELETE',
+      path: '/api/v1/drafts/{slug}/images/{file}',
+      policy: 'write',
+      params: ImageFileParams,
+      request: EmptyBody,
+      response: { status: 200, schema: ImageDeleteSchema },
+      handle: ({ params }) => {
+        const images = store();
+        const version = latestVersion(loadDraft(deps.drafts, params.slug));
+        // Only a file the list names is removed: the name is never joined to a path unchecked.
+        if (!images.list(params.slug, version).includes(params.file)) {
+          throw new RequestError('IMAGE_NOT_FOUND', { file: params.file });
+        }
+        const uses = countUses(images.sources(params.slug, version), params.file);
+        if (uses > 0) {
+          return { status: 200, body: { version, file: params.file, deleted: false, uses } };
+        }
+        images.remove(params.slug, version, params.file);
+        return { status: 200, body: { version, file: params.file, deleted: true, uses: 0 } };
       },
     }),
   ];

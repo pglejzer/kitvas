@@ -34,6 +34,8 @@ type Tab = { id: string; label: string };
 type RailPane = Tab & { icon: IconName; region: Html };
 
 const HIDDEN = trusted(' hidden');
+/** The right tabs that show a count after their label (plan 18f). */
+const COUNTED: ReadonlySet<string> = new Set(['changes', 'checks']);
 
 export type LockedInput = {
   t: Translate;
@@ -128,7 +130,12 @@ export function leftSide(input: SidesInput): Html {
 function tabRow(t: Translate, tabs: Tab[], selected: string): Html {
   const buttons = tabs.map((tab) => {
     const on = tab.id === selected;
-    return html`<button type="button" class="k-tab" role="tab" id="editor-tab-${tab.id}" data-tab="${tab.id}" aria-controls="editor-pane-${tab.id}" aria-selected="${on ? 'true' : 'false'}" tabindex="${on ? '0' : '-1'}">${tab.label}</button>`;
+    // Changes and Checks carry a count after the label (plan 18f): the span is drawn empty and the
+    // client fills it (`client/studio/edit/history/tab-counts.ts`), so the tabs do not shift.
+    const count = COUNTED.has(tab.id)
+      ? html`<span class="k-count" data-tab-count="${tab.id}"></span>`
+      : '';
+    return html`<button type="button" class="k-tab" role="tab" id="editor-tab-${tab.id}" data-tab="${tab.id}" aria-controls="editor-pane-${tab.id}" aria-selected="${on ? 'true' : 'false'}" tabindex="${on ? '0' : '-1'}">${tab.label}${count}</button>`;
   });
   const fold = t('studio.edit.shell.fold.right');
   return html`<div class="side-head"><div class="k-tabs side-tabs" role="tablist" aria-label="${t('studio.edit.shell.right')}">${buttons}</div><button type="button" class="k-icon-btn side-fold" data-fold="right" aria-controls="editor-side-right" aria-label="${fold}" title="${fold}">${icon('panel')}</button></div>`;

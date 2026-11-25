@@ -8,7 +8,7 @@
 // The steps and their rules are in `createSwap`, over injected ports, so they are tested without a
 // browser; `pagePorts` is the DOM around them.
 
-import type { SwapStep } from '../../channel/protocol.ts';
+import type { Scroll, SwapStep } from '../../channel/protocol.ts';
 import { idle } from './busy.ts';
 
 /** A draft rendered into `#root` by one bundle's own React. */
@@ -89,8 +89,10 @@ export type SwapDeps = {
    * throws when it cannot.
    */
   take(bundle: Bundle, sheet: Staged): void;
-  /** Tells the studio where the swap of build `live` is. */
-  answer(live: number, step: SwapStep | 'ready'): void;
+  /** How far the page is scrolled now. */
+  scroll(): Scroll;
+  /** Tells the studio where the swap of build `live` is; `failed` carries the page's scroll. */
+  answer(live: number, step: SwapStep | 'ready', scroll?: Scroll): void;
 };
 
 export type Swap = {
@@ -116,7 +118,7 @@ function settled(promise: Promise<void>): Promise<boolean> {
   return Promise.resolve().then(() => seen.done);
 }
 
-export function createSwap({ page, runtime, take, answer }: SwapDeps): Swap {
+export function createSwap({ page, runtime, take, scroll, answer }: SwapDeps): Swap {
   /** A build is being taken. */
   let busy = false;
   /** The build asked for while another was being taken: it comes next. */
@@ -213,7 +215,8 @@ export function createSwap({ page, runtime, take, answer }: SwapDeps): Swap {
       }
       if (newer === null) {
         busy = false;
-        if (ended !== null) answer(live, ended);
+        if (ended === 'failed') answer(live, ended, scroll());
+        else if (ended !== null) answer(live, ended);
         return;
       }
       live = newer;

@@ -18,41 +18,52 @@ export const SKIN_EDITOR_CHECKS = `
 }
 .checks-lines:empty { display: none; }
 .checks-notes { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-.checks-head { flex: none; padding-bottom: 0; }
-/* The filter: four equal parts, the count over its word. */
-.checks-filter {
+/* The summary (mock v10 \`.score\`): three tiles with a tone dot, the count over its word. The
+   first two are toggles that show only their findings; Passed only tells. */
+.checks-head { flex: none; display: grid; gap: var(--st-space-8); padding: var(--st-space-10) var(--st-space-14) var(--st-space-4); }
+.checks-score {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-auto-flow: column;
-  gap: var(--st-space-2);
-  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--st-space-4);
   min-width: 0;
 }
-.checks-filter > button {
+.checks-tile {
+  position: relative;
   display: grid;
   justify-items: start;
-  align-content: center;
-  gap: 0;
+  gap: 1px;
   min-width: 0;
-  min-height: 40px;
-  padding: var(--st-space-4) var(--st-space-6);
+  padding: var(--st-space-8) var(--st-space-10) var(--st-space-8);
+  border-radius: var(--st-radius-sm);
+  color: var(--st-color-ink-mid);
+  font-size: var(--st-font-size-sm);
   text-align: left;
-  white-space: nowrap;
 }
-.checks-filter > button > span {
+button.checks-tile:hover { background: var(--st-color-raised); }
+button.checks-tile[aria-pressed="true"] { background: var(--st-color-raised-strong); color: var(--st-color-ink); }
+button.checks-tile:disabled { opacity: 0.45; }
+button.checks-tile:disabled:hover { background: none; }
+.checks-tile > span {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--st-font-size-sm);
 }
-.checks-filter-count {
+.checks-tile > .k-dot { position: absolute; top: var(--st-space-10); right: var(--st-space-8); width: 7px; height: 7px; }
+.checks-tile-count {
   color: var(--st-color-ink);
   font-size: var(--st-font-size-lg);
   font-weight: var(--st-font-weight-bold);
   line-height: var(--st-line-height-tight);
 }
-.checks-list { display: grid; gap: var(--st-space-16); align-content: start; }
+.checks-accepted { justify-self: start; }
+.checks-run { display: flex; align-items: center; justify-content: space-between; gap: var(--st-space-8); min-width: 0; }
+.checks-ran { min-width: 0; overflow-wrap: anywhere; }
+.checks-ran:empty { display: none; }
+.checks-run > .k-btn { margin-left: auto; flex: none; }
+[data-checks-run][aria-busy="true"] { cursor: progress; }
+.checks-empty .k-btn { margin-top: var(--st-space-6); }
+.checks-list { display: grid; gap: var(--st-space-16); align-content: start; padding: var(--st-space-10) 0 var(--st-space-14); }
 .checks-group { display: grid; gap: var(--st-space-8); }
 .checks-group-title {
   color: var(--st-color-ink-mid);
@@ -100,6 +111,59 @@ export const SKIN_EDITOR_CHECKS = `
 .checks-evidence > strong { font-size: var(--st-font-size-lg); line-height: var(--st-line-height-tight); }
 .checks-evidence > code { overflow-wrap: anywhere; }
 .checks-evidence > .k-icon { align-self: center; width: 12px; height: 12px; color: var(--st-color-ink-mid); }
+/* The evidence of a card of the full check (mock v10 \`.ev\`): a row on the pane's own colour, inside
+   the raised card. A sample shows the finding's own colours, set as style properties by the script. */
+.checks-evidence-slot:empty { display: none; }
+.checks-ev {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--st-space-8);
+  min-width: 0;
+  padding: var(--st-space-8) var(--st-space-10);
+  border-radius: var(--st-radius-sm);
+  background: var(--st-color-panel);
+  font-size: var(--st-font-size-sm);
+}
+.checks-ev > .k-icon { width: 12px; height: 12px; color: var(--st-color-ink-mid); }
+.checks-ev > small { margin-left: auto; color: var(--st-color-ink-mid); }
+.checks-ev .k-change { font-weight: var(--st-font-weight-medium); }
+.checks-ev .k-change del, .checks-ev .k-change ins { display: inline-flex; align-items: center; gap: var(--st-space-6); }
+.checks-ev-sample {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 var(--st-space-10);
+  border-radius: var(--st-radius-sm);
+  background: var(--st-color-raised-strong);
+  box-shadow: inset 0 0 0 1px var(--st-color-line);
+}
+.checks-ev-meter {
+  flex: 1 1 0;
+  min-width: 96px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--st-space-2) var(--st-space-8);
+}
+.checks-ev-meter > strong { font-weight: var(--st-font-weight-bold); }
+.checks-ev-meter > small { grid-column: 2; color: var(--st-color-ink-mid); font-size: var(--st-font-size-xs); }
+.checks-ev-bar { position: relative; height: 4px; border-radius: 2px; background: var(--st-color-raised-strong); }
+.checks-ev-bar > i { position: absolute; inset: 0 auto 0 0; width: var(--fill, 0%); border-radius: 2px; background: var(--st-color-fix); }
+.checks-ev-bar > em { position: absolute; top: -3px; left: var(--mark, 67%); width: 2px; height: 10px; border-radius: 1px; background: var(--st-color-ink); }
+.checks-ev-level {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 var(--st-space-6);
+  border-radius: var(--st-radius-sm);
+  background: var(--st-color-raised-strong);
+  font-weight: var(--st-font-weight-medium);
+}
+.checks-ev-level[data-missing] { background: none; box-shadow: inset 0 0 0 1.5px var(--st-color-review); color: var(--st-color-review); }
+/* A card's own buttons come before the waiver's Accept, all on one wrapping line. */
+.checks-card-actions { display: contents; }
 .checks-details > summary {
   width: fit-content;
   color: var(--st-color-ink-mid);
@@ -179,27 +243,4 @@ export const SKIN_EDITOR_CHECKS = `
 .checks-live-row .checks-waiver:not(:has(.checks-waiver-form, .checks-waiver-state)) { flex-wrap: nowrap; }
 .checks-here { display: grid; gap: var(--st-space-8); align-content: start; padding: var(--st-space-4) var(--st-space-12); }
 .checks-here-findings { display: grid; gap: var(--st-space-8); }
-/* The accessibility card of the selected element. */
-.checks-a11y { display: grid; gap: var(--st-space-4); }
-.checks-a11y[open] { padding-bottom: var(--st-space-6); }
-/* Its head folds it, with the chevron of a group of the properties; the count stays at the end. */
-.checks-a11y-head {
-  display: flex;
-  align-items: center;
-  gap: var(--st-space-6);
-  min-height: 32px;
-  font-weight: var(--st-font-weight-bold);
-  list-style: none;
-  cursor: pointer;
-}
-.checks-a11y-head > .k-icon {
-  color: var(--st-color-ink-mid);
-  transition: rotate var(--st-motion-fast) var(--st-ease-out);
-}
-.checks-a11y:not([open]) > .checks-a11y-head > .k-icon { rotate: -90deg; }
-.checks-a11y-head > .k-chip { margin-left: auto; }
-.checks-a11y-head::-webkit-details-marker { display: none; }
-.checks-a11y-rows { display: grid; margin: 0; }
-.checks-a11y-row > dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-.checks-a11y-link { font-size: var(--st-font-size-sm); }
 `;

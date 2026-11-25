@@ -81,8 +81,12 @@ function versionMenu(input: BarInput): Html {
         current: entry.number === choice.version,
       }),
     );
-  const tag = choice.version === input.latest ? html`<span class="k-meta">${latest}</span>` : '';
-  const summary = html`${t('studio.draft.versionCaption', { version: choice.version })}${tag}`;
+  const tag =
+    choice.version === input.latest
+      ? html`<span class="k-meta" data-version-latest>${latest}</span>`
+      : '';
+  // The Versions list names an older version it opens here (`client/studio/edit/timeline/`).
+  const summary = html`<span data-version-name>${t('studio.draft.versionCaption', { version: choice.version })}</span>${tag}`;
   return pickMenu('version', t('studio.edit.shell.versions'), summary, items, false);
 }
 
@@ -207,7 +211,7 @@ function barEnd(input: BarInput): Html {
   const redo = t('studio.edit.shell.redo');
   const edit = html`<span class="bar-group bar-in-edit"><button type="button" class="k-icon-btn" data-edit-undo disabled aria-label="${undo}" title="${undo}">${icon('undo')}</button><button type="button" class="k-icon-btn" data-edit-redo disabled aria-label="${redo}" title="${redo}">${icon('redo')}</button></span>`;
   const preview = html`<span class="bar-group bar-in-preview">${findings}${notesButton(t)}${compare}</span>`;
-  const session = html`<span class="bar-session k-clip" data-edit-session role="status"></span>`;
+  const session = html`<span class="bar-session bar-in-edit k-clip" data-edit-session role="status"></span>`;
   const save = html`<button type="button" class="k-btn" data-edit-unsave hidden>${t('studio.edit.shell.unsave')}</button><button type="button" class="k-btn k-btn-primary bar-save" data-edit-save disabled>${t('studio.edit.save')}</button>`;
   return html`<div class="k-bar-end">${status}${session}${edit}${preview}${tail}${save}</div>`;
 }

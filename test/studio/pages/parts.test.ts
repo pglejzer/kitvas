@@ -112,7 +112,7 @@ test('findings are numbered across both groups, with their check and their detai
   assert.ok(text.includes('<h2 class="checks-group-title">1 to fix</h2>'));
   assert.ok(text.includes('<h2 class="checks-group-title">2 to review</h2>'));
   const row = (tone: string, rule: string, rest: string): string =>
-    `<li class="note k-item checks-finding" data-tone="${tone}" data-rule="${rule}"${rest}>`;
+    `<li class="note k-card checks-finding" data-tone="${tone}" data-rule="${rule}"${rest} data-message=`;
   assert.ok(text.includes(row('fix', 'a11y/label', ' data-element="Draft:main/Input.0"')));
   assert.ok(text.includes(row('review', 'ds/raw-color', ' data-element="Draft:main/Input.0"')));
   // A finding without an element leaves the attribute out, and names no element.
@@ -120,18 +120,12 @@ test('findings are numbered across both groups, with their check and their detai
   const head = (tone: string, n: number, title: string, meta: string): string =>
     `<span class="num checks-num" data-tone="${tone}">${n}</span><div class="checks-finding-text">` +
     `<span class="checks-finding-title">${title}</span><small class="k-meta">${meta}</small>`;
-  assert.ok(
-    text.includes(
-      head('fix', 1, 'The phone field has no label.', 'Accessibility · Draft / Input.0'),
-    ),
-  );
+  assert.ok(text.includes(head('fix', 1, 'The phone field has no label.', 'Input.0 in Draft')));
   assert.ok(text.includes(head('review', 3, 'The console shows an error.', 'Runtime')));
-  // The filter counts what each segment shows; a segment with nothing to show is off.
-  assert.ok(text.includes('data-checks-filter="all" data-count="3" aria-pressed="true"'));
+  // The tiles count what each shows; the accepted ones have a chip only when there are any.
   assert.ok(text.includes('data-checks-filter="fix" data-count="1" aria-pressed="false"'));
-  assert.ok(
-    text.includes('data-checks-filter="accepted" data-count="0" aria-pressed="false" disabled'),
-  );
+  assert.ok(text.includes('data-checks-filter="review" data-count="2" aria-pressed="false"'));
+  assert.ok(!text.includes('data-checks-filter="accepted"'));
   assert.ok(text.includes('<p><code>a11y/label</code> src/tsx/Draft.tsx, line 12</p>'));
   assert.ok(text.includes('<p><code>ds/raw-color</code> src/scss/Draft.scss</p>'));
   assert.ok(text.includes('<p><code>runtime/console</code></p>'));

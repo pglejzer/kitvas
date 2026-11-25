@@ -68,6 +68,10 @@ export const ERROR_TABLE = {
   DRAFT_LOCKED: { exit: 61, http: 409 },
   // Plan 18c: `draft restore | purge` of a name that is not in the trash points at `--deleted`.
   DRAFT_NOT_DELETED: { exit: 62, http: 404 },
+  // Plan 18e: deleting an image that is not in the latest version's `src/img`.
+  IMAGE_NOT_FOUND: { exit: 63, http: 404 },
+  // Plan 18e (ADR 0075): the examples of a kit did not build, so no preview could be shot.
+  PREVIEWS_FAILED: { exit: 64, http: 500 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;

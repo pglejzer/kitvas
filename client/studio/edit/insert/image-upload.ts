@@ -3,10 +3,13 @@
 // canvas, a drop on the Insert tab). The rules are the server's (`src/studio/api/images/image-rules.ts`);
 // the page checks them first so a refusal needs no round trip, and shows the reason.
 
+import type { ImageUpload } from '../../../../src/studio/api/images/image-schemas.ts';
 import { type Answer, postImage } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
+import { announceStored } from './image-events.ts';
+import { duplicateMessage, type Stored, storedOf } from './image-stored.ts';
 
 /** Copy of `MAX_IMAGE_BYTES` in `src/studio/api/images/image-schemas.ts`. */
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -87,20 +90,27 @@ export function uploadRefusalKey(answer: { code: string | null }): string {
 /** Uploads wait for each other, so two quick drops never write at once. */
 let tail: Promise<unknown> = Promise.resolve();
 
-async function send(ctx: EditorContext, file: File, type: ImageType): Promise<string | null> {
+async function send(ctx: EditorContext, file: File, type: ImageType): Promise<Stored | null> {
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const answer: Answer<{ version: number; file: string }> = await postImage(ctx.slug, {
+  const answer: Answer<ImageUpload> = await postImage(ctx.slug, {
     name: file.name.slice(0, 200),
     type,
     data: toBase64(bytes),
   });
-  if (answer.ok) return answer.body.file;
+  if (answer.ok) {
+    announceStored(answer.body.file);
+    return storedOf(answer.body);
+  }
   toast(ctx.main, text(uploadRefusalKey(answer)));
   return null;
 }
 
-/** Stores `file` in the latest version's `src/img/`; the stored name, or `null` when refused. */
-export function uploadImage(ctx: EditorContext, file: File): Promise<string | null> {
+/**
+ * Stores `file` in the latest version's `src/img/`. The stored file, or the one that was already
+ * there when the draft holds the same bytes (`duplicate`; nothing is written then); `null` when
+ * refused. The caller tells the person what happened (`storedMessage`).
+ */
+export function uploadImage(ctx: EditorContext, file: File): Promise<Stored | null> {
   const problem = imageProblem(file);
   const type = imageTypeOf(file);
   if (problem !== null || type === null) {
@@ -115,8 +125,14 @@ export function uploadImage(ctx: EditorContext, file: File): Promise<string | nu
   });
 }
 
-/** The Upload button of the image picker; `onStored` gets the stored file name. */
-export function uploadControl(ctx: EditorContext, onStored: (file: string) => void): HTMLElement {
+/**
+ * The Upload button of the image picker; `onStored` gets the stored file name, and the file that
+ * was already in the draft when its bytes are there (`duplicate`, told here in a note).
+ */
+export function uploadControl(
+  ctx: EditorContext,
+  onStored: (file: string, duplicate: boolean) => void,
+): HTMLElement {
   const wrap = document.createElement('span');
   wrap.className = 'insert-upload';
   const input = document.createElement('input');
@@ -137,7 +153,12 @@ export function uploadControl(ctx: EditorContext, onStored: (file: string) => vo
     void uploadImage(ctx, file).then((stored) => {
       button.disabled = false;
       button.textContent = text('upload.button');
-      if (stored !== null) onStored(stored);
+      if (stored === null) return;
+      if (stored.duplicate) {
+        const note = duplicateMessage(stored.file);
+        toast(ctx.main, text(note.key, note.params));
+      }
+      onStored(stored.file, stored.duplicate);
     });
   });
   wrap.append(button, input);

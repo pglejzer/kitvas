@@ -2,6 +2,7 @@
 // is safe and unique. Pure: the route reads the request and `src/edit/adapters/image-files.ts`
 // writes the file. Nothing a person typed reaches a path except through `safeImageName`.
 
+import { createHash } from 'node:crypto';
 import { IMAGE_TYPES, type ImageType } from './image-schemas.ts';
 
 /** Where a stored image goes, and what lists a version's images: the route's port. */
@@ -10,7 +11,48 @@ export type ImageStore = {
   list(slug: string, version: number): readonly string[];
   /** Writes a new file there; throws when it exists, so one upload never replaces another. */
   write(slug: string, version: number, file: string, bytes: Uint8Array): void;
+  /** The bytes of a file in `src/img`; `undefined` when it cannot be read. */
+  read(slug: string, version: number, file: string): Uint8Array | undefined;
+  /** Removes a file of `src/img` for good; throws when it is not there. */
+  remove(slug: string, version: number, file: string): void;
+  /** The text of every file under the version's `src/tsx` and `src/scss`. */
+  sources(slug: string, version: number): readonly string[];
 };
+
+const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
+
+/**
+ * The stored file whose bytes are `bytes`, under any name; `null` when there is none. A file of
+ * another length is never read through a hash. A file that cannot be read is skipped.
+ */
+export function findDuplicate(
+  bytes: Uint8Array,
+  files: readonly string[],
+  read: (file: string) => Uint8Array | undefined,
+): string | null {
+  let wanted: string | null = null;
+  for (const file of files) {
+    const stored = read(file);
+    if (stored === undefined || stored.length !== bytes.length) continue;
+    wanted ??= sha256(bytes);
+    if (sha256(stored) === wanted) return file;
+  }
+  return null;
+}
+
+/** How many times the draft's sources name `file`: `../img/<file>` in TSX, `url(../img/<file>)` in SCSS. */
+export function countUses(sources: readonly string[], file: string): number {
+  const needle = `../img/${file}`;
+  let count = 0;
+  for (const source of sources) {
+    for (let at = source.indexOf(needle); at !== -1; at = source.indexOf(needle, at + 1)) {
+      // `../img/a.png` must not count inside `../img/a.png.bak`: the name ends here.
+      const next = source[at + needle.length];
+      if (next === undefined || !/[A-Za-z0-9_.-]/.test(next)) count += 1;
+    }
+  }
+  return count;
+}
 
 const startsWith = (bytes: Uint8Array, head: readonly number[], at = 0): boolean =>
   head.every((byte, index) => bytes[at + index] === byte);

@@ -13,6 +13,7 @@ import {
 } from '../../../channel/live-protocol.ts';
 import type { Frame } from '../../frames.ts';
 import { onStudioEvent } from '../../live/live.ts';
+import { mountCheckCards } from '../checks/cards.ts';
 import type { EditorContext } from '../context.ts';
 import type { EditorState, LiveItem } from '../store.ts';
 import {
@@ -90,7 +91,6 @@ export function mountLive(ctx: EditorContext): void {
       on: state.on,
       groups,
       selected: state.selection[0] ?? null,
-      card: state.a11y,
       status,
     });
   }
@@ -241,6 +241,8 @@ export function mountLive(ctx: EditorContext): void {
     void fullCheck.start();
   });
   onStudioEvent((event) => fullCheck.hear(event));
+  // The Checks pane's cards (evidence, Use <token>, Ask Claude) and its Run buttons.
+  mountCheckCards(ctx);
 
   refresh(false);
 }

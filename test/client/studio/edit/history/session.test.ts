@@ -32,21 +32,25 @@ const step = (raw: boolean): Gesture => ({
 const kept = (savedAt: number): KeptSession => ({ session: OPEN, undo: [], redo: [], savedAt });
 
 test('without a session the line says the first change starts a version', () => {
-  assert.deepEqual(sessionLine(null, []), [{ key: 'session.none', params: {} }]);
+  assert.deepEqual(sessionLine(null, [], 0), [{ key: 'session.none', params: {} }]);
 });
 
-test('an open session names its version and counts the undo steps', () => {
-  assert.deepEqual(sessionLine(OPEN, [step(false), step(false)]), [
+test('an open session names its version and counts what the Changes tab lists', () => {
+  assert.deepEqual(sessionLine(OPEN, [step(false), step(false)], 2), [
     { key: 'session.changes', params: { version: 4, count: 2 } },
   ]);
-  assert.equal(sessionLine(OPEN, [step(false)])[0]?.key, 'session.change');
-  assert.equal(sessionLine(OPEN, [])[0]?.key, 'session.changes');
+  assert.equal(sessionLine(OPEN, [step(false)], 1)[0]?.key, 'session.change');
+  assert.equal(sessionLine(OPEN, [], 0)[0]?.key, 'session.changes');
+  // After a reload the undo stack is empty, the session's list is not: the line says the list.
+  assert.deepEqual(sessionLine(OPEN, [], 1), [
+    { key: 'session.change', params: { version: 4, count: 1 } },
+  ]);
 });
 
 test('the off-kit count joins the line only when there is one', () => {
-  const parts = sessionLine(OPEN, [step(true), step(false), step(true)]);
+  const parts = sessionLine(OPEN, [step(true), step(false), step(true)], 3);
   assert.deepEqual(parts[1], { key: 'session.offKit', params: { count: 2 } });
-  assert.equal(sessionLine(OPEN, [step(false)]).length, 1);
+  assert.equal(sessionLine(OPEN, [step(false)], 1).length, 1);
   assert.equal(offKitSteps([step(false), step(true)]), 1);
 });
 

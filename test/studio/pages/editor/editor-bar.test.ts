@@ -74,7 +74,8 @@ test('the version menu lists every version newest first, the shown one marked', 
   const text = bar({ choice: { ...CHOICE, version: 1 } });
   const menu = /<details class="bar-menu" data-shell="version">.*?<\/details>/.exec(text)?.[0];
   assert.ok(menu, 'the menu is there');
-  assert.ok(menu.includes('<summary class="k-btn">Version 1'));
+  // The name is a span the Versions list renames when it opens an older version.
+  assert.ok(menu.includes('<summary class="k-btn"><span data-version-name>Version 1</span><svg'));
   const items = [...menu.matchAll(/<a class="k-menu-item" href="([^"]+)"([^>]*)>/g)];
   assert.deepEqual(
     items.map((item) => item[1]),
@@ -87,6 +88,12 @@ test('the version menu lists every version newest first, the shown one marked', 
   assert.equal(items[0]?.[2]?.includes('aria-current'), false);
   // The latest says so, in the list and in the summary when it is the one shown.
   assert.ok(menu.includes(`<span class="k-meta">${t('studio.edit.shell.latest')}</span>`));
+  const latest = bar({ choice: { ...CHOICE, version: 2 } });
+  assert.ok(
+    latest.includes(
+      `<span class="k-meta" data-version-latest>${t('studio.edit.shell.latest')}</span>`,
+    ),
+  );
   assert.ok(menu.includes('<ul class="k-pop k-menu bar-list" role="list"'));
 });
 

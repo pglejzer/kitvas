@@ -24,6 +24,7 @@ function action(part: Partial<ActionFacts> & { name: string }): ActionFacts {
     disabled: false,
     menu: false,
     current: null,
+    lines: 1,
     ...part,
   };
 }

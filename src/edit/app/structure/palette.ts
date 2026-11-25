@@ -21,7 +21,10 @@ export type PaletteComponent = {
   examples: { title: string; code: string; imports: string[] }[];
 };
 
-/** The same shape as the studio's `PaletteSchema` (`src/studio/api/edit/structure-schemas.ts`). */
+/**
+ * The studio's `PaletteSchema` (`src/studio/api/edit/structure-schemas.ts`) but `previews`, which
+ * the studio's route adds from the kit's rendered previews (ADR 0075).
+ */
 export type PaletteView = {
   components: PaletteComponent[];
   icons: { component: string; names: string[] } | null;

@@ -14,9 +14,11 @@ const SWAPPED = [
   { part: '[data-shell="checks"]', must: true },
   // The bar's count of them.
   { part: '[data-bar-findings]', must: false },
-  // The pills' links; the number field and the zoom pill beside them stay as they are.
+  // The pills' links (the state menu with its button, the presets, the sizes in More); the number
+  // field, the cards and the zoom pill stay as they are.
   { part: '[data-dock="states"]', must: false },
   { part: '[data-dock="widths"]', must: false },
+  { part: '[data-dock="sizes"]', must: false },
   // The top bar's links to other versions and to compare name the state and width too, and so do
   // the compare links in its More menu.
   { part: '[data-shell="version"]', must: false },

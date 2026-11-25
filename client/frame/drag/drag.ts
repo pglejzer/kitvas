@@ -24,6 +24,7 @@ import { hold } from '../page/busy.ts';
 import { takenBy } from '../page/rect.ts';
 import { createAutoScroll } from './autoscroll.ts';
 import { createCursor } from './cursor.ts';
+import { createDropRecord } from './drop-record.ts';
 import type { GestureEnd, GestureLog } from './gesture-log.ts';
 import { ITEM_REACH, type ItemList, type ListSlot, listSlot } from './item-slots.ts';
 import {
@@ -84,6 +85,11 @@ export type Drag = {
   scale(value: number): void;
   /** A build was taken in place: a press or a drag that runs goes on, and its log says so. */
   swapped(): void;
+  /**
+   * The studio did not take the last drop (refused, in conflict or lost): the nodes it moved go
+   * back where they stood and its placeholder leaves.
+   */
+  dropBack(): void;
 };
 
 /** The frame's own overlays (outlines, handles, the rectangle): never a place to press. */
@@ -102,6 +108,8 @@ export function createDrag(deps: DragDeps): Drag {
   let zoom = 1;
   let undim: (() => void) | undefined;
   let placeholder: HTMLElement | undefined;
+  /** Where the nodes of the last drop stood, until the build replaces the page or the drop is refused. */
+  const dropped = createDropRecord<ChildNode>();
   /** Ends the hold on the page's swaps (`busy.ts`) while a drag or a rectangle runs. */
   let free: (() => void) | undefined;
   /** The page's elements as a rectangle found them, until the page scrolls under it. */
@@ -143,13 +151,20 @@ export function createDrag(deps: DragDeps): Drag {
       const anchor = firstOf([slot.anchor])[0];
       if (!anchor) return;
       placeholder = placeholderOf(source.label);
+      dropped.note([placeholder]);
       showDrop([placeholder], anchor, slot.place);
       return;
     }
     const [shown, ...others] = dropsOf(source.ids, slot.anchor, moved, held?.bound ?? null, last);
-    if (shown) showDrop(shown.nodes, shown.anchor, slot.place);
+    if (shown) {
+      dropped.note(shown.nodes);
+      showDrop(shown.nodes, shown.anchor, slot.place);
+    }
     // The same part in the other copies of its list item: at once, with no motion of their own.
-    for (const other of others) placeDrop(other.nodes, other.anchor, slot.place);
+    for (const other of others) {
+      dropped.note(other.nodes);
+      placeDrop(other.nodes, other.anchor, slot.place);
+    }
   }
 
   /** The dragged copy goes beside the copy the slot names, in its own list or in another one. */
@@ -157,7 +172,9 @@ export function createDrag(deps: DragDeps): Drag {
     const own = lists?.own;
     const row = own ? lists?.lists[own.list]?.rows[own.index] : undefined;
     const anchor = lists?.lists[slot.list]?.rows[slot.anchor];
-    if (row && anchor) showDrop([row], anchor, slot.place);
+    if (!row || !anchor) return;
+    dropped.note([row]);
+    showDrop([row], anchor, slot.place);
   }
 
   const session = createSession({
@@ -208,6 +225,7 @@ export function createDrag(deps: DragDeps): Drag {
       // A placeholder still here was never built (the insert was refused): it leaves now.
       placeholder?.remove();
       placeholder = undefined;
+      dropped.forget();
       if (source === null) return;
       dragging = true;
       deps.quiet?.(true);
@@ -424,7 +442,15 @@ export function createDrag(deps: DragDeps): Drag {
     },
 
     swapped() {
+      // The build replaced the elements the record names.
+      dropped.forget();
+      placeholder = undefined;
       session.note('swapped');
+    },
+
+    dropBack() {
+      dropped.back();
+      placeholder = undefined;
     },
   };
 }

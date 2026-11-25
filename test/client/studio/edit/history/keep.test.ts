@@ -221,6 +221,7 @@ test('every op kind has its fields checked', () => {
     duplicateItem: true,
     removeItem: true,
     setItemText: true,
+    addItemClass: true,
     patch: true,
     file: true,
   };
@@ -242,6 +243,16 @@ test('every op kind has its fields checked', () => {
   const deep = Array.from({ length: 9 }, () => 0);
   assert.equal(isOp({ op: 'duplicateItem', id: ID, item: 0, path: deep }), false);
   assert.equal(readChange({ ...claude, by: 'someone' }), null);
+});
+
+test('a kept "This item" step keeps its copy, and a copy that is no place drops the step', () => {
+  const own = { op: 'addItemClass', id: ID, path: [1], className: 'plans__card--pro' };
+  assert.equal(isOp(own), true);
+  assert.equal(isOp({ ...own, path: undefined }), false);
+  assert.equal(readGesture({ ops: [own], label: 'Edit', item: 1 })?.item, 1);
+  assert.equal(readGesture({ ops: [own], label: 'Edit' })?.item, undefined);
+  assert.equal(readGesture({ ops: [own], label: 'Edit', item: -1 }), null);
+  assert.equal(readGesture({ ops: [own], label: 'Edit', item: '1' }), null);
 });
 
 test('the editor reads the kept history once the edit state is known', async () => {

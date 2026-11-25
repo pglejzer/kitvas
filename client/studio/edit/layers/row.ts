@@ -8,6 +8,7 @@ import { icon, iconButton } from '../../ui/icon.ts';
 import type { ListKind } from '../structure/lists.ts';
 import { text } from '../texts.ts';
 import { badgeOf, type LayerItem, rowFacts } from './facts.ts';
+import { layerName, type NamedEntry, sectionLabel } from './names.ts';
 
 export type Section = { id: string; purpose: string };
 
@@ -18,6 +19,8 @@ export type RowEnv = {
   locked: ReadonlySet<string>;
   sections: ReadonlyMap<string, Section>;
   components: ReadonlyMap<string, string | null>;
+  /** The component and the tag of each element the structure lists: what its row is called. */
+  named: ReadonlyMap<string, NamedEntry>;
   changed: ReadonlySet<string>;
   kindOf(id: string): ListKind | null;
   /** A drag ends with a click on the row it started on; that click must not select. */
@@ -27,7 +30,47 @@ export type RowEnv = {
   hover(id: string | null): void;
   toggleHidden(id: string): void;
   toggleLocked(id: string): void;
+  /** Whether a row with children at `level` draws them (`folds.ts`). */
+  open(id: string, level: number): boolean;
+  /** The search field has text: every row is drawn open and the chevrons rest. */
+  searching: boolean;
+  /** A click on a chevron; `whole` (Alt) folds or opens the row's whole subtree. */
+  toggle(item: LayerItem, level: number, whole: boolean): void;
 };
+
+/**
+ * The name a row shows: the section's name in sentence case for a section row, else what the
+ * element is (`names.ts`). The element's text is the tooltip, never the name.
+ */
+function shownName(item: LayerItem, level: number, env: RowEnv): string {
+  const asSection = level === 1 ? env.sections.get(item.node.id) : undefined;
+  return asSection ? sectionLabel(asSection.id) : layerName(env.named.get(item.node.id), item.node);
+}
+
+/** The disclosure chevron of a row with children, or a spacer of the same width without. */
+function twist(item: LayerItem, level: number, open: boolean, env: RowEnv): HTMLElement {
+  if (item.children.length === 0) {
+    const gap = document.createElement('span');
+    gap.className = 'layers-twist layers-twist-gap';
+    gap.setAttribute('aria-hidden', 'true');
+    return gap;
+  }
+  const label = text(open ? 'layers.collapse' : 'layers.expand', {
+    name: shownName(item, level, env),
+  });
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'layers-twist';
+  button.dataset.twist = item.node.id;
+  button.tabIndex = -1;
+  button.disabled = env.searching;
+  button.title = label;
+  button.setAttribute('aria-label', label);
+  button.setAttribute('aria-expanded', String(open));
+  button.append(icon(open ? 'chevron-down' : 'chevron-right'));
+  button.addEventListener('click', (event) => env.toggle(item, level, event.altKey));
+  return button;
+}
 
 function eye(id: string, hidden: boolean, env: RowEnv): HTMLButtonElement {
   const label = text(hidden ? 'layers.show' : 'layers.hide');
@@ -60,9 +103,12 @@ function nameButton(item: LayerItem, level: number, env: RowEnv): HTMLButtonElem
   if (asSection) {
     button.dataset.section = asSection.id;
     button.title = asSection.purpose;
+  } else if (node.name !== '') {
+    button.title = node.name;
   }
   const facts = rowFacts(node, env.components.get(node.id), env.changed, env.kindOf(node.id));
-  if (facts.kit) {
+  // The kit marker shows on the selected row only, as in the mock.
+  if (facts.kit && env.selected.has(node.id)) {
     const marker = icon('component');
     marker.classList.add('layers-kit');
     const wrap = document.createElement('span');
@@ -75,8 +121,14 @@ function nameButton(item: LayerItem, level: number, env: RowEnv): HTMLButtonElem
   }
   const name = document.createElement('span');
   name.className = 'layers-name k-clip';
-  name.textContent = asSection ? asSection.id : node.name;
+  name.textContent = shownName(item, level, env);
   button.append(name);
+  if (asSection) {
+    const kind = document.createElement('span');
+    kind.className = 'layers-kind k-meta';
+    kind.textContent = text('layers.sectionKind');
+    button.append(kind);
+  }
   const shown = badgeOf(facts);
   if (shown !== null) {
     const badge = document.createElement('span');
@@ -123,6 +175,9 @@ export function layerRow(item: LayerItem, level: number, env: RowEnv): HTMLLIEle
   li.setAttribute('role', 'treeitem');
   li.setAttribute('aria-level', String(level));
   li.setAttribute('aria-selected', String(env.selected.has(node.id)));
+  const parent = item.children.length > 0;
+  const open = parent && env.open(node.id, level);
+  if (parent) li.setAttribute('aria-expanded', String(open));
   const hidden = env.hidden.has(node.id);
   const locked = env.locked.has(node.id);
   if (hidden) li.dataset.hidden = '';
@@ -131,12 +186,13 @@ export function layerRow(item: LayerItem, level: number, env: RowEnv): HTMLLIEle
   line.className = 'layers-line';
   line.style.setProperty('--layers-depth', String(level - 1));
   line.append(
+    twist(item, level, open, env),
     nameButton(item, level, env),
     padlock(node.id, locked, env),
     eye(node.id, hidden, env),
   );
   li.append(line);
-  if (item.children.length > 0) {
+  if (open) {
     const group = document.createElement('ul');
     group.setAttribute('role', 'group');
     for (const child of item.children) group.append(layerRow(child, level + 1, env));

@@ -4,6 +4,7 @@ import { type Guideline, guidelineFor } from '../../../../src/checks/index.ts';
 import type { Translate } from '../../../../src/shared/index.ts';
 import {
   checkCounts,
+  elementIn,
   elementLabel,
   guidelineNote,
   notesSection,
@@ -85,14 +86,14 @@ test('accepted findings are listed apart: no number, never marked, with their re
   }).text;
   assert.ok(
     text.includes(
-      '<li class="note k-item checks-finding" data-tone="fix" data-rule="a11y/label" ' +
-        'data-element="Draft:main/Input.0">',
+      '<li class="note k-card checks-finding" data-tone="fix" data-rule="a11y/label" ' +
+        'data-element="Draft:main/Input.0" data-message=',
     ),
   );
   assert.ok(text.includes('<h2 class="checks-group-title">[studio.notes.accepted]</h2>'));
   assert.ok(
     text.includes(
-      '<li class="accepted-note k-item checks-finding" data-rule="ds/raw-color" ' +
+      '<li class="accepted-note k-card checks-finding" data-rule="ds/raw-color" ' +
         'data-waived-element="Draft:main/Input.1">',
     ),
   );
@@ -111,30 +112,27 @@ test('each finding has its number, its words, and the check and element it comes
     text.includes(
       '<span class="num checks-num" data-tone="fix">1</span><div class="checks-finding-text">' +
         '<span class="checks-finding-title">The phone field has no label.</span>' +
-        '<small class="k-meta">[studio.check.a11y] · Pricing / Card.2</small></div>',
+        '<small class="k-meta">[studio.notes.in]</small></div>',
     ),
   );
 });
 
-test('the filter carries each count; one with nothing to show cannot be chosen', () => {
+test('the tiles carry each count; one with nothing to show cannot be chosen', () => {
   const shown = [
     finding({ severity: 'fix' }),
     finding({ severity: 'fix', rule: 'a11y/name' }),
     finding({ severity: 'review', rule: 'ui/line-length' }),
   ];
-  const text = notesSection({ t: keys, shown, elsewhere: 0, next: NEXT }).text;
-  assert.ok(text.includes('<div class="k-seg checks-filter" role="group"'));
-  assert.ok(
-    text.includes(
-      '<button type="button" data-checks-filter="all" data-count="3" aria-pressed="true">' +
-        '<b class="checks-filter-count">3</b><span>[studio.notes.filter.all]</span></button>',
-    ),
-  );
+  const run = { canRun: true, ranAt: 1_700_000_000_000, passed: 41 };
+  const text = notesSection({ t: keys, shown, elsewhere: 0, next: NEXT, run }).text;
+  assert.ok(text.includes('<div class="checks-score" role="group"'));
   assert.ok(text.includes('data-checks-filter="fix" data-count="2" aria-pressed="false">'));
   assert.ok(text.includes('data-checks-filter="review" data-count="1" aria-pressed="false">'));
-  assert.ok(
-    text.includes('data-checks-filter="accepted" data-count="0" aria-pressed="false" disabled>'),
-  );
+  assert.ok(text.includes('<b class="checks-tile-count">41</b><span>[studio.notes.passed]</span>'));
+  assert.ok(text.includes('data-checks-ran="1700000000000"'));
+  assert.ok(text.includes('data-checks-run>[studio.notes.run.again]</button>'));
+  // No accepted finding, so no chip for them.
+  assert.ok(!text.includes('data-checks-filter="accepted"'));
   // Each group says which filter shows it.
   assert.ok(text.includes('<div class="checks-group" data-checks-group="fix">'));
   assert.ok(text.includes('<div class="checks-group" data-checks-group="review">'));
@@ -148,12 +146,54 @@ test('the counts: every finding listed, those to fix, those to review, the accep
   assert.deepEqual(checkCounts([], []), { all: 0, fix: 0, review: 0, accepted: 0 });
 });
 
-test('nothing listed is one quiet line with the next step, and no filter', () => {
+test('nothing listed is one quiet line with the next step under the tiles', () => {
   const text = notesSection({ t: keys, shown: [], elsewhere: 2, next: NEXT }).text;
   assert.ok(text.includes('<div class="k-empty checks-empty">'));
   assert.ok(text.includes('[studio.notes.elsewhere]'));
   assert.ok(text.includes('<p class="checks-next">[studio.next.review]</p>'));
-  assert.ok(!text.includes('checks-filter'));
+  assert.ok(text.includes('data-checks-filter="fix" data-count="0"'));
+});
+
+test('a draft not checked offers the full check, and never a command', () => {
+  const next = { key: 'studio.next.check', params: { slug: 'shop' } };
+  const run = { canRun: true, ranAt: null, passed: null };
+  const text = notesSection({ t, shown: [], elsewhere: 0, next, run }).text;
+  assert.ok(text.includes('Not checked yet.'));
+  assert.ok(text.includes('data-checks-run>Run the full check</button>'));
+  assert.ok(!text.includes('kitvas check'));
+  const older = notesSection({ t, shown: [], elsewhere: 0, next }).text;
+  assert.ok(!older.includes('data-checks-run'));
+  assert.ok(!older.includes('kitvas check'));
+});
+
+test('forty findings are all listed and none is cut', () => {
+  const shown = Array.from({ length: 40 }, (_, index) =>
+    finding({ rule: `a11y/rule-${index}`, element: `sections/Plans:section/Card.${index}` }),
+  );
+  const text = notesSection({ t: keys, shown, elsewhere: 0, next: NEXT }).text;
+  assert.equal(text.split('<li class="note k-card checks-finding"').length - 1, 40);
+  assert.equal(text.split('data-checks-evidence').length - 1, 40);
+  assert.ok(text.includes('data-checks-filter="fix" data-count="40"'));
+});
+
+test('a long message stays in the attribute the script reads, escaped', () => {
+  const long = `"${'x'.repeat(400)}" <b>`;
+  const text = notesSection({
+    t: keys,
+    shown: [finding({ message: long, hint: 'a & b' })],
+    elsewhere: 0,
+    next: NEXT,
+  }).text;
+  assert.ok(text.includes(`data-message="&quot;${'x'.repeat(400)}&quot; &lt;b&gt;"`));
+  assert.ok(text.includes('data-hint="a &amp; b"'));
+});
+
+test('the element is named with its section, and the elements helper splits the id', () => {
+  assert.deepEqual(elementIn('sections/Pricing:section/Stack/Card.2'), {
+    element: 'Card.2',
+    section: 'Pricing',
+  });
+  assert.deepEqual(elementIn('plain'), { element: 'plain', section: '' });
 });
 
 test('an element is named by its section and its last tag, as the editor names it', () => {
@@ -174,7 +214,7 @@ test('an accepted finding with no element has no element attribute, and none mea
   }).text;
   assert.ok(
     withOne.includes(
-      '<li class="accepted-note k-item checks-finding" data-rule="ds/raw-size">' +
+      '<li class="accepted-note k-card checks-finding" data-rule="ds/raw-size">' +
         '<div class="checks-finding-head">',
     ),
   );

@@ -40,14 +40,19 @@ export type LinePart = { key: string; params: Record<string, number> };
 
 /**
  * What the session line says. No session: the first change starts a version. An open one: its
- * version and how many steps are on the undo stack, and the off-kit count when there is one.
+ * version and `changes`, the count the Changes tab and the versions' Now row show, and the off-kit
+ * count of the undo stack when there is one.
  */
-export function sessionLine(open: OpenSession | null, undo: readonly Gesture[]): LinePart[] {
+export function sessionLine(
+  open: OpenSession | null,
+  undo: readonly Gesture[],
+  changes: number,
+): LinePart[] {
   if (open === null) return [{ key: 'session.none', params: {} }];
   const parts: LinePart[] = [
     {
-      key: undo.length === 1 ? 'session.change' : 'session.changes',
-      params: { version: open.version, count: undo.length },
+      key: changes === 1 ? 'session.change' : 'session.changes',
+      params: { version: open.version, count: changes },
     },
   ];
   const off = offKitSteps(undo);
@@ -128,7 +133,7 @@ export function mountSession(ctx: EditorContext): void {
         note ??
         (failed
           ? text('props.reason.failed')
-          : sessionLine(state.edit?.session ?? null, state.undo)
+          : sessionLine(state.edit?.session ?? null, state.undo, state.changes.length)
               .map((part) => text(part.key, part.params))
               .join(' · '));
       line.classList.toggle('k-fix', failed);
@@ -212,6 +217,7 @@ export function mountSession(ctx: EditorContext): void {
     else if (
       state.edit !== previous.edit ||
       state.undo !== previous.undo ||
+      state.changes !== previous.changes ||
       state.redo !== previous.redo ||
       state.busy !== previous.busy ||
       state.failed !== previous.failed

@@ -2,6 +2,7 @@
 // `src/img/`. The body is JSON with the file as base64, so the router's JSON body reading stays
 // the only one; the route raises its own body limit (`bodyLimit`).
 
+import { SLUG } from '../../../drafts/index.ts';
 import { IMAGE_FILE } from '../../../edit/index.ts';
 import { type Zod, z } from '../../../shared/index.ts';
 
@@ -32,7 +33,37 @@ export const ImageUploadRequestSchema = z.strictObject({
 export const ImageUploadSchema = z.strictObject({
   version: z.number().int().min(1),
   file: z.string().regex(IMAGE_FILE),
+  /**
+   * Present and `true` (the answer is 200, nothing written) when a file with the same bytes was
+   * already in `src/img/`: `file` then names that existing file.
+   */
+  duplicate: z.literal(true).optional(),
 });
 
+/** `DELETE /api/v1/drafts/{slug}/images/{file}`. */
+export const ImageFileParams = z.strictObject({
+  slug: z.string().regex(SLUG),
+  file: z.string().regex(IMAGE_FILE),
+});
+
+/**
+ * The answer to a delete: 200 either way, as the edit routes answer. `deleted: false` means the
+ * draft still uses the file in `uses` places and nothing was removed.
+ */
+export const ImageDeleteSchema = z.strictObject({
+  version: z.number().int().min(1),
+  file: z.string().regex(IMAGE_FILE),
+  deleted: z.boolean(),
+  uses: z.number().int().min(0),
+});
+
+/** `GET /api/v1/drafts/{slug}/images`: the file names in the latest version's `src/img/`, sorted. */
+export const ImageListSchema = z.strictObject({
+  version: z.number().int().min(1),
+  files: z.array(z.string().regex(IMAGE_FILE)),
+});
+
+export type ImageList = Zod.infer<typeof ImageListSchema>;
 export type ImageUploadRequest = Zod.infer<typeof ImageUploadRequestSchema>;
 export type ImageUpload = Zod.infer<typeof ImageUploadSchema>;
+export type ImageDelete = Zod.infer<typeof ImageDeleteSchema>;

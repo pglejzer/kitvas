@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   type CropResult,
+  type PreviewsResult,
   readVerifyFile,
   type ScanResult,
   VERIFY_FILE,
@@ -68,6 +69,7 @@ export type KitView =
   | { view: 'component'; id: string; component: KitComponent }
   | { view: 'css'; id: string; css: string }
   | ({ view: 'build' } & CatalogReport)
+  | ({ view: 'previews' } & PreviewsResult)
   | {
       view: 'new';
       id: string;
@@ -211,6 +213,14 @@ function renderView(data: KitView, t: Translate): string {
       }
       return t(data.cached ? 'kits.build.cached' : 'kits.build.ok', { ...counts, path: data.path });
     }
+    case 'previews': {
+      const key = data.cached ? 'kits.previews.cached' : 'kits.previews.ok';
+      const counts = { id: data.id, components: data.components.length, icons: data.icons };
+      return [
+        t(key, { ...counts, path: data.path }),
+        ...data.failed.map((miss) => t('kits.previews.failed', miss)),
+      ].join('\n');
+    }
     case 'new':
       return [
         t('kits.new.ok', { id: data.id, source: sourceLabel(data.source), path: data.path }),
@@ -256,6 +266,8 @@ export type KitDeps = {
   ): Promise<ScanResult>;
   /** `kit crop`: the checks module's cropKit, with its browser. */
   crop(project: string, id: string): Promise<CropResult>;
+  /** `kit previews`: the checks module's makePreviews, with its tools and browser (ADR 0075). */
+  previews(project: string, id: string): Promise<PreviewsResult>;
 };
 
 export function createKitCommand(deps: KitDeps): Command {
@@ -336,6 +348,12 @@ export function createKitCommand(deps: KitDeps): Command {
             await tools.styles.dispose();
             await tools.utility.dispose();
           }
+        }
+        case 'previews': {
+          // The studio runs it as a job when the editor's Insert pane asks for previews.
+          const id = idAt(ctx, 1);
+          requireWorkspace(ctx);
+          return { view: 'previews', ...(await deps.previews(ctx.cwd, id)) };
         }
         case 'new': {
           const id = requiredId(ctx, 'new');

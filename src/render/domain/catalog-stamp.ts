@@ -24,6 +24,11 @@ export const CatalogStampSchema = z.strictObject({
   skipped: z.array(z.string().regex(EXAMPLE_KEY)),
   /** Absolute files the utility CSS was built from (a Tailwind entry and its imports); in the key. */
   utility: z.array(z.string()).optional(),
+  /**
+   * The names on the icon sheet (`?example=kitvas-icons`, `icon-sheet.ts`), in cell order; absent
+   * when the bundle has no sheet.
+   */
+  icons: z.array(z.string()).optional(),
 });
 
 export type CatalogStamp = Zod.infer<typeof CatalogStampSchema>;

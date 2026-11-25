@@ -43,7 +43,9 @@ export function filterTree(tree: TreeNode[], query: string): TreeNode[] {
   const keep = new Set<string>();
   for (const node of tree) {
     const hit =
-      node.name.toLowerCase().includes(needle) || tagOfId(node.id).toLowerCase().includes(needle);
+      node.name.toLowerCase().includes(needle) ||
+      tagOfId(node.id).toLowerCase().includes(needle) ||
+      (node.cls ?? '').toLowerCase().includes(needle);
     if (!hit) continue;
     let at: TreeNode | undefined = node;
     while (at && !keep.has(at.id)) {

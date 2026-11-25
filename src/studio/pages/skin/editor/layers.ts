@@ -11,9 +11,25 @@ export const SKIN_EDITOR_LAYERS = `
   align-items: center;
   gap: var(--st-space-2);
   min-height: var(--st-size-row);
+  padding-left: calc(var(--st-space-4) + var(--layers-depth, 0) * var(--st-space-16));
   padding-right: var(--st-space-4);
   border-radius: var(--st-radius-sm);
 }
+/* The disclosure chevron before a name; a row without children keeps a spacer of the same width. */
+.layers-twist {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--st-radius-sm);
+  background: none;
+  color: var(--st-color-ink-mid);
+}
+button.layers-twist:hover:not(:disabled) { background: var(--st-color-raised-strong); color: var(--st-color-ink); }
+button.layers-twist:disabled { opacity: 0.5; }
 .layers-line:hover, .layers-line:has(.layers-row[data-hover]) { background: var(--st-color-raised); }
 .layers-tree li[aria-selected="true"] > .layers-line { background: var(--st-color-accent-soft); }
 .layers-row {
@@ -23,16 +39,24 @@ export const SKIN_EDITOR_LAYERS = `
   gap: var(--st-space-6);
   min-width: 0;
   min-height: var(--st-size-row);
-  padding-left: calc(var(--st-space-8) + var(--layers-depth, 0) * 14px);
+  padding-left: var(--st-space-2);
   border-radius: var(--st-radius-sm);
-  color: var(--st-color-ink);
+  color: var(--st-color-ink-mid);
   text-align: left;
 }
+.layers-line:hover .layers-row, .layers-row[data-hover] { color: var(--st-color-ink); }
 .layers-row:focus-visible { outline-offset: -2px; }
-.layers-section .layers-name { font-weight: var(--st-font-weight-bold); }
-.layers-kit-wrap { display: inline-flex; flex: none; color: var(--st-color-ink-mid); }
+/* A section's name is the strong line; so is the selected row's. */
+.layers-section { color: var(--st-color-ink); }
+.layers-section .layers-name,
+.layers-tree li[aria-selected="true"] > .layers-line .layers-name { font-weight: var(--st-font-weight-bold); }
+.layers-tree li[aria-selected="true"] > .layers-line .layers-row { color: var(--st-color-ink); }
+.layers-kit-wrap { display: inline-flex; flex: none; color: var(--st-color-accent); }
 .layers-name { flex: 0 1 auto; min-width: 8ch; }
+/* The word "section" after a section's name, muted, at the row's right. */
+.layers-kind { flex: none; margin-left: auto; white-space: nowrap; }
 .layers-badge { flex: none; margin-left: auto; white-space: nowrap; }
+.layers-kind + .layers-badge { margin-left: 0; }
 .layers-dot {
   width: 6px;
   height: 6px;

@@ -13,8 +13,10 @@ import type {
 import { icon } from '../../ui/icon.ts';
 import { chipRow } from '../history/chip-view.ts';
 import type { ChangeChip } from '../history/chips.ts';
+import { agoWords } from '../history/entry-view.ts';
 import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
+import { isEarlier, renderEarlier } from './earlier.ts';
 import type { CheckResult } from './preview.ts';
 import { MAX_REQUEST_TEXT } from './requests.ts';
 import { type BuiltVariant, reasonKey } from './variants.ts';
@@ -22,6 +24,8 @@ import { type BuiltVariant, reasonKey } from './variants.ts';
 export type CardModel = {
   key: string;
   label: string;
+  /** Its place in its request's answer, from 1: the number badge. */
+  number: number;
   changes: number;
   /** What it changes: the built ops' values when it is ready, else what its changes set. */
   chips: readonly ChangeChip[];
@@ -44,6 +48,8 @@ export type RequestModel = {
   cards: CardModel[];
   /** "Ask again" of an out-of-date request; `null`: its elements are gone; `undefined`: none. */
   again: NewRequest | null | undefined;
+  /** A variant of it was applied from this page. */
+  applied: boolean;
 };
 
 export type Handlers = {
@@ -56,7 +62,19 @@ export type Handlers = {
 };
 
 /** A drawn card's parts that change without drawing the list again. */
-export type CardParts = { card: HTMLElement; check: HTMLElement };
+export type CardParts = { card: HTMLElement; check: HTMLElement; state: HTMLElement };
+
+/**
+ * The line under a variant's label: "On the canvas now" while the canvas shows it, "Hover to see it
+ * on the canvas" while it can be tried; `null` (a text key under `studio.edit.`) when it cannot.
+ */
+export function stateKeyOf(model: CardModel, onCanvas: boolean): string | null {
+  const { built } = model;
+  if (built.kind !== 'ready' || model.outdated || model.applied || model.blocked !== null) {
+    return null;
+  }
+  return onCanvas ? 'ai.variant.onCanvas' : 'ai.variant.hover';
+}
 
 /** Hears each card as it is drawn. */
 type Drawn = (key: string, parts: CardParts) => void;
@@ -98,7 +116,7 @@ export function createForm(handlers: { send(words: string): void; improve(): voi
   label.htmlFor = 'ai-words';
   const field = el('textarea', 'k-field claude-field');
   field.id = 'ai-words';
-  field.rows = 3;
+  field.rows = 2;
   field.maxLength = MAX_REQUEST_TEXT;
   const hint = el('p', 'k-meta claude-hint');
   hint.id = 'ai-words-hint';
@@ -237,7 +255,7 @@ function cardNote(model: CardModel): HTMLElement | null {
 
 function variantCard(model: CardModel, handlers: Handlers, drawn: Drawn): HTMLElement {
   const { key } = model;
-  const card = el('li', 'k-item claude-variant');
+  const card = el('li', 'k-card claude-variant');
   card.dataset.variant = model.key;
   card.dataset.kind = model.built.kind;
   if (model.outdated) card.dataset.outdated = '';
@@ -247,7 +265,13 @@ function variantCard(model: CardModel, handlers: Handlers, drawn: Drawn): HTMLEl
   const head = el('div', 'claude-variant-head');
   const count =
     model.changes === 1 ? text('ai.variant.one') : text('ai.variant.count', { n: model.changes });
-  head.append(el('span', 'claude-variant-label', model.label), el('span', 'k-meta', count));
+  const badge = el('span', 'claude-num', String(model.number));
+  badge.setAttribute('aria-hidden', 'true');
+  const title = el('span', 'claude-variant-title');
+  // The state line is worded by the tab as the canvas shows this card or not (`stateKeyOf`).
+  const state = el('small', 'claude-variant-state');
+  title.append(el('span', 'claude-variant-label', model.label), state);
+  head.append(badge, title, el('span', 'k-meta', count));
   card.append(head);
   const chips = chipRow(model.chips);
   if (chips) card.append(chips);
@@ -283,7 +307,7 @@ function variantCard(model: CardModel, handlers: Handlers, drawn: Drawn): HTMLEl
     event.preventDefault();
     handlers.choose(key);
   });
-  drawn(key, { card, check });
+  drawn(key, { card, check, state });
   return card;
 }
 
@@ -317,7 +341,26 @@ function requestItem(model: RequestModel, handlers: Handlers, drawn: Drawn): HTM
   const item = el('li', 'claude-request');
   item.dataset.status = request.status;
   item.dataset.kind = request.kind;
-  const ask = el('div', 'k-item claude-ask');
+  const ask = el('div', 'k-card claude-ask');
+  // The card's first line: the element it is about, and how long ago it was asked (the mock's card).
+  const { names } = model;
+  const first = el('div', 'k-card-meta claude-ask-first');
+  const about = el('span', 'claude-ask-about');
+  about.append(
+    icon('component'),
+    el('span', 'k-clip', names === '' ? text(`ai.kind.${request.kind}`) : names),
+  );
+  if (names !== '') about.title = text('ai.on', { names });
+  first.append(about);
+  const at = Date.parse(request.at);
+  if (!Number.isNaN(at)) {
+    const when = el('time', 'claude-ask-time', agoWords(at, Date.now()));
+    when.dateTime = new Date(at).toISOString();
+    first.append(when);
+  }
+  ask.append(first);
+  const words = request.text.trim();
+  if (words !== '') ask.append(el('p', 'claude-words', words));
   const head = el('div', 'claude-ask-head');
   const state = el('span', 'claude-state');
   const mark = el('span', 'k-dot');
@@ -333,10 +376,6 @@ function requestItem(model: RequestModel, handlers: Handlers, drawn: Drawn): HTM
     head.append(drop);
   }
   ask.append(head);
-  const words = request.text.trim();
-  if (words !== '') ask.append(el('p', 'claude-words', words));
-  const { names } = model;
-  if (names !== '') ask.append(el('p', 'k-meta', text('ai.on', { names })));
   const answer = answerLine(request);
   if (answer) ask.append(answer);
   const { again } = model;
@@ -371,21 +410,39 @@ function group(
   return title === null ? [list] : [el('h4', 'k-meta claude-group', title), list];
 }
 
-/** The requests, those about the selection first; `drawn` hears every card's changing parts. */
+/**
+ * The requests, those about the selection first; `drawn` hears every card's changing parts. A
+ * request still open, or with variants to apply, is a card; a finished one is a row under
+ * "Earlier" (`earlier.ts`). `latest`: the draft's latest version, for "In Version N".
+ */
 export function renderRequests(
-  lists: { selected: readonly RequestModel[]; others: readonly RequestModel[] },
+  lists: {
+    selected: readonly RequestModel[];
+    others: readonly RequestModel[];
+    latest: number | null;
+  },
   handlers: Handlers,
   drawn: Drawn,
 ): HTMLElement[] {
-  const title = el('h3', 'claude-title', text('ai.requests'));
-  const { selected, others } = lists;
-  if (selected.length === 0 && others.length === 0) {
+  // The pane's heading is for assistive technology: the tab names it for the eye.
+  const title = el('h3', 'k-sr', text('ai.requests'));
+  const open = (model: RequestModel): boolean => !isEarlier(model.request, model.applied);
+  const selected = lists.selected.filter(open);
+  const others = lists.others.filter(open);
+  const past = [...lists.selected, ...lists.others].filter((model) => !open(model));
+  if (selected.length === 0 && others.length === 0 && past.length === 0) {
     return [title, el('p', 'k-quiet', text('ai.empty'))];
   }
-  if (selected.length === 0) return [title, ...group(null, others, handlers, drawn)];
+  const cards =
+    selected.length === 0
+      ? group(null, others, handlers, drawn)
+      : [
+          ...group(text('ai.group.selected'), selected, handlers, drawn),
+          ...(others.length === 0 ? [] : group(text('ai.group.others'), others, handlers, drawn)),
+        ];
   return [
     title,
-    ...group(text('ai.group.selected'), selected, handlers, drawn),
-    ...(others.length === 0 ? [] : group(text('ai.group.others'), others, handlers, drawn)),
+    ...(others.length + selected.length === 0 ? [] : cards),
+    ...renderEarlier(past, lists.latest),
   ];
 }

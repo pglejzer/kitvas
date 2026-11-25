@@ -86,6 +86,7 @@ const header = component('Card.Header', { parent: 'Card' });
 const palette: Palette = {
   components: [button, input, card, header],
   icons: { component: 'Icon', names: ['check', 'close', 'search'] },
+  previews: { state: 'none', backdrop: null, components: {}, icons: null },
   sections: [
     { slug: 'landing', section: 'pricing', purpose: 'Show the plans.' },
     { slug: 'landing', section: 'faq', purpose: 'Answer questions.' },

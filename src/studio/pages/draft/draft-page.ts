@@ -9,9 +9,10 @@ import {
   type DraftStore,
   latestVersion,
   loadDraft,
+  versionFolder,
   versionInfo,
 } from '../../../drafts/index.ts';
-import { type KitStore, loadKit } from '../../../kit/index.ts';
+import { DEFAULT_BREAKPOINTS, type KitStore, kitBreakpoints, loadKit } from '../../../kit/index.ts';
 import { KitvasError, type Translate } from '../../../shared/index.ts';
 import {
   type DraftChoice,
@@ -22,10 +23,17 @@ import {
   pickView,
   pickWidth,
 } from '../../views/draft-query.ts';
-import { type DraftStatus, findingsFor, nextStep, versionStatus } from '../../views/status.ts';
+import {
+  type DraftStatus,
+  findingsFor,
+  nextStep,
+  passedCount,
+  versionStatus,
+} from '../../views/status.ts';
 import { editMenu, editTexts } from '../editor/edit-panel.ts';
 import { editBlock, editorBar } from '../editor/editor-bar.ts';
 import { grip, leftSide, lockedNote, rail, rightSide } from '../editor/editor-side.ts';
+import { openingLayout } from '../editor/first-layout.ts';
 import type { PageRequest } from '../gallery.ts';
 import { type Html, html } from '../html.ts';
 import { page } from '../shell.ts';
@@ -35,7 +43,7 @@ import { craftPick } from './craft-board.ts';
 import { choiceLink } from './draft-links.ts';
 import { pills, stage } from './draft-stage.ts';
 import { type FrameOrigin, frameSrc } from './frame-src.ts';
-import { notesSection } from './notes.ts';
+import { notesSection, type RunInput } from './notes.ts';
 import { originalPane } from './original-pane.ts';
 
 export type DraftPageDeps = {
@@ -56,7 +64,20 @@ function kitName(kits: KitStore, id: string): string {
   }
 }
 
-/** Where the version came from and what its checks could not do: the top of the Checks tab. */
+/** The kit's breakpoints for the sizes menu; the default ones when the kit is gone or unreadable. */
+function breakpointsOf(kits: KitStore, id: string): readonly number[] {
+  try {
+    return kitBreakpoints(loadKit(kits, id).kit);
+  } catch (error) {
+    if (error instanceof KitvasError) return DEFAULT_BREAKPOINTS;
+    throw error;
+  }
+}
+
+/**
+ * Where the version came from and what its checks could not do: the top of the Checks tab. A
+ * version not checked is the pane's own line, with the button that runs the check.
+ */
 function checksLines(
   t: Translate,
   kit: string,
@@ -65,7 +86,6 @@ function checksLines(
 ): Html {
   const lines: string[] = [];
   if (built) lines.push(t('studio.draft.kit', { kit }));
-  if (built && !checks) lines.push(t('studio.draft.notChecked'));
   if (checks) {
     const skipped = CHECKS.filter((name) => checks.checks[name] === 'skipped').map((name) =>
       t(`studio.check.${name}`),
@@ -140,6 +160,29 @@ function shownStatus(
   return { kind: 'checked', fix, review: shown.length - fix };
 }
 
+/**
+ * What the Checks pane shows of the check itself: when the check last ran (the newest screenshot
+ * of the version's `build/shots`, which only a check writes; a rebuild after an edit rewrites
+ * `build/json`, so that folder would say "just now" for an old check; none without a browser), the
+ * rules that passed, and whether the full check can be started from here (the latest version, in
+ * the editor).
+ */
+function runInput(
+  deps: DraftPageDeps,
+  slug: string,
+  version: number,
+  checks: ChecksFile | undefined,
+  editable: boolean,
+): RunInput {
+  const shots = `${versionFolder(version)}/build/shots`;
+  const at = checks ? deps.drafts.modifiedAt(slug, shots) : undefined;
+  return {
+    canRun: editable,
+    ranAt: at === undefined ? null : at.getTime(),
+    passed: checks ? passedCount(checks) : null,
+  };
+}
+
 /** `main`'s data (C4): what the page's scripts read of the view, and whether it can be edited. */
 function mainAttrs(view: View, editable: boolean): Html {
   const { choice, compare } = view;
@@ -180,12 +223,12 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   const sides = {
     t,
     locked: block === null ? null : lockedNote({ t, block, link, latest, slug }),
-    checks: html`${checksLines(t, kitName(deps.kits, draft.kit.id), info.built, checks)}${notesSection({ t, shown, elsewhere, next, waived: checks?.waived ?? [] })}`,
+    checks: html`${checksLines(t, kitName(deps.kits, draft.kit.id), info.built, checks)}${notesSection({ t, shown, elsewhere, next, waived: checks?.waived ?? [], run: runInput(deps, slug, version, checks, editable) })}`,
     sketches: craftPick(t, draft),
     timeline: info.built && compare === null,
   };
-  const canvas = html`<section class="stage-canvas" data-shell="canvas" aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link })}</section>`;
-  const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce })}${trashTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
+  const canvas = html`<section class="stage-canvas" data-shell="canvas" aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link, breakpoints: breakpointsOf(deps.kits, draft.kit.id) })}</section>`;
+  const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}${openingLayout(request.nonce)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce })}${trashTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
   return page({
     title: draft.title,
     nonce: request.nonce,

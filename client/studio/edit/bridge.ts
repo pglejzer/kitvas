@@ -67,10 +67,20 @@ const BROADCAST = new Set([
   'hide',
   'lock',
   'handles',
+  'claude-marks',
 ]);
 
 /** What a card that loads is told again, in this order: edit mode before what it draws. */
-const REPLAYED = ['edit', 'structure', 'tokens', 'hide', 'lock', 'handles', 'select'] as const;
+const REPLAYED = [
+  'edit',
+  'structure',
+  'tokens',
+  'hide',
+  'lock',
+  'handles',
+  'select',
+  'claude-marks',
+] as const;
 
 /** A gesture in a card: the card becomes the edit card before anyone hears it. */
 const GESTURES = new Set(['pick', 'rect', 'menu', 'drop', 'reorder', 'handle']);

@@ -14,7 +14,7 @@ It is for a developer who has to ship a screen with no designer at hand. You go 
 ## Why
 
 - **Generated UI ignores your design system.** kitvas builds only from a kit: the catalog of components, tokens and icons it learned from your project. Without one it uses a built-in kit, Base.
-- **Nobody checks the result.** kitvas builds the draft, type-checks it, applies the kit's rules, and opens the page in a real browser at 390 and 1280 px in every state.
+- **Nobody checks the result.** kitvas builds the draft, type-checks it, applies the kit's rules, and opens the page in a real browser at 390 and 1280 px in every state, measures it at 768 px too, and adds a reflow check at 320 px. `kitvas check --deep` also measures 1024, 1440, 1920 and 2560.
 - **Changing one detail means prompting again.** The studio's editor writes your change into the draft's own TSX or SCSS, touching only the lines it changes.
 - **Generated code lands in your application.** Drafts stay in `.kitvas/` until you export them.
 

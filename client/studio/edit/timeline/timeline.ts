@@ -11,13 +11,15 @@
 
 import { showVersion } from '../../canvas/version-view.ts';
 import { frameMessage } from '../../frames.ts';
+import { iconButton } from '../../ui/icon.ts';
 import type { EditorContext } from '../context.ts';
 import { showDiff } from '../diff/diff-dialog.ts';
 import { modePatch } from '../select/mode.ts';
 import { frameAddress } from '../sync/live-frame.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
-import { getHistory, getVersions, isBuilt, postAsk, postRestore } from './api.ts';
+import { getHistory, getVersionFacts, getVersions, isBuilt, postAsk, postRestore } from './api.ts';
+import { type CheckLine, shotAddress, type VersionFacts, versionLine } from './facts.ts';
 import {
   askWords,
   type ElementHistory,
@@ -32,6 +34,20 @@ import {
 const HISTORY_DELAY_MS = 400;
 /** How long the list says that something did not work. */
 const FAILURE_MS = 6_000;
+
+/** How a saved version's check reads in its row. */
+function checkWords(check: CheckLine): string {
+  switch (check.kind) {
+    case 'none':
+      return text('timeline.check.none');
+    case 'good':
+      return text('timeline.check.good');
+    case 'fix':
+      return text('timeline.check.fix', { count: check.count });
+    case 'review':
+      return text('timeline.check.review', { count: check.count });
+  }
+}
 
 function button(className: string, label: string): HTMLButtonElement {
   const made = document.createElement('button');
@@ -60,17 +76,22 @@ export function mountTimeline(ctx: EditorContext): void {
   track.setAttribute('role', 'group');
   track.setAttribute('aria-label', text('timeline.versions'));
   const status = document.createElement('p');
-  status.className = 'versions-status k-meta';
+  // Said to screen readers only: the canvas's caption and the row show the version on view.
+  status.className = 'versions-status k-sr';
   status.setAttribute('role', 'status');
   const actions = document.createElement('div');
   actions.className = 'versions-actions';
-  const bring = button('k-btn', text('timeline.bring'));
+  const bring = iconButton('undo', text('timeline.bring'));
   const back = button('k-btn k-btn-line', text('timeline.back'));
   back.dataset.primary = '';
   actions.append(bring, back);
-  host.append(head, track, status, actions);
+  // In the head, which keeps its height: showing an older version moves nothing below it.
+  head.append(actions);
+  host.append(head, track, status);
 
   let versions: number[] = [];
+  /** What the studio told of each version: its date, its screenshot and its check. */
+  const known = new Map<number, VersionFacts>();
   /** The versions that came while the page was open: their rows slide in, once. */
   const fresh = new Set<number>();
   /** The element the marks and Bring back are about, by its id in the latest version. */
@@ -88,24 +109,66 @@ export function mountTimeline(ctx: EditorContext): void {
   const rows = () =>
     versionRows(versions, store.get().viewing, subject === null ? null : (history?.steps ?? null));
 
+  /** The picture of a version: its check's screenshot cropped to the top, else a neutral box. */
+  function thumb(point: Point): HTMLElement {
+    const box = document.createElement('span');
+    box.className = 'versions-thumb';
+    box.setAttribute('aria-hidden', 'true');
+    const shot = known.get(point.version)?.shot ?? null;
+    const address = shotAddress(bridge.frames()[0]?.element.src, point.version, shot);
+    if (address === null) {
+      box.dataset.empty = '';
+      return box;
+    }
+    const image = document.createElement('img');
+    image.alt = '';
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    image.addEventListener('error', () => {
+      image.remove();
+      box.dataset.empty = '';
+    });
+    image.src = address;
+    box.append(image);
+    return box;
+  }
+
+  /** "3 changes, not saved", "No changes", or "Saved 11:40 · All good"; empty until it is read. */
+  function lineWords(point: Point): string {
+    if (!point.now && !known.has(point.version)) return '';
+    const line = versionLine(known.get(point.version), point.now, store.get().changes.length);
+    if (line.kind === 'now') {
+      if (line.changes === 0) return text('timeline.noChanges');
+      return text(line.changes === 1 ? 'timeline.unsavedOne' : 'timeline.unsaved', {
+        count: line.changes,
+      });
+    }
+    const check = checkWords(line.check);
+    return line.time === null ? check : text('timeline.savedLine', { time: line.time, check });
+  }
+
   function rowView(point: Point): HTMLButtonElement {
     const made = button('versions-row', '');
     made.dataset.version = String(point.version);
     made.dataset.mark = point.mark;
     if (point.shown) made.setAttribute('aria-current', 'true');
     if (fresh.has(point.version)) made.classList.add('k-slide');
+    const label = document.createElement('span');
+    label.className = 'versions-text';
     const name = document.createElement('span');
     name.className = 'versions-name';
     name.textContent = point.now
       ? text('timeline.now')
       : text('timeline.point', { version: point.version });
-    made.append(name);
-    if (point.now) {
-      const which = document.createElement('span');
-      which.className = 'k-meta';
-      which.textContent = text('timeline.point', { version: point.version });
-      made.append(which);
+    label.append(name);
+    const status = lineWords(point);
+    if (status !== '') {
+      const line = document.createElement('small');
+      line.className = 'versions-line k-clip';
+      line.textContent = status;
+      label.append(line);
     }
+    made.append(thumb(point), label);
     if (point.mark !== 'none') {
       const chip = document.createElement('span');
       chip.className = 'versions-mark k-chip';
@@ -120,8 +183,20 @@ export function mountTimeline(ctx: EditorContext): void {
     return made;
   }
 
+  /** The bar's version pill names the version on view; back to now, the page's own again. */
+  function namePill(viewing: number | null): void {
+    const name = main.querySelector<HTMLElement>('[data-version-name]');
+    if (name === null) return;
+    name.dataset.page ??= name.textContent ?? '';
+    name.textContent =
+      viewing === null ? name.dataset.page : text('timeline.point', { version: viewing });
+    const latestTag = main.querySelector<HTMLElement>('[data-version-latest]');
+    if (latestTag !== null) latestTag.hidden = viewing !== null;
+  }
+
   function render(): void {
     const { viewing } = store.get();
+    namePill(viewing);
     const list = rows();
     host.hidden = list.length < 2;
     track.replaceChildren(...list.map(rowView));
@@ -129,7 +204,7 @@ export function mountTimeline(ctx: EditorContext): void {
     back.hidden = viewing === null;
     bring.hidden = viewing === null;
     bring.disabled = idIn(history?.steps ?? null, viewing) === null || subject === null;
-    bring.title = bring.disabled ? text('timeline.bringNone') : '';
+    bring.title = bring.disabled ? text('timeline.bringNone') : text('timeline.bring');
     actions.hidden = viewing === null;
     const line = viewing === null ? '' : text('timeline.viewing', { version: viewing });
     status.textContent = note || line;
@@ -141,6 +216,7 @@ export function mountTimeline(ctx: EditorContext): void {
     note = message;
     render();
     if (!brief) return;
+    toast(main, message);
     setTimeout(() => {
       if (note === message) say('');
     }, FAILURE_MS);
@@ -153,6 +229,21 @@ export function mountTimeline(ctx: EditorContext): void {
     for (const version of newVersions(versions, sorted)) fresh.add(version);
     versions = sorted;
     render();
+    void readFacts();
+  }
+
+  /** Each version's date, screenshot and check; `again` is read once more (its check may be new). */
+  async function readFacts(again?: number): Promise<void> {
+    const wanted = versions.filter((version) => version === again || !known.has(version));
+    if (wanted.length === 0) return;
+    const read = await Promise.all(wanted.map((version) => getVersionFacts(slug, version)));
+    let news = false;
+    for (const facts of read) {
+      if (facts === null) continue;
+      known.set(facts.number, facts);
+      news = true;
+    }
+    if (news) render();
   }
 
   async function readHistory(): Promise<void> {
@@ -275,6 +366,9 @@ export function mountTimeline(ctx: EditorContext): void {
   });
 
   store.subscribe((state, previous) => {
+    // "N changes, not saved" follows the change list; a finished build may carry a new check.
+    if (state.changes !== previous.changes && versions.length > 0) render();
+    if (state.builds !== previous.builds) void readFacts(latest());
     if (state.viewing !== null) {
       // Edit pressed while an older version shows: back to now, editing.
       if (state.on && !previous.on) toNow(true);

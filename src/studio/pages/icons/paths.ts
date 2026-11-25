@@ -66,11 +66,17 @@ export const ICONS = {
   alert: '<path d="M8 4.5v4.2M8 11.3v.2"/>',
   info: '<circle cx="8" cy="8" r="6"/><path d="M8 7.3v3.7M8 5v.2"/>',
   fit: '<path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/>',
+  // Device sizes in the width pill.
+  phone: '<rect x="5" y="2" width="6" height="12" rx="1.5"/><path d="M7 11.5h2"/>',
+  tablet: '<rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M7 11.5h2"/>',
+  laptop: '<rect x="3" y="3.5" width="10" height="7" rx="1"/><path d="M1.5 13h13"/>',
   // Layout keywords in Properties.
   'align-start': '<path d="M2.5 2.5v11M5.5 5h7M5.5 9h4"/>',
   'align-center': '<path d="M8 2.5v11M4 5.5h8M5.5 10h5"/>',
   'align-end': '<path d="M13.5 2.5v11M3.5 5h7M6.5 9h4"/>',
   'align-stretch': '<path d="M2.5 2.5v11M13.5 2.5v11M5 6h6M5 10h6"/>',
+  // Space between: one item against each edge.
+  'align-between': '<path d="M2.5 2.5v11M13.5 2.5v11M5 5.5h3.5M7.5 10.5h3.5"/>',
 } as const satisfies Record<string, string>;
 
 export type IconName = keyof typeof ICONS;

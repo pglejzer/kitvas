@@ -17,6 +17,7 @@ import {
 } from '../../channel/edit-protocol.ts';
 import { placeRing, type Rect } from '../drag/place.ts';
 import { toned } from '../tones/tones.ts';
+import { createClaudeMarks } from './claude-marks.ts';
 import { createInline } from './inline.ts';
 import {
   type Chosen,
@@ -169,6 +170,8 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
   /** The element the studio points at (a row of its layers tree). */
   let shownId: string | null = null;
   const inline = createInline({ channel, post, changed: () => schedule() });
+  /** Claude's mark (`claude-marks.ts`): the page names it; it follows the page on its own. */
+  const claude = createClaudeMarks();
   /** How much the name labels are scaled, so they keep their size on screen at any zoom. */
   let labelScale = 1;
   let drawFrame = 0;
@@ -445,6 +448,9 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
         case 'unpreview':
           preview.clear();
           schedule();
+          break;
+        case 'claude-marks':
+          claude.set(message.label, message.marks);
           break;
       }
     },

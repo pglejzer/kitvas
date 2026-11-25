@@ -262,7 +262,7 @@
     {
       "name": "Grid",
       "category": "layout",
-      "description": "Equal columns that become one column on narrow screens.",
+      "description": "Equal columns: three or more become two under 960px, and one column under 640px.",
       "import": { "from": "@kit", "name": "Grid" },
       "styling": ["className", "style"],
       "props": [
@@ -277,7 +277,7 @@
           "name": "collapse",
           "type": "boolean",
           "default": true,
-          "description": "One column under 640px."
+          "description": "Two columns under 960px when there are three or more; one column under 640px."
         },
         { "name": "children", "type": "node", "required": true }
       ],

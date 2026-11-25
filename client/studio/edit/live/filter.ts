@@ -20,6 +20,13 @@ export function keptFilter(
   return (counts[chosen] ?? 0) > 0 ? chosen : 'all';
 }
 
+/**
+ * The choice after a click on a tile: the tile pressed already is let go, which shows everything
+ * again (the tiles are a toggle: no tile is "All").
+ */
+export const clickedFilter = (chosen: ChecksFilter, clicked: ChecksFilter): ChecksFilter =>
+  clicked === chosen ? 'all' : clicked;
+
 /** The counts the filter's buttons carry (`data-count`); a button without one counts 0. */
 export function countsOf(
   buttons: readonly { filter: string | undefined; count: string | undefined }[],
@@ -58,7 +65,7 @@ export function mountChecksFilter(main: HTMLElement): void {
   region.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target.closest(BUTTON) : null;
     if (!(target instanceof HTMLButtonElement) || target.disabled) return;
-    show(filterOf(target.dataset.checksFilter));
+    show(clickedFilter(filterOf(region.dataset.checksShow), filterOf(target.dataset.checksFilter)));
   });
   // A swapped list comes with All pressed: the choice made here is put back on it.
   new MutationObserver(() => {

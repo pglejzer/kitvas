@@ -54,6 +54,14 @@
   gap: var(--_gap, var(--kit-space-md));
 }
 
+// Three columns or more are two on a tablet (ADR 0074): at 641 to 960px a third column would leave
+// each card about 150px, with its buttons broken onto two lines.
+@media (max-width: 960px) {
+  .kit-grid--wide {
+    --_now: 2;
+  }
+}
+
 @media (max-width: 640px) {
   .kit-grid--collapse {
     --_now: 1;

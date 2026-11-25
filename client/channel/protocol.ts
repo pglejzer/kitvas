@@ -30,7 +30,8 @@ import {
 } from './live-protocol.ts';
 
 /** `#kitvas=<channel>&studio=<port>` at the end of a frame's address turns the channel on. */
-const HASH = /^#kitvas=([A-Za-z0-9_-]{16,64})&studio=([1-9][0-9]{0,4})$/;
+const HASH =
+  /^#kitvas=([A-Za-z0-9_-]{16,64})&studio=([1-9][0-9]{0,4})(?:&scroll=([0-9]{1,7}),([0-9]{1,7}))?$/;
 const ELEMENT_ID = /^[A-Za-z0-9_.:/-]{1,200}$/;
 const STATE_ID = /^[a-z][a-z0-9-]{0,62}$/;
 
@@ -71,8 +72,11 @@ export type FrameMessage =
   | { kitvas: 1; channel: string; type: 'elements'; request: number; items: ElementSnapshot[] }
   | { kitvas: 1; channel: string; type: 'shown'; state: string }
   | { kitvas: 1; channel: string; type: 'example'; shown: boolean; height: number }
-  /** The answer to a `swap` that did not end in `ready`. */
-  | { kitvas: 1; channel: string; type: 'swap'; live: number; step: SwapStep }
+  /**
+   * The answer to a `swap` that did not end in `ready`. `scroll`: where the page is scrolled, sent
+   * with `failed` so the page loaded again opens there.
+   */
+  | { kitvas: 1; channel: string; type: 'swap'; live: number; step: SwapStep; scroll?: Scroll }
   | EditFrameMessage
   | CanvasFrameMessage
   | LiveFrameMessage;
@@ -102,15 +106,45 @@ export type StudioMessage =
   | CanvasStudioMessage
   | LiveStudioMessage;
 
-export function frameHash(channel: string, studioPort: number): string {
-  return `#kitvas=${channel}&studio=${studioPort}`;
+/** How far a page is scrolled, in CSS pixels. */
+export type Scroll = { x: number; y: number };
+
+/** The farthest scroll, in CSS pixels, a message or an address may carry. */
+export const MAX_SCROLL = 1e6;
+
+/** A scroll as whole, non-negative numbers within `MAX_SCROLL`; `undefined` for anything else. */
+export function cleanScroll(x: unknown, y: unknown): Scroll | undefined {
+  if (typeof x !== 'number' || typeof y !== 'number') return undefined;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return undefined;
+  const clamp = (value: number): number => Math.min(MAX_SCROLL, Math.max(0, Math.round(value)));
+  return { x: clamp(x), y: clamp(y) };
 }
 
-export function readHash(hash: string): { channel: string; studioPort: number } | undefined {
+/** `scroll`, when given, makes the page open there (`&scroll=<x>,<y>`). */
+export function frameHash(channel: string, studioPort: number, scroll?: Scroll): string {
+  const base = `#kitvas=${channel}&studio=${studioPort}`;
+  const where = scroll ? cleanScroll(scroll.x, scroll.y) : undefined;
+  return where ? `${base}&scroll=${where.x},${where.y}` : base;
+}
+
+export function readHash(
+  hash: string,
+): { channel: string; studioPort: number; scroll?: Scroll } | undefined {
   const match = HASH.exec(hash);
   if (!match?.[1] || !match[2]) return undefined;
   const studioPort = Number(match[2]);
-  return studioPort <= 65535 ? { channel: match[1], studioPort } : undefined;
+  if (studioPort > 65535) return undefined;
+  const scroll =
+    match[3] !== undefined && match[4] !== undefined
+      ? cleanScroll(Number(match[3]), Number(match[4]))
+      : undefined;
+  return scroll ? { channel: match[1], studioPort, scroll } : { channel: match[1], studioPort };
+}
+
+/** `hash` with its scroll set to `scroll`; the same when `hash` is no frame hash. */
+export function withScroll(hash: string, scroll: Scroll): string {
+  const link = readHash(hash);
+  return link ? frameHash(link.channel, link.studioPort, scroll) : hash;
 }
 
 type Loose = Record<string, unknown>;
@@ -171,7 +205,14 @@ export function parseFrameMessage(data: unknown, channel: string): FrameMessage 
   if (message.type === 'swap') {
     const { live } = message;
     const step = SWAP_STEPS.find((name) => name === message.step);
-    return isCount(live) && step ? { kitvas: 1, channel, type: 'swap', live, step } : undefined;
+    if (!isCount(live) || !step) return undefined;
+    // A scroll that is no number is left out: the answer still counts.
+    const scroll = isObject(message.scroll)
+      ? cleanScroll(message.scroll.x, message.scroll.y)
+      : undefined;
+    return scroll
+      ? { kitvas: 1, channel, type: 'swap', live, step, scroll }
+      : { kitvas: 1, channel, type: 'swap', live, step };
   }
   if (message.type === 'elements') {
     const { request, items } = message;

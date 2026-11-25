@@ -33,6 +33,7 @@ import { assetRoutes, type StudioAssets } from '../pages/asset-routes.ts';
 import { openRoute } from '../pages/open-route.ts';
 import { type PageDeps, pageRoutes } from '../pages/routes.ts';
 import { type StudioSkin, studioSkin } from '../pages/skin.ts';
+import { createPreviewsKeeper, type PreviewsPort } from '../previews/keeper.ts';
 import { createDeniedLog } from '../security/denied-log.ts';
 import { createOpenLinks } from '../security/open-links.ts';
 import { frameHeaders, studioHeaders } from '../security/response-headers.ts';
@@ -88,6 +89,11 @@ export type StudioDeps = {
   projectKit?: () => string;
   /** `kitvas doctor` for the Doctor page, from `src/main.ts`; without it the page shows the commands. */
   doctor?: PageDeps['doctor'];
+  /**
+   * The Insert pane's kit previews on disk (`readPreviews`, ADR 0075), from `src/main.ts`; the
+   * studio starts the jobs that make them. Without it the palette answers `none`.
+   */
+  previews?: PreviewsPort;
 };
 
 export type StudioOptions = {
@@ -222,6 +228,13 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
     ...(deps.idleClock ? { clock: deps.idleClock } : {}),
   });
   const inbox = createInbox({ now, publish: (pending) => events.publish('inbox', { pending }) });
+  // One previews job per kit at a time, started by the palette route when they are stale.
+  const previews = deps.previews
+    ? {
+        keeper: createPreviewsKeeper({ previews: deps.previews, jobs, onError }),
+        frame: { port: framePort, key },
+      }
+    : undefined;
   const routes = [
     ...pageRoutes({
       drafts: deps.drafts,
@@ -254,6 +267,7 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       ...(deps.shutdown ? { shutdown: deps.shutdown } : {}),
       ...(edit ? { edit } : {}),
       ...(deps.imageStore ? { imageStore: deps.imageStore } : {}),
+      ...(previews ? { previews } : {}),
     }),
   ];
   const studio = {

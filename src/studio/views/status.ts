@@ -1,6 +1,6 @@
 // What the studio says about a version: its status, the findings to show and the next step.
 
-import { type ChecksFile, type Finding, sortFindings } from '../../checks/index.ts';
+import { type ChecksFile, type Finding, GUIDELINES, sortFindings } from '../../checks/index.ts';
 import { WIDTHS, type Width } from './draft-query.ts';
 
 export type DraftStatus =
@@ -44,6 +44,21 @@ export function statusLine(status: DraftStatus): StatusLine {
       }
       return { key: 'studio.status.good', params: {}, tone: 'quiet' };
   }
+}
+
+/**
+ * How many rules of the book the full check ran and found nothing against (the Checks tab's
+ * "passed"): the automatic rules of the checks that ran (the deep ones only after `--deep`), less
+ * every rule with a finding, accepted or not. A rule that applies to other kinds of screen is
+ * counted too, so this is the most the check can say passed, never a promise about the screen.
+ */
+export function passedCount(checks: ChecksFile): number {
+  const found = new Set([...checks.findings, ...(checks.waived ?? [])].map((one) => one.rule));
+  return GUIDELINES.filter((rule) => {
+    if (rule.check === 'edit' || checks.checks[rule.check] !== 'ran') return false;
+    const ran = rule.mode === 'auto' || (rule.mode === 'deep' && checks.deep === true);
+    return ran && !found.has(rule.id);
+  }).length;
 }
 
 /** The studio width a checked width shows at: the nearest one, a tie going to the wider. */

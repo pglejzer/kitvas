@@ -120,28 +120,76 @@ export const SKIN_SURFACES = `
   border-radius: 2px 2px 0 0;
   background: var(--st-color-accent);
 }
-/* A group that folds: a button with a chevron, then its rows. */
-.k-group { border-top: 1px solid var(--st-color-line); padding: var(--st-space-4) var(--st-space-12) var(--st-space-10); }
+/* The count after a tab's label: plain and quiet, not a pill (a tone still colours it). */
+.k-tab .k-count {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  background: none;
+  color: var(--st-color-ink-mid);
+  font-weight: var(--st-font-weight-regular);
+}
+.k-tab .k-count[data-tone="fix"] { color: var(--st-color-fix); }
+.k-tab .k-count[data-tone="review"] { color: var(--st-color-review); }
+/* A group that folds: a hairline on top, a header (a button with the chevron at its left), then
+   its rows. A folded group gives up the space under its header. */
+.k-group { border-top: 1px solid var(--st-color-line); padding: var(--st-space-4) var(--st-space-14) var(--st-space-10); }
+.k-group:has(> .k-group-head[aria-expanded="false"]) { padding-bottom: var(--st-space-4); }
 .k-group-head {
   display: flex;
   align-items: center;
-  gap: var(--st-space-6);
+  gap: var(--st-space-4);
   width: 100%;
-  min-height: 32px;
+  min-height: var(--st-size-group);
+  font-size: var(--st-font-size-label);
   font-weight: var(--st-font-weight-bold);
   text-align: left;
 }
-.k-group-head > .k-icon { color: var(--st-color-ink-mid); transition: rotate var(--st-motion-fast) var(--st-ease-out); }
+.k-group-head > .k-icon {
+  margin-left: calc(-1 * var(--st-space-4));
+  color: var(--st-color-ink-mid);
+  transition: rotate var(--st-motion-fast) var(--st-ease-out);
+}
 .k-group-head[aria-expanded="false"] > .k-icon { rotate: -90deg; }
 /* A label and its control. */
 .k-row {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: var(--st-size-label) minmax(0, 1fr);
   align-items: center;
   gap: var(--st-space-8);
   min-height: var(--st-size-row);
 }
-.k-label { color: var(--st-color-ink-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-label {
+  color: var(--st-color-ink-mid);
+  font-size: var(--st-font-size-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A card in a pane (Why, Notes, Checks, Claude): raised, inset from the pane's edges. The one
+   shown, or chosen, takes the accent ring (\`data-on\`). */
+.k-card {
+  display: grid;
+  gap: var(--st-space-6);
+  margin: 0 var(--st-space-10);
+  padding: var(--st-space-10) var(--st-space-12);
+  border-radius: var(--st-radius-md);
+  background: var(--st-color-raised);
+  min-width: 0;
+}
+.k-card[data-on] { box-shadow: inset 0 0 0 2px var(--st-color-accent); }
+.k-card .k-chip, .k-card .k-field, .k-card .k-select-trigger, .k-card .k-cmd {
+  background: var(--st-color-raised-strong);
+}
+/* The first line of a card: a muted line of facts (who, when, where). */
+.k-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--st-space-6);
+  min-width: 0;
+  color: var(--st-color-ink-mid);
+  font-size: var(--st-font-size-xs);
+}
 /* Nothing here yet: a line that says what to do next. */
 .k-empty {
   display: grid;

@@ -128,6 +128,36 @@ export type CaptureReport = {
   reference: Pixels | undefined;
 };
 
+/**
+ * Catalog examples shot as PNG files one after another in one context, for the editor's Insert
+ * pane (ADR 0075). Unlike `capture` nothing is compared: the page's own background is in the shot.
+ */
+export type ShotBatch = {
+  /** Absolute path of the catalog's build/html/index.html. */
+  page: string;
+  width: number;
+  height: number;
+  /** Device pixels per CSS pixel. */
+  scale: number;
+  shots: PreviewShot[];
+};
+
+export type PreviewShot = {
+  /** The query, `?example=Button.1`. */
+  search: string;
+  /** The element shot: the first that matches this selector. */
+  target: string;
+  /** True: its box widened by the reach of its shadow, as `capture` takes it. False: the box exactly. */
+  reach: boolean;
+  /** Absolute path of the PNG to write. */
+  out: string;
+};
+
+export type ShotReport =
+  /** `width` and `height` in CSS pixels; `backdrop` is the page's background as `#rrggbb`. */
+  | { state: 'written'; width: number; height: number; backdrop: string | null }
+  | { state: 'failed'; error: string };
+
 export interface BrowserSession {
   /** `chrome`, `msedge` or `chromium`. */
   readonly name: string;
@@ -141,6 +171,8 @@ export interface BrowserSession {
   crop?(inputs: Crop[]): Promise<CropReport[]>;
   /** Screenshots a catalog example and decodes it with its reference. */
   capture?(input: Capture): Promise<CaptureReport>;
+  /** Writes each shot of a batch as a PNG; one report per shot, in order. */
+  shoot?(input: ShotBatch): Promise<ShotReport[]>;
   /** A live page for rework and craft: shot, page facts and inventory. */
   survey?(input: Survey): Promise<SurveyReport>;
   close(): Promise<void>;

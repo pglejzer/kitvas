@@ -5,6 +5,7 @@ export * from './app/build-draft.ts';
 export * from './domain/candidates.ts';
 export * from './domain/catalog-mount.ts';
 export * from './domain/catalog-stamp.ts';
+export * from './domain/icon-sheet.ts';
 export * from './domain/mount.ts';
 export * from './domain/page.ts';
 export * from './domain/report.ts';

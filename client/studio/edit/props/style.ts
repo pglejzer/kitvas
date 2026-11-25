@@ -1,64 +1,65 @@
 // A style row of the properties panel (plan 13, task G; plan 15, task C): its control follows the
-// property's kind. Tokens come first in a picker with a raw length or value after them; a keyword
-// is segmented buttons or a short list; a background image is a file of the version, with Upload.
-// Stage 4c (spec goals 1 and 5): the row shows and writes the value at the edit context (a width,
-// a state), says where the value comes from, offers "Remove for this width" and "Apply to all
-// widths", and marks colour and size options that would fail a live check. Plan 18: a colour row
-// shows a swatch of the colour before its list; an off-kit value says so with a review chip. A
-// value a shorthand of the rule holds shows as its part, and the source names the shorthand; a
-// side of a box or of a pair has no reset (ADR 0070).
+// property's kind (`style-controls.ts`). Stage 4c (spec goals 1 and 5): the row shows and writes
+// the value at the edit context (a width, a state), says where the value comes from, offers
+// "Remove for this width" and "Apply to all widths", and marks colour and size options that would
+// fail a live check. A value a shorthand of the rule holds shows as its part, and the source names
+// the shorthand; a side of a box or of a pair has no reset (ADR 0070). Plan 18f (task 2): a value
+// off the kit says "Off kit" with "Use <token>" for the nearest token; the sentences that explain
+// a row (where its value comes from, what the frame computes, why a pick asks Claude) are its
+// label's tooltip, read by a screen reader too, except the short source words of a context.
 
-import type {
-  EditOp,
-  Shorthand,
-  StyleProperty,
-  StyleValue,
-  TokenOption,
-} from '../../../../src/edit/index.ts';
+import type { EditOp, Shorthand, StyleProperty, StyleValue } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import { isBase, sourceAt } from '../style/context-ops.ts';
 import {
   heldBySides,
   opsForAll,
-  opsForProp,
   readOnlyReason,
   ruleHeld,
   type StyleOptions,
   sharedText,
 } from '../style/ops.ts';
 import { text } from '../texts.ts';
+import { lockedChip } from './chips.ts';
 import {
   askCovered,
   contextActions,
   coveredAt,
-  coveredNote,
+  coveredWords,
   heldAt,
   heldNote,
   removeAll,
   sourceWords,
 } from './context.ts';
-import { el, imageControl, keywordControl, selectControl, tokenPicker } from './controls.ts';
-import {
-  imageOfUrl,
-  imageUrl,
-  KIND,
-  keywordOfProp,
-  keywordsOf,
-  plainValue,
-  propKeywords,
-} from './kinds.ts';
-import { type Env, makeRow, resetButton, staticValue } from './rows.ts';
-import { attachScrub } from './scrub.ts';
+import { el } from './controls.ts';
+import { KIND } from './kinds.ts';
+import { onKit } from './kit-value.ts';
+import { type Env, explain, makeRow, resetButton } from './rows.ts';
 import { kitHolds } from './state-held.ts';
-import { isOffKit, styleValueOf, tokensFor, varOf } from './steps.ts';
-import { allowsNegative, unitsFor } from './units.ts';
-import { optionWarning, resolveCss } from './warn.ts';
+import { tokenNameOf } from './stepper.ts';
+import { tokensFor } from './steps.ts';
+import {
+  imageRow,
+  keywordRow,
+  propSelect,
+  type RowLook,
+  type Style,
+  tokenRow,
+} from './style-controls.ts';
+
+export type { RowLook } from './style-controls.ts';
 
 /**
  * The words of a class rule as a row's source: the rule, or the shorthand of it that holds the
  * value (ADR 0070), as in "from padding of .card".
  */
-export function ruleSourceText(className: string, via: Shorthand | undefined): string {
+export function ruleSourceText(
+  className: string,
+  via: Shorthand | undefined,
+  all?: number,
+): string {
+  // A rule shared by the items of a list: the row says how many it changes.
+  if (all !== undefined) return text('props.source.scssAll', { className, count: all });
   if (via !== undefined) return text('props.source.shorthand', { shorthand: via, className });
   return text('props.source.scss', { className });
 }
@@ -72,128 +73,13 @@ function sourceText(env: Env, property: StyleProperty): string {
     const words = sourceWords(sourceAt(env.inspected, property, context), context);
     return text(words.key, words.params);
   }
-  if (source?.kind === 'scss') return ruleSourceText(source.className, source.via);
+  if (source?.kind === 'scss') {
+    const all = env.scope?.mode === 'all' ? env.scope.count : undefined;
+    return ruleSourceText(source.className, source.via, all);
+  }
   if (source?.kind === 'utility')
     return text('props.source.utility', { className: source.className });
   return text('props.source.kit');
-}
-
-/** What a style row shows and writes, read once for its control. */
-type Style = {
-  env: Env;
-  property: StyleProperty;
-  single: boolean;
-  /** A kit prop sets it, and the context is not the base: a pick asks Claude. */
-  covered: boolean;
-  /** The value the source holds as text (a declaration, or the covering prop's word). */
-  held: string | null;
-  offKit: boolean;
-  /** What to show when the source holds none: the computed value, or "mixed". */
-  hint: string;
-  /** Where a scrub starts: the held value, else the computed one. */
-  start: string | null;
-  set(value: StyleValue | null): void;
-};
-
-/** A token prop of one element as today: the prop's own enum values. */
-function propSelect(style: Style, prop: string): HTMLElement {
-  const { env, property } = style;
-  const def = env.inspected.component?.props.find((one) => one.name === prop);
-  const written = env.inspected.props.find((one) => one.name === prop);
-  const value = String((written?.kind === 'literal' ? written.value.value : def?.default) ?? '');
-  const options = (def?.values ?? []).map((name) => ({ value: name, label: name }));
-  const onChange = (name: string): void =>
-    env.commit(
-      `style:${property}`,
-      (now) => (now[0] ? opsForProp(now[0], prop, { kind: 'string', value: name }) : []),
-      text('props.label.style', { property }),
-    );
-  return selectControl({ label: property, value, options, onChange });
-}
-
-function keywordRow(style: Style, meta: HTMLElement): HTMLElement {
-  const { env, property, single, held } = style;
-  const source = env.inspected.styles[property];
-  const pick = (keyword: string): void => style.set(plainValue(keyword));
-  if (single && source?.kind === 'prop' && !style.covered) {
-    const def = env.inspected.component?.props.find((one) => one.name === source.prop);
-    const keywords = def ? propKeywords(property, def) : [];
-    // A prop named like the property but in the kit's own words: its values, as for a token.
-    if (!def || keywords.length === 0) return propSelect(style, source.prop);
-    const written = env.inspected.props.find((one) => one.name === source.prop);
-    const value = written?.kind === 'literal' ? written.value.value : def.default;
-    const current = keywordOfProp(property, def, value);
-    const hint = style.hint;
-    return keywordControl({ property, label: property, keywords, current, hint, onPick: pick });
-  }
-  const keywords = keywordsOf(property) ?? [];
-  const current = held !== null && keywords.includes(held) ? held : null;
-  if (held !== null && current === null) {
-    meta.append(el('span', 'props-hint', text('props.keyword.other', { value: held })));
-  }
-  const hint = style.hint;
-  return keywordControl({ property, label: property, keywords, current, hint, onPick: pick });
-}
-
-function imageRow(style: Style): HTMLElement {
-  const { env, property, held } = style;
-  const current = held === null ? null : imageOfUrl(held);
-  const root = el('div', 'props-picture');
-  root.append(
-    imageControl({
-      label: property,
-      images: env.inspected.images ?? [],
-      current,
-      shown: held !== null && current === null ? held : style.hint,
-      onPick: (file) => style.set(plainValue(imageUrl(file))),
-    }),
-    // A stored file is in the version only after the element is read again.
-    env.upload((file) => {
-      env.reread();
-      style.set(plainValue(imageUrl(file)));
-    }),
-  );
-  return root;
-}
-
-/** The colour a colour row's swatch shows: what the frame computes, else the value held. */
-function sampleOf(style: Style, tokens: readonly TokenOption[]): string | null {
-  const computed = style.single ? style.env.state.computed?.[style.property] : undefined;
-  if (computed) return computed;
-  if (style.held === null) return null;
-  const name = varOf(style.held);
-  if (name === null) return style.held;
-  return tokens.find((token) => token.var === name)?.css ?? null;
-}
-
-function tokenRow(style: Style, label: HTMLElement): HTMLElement {
-  const { env, property, held } = style;
-  const tokens = tokensFor(env.tokens, property);
-  const length = KIND[property] === 'dimension';
-  const colour = KIND[property] === 'color';
-  const current = held === null ? null : styleValueOf(held, style.offKit);
-  // A scale to scrub through: lengths, weights and numbers; colours have no order to drag along.
-  // A covered property is never written, so there is nothing to scrub.
-  if (!colour && !style.covered) {
-    attachScrub(label, {
-      tokens,
-      min: allowsNegative(property) ? null : 0,
-      rawPx: length,
-      getStart: () => style.start,
-      onScrub: (value) => style.set(value),
-    });
-  }
-  const card = style.single ? env.state.a11y : null;
-  return tokenPicker({
-    label: property,
-    tokens,
-    current,
-    placeholder: style.hint,
-    ...(length ? { length: { property, units: unitsFor(property) } } : {}),
-    ...(colour ? { sample: sampleOf(style, tokens) } : {}),
-    warn: (token) => optionWarning(property, token.css, card, resolveCss),
-    onPick: (value) => style.set(value),
-  });
 }
 
 /** What the elements hold for the row: one element's source, or the text they all share. */
@@ -233,16 +119,54 @@ function hintOf(env: Env, property: StyleProperty, single: boolean, computed: st
   return computed || (source.kind === 'below' ? source.value : '');
 }
 
-/** A style row: its control by the property's kind, the reset, the source and the marks. */
-export function styleRow(env: Env, property: StyleProperty): HTMLElement {
+/**
+ * "Off kit", and "Use <token>" for the nearest token of the property's scale on a row that
+ * writes: an ordinary edit, previewed while pointed at. Nothing for a value on the kit.
+ */
+function offKitMarks(style: Style, writes: boolean): HTMLElement[] {
+  const scale = tokensFor(style.env.tokens, style.property);
+  const on = onKit(style.held, scale, style.env.tokens);
+  if (on.kind !== 'offkit') return [];
+  // A state, said in the review tone: the value is no kit token.
+  const mark = el('span', 'k-chip props-offkit', text('props.offkit'));
+  mark.dataset.tone = 'review';
+  mark.title = text('props.offkit.title');
+  const { nearest } = on;
+  if (nearest === null || !writes) return [mark];
+  const token = { token: nearest.var };
+  const words = text('props.offkit.use', { token: tokenNameOf(nearest) });
+  const use = el('button', 'k-btn props-act', words);
+  use.type = 'button';
+  use.dataset.control = 'use-nearest';
+  use.title = text('props.offkit.useTitle', { token: nearest.path, value: nearest.css });
+  use.addEventListener('click', () => style.set(token));
+  use.addEventListener('pointerenter', () => style.preview(token));
+  use.addEventListener('pointerleave', () => style.preview(null));
+  return [mark, use];
+}
+
+/**
+ * A style row: its control by the property's kind, the reset, the source and the marks. `look`
+ * draws it as a second view of the property (Layout's human rows) or without a label (Radius).
+ */
+export function styleRow(env: Env, property: StyleProperty, look: RowLook = {}): HTMLElement {
   const { inspected } = env;
   const { context } = env.state;
   const base = isBase(context);
   const single = env.views.length === 1;
   const source = inspected.styles[property];
-  const key = `style:${property}`;
-  const aliases = single && source?.kind === 'prop' ? [`prop:${source.prop}`] : [];
-  const row = makeRow(env, key, aliases, property);
+  const own = `style:${property}`;
+  const key = look.key ?? own;
+  // A refusal of the property shows on every view of it.
+  const aliases = [
+    ...(key === own ? [] : [own]),
+    ...(single && source?.kind === 'prop' ? [`prop:${source.prop}`] : []),
+  ];
+  const row = makeRow(env, key, aliases, look.label ?? property);
+  if (look.bare === true) {
+    row.root.dataset.bare = '';
+    row.label.classList.add('k-sr');
+  }
   const computed = single ? (env.state.computed?.[property] ?? '') : '';
   const covered = single && coveredAt(inspected, property, context);
   // ADR 0055: the kit's own rule for this state wins over anything written here.
@@ -269,11 +193,30 @@ export function styleRow(env: Env, property: StyleProperty): HTMLElement {
   };
   const hint = mixed ? text('props.mixed') : hintOf(env, property, single, computed);
   const start = held ?? (computed || null);
-  const style: Style = { env, property, single, covered, held, offKit, hint, start, set };
+  // The same ops a pick would write, shown in the cards; a covered or beaten row writes nothing.
+  const preview = (value: StyleValue | null): void => {
+    if (covered || beaten) return;
+    env.preview(value === null ? null : opsForAll(env.views, property, value, options));
+  };
+  const style: Style = {
+    env,
+    property,
+    key,
+    look,
+    single,
+    covered,
+    held,
+    offKit,
+    hint,
+    start,
+    computed,
+    set,
+    preview,
+  };
   const kind = KIND[property];
   if (reason) {
-    row.body.append(staticValue(computed || '-'));
-    row.meta.append(el('span', 'props-hint', text(`props.reason.${reason}`)));
+    // Read-only: the value as the frame computes it, locked, and why as its tooltip.
+    row.body.append(lockedChip(computed || '-', text(`props.reason.${reason}`)));
   } else if (kind === 'keyword') {
     row.body.append(keywordRow(style, row.meta));
   } else if (single && source?.kind === 'prop' && !covered) {
@@ -281,13 +224,13 @@ export function styleRow(env: Env, property: StyleProperty): HTMLElement {
   } else if (kind === 'image') {
     row.body.append(imageRow(style));
   } else {
-    row.body.append(tokenRow(style, row.label));
+    row.body.append(tokenRow(style, row));
   }
   if (covered) {
-    const note = coveredNote(env);
-    if (note !== null) row.meta.append(note);
+    // Every covered row says why in its tooltip.
+    explain(row.label, coveredWords(env));
   } else if (!reason && !base) {
-    if (beaten) row.meta.append(heldNote(env));
+    if (beaten) explain(row.label, heldNote(env).textContent ?? '');
     row.meta.append(...contextActions(env, property, key));
   } else if (!reason && (held !== null || mixed) && !heldBySides(env.views, property)) {
     // A side a box or a pair holds has no reset: the whole `padding` or `margin` has one.
@@ -297,20 +240,19 @@ export function styleRow(env: Env, property: StyleProperty): HTMLElement {
   // A keyword and an image of the version are never off-kit; a prop holds the kit's own word.
   const tokenKind = kind !== 'keyword' && kind !== 'image';
   const fromRule = source?.kind !== 'prop' || !base;
-  if (tokenKind && fromRule && held !== null && (offKit || isOffKit(held, env.tokens))) {
-    // A state, said in the review tone: the value is no kit token.
-    const mark = el('span', 'k-chip', text('props.offkit'));
-    mark.dataset.tone = 'review';
-    mark.title = text('props.offkit.title');
-    row.meta.append(mark);
-  }
+  if (tokenKind && fromRule) row.meta.append(...offKitMarks(style, reason === null));
   if (single) {
-    const said = el('span', 'props-from', sourceText(env, property));
-    if (!base) said.dataset.context = sourceAt(inspected, property, context).kind;
-    row.meta.append(said);
+    const said = sourceText(env, property);
+    if (base) explain(row.label, said);
+    else {
+      // In a width or a state the source is a short status of its own, so it stays in view.
+      const from = el('span', 'props-from', said);
+      from.dataset.context = sourceAt(inspected, property, context).kind;
+      row.meta.append(from);
+    }
   }
-  if (computed) {
-    row.meta.append(el('span', 'props-calc', text('props.computed', { value: computed })));
-  }
+  if (computed) explain(row.label, text('props.computed', { value: computed }));
+  // A row without a label shows its tooltip on the control's ground.
+  if (look.bare === true) row.body.title = row.label.title;
   return row.root;
 }

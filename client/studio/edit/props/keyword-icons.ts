@@ -16,13 +16,18 @@ const DIRECTION: Icons = new Map<string, IconName>([
   ['column-reverse', 'arrow-up'],
 ]);
 
-const JUSTIFY: Icons = new Map<string, IconName>([
+const START_END: Icons = new Map<string, IconName>([
   ['flex-start', 'align-start'],
   ['center', 'align-center'],
   ['flex-end', 'align-end'],
 ]);
 
-const ALIGN: Icons = new Map<string, IconName>([...JUSTIFY, ['stretch', 'align-stretch']]);
+const JUSTIFY: Icons = new Map<string, IconName>([
+  ...START_END,
+  ['space-between', 'align-between'],
+]);
+
+const ALIGN: Icons = new Map<string, IconName>([...START_END, ['stretch', 'align-stretch']]);
 
 const TEXT_ALIGN: Icons = new Map<string, IconName>([
   ['left', 'align-start'],

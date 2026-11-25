@@ -5,6 +5,7 @@ export * from './app/edit-state.ts';
 export * from './app/history/element-history.ts';
 export * from './app/history/restore.ts';
 export * from './app/inspect.ts';
+export type { ItemScope } from './app/inspect-item.ts';
 export * from './app/locate.ts';
 export * from './app/locks/lock-restore.ts';
 export * from './app/structure/palette.ts';

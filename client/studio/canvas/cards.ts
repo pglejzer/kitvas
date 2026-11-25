@@ -44,7 +44,7 @@ type Extra = { width: number; figure: HTMLElement; frame: Frame };
 
 const COUNT_LINK = 'a[data-dock-cards]';
 /** The pills' other links keep the cards shown. */
-const KEEP_LINKS = 'a[data-dock-width], [data-dock="states"] a[data-state]';
+const KEEP_LINKS = 'a[data-dock-width], a[data-dock-size], [data-dock="states"] a[data-state]';
 
 function replaceAddress(href: string): void {
   try {

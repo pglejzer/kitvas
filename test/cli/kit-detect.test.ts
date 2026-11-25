@@ -33,6 +33,7 @@ function harness(cwd: string) {
     verify: () => Promise.reject(new Error('verify is not used here')),
     scan: () => Promise.reject(new Error('scan is not used here')),
     crop: () => Promise.reject(new Error('crop is not used here')),
+    previews: () => Promise.reject(new Error('previews is not used here')),
   });
   const run = (...argv: string[]) => runCli(['kit', 'detect', ...argv], [command], io);
   const data = (): Extract<KitView, { view: 'detect' }> => {

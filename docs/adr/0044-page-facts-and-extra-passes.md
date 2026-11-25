@@ -1,6 +1,6 @@
 # 0044. Page facts and extra passes
 
-Date: 2026-11-23. Status: accepted. Adds to `0020-checks-and-findings.md`. Spec: `docs/specs/2026-11-23-kitvas-stage-3a-ux-ui-checks-design.md`, sections 3, 7 and 11a.
+Date: 2026-11-23. Status: accepted, changed in part by ADR 0073. Adds to `0020-checks-and-findings.md`. Spec: `docs/specs/2026-11-23-kitvas-stage-3a-ux-ui-checks-design.md`, sections 3, 7 and 11a.
 
 ## Context
 

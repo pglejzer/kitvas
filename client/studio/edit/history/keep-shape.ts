@@ -103,6 +103,7 @@ export const OP_FIELDS: Readonly<Record<string, Fields>> = {
   duplicateItem: { id, item: index, path: optional(path) },
   removeItem: { id, item: index, path: optional(path) },
   setItemText: { id, item: index, value: text, before: text, path: optional(path) },
+  addItemClass: { id, path, className: text },
   patch: { file: text, hunks },
   file: { file: text, text: orNull(text), before: orNull(text) },
 };
@@ -159,6 +160,11 @@ export function readGesture(value: unknown): Gesture | null {
     if (renames === null) return null;
     gesture.renames = renames;
   }
+  // "This item" (ADR 0072): the copy its preview shows on.
+  if (value.item !== undefined) {
+    if (typeof value.item !== 'number' || !index(value.item)) return null;
+    gesture.item = value.item;
+  }
   return gesture;
 }
 
@@ -187,7 +193,19 @@ export function readChange(value: unknown): StepEntry | null {
   if (typeof at !== 'number' || !Number.isFinite(at)) return null;
   const names: unknown[] = files;
   if (!names.every((file): file is string => typeof file === 'string')) return null;
-  const entry: StepEntry = { by, id: element, label, files: [...names], offKit, at };
+  const { before, after } = value;
+  if (before !== undefined && typeof before !== 'string') return null;
+  if (after !== undefined && typeof after !== 'string') return null;
+  const entry: StepEntry = {
+    by,
+    id: element,
+    label,
+    files: [...names],
+    offKit,
+    at,
+    ...(before === undefined ? {} : { before }),
+    ...(after === undefined ? {} : { after }),
+  };
   if (value.chips === undefined) return entry;
   if (!Array.isArray(value.chips)) return null;
   const chips = value.chips.map(readChip);

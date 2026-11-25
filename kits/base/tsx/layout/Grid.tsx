@@ -6,7 +6,7 @@ export type GridProps = HTMLAttributes<HTMLDivElement> & {
   /** 1 to 12. */
   columns?: number;
   gap?: Gap;
-  /** One column under 640px. */
+  /** Two columns under 960px when there are three or more (ADR 0074); one column under 640px. */
   collapse?: boolean;
 };
 
@@ -22,7 +22,12 @@ export function Grid({
   return (
     <div
       {...rest}
-      className={cx('kit-grid', collapse && 'kit-grid--collapse', className)}
+      className={cx(
+        'kit-grid',
+        collapse && 'kit-grid--collapse',
+        collapse && count >= 3 && 'kit-grid--wide',
+        className,
+      )}
       style={withVars(style, { '--_gap': gapVar(gap), '--_columns': count })}
     />
   );

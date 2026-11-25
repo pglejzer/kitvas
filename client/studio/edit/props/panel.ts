@@ -6,21 +6,27 @@
 // half-typed value. The parts are in `props-*.ts`; this file mounts them and keeps their state.
 // Plan 18 (task C, C8): the pane holds a head that stays in view and one part that scrolls; both
 // are kept across redraws, so the scroll stays where the person left it. The rows of a new
-// selection rise in once.
+// selection rise in once. Plan 18f (task 2): the Source strip is the pane's foot, in view under
+// the rows; the drawing helpers are `pane-draw.ts`.
 
 import type { EditOp, StyleProperty } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
+import { MAX_PREVIEW, type PreviewChange } from '../../../channel/edit-protocol.ts';
 import { inspect as readInspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { uploadControl } from '../insert/image-upload.ts';
 import { type EditorState, elementOf } from '../store.ts';
 import { HANDLE_NOTE, readHandleNote } from '../style/handle-writes.ts';
 import { MAX_OPS, refusalKey } from '../style/ops.ts';
+import { previewContext, previewOf } from '../style/preview-of.ts';
 import { text } from '../texts.ts';
 import { BOX_START, type BoxState, ruleLink, pickSide as withSide } from './box.ts';
-import { el, showCustom } from './controls.ts';
+import { el } from './controls.ts';
+import { createDrawScheduler } from './draw.ts';
 import { readFolds, toggleFold, viewerStorage, writeFolds } from './groups.ts';
+import { emptyView, fill, keptFocus, restoreFocus, rise, settle } from './pane-draw.ts';
 import type { Env } from './rows.ts';
+import { itemReread, itemTargetOf, refusedScope, type ScopeMode, switchCountOf } from './scope.ts';
 import { type PanelUi, propsView } from './view.ts';
 
 export { opsForProp, opsForStyle, readOnlyReason, refusalKey } from '../style/ops.ts';
@@ -28,73 +34,19 @@ export { opsForProp, opsForStyle, readOnlyReason, refusalKey } from '../style/op
 /** Several elements: at most this many are read for the rows they share. */
 export const MAX_MANY = 20;
 
-/** What the panel draws: the head that stays in view, and what scrolls under it. */
-type Drawn = { head: HTMLElement[]; body: HTMLElement[] };
-
-/** A line in place of the rows: nothing selected, too many, or the element still being read. */
-function emptyView(...lines: string[]): HTMLElement {
-  const box = el('div', 'k-empty');
-  const [first, ...rest] = lines;
-  if (first !== undefined) box.append(el(rest.length > 0 ? 'strong' : 'p', undefined, first));
-  for (const line of rest) box.append(el('p', undefined, line));
-  return box;
-}
+/** What the panel draws: the head that stays in view, what scrolls under it, and the foot. */
+type Drawn = { head: HTMLElement[]; body: HTMLElement[]; foot: HTMLElement[] };
 
 /**
- * Starts an element's entrance again (`.k-rise`), as when it was just shown. An element not shown
- * now (another tab, a folded panel) does not rise: it comes in with its pane when that is shown.
+ * The live finding of `rule` on the selected element, in the block the live checks draw beside
+ * the pane (`live/view.ts`), so Accessibility's problems can move the focus to it.
  */
-function rise(node: HTMLElement): void {
-  node.classList.remove('k-rise');
-  // Reading the layout ends the old animation, so the class starts a new one.
-  if (node.getClientRects().length === 0) return;
-  node.classList.add('k-rise');
-}
-
-/** The entrance's class goes once it has run, so showing the pane later does not run it again. */
-function settle(node: HTMLElement): void {
-  const done = (event: Event): void => {
-    if (event.target === node) node.classList.remove('k-rise');
-  };
-  node.addEventListener('animationend', done);
-  node.addEventListener('animationcancel', done);
-}
-
-/** The focused control of the panel, and the text typed into it that was not sent yet. */
-type Kept = { row: string; control: string; typed: string | null; caret: [number, number] | null };
-
-function keptFocus(section: HTMLElement): Kept | null {
-  const active = document.activeElement;
-  if (!(active instanceof HTMLElement) || !section.contains(active)) return null;
-  const row = active.closest<HTMLElement>('[data-row]')?.dataset.row;
-  const control = active.dataset.control;
-  if (!row || !control) return null;
-  if (!(active instanceof HTMLInputElement)) return { row, control, typed: null, caret: null };
-  const initial = active.dataset.initial;
-  const typed = initial !== undefined && active.value !== initial ? active.value : null;
-  // A number field has no caret to read.
-  const { selectionStart, selectionEnd } = active;
-  const caret: [number, number] | null =
-    selectionStart === null || selectionEnd === null ? null : [selectionStart, selectionEnd];
-  return { row, control, typed, caret };
-}
-
-function restoreFocus(section: HTMLElement, kept: Kept | null): void {
-  if (kept === null) return;
-  const row = section.querySelector<HTMLElement>(`[data-row="${CSS.escape(kept.row)}"]`);
-  const selector = `[data-control="${CSS.escape(kept.control)}"]`;
-  const found = row?.querySelector<HTMLElement>(selector);
-  if (!row || !found) return;
-  // A half-typed raw value lives in the picker's custom field, which a redraw draws closed.
-  if (kept.typed !== null && found.closest('[hidden]')) showCustom(row);
-  found.focus();
-  if (!(found instanceof HTMLInputElement)) return;
-  if (kept.typed !== null) found.value = kept.typed;
-  try {
-    if (kept.caret) found.setSelectionRange(kept.caret[0], kept.caret[1]);
-  } catch {
-    // A field type without a caret: the focus is enough.
+function findingIn(panel: ParentNode, rule: string): HTMLElement | null {
+  const block = panel.querySelector('[data-edit="live-props"]');
+  for (const row of block?.querySelectorAll<HTMLElement>('[data-live-rule]') ?? []) {
+    if (row.dataset.liveRule === rule && row.dataset.accepted === undefined) return row;
   }
+  return null;
 }
 
 export function mountProps(ctx: EditorContext): void {
@@ -116,20 +68,68 @@ export function mountProps(ctx: EditorContext): void {
   let opened: string | null = null;
   let linked = false;
   let handleNote: string | null = null;
+  /** ADR 0072: edits go to every item of a list, or to the one copy picked on the canvas. */
+  let scope: ScopeMode = 'all';
+  /** Why "This item" was refused (a `props.reason.*` key), until the selection changes. */
+  let scopeNote: string | null = null;
+  /** The rows whose typed field "Custom" opened under the kit's control, for this selection. */
+  const custom = new Set<string>();
   let inflight: Promise<void> = Promise.resolve();
   let chain: Promise<void> = Promise.resolve();
   let latest = 0;
   let reads = 0;
-  /** The pane's head (`.k-pad`, C8) and the one part of it that scrolls. */
-  const headBox = el('div', 'k-pad props-top');
+  /** The pane's head (C8), the one part of it that scrolls, and the Source strip under it. */
+  const headBox = el('div', 'props-top');
   const scrollBox = el('div', 'k-scroll props-scroll');
+  const footBox = el('div', 'props-foot');
   settle(scrollBox);
   /** The selection whose rows are drawn now; its rows rose in when they were first drawn. */
   let drawn: string | null = null;
+  // One draw for the asks of a frame; held while an edit or a re-read is on its way, so the rows
+  // never show the old value of an element that is about to answer.
+  const scheduler = createDrawScheduler({
+    frame: (run) => void requestAnimationFrame(run),
+    draw: () => draw(),
+  });
+  const render = (): void => scheduler.request();
+
+  /** The hover preview: the ops' changes in the cards; `item` is the copy a list scope names. */
+  function sendPreview(ops: readonly EditOp[] | null, item?: number): void {
+    if (ops === null) {
+      bridge.send({ type: 'unpreview' });
+      return;
+    }
+    if (store.get().busy) return;
+    const changes: PreviewChange[] = ops
+      .flatMap((op) => {
+        const change = previewOf(op);
+        // `item` is a field of `PreviewChange` once the channel has it (plan 18e, task 5).
+        return change ? [{ ...change, ...(item === undefined ? {} : { item }) }] : [];
+      })
+      .slice(0, MAX_PREVIEW);
+    if (changes.length === 0) return;
+    const width = ops.map(previewContext).find((one) => one !== null)?.width ?? null;
+    if (bridge.sendPreview) bridge.sendPreview(changes, width);
+    else bridge.send({ type: 'preview', changes });
+  }
+
+  /** The copy "This item" writes for: set only in that mode, with one element and one copy. */
+  const itemNow = (state: EditorState) =>
+    scope === 'item' && state.selection.length === 1 ? itemTargetOf(state) : null;
 
   const ui = (): PanelUi => ({
     folds,
     box,
+    scope: {
+      chosen: itemTargetOf(store.get()) !== null,
+      pick(mode) {
+        if (mode === scope) return;
+        scope = mode;
+        // The element is read again for the new scope; the draw is held until it answers.
+        refresh(store.get());
+        render();
+      },
+    },
     toggle(id) {
       folds = toggleFold(folds, id);
       writeFolds(storage, folds);
@@ -148,6 +148,7 @@ export function mountProps(ctx: EditorContext): void {
       linked = true;
       render();
     },
+    finding: (rule) => findingIn(ctx.panel, rule),
   });
 
   /** The selected elements as read, the first one first; `null` while one is being read. */
@@ -164,10 +165,11 @@ export function mountProps(ctx: EditorContext): void {
     return views;
   }
 
-  function render(): void {
+  function draw(): void {
     if (!section) return;
     const state = store.get();
     const kept = keptFocus(section);
+    const focused = document.activeElement;
     // Nothing shows outside edit mode: the empty pane says how to start (its `data-empty`).
     if (!state.on) {
       drawn = null;
@@ -176,7 +178,7 @@ export function mountProps(ctx: EditorContext): void {
     }
     const views = viewsOf(state);
     const count = state.selection.length;
-    let view: Drawn = { head: [], body: [] };
+    let view: Drawn = { head: [], body: [], foot: [] };
     if (count === 0) {
       // With nothing selected the box is closed: the next element opens it again.
       opened = null;
@@ -185,17 +187,25 @@ export function mountProps(ctx: EditorContext): void {
       view.body.push(emptyView(text('props.many', { count }), text('props.many.tooMany')));
     } else if (!views || !state.edit) view.body.push(emptyView(text('props.loading')));
     else view = viewOf(state, views, state.edit);
-    headBox.replaceChildren(...view.head);
-    headBox.hidden = view.head.length === 0;
-    scrollBox.replaceChildren(...view.body);
-    if (headBox.parentElement !== section || scrollBox.parentElement !== section) {
-      section.replaceChildren(headBox, scrollBox);
-    }
-    // The rows of another selection rise in once, when they are first drawn.
+    // The rows of another selection rise in once, when they are first drawn; they replace the old
+    // ones whole. The same selection drawn again keeps every row that did not change.
     const key = view.head.length > 0 ? state.selection.join('\n') : null;
-    if (key !== null && key !== drawn) rise(scrollBox);
+    const fresh = key !== drawn;
+    fill(headBox, view.head, fresh);
+    headBox.hidden = view.head.length === 0;
+    fill(scrollBox, view.body, fresh);
+    fill(footBox, view.foot, fresh);
+    footBox.hidden = view.foot.length === 0;
+    const placed = [headBox, scrollBox, footBox].every((box) => box.parentElement === section);
+    if (!placed) section.replaceChildren(headBox, scrollBox, footBox);
+    if (key !== null && fresh) rise(scrollBox);
     drawn = key;
-    restoreFocus(section, kept);
+    // The focus is put back only when its control was replaced.
+    const stayed =
+      focused instanceof HTMLElement &&
+      section.contains(focused) &&
+      document.activeElement === focused;
+    if (!stayed) restoreFocus(section, kept);
   }
 
   function viewOf(
@@ -204,7 +214,7 @@ export function mountProps(ctx: EditorContext): void {
     edit: NonNullable<EditorState['edit']>,
   ): Drawn {
     const [inspected] = views;
-    if (!inspected) return { head: [], body: [] };
+    if (!inspected) return { head: [], body: [], foot: [] };
     // The box opens on the link the element's rule says (ADR 0070), once for each element: a
     // link the person picks after that stays.
     if (opened !== inspected.id) {
@@ -212,6 +222,7 @@ export function mountProps(ctx: EditorContext): void {
       linked = false;
       box = { ...box, link: ruleLink(inspected, box.layer) ?? box.link };
     }
+    const switchCount = switchCountOf(inspected, views.length, edit.format);
     const key = state.refused ? refusalKey(state.refused) : null;
     const first = state.refused?.gesture.ops[0];
     const own = first !== undefined && elementOf(first) === inspected.id;
@@ -230,6 +241,15 @@ export function mountProps(ctx: EditorContext): void {
       refuse: (gesture, reason) => store.set({ refused: { gesture, index: 0, reason } }),
       upload: (onStored) => uploadControl(ctx, onStored),
       reread: () => refresh(store.get()),
+      preview: (ops) => sendPreview(ops, itemNow(state)?.item),
+      scope: switchCount === null ? null : { mode: scope, count: switchCount },
+      custom: {
+        has: (row) => custom.has(row),
+        toggle(row) {
+          if (!custom.delete(row)) custom.add(row);
+          render();
+        },
+      },
     };
     const view = propsView(env, ui());
     // Under the head: the suggestion, what a handle could not write, then the notes.
@@ -239,6 +259,7 @@ export function mountProps(ctx: EditorContext): void {
       said.setAttribute('role', 'status');
       lead.push(said);
     }
+    if (scopeNote !== null) lead.push(el('p', 'props-hint', text(scopeNote)));
     lead.push(...view.notes);
     const body: HTMLElement[] = [];
     if (lead.length > 0) {
@@ -247,7 +268,7 @@ export function mountProps(ctx: EditorContext): void {
       body.push(under);
     }
     body.push(...view.groups);
-    return { head: view.head, body };
+    return { head: view.head, body, foot: view.foot };
   }
 
   // Edits are built when their turn comes, from the source as the server last described it, so a
@@ -274,9 +295,21 @@ export function mountProps(ctx: EditorContext): void {
         if (state.refused) store.set({ refused: null });
         const before = watched ? state.computed?.[watched] : undefined;
         // The suggestion is applied by its button: the ring shows what it changed.
-        const outcome = await history.apply({ ops, label, flash: row === 'suggest' });
-        if (outcome?.outcome === 'applied' && watched && views?.length === 1) {
-          pending.set(row, { property: watched, before });
+        // Held until the answer is in; an applied edit starts `refresh`, which holds on its own.
+        scheduler.hold();
+        try {
+          const item = itemNow(state)?.item;
+          const outcome = await history.apply({
+            ops,
+            label,
+            flash: row === 'suggest',
+            ...(item === undefined ? {} : { item }),
+          });
+          if (outcome?.outcome === 'applied' && watched && views?.length === 1) {
+            pending.set(row, { property: watched, before });
+          }
+        } finally {
+          scheduler.release();
         }
       })
       .catch(() => undefined);
@@ -302,11 +335,33 @@ export function mountProps(ctx: EditorContext): void {
     if (!id) return;
     latest += 1;
     const mine = latest;
-    const first = readInspect(slug, id).then((answer) => {
-      if (mine !== latest || store.get().selection[0] !== id || !answer.ok) return;
-      store.set({ inspected: answer.body });
+    // No draw until the elements are read again, also when a read fails.
+    scheduler.hold();
+    // The chosen copy's path reads its list for that copy (as `select/mode.ts` does); in "This
+    // item" the answer is also read for the item's own class.
+    const target = state.selection.length === 1 ? itemTargetOf(state) : null;
+    const path = target?.path;
+    const own = scope === 'item' && target !== null;
+    const read = (item: boolean) => readInspect(slug, id, path, item ? 'item' : undefined);
+    const take = (answer: Awaited<ReturnType<typeof read>>): boolean =>
+      mine === latest && store.get().selection[0] === id && answer.ok;
+    const first = read(own).then(async (answer) => {
+      if (!take(answer) || !answer.ok) return;
+      const refused = own ? refusedScope(answer.body) : null;
+      if (refused === null) {
+        store.set({ inspected: answer.body });
+        return;
+      }
+      // The item can have no class of its own: back to every item, and the reason stays shown.
+      scope = 'all';
+      scopeNote = `props.reason.${refused}`;
+      const plain = await read(false);
+      if (take(plain) && plain.ok) store.set({ inspected: plain.body });
     });
-    inflight = Promise.all([first, readOthers(rest.slice(0, MAX_MANY - 1))]).then(() => undefined);
+    inflight = Promise.all([first, readOthers(rest.slice(0, MAX_MANY - 1))])
+      .then(() => undefined)
+      .catch(() => undefined)
+      .finally(() => scheduler.release());
   }
 
   function onSelection(state: EditorState, previous: EditorState): void {
@@ -315,6 +370,9 @@ export function mountProps(ctx: EditorContext): void {
       pending.clear();
       probes.clear();
       handleNote = null;
+      scope = 'all';
+      scopeNote = null;
+      custom.clear();
     }
     for (const id of [...others.keys()]) {
       if (!state.selection.slice(1).includes(id)) others.delete(id);
@@ -326,6 +384,11 @@ export function mountProps(ctx: EditorContext): void {
   store.subscribe((state, previous) => {
     if (state.selection !== previous.selection) onSelection(state, previous);
     if (state.selection[0] && state.etags !== previous.etags) refresh(state);
+    else if (scope === 'item' && state.selection[0]) {
+      const next = itemReread(state, previous);
+      scope = next.scope;
+      if (next.read) refresh(state);
+    }
     const changed =
       state.on !== previous.on ||
       state.selection !== previous.selection ||

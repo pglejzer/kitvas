@@ -2,7 +2,15 @@
 
 import { randomUUID } from 'node:crypto';
 import { KitvasError, type Translate } from '../../shared/index.ts';
-import type { Job, JobKind, JobOutcome, JobRunner, RunningJob } from './job.ts';
+import {
+  type Job,
+  type JobKind,
+  type JobOutcome,
+  type JobRunner,
+  jobArgs,
+  jobTarget,
+  type RunningJob,
+} from './job.ts';
 
 /** Finished jobs kept for the API; older ones are dropped. */
 export const KEEP_JOBS = 50;
@@ -18,8 +26,9 @@ export type JobsDeps = {
 
 export type Jobs = {
   /**
-   * Runs `kitvas <kind> <slug>`, or `kitvas kit build <id>` for a catalog job whose `slug` is the
-   * kit id. Refused while any job of the same target runs; drafts and kits are separate targets.
+   * Runs `kitvas <kind> <slug>`, `kitvas kit build <id>` for a catalog job or `kitvas kit previews
+   * <id>` for a previews job, whose `slug` is the kit id. Refused while a job of the same target
+   * runs; a draft, a kit's examples and a kit's previews are separate targets (`jobTarget`).
    */
   start(kind: JobKind, slug: string): Job;
   get(id: string): Job;
@@ -73,15 +82,13 @@ export function createJobs(deps: JobsDeps): Jobs {
   return {
     start(kind, slug) {
       // A draft named `base` and the kit `base` are two targets and do not block each other.
+      const target = jobTarget(kind);
       const busy = [...jobs.values()].find(
-        (job) =>
-          job.slug === slug &&
-          job.state === 'running' &&
-          (job.kind === 'catalog') === (kind === 'catalog'),
+        (job) => job.slug === slug && job.state === 'running' && jobTarget(job.kind) === target,
       );
       if (busy) throw new KitvasError('JOB_RUNNING', { slug, job: busy.id });
       // The process starts first: if it cannot, no job is left behind as running.
-      const handle = deps.run(kind === 'catalog' ? ['kit', 'build', slug] : [kind, slug]);
+      const handle = deps.run(jobArgs(kind, slug));
       const job = save({
         id: randomUUID(),
         kind,
@@ -116,7 +123,7 @@ export function createJobs(deps: JobsDeps): Jobs {
     async stopFor(slug) {
       const handles = [...jobs.values()].flatMap((job) => {
         const handle = running.get(job.id);
-        return job.slug === slug && job.kind !== 'catalog' && handle ? [handle] : [];
+        return job.slug === slug && jobTarget(job.kind) === 'draft' && handle ? [handle] : [];
       });
       for (const handle of handles) handle.cancel();
       await Promise.all(handles.map((handle) => handle.done.catch(() => undefined)));

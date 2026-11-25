@@ -12,6 +12,7 @@ import { toFramePoint } from '../select/forward.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 import { carriesFiles, imageDropOps } from './image-drop.ts';
+import { duplicateMessage, type Stored } from './image-stored.ts';
 import { firstImage, uploadImage } from './image-upload.ts';
 
 /** The label of a file drag: the frame hands it back on `drop`, so it is told from a palette drag. */
@@ -54,7 +55,7 @@ export function mountFileDrop(ctx: EditorContext): void {
 
   /** The frame that has the drag now; `null` while none has it. */
   let over: Frame | null = null;
-  let waiting: { upload: Promise<string | null>; timer: ReturnType<typeof setTimeout> } | null =
+  let waiting: { upload: Promise<Stored | null>; timer: ReturnType<typeof setTimeout> } | null =
     null;
 
   const rectOf = (frame: Frame): DOMRect => frame.element.getBoundingClientRect();
@@ -89,9 +90,15 @@ export function mountFileDrop(ctx: EditorContext): void {
   }
 
   /** Writes the stored image on `target`, as `drop` named it. */
-  async function place(target: string, upload: Promise<string | null>): Promise<void> {
-    const stored = await upload;
-    if (stored === null) return;
+  async function place(target: string, upload: Promise<Stored | null>): Promise<void> {
+    const result = await upload;
+    if (result === null) return;
+    // A file already in the draft is told, and used as if it had just been added.
+    if (result.duplicate) {
+      const note = duplicateMessage(result.file);
+      toast(main, text(note.key, note.params));
+    }
+    const stored = result.file;
     const answer = await inspect(slug, target);
     if (!answer.ok) {
       toast(main, text('upload.drop.noTarget', { file: stored }));
@@ -151,7 +158,11 @@ export function mountFileDrop(ctx: EditorContext): void {
     const timer = setTimeout(() => {
       waiting = null;
       void upload.then((stored) => {
-        if (stored !== null) toast(main, text('upload.drop.stored', { file: stored }));
+        if (stored === null) return;
+        const note = stored.duplicate
+          ? duplicateMessage(stored.file)
+          : { key: 'upload.drop.stored', params: { file: stored.file } };
+        toast(main, text(note.key, note.params));
       });
     }, ANSWER_MS);
     waiting = { upload, timer };

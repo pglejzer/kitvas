@@ -1,7 +1,7 @@
 // What a studio event means for an open page: a build or check of some draft has just ended, the
 // studio's own build of a draft ended, a draft's sources changed on disk, or the stream lost events
-// and the page cannot know. A catalog job builds a kit's examples; its `slug` is a kit id, so it
-// never refreshes a draft page or the gallery.
+// and the page cannot know. A catalog job builds a kit's examples and a previews job makes a kit's
+// Insert pane previews; their `slug` is a kit id, so they never refresh a draft page or the gallery.
 
 import type { BuildEvent, SourceEvent } from '../../../src/studio/api/edit/edit-schemas.ts';
 import type { StreamEvent } from './sse.ts';
@@ -59,7 +59,7 @@ export function buildOf(event: StreamEvent): BuildEvent | undefined {
 /** The draft of a build or check that succeeded or failed; `undefined` for anything else. */
 export function endedJobSlug(event: StreamEvent): string | undefined {
   const job = jobOf(event);
-  if (!job || job.kind === 'catalog') return undefined;
+  if (!job || job.kind === 'catalog' || job.kind === 'previews') return undefined;
   const { slug, state } = job;
   if (typeof slug !== 'string' || typeof state !== 'string') return undefined;
   return ENDED.has(state) ? slug : undefined;

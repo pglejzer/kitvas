@@ -15,6 +15,7 @@ import { etagOf, requireIfMatch } from '../http/etag.ts';
 import { type ApiRoute, apiRoute } from '../http/router.ts';
 import type { Inbox } from '../inbox/inbox.ts';
 import type { Jobs } from '../jobs/jobs.ts';
+import type { PalettePreviews } from '../previews/answer.ts';
 import type { OpenLinks } from '../security/open-links.ts';
 import { type EditDeps, editRoutes } from './edit/edit-routes.ts';
 import { structureRoutes } from './edit/structure-routes.ts';
@@ -42,6 +43,7 @@ import {
 } from './schemas.ts';
 import { settingsRoutes } from './settings/settings-routes.ts';
 import { trashRoutes } from './trash/trash-routes.ts';
+import { versionChecks } from './version-checks.ts';
 import { viewRoutes } from './view/view-routes.ts';
 import { waiverRoutes } from './waivers/waiver-routes.ts';
 import { whyRoutes } from './why/why-routes.ts';
@@ -72,6 +74,8 @@ export type ApiDeps = {
   view: ViewStore;
   /** The live loop: a delete waits for the draft's running build to end (`live-loop.ts`). */
   live?: { settle(slug: string): Promise<void> };
+  /** The Insert pane's kit previews and where they are served (ADR 0075); none without them. */
+  previews?: PalettePreviews;
 };
 
 const draftPath = (slug: string): string => `/api/v1/drafts/${slug}`;
@@ -161,7 +165,10 @@ export function apiRoutes(deps: ApiDeps): ApiRoute[] {
       response: { status: 200, schema: VersionSchema },
       handle: ({ params }) => ({
         status: 200,
-        body: versionInfo(deps.drafts, params.slug, Number(params.number)),
+        body: {
+          ...versionInfo(deps.drafts, params.slug, Number(params.number)),
+          ...versionChecks(deps.drafts, params.slug, Number(params.number)),
+        },
       }),
     }),
     apiRoute({

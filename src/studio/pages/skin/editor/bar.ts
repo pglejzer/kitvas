@@ -8,9 +8,9 @@
 // is a `.k-pop.k-menu`, which rises in each time the menu opens.
 //
 // From 1024 px up nothing in the bar overlaps or leaves it (spec 6.4, fix 4), in Preview and in
-// Edit, by rules on the bar's width (a container query, no script). The end column is never
-// narrower than what the end holds and the start gives it the room, so the title is cut with an
-// ellipsis before anything meets Preview | Edit; that switch and Save version never shrink. As the
+// Edit, by rules on the bar's width (a container query, no script). The two side columns are
+// equal, so Preview | Edit sits in the middle on every version and in both modes; the title is cut
+// with an ellipsis before anything meets it; that switch and Save version never shrink. As the
 // bar narrows, what gives way, in order: the session line, Claude's status words (the dot stays),
 // then the words of View, More and Compare (their icons stay). Each mode holds other things at the
 // end, so each has its own widths. What gives way is hidden for the eye only: it still names its
@@ -32,8 +32,10 @@ export const SKIN_EDITOR_BAR = `
   z-index: 30;
   border-bottom-color: transparent;
   container: editor-bar / inline-size;
-  grid-template-columns: minmax(0, 1fr) auto minmax(min-content, 1fr);
+  /* Two equal sides, so Preview | Edit stays in the middle whatever the sides hold. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 }
+.bar-editor .k-bar-mid { justify-content: center; }
 :root[data-panels="flush"] .bar-editor { border-bottom-color: var(--st-color-line); }
 .bar-crumb { flex: none; padding: 0 var(--st-space-6); }
 .bar-slash { flex: none; color: var(--st-color-ink-mid); }
@@ -101,7 +103,7 @@ export const SKIN_EDITOR_BAR = `
   }
   [data-mode="preview"] .bar-editor .k-btn:has(> .k-bar-word) { padding: 0 var(--st-space-6); }
 }
-@container editor-bar (max-width: 1099px) {
+@container editor-bar (max-width: 1179px) {
   [data-mode="edit"] .bar-editor .k-bar-status-words {
     ${AWAY}
   }

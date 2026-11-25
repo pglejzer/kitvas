@@ -267,6 +267,10 @@ export function createStructure(deps: StructureDeps): FrameStructure {
           // A drag the page forwards needs the pointer tools, which exist in edit mode only.
           if (editing) drag.forward(message);
           break;
+        case 'drop-back':
+          // The drop was refused, in conflict or lost: the frame's own moves of it are undone.
+          if (editing) drag.dropBack();
+          break;
         case 'release':
           // The page heard a release the frame did not: whichever tool still holds a press ends
           // it. A press on a handle is never a press of the drag, so at most one of them acts.

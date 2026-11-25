@@ -53,6 +53,10 @@ export const VersionSchema = z.strictObject({
   createdAt: z.string(),
   built: z.boolean(),
   states: StatesSchema,
+  /** The full check's screenshot below the version's `build/` (`shots/filled-1280.png`); `null` without one. */
+  shot: z.string().nullable(),
+  /** The last full check's counts; `null` when the version was never checked. */
+  check: z.strictObject({ fix: z.number().int(), review: z.number().int() }).nullable(),
 });
 
 export const OpenApiSchema = z.record(z.string(), z.unknown());

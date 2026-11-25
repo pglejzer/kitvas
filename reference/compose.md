@@ -32,7 +32,7 @@ Also read `reference/anti-slop.md`, in this folder: the generic look a generated
 - R-COMPOSE-11: No hex, `rgb()`, `hsl()` or colour names in styles. No pixel or rem value that equals a spacing, radius or font-size token: write the token.
 - R-COMPOSE-12: Lay out with the kit's `Stack` and `Grid` when the context lists them; use SCSS only for what they cannot do (widths, alignment, responsive changes).
 - R-COMPOSE-13: Never address elements by tag or class from another section. Each section styles only its own class.
-- R-COMPOSE-14: Make the layout work at 390 px and at 1280 px wide. Prefer the kit's own responsive props (such as a `Grid` that collapses); a width inside `@media` is written in px, because `var()` does not work there.
+- R-COMPOSE-14: Make the layout work at 390, 768 and 1280 px wide. Prefer the kit's own responsive props (such as a `Grid` that collapses); a width inside `@media` is written in px, because `var()` does not work there.
 
 ## States
 

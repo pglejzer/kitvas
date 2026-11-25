@@ -6,6 +6,24 @@ import { type Draft, latestVersion, type States } from '../../drafts/index.ts';
 export const WIDTHS = [390, 768, 1280] as const;
 export type Width = (typeof WIDTHS)[number];
 
+export type SizeGroup = 'phone' | 'tablet' | 'desktop';
+
+/**
+ * Every size the width pill's menu offers, by device group (spec part F). `name` is the last part of
+ * the text key `studio.width.size.<group>.<name>`. A copy is in `client/studio/canvas/width.ts`.
+ */
+export const SIZES: readonly { width: number; group: SizeGroup; name: string }[] = [
+  { width: 320, group: 'phone', name: 'small' },
+  { width: 390, group: 'phone', name: 'phone' },
+  { width: 430, group: 'phone', name: 'large' },
+  { width: 768, group: 'tablet', name: 'tablet' },
+  { width: 1024, group: 'tablet', name: 'wide' },
+  { width: 1280, group: 'desktop', name: 'laptop' },
+  { width: 1440, group: 'desktop', name: 'laptopLarge' },
+  { width: 1920, group: 'desktop', name: 'desktop' },
+  { width: 2560, group: 'desktop', name: 'wide' },
+];
+
 /** Any other width the canvas can show (`?view=`), in CSS pixels. */
 export const MIN_VIEW = 320;
 export const MAX_VIEW = 2560;

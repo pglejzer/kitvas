@@ -106,10 +106,8 @@ test('a craft board is visited at 390 and 1280 with the craft pass only, deep or
 
 test('a draft with no kind, a screen and a rework draft keep the screen plan', () => {
   const screen = visitPlan(false).map((one) => one.passes);
-  assert.deepEqual(screen, [
-    ['reflow', 'focus', 'spacing'],
-    ['focus', 'spacing'],
-  ]);
+  // 390 and 1280 with their passes, then 768 with the width rules only (ADR 0074).
+  assert.deepEqual(screen, [['reflow', 'focus', 'spacing'], ['focus', 'spacing'], []]);
   assert.deepEqual(
     visitPlan(false, 'screen').map((one) => one.passes),
     screen,
@@ -118,7 +116,7 @@ test('a draft with no kind, a screen and a rework draft keep the screen plan', (
     visitPlan(false, 'rework').map((one) => one.passes),
     screen,
   );
-  assert.equal(visitPlan(true, 'rework').length, 5);
+  assert.equal(visitPlan(true, 'rework').length, 7);
 });
 
 test('craft rules run on each main visit that brings craft facts', async () => {

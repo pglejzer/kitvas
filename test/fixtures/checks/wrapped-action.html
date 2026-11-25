@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wrapped actions</title>
+    <style>
+      body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; }
+      button, a { font-size: 16px; line-height: 24px; padding: 8px; }
+      #narrow { width: 110px; }
+      #icon { width: 110px; display: inline-flex; gap: 4px; align-items: center; }
+      #icon svg { width: 16px; height: 16px; }
+      #fits { white-space: nowrap; }
+      #link { display: block; width: 110px; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <button type="button" id="narrow" data-ks="sections/Plans:button">Try Pro free for 14 days</button>
+      <button type="button" id="fits" data-ks="sections/Plans:button/1">Try Pro free for 14 days</button>
+      <button type="button" id="icon" data-ks="sections/Plans:button/2"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 0h16v16H0z" /></svg>Save</button>
+      <input id="field-button" type="submit" value="Send the request now" data-ks="sections/Plans:input" />
+      <a id="link" href="/plans" data-ks="sections/Plans:a">See all plans and prices</a>
+    </div>
+  </body>
+</html>

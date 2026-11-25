@@ -22,7 +22,9 @@ import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 import { dropRequest, getRequests, postRequest } from './api.ts';
+import { isEarlier } from './earlier.ts';
 import { chosenOf, createFoot } from './foot.ts';
+import { mountMarks } from './marks.ts';
 import { blockedOf, missing, namesOf, presenceOf } from './names.ts';
 import {
   createVariantPreview,
@@ -40,7 +42,7 @@ import {
   variantKey,
   variantsOf,
 } from './requests.ts';
-import { createStatus, LISTEN_RECHECK_MS, recheckLater } from './status.ts';
+import { createStatus, LISTEN_RECHECK_MS, openCount, recheckLater } from './status.ts';
 import {
   type CardModel,
   type CardParts,
@@ -48,6 +50,7 @@ import {
   drawCheck,
   type RequestModel,
   renderRequests,
+  stateKeyOf,
 } from './tab.ts';
 import { type BuiltVariant, buildVariant, type ElementView, variantIds } from './variants.ts';
 
@@ -78,7 +81,8 @@ export function mountAi(ctx: EditorContext): void {
   let cards = new Map<string, Drawn>();
   let drawTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const root = el('div', 'k-pad claude');
+  // No `k-pad`: the cards are inset by their own margin (`.k-card`), the status and the form by the skin.
+  const root = el('div', 'claude');
   const status = createStatus(slug, main);
   const form = createForm({ send, improve });
   const list = el('div', 'claude-list');
@@ -219,6 +223,7 @@ export function mountAi(ctx: EditorContext): void {
       return {
         key: variantKey(request.id, index),
         label: variant.label,
+        number: index + 1,
         changes: variant.changes.length,
         chips: made.kind === 'ready' ? opChips(made.ops) : changeChips(variant.changes),
         built: made,
@@ -234,13 +239,27 @@ export function mountAi(ctx: EditorContext): void {
       request.stale && done === undefined && variants.length > 0
         ? againRequest(request, presenceOf(state.tree))
         : undefined;
-    return { request, names: request.elements.map(nameOf).join(', '), cards: models, again };
+    return {
+      request,
+      names: request.elements.map(nameOf).join(', '),
+      cards: models,
+      again,
+      applied: done !== undefined,
+    };
   }
 
-  /** The foot and the chosen card's ring follow the store's `busy` without drawing the cards. */
+  /**
+   * The foot and the chosen card's ring follow the store's `busy` without drawing the cards; each
+   * card's state line says whether the canvas shows it now.
+   */
   function syncButtons(): void {
-    const { busy } = store.get();
-    for (const [key, { parts }] of cards) parts.card.toggleAttribute('data-on', key === chosen);
+    const { busy, variant } = store.get();
+    for (const [key, { parts, model, request, index }] of cards) {
+      parts.card.toggleAttribute('data-on', key === chosen);
+      const onCanvas = variant?.request === request && variant.index === index;
+      const words = stateKeyOf(model, onCanvas);
+      parts.state.textContent = words === null ? '' : text(words);
+    }
     const some = cards.size > 0;
     foot.render({ chosen: chosenOf(chosen, cards), busy: busy || applying !== null, some });
   }
@@ -265,9 +284,12 @@ export function mountAi(ctx: EditorContext): void {
     const models = {
       selected: selected.map((request) => modelOf(request, state, nameOf)),
       others: others.map((request) => modelOf(request, state, nameOf)),
+      latest: state.edit?.version ?? null,
     };
     const byKey = new Map<string, Omit<Drawn, 'parts'>>();
     for (const model of [...models.selected, ...models.others]) {
+      // Only an open request draws its cards: a finished one is a row under "Earlier".
+      if (isEarlier(model.request, model.applied)) continue;
       model.cards.forEach((card, index) => {
         byKey.set(card.key, { model: card, request: model.request.id, index });
       });
@@ -398,7 +420,9 @@ export function mountAi(ctx: EditorContext): void {
   });
 
   store.subscribe((state, previous) => {
-    if (state.listening !== previous.listening) status.render(state.listening);
+    if (state.listening !== previous.listening || state.requests !== previous.requests) {
+      status.render(state.listening, openCount(state.requests));
+    }
     const files = state.etags !== previous.etags || state.edit?.version !== previous.edit?.version;
     if (files) forget();
     // A new build in the cards has no preview in it.
@@ -416,13 +440,19 @@ export function mountAi(ctx: EditorContext): void {
     else if (state.busy !== previous.busy) {
       syncButtons();
       preview.refresh();
+    } else if (state.variant !== previous.variant) {
+      // The canvas shows another card, or none: only the state lines change.
+      syncButtons();
     }
     if (state.selection !== previous.selection || state.viewing !== previous.viewing) {
       renderForm();
     }
   });
 
-  status.render(store.get().listening);
+  // Claude's mark on the canvas: what the tab looks at, and what a request is about (marks.ts).
+  mountMarks(section, store, bridge);
+
+  status.render(store.get().listening, openCount(store.get().requests));
   renderForm();
   draw();
   read();

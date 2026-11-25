@@ -50,7 +50,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0041](0041-reading-and-copying-other-tools.md) | Reading and copying other tools | 2026-11-23 | accepted |
 | [0042](0042-studio-idle-stop.md) | The studio stops when nobody uses it | 2026-11-23 | accepted (owner decision, plan 10) |
 | [0043](0043-guidelines-with-ids-and-sources.md) | Guidelines with ids and sources | 2026-11-23 | accepted |
-| [0044](0044-page-facts-and-extra-passes.md) | Page facts and extra passes | 2026-11-23 | accepted |
+| [0044](0044-page-facts-and-extra-passes.md) | Page facts and extra passes | 2026-11-23 | accepted, changed in part by ADR 0073 |
 | [0045](0045-rework-and-craft-draft-kinds.md) | Rework and craft draft kinds | 2026-11-23 | accepted |
 | [0046](0046-project-additions-layer.md) | Project additions layer | 2026-11-23 | accepted |
 | [0047](0047-facts-on-live-pages.md) | Facts on live pages | 2026-11-23 | accepted |
@@ -78,3 +78,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0069](0069-click-takes-the-row.md) | A click in a list takes the row first | 2026-11-25 | accepted |
 | [0070](0070-shorthand-write.md) | A shorthand is read as a source and written in place | 2026-11-25 | accepted |
 | [0071](0071-hook-data-folder.md) | The session hook reads its data folder from its environment | 2026-11-25 | accepted |
+| [0072](0072-one-list-item-style.md) | One list item's style | 2026-11-25 | accepted |
+| [0073](0073-wide-screens-in-deep-checks.md) | Wide screens in the deep checks | 2026-11-25 | accepted, changed in part by ADR 0074 |
+| [0074](0074-tablet-width-in-every-check.md) | The tablet width in every check | 2026-11-25 | accepted |
+| [0075](0075-insert-pane-previews.md) | Previews in the Insert pane are screenshots made once per kit change | 2026-11-25 | accepted |

@@ -296,3 +296,30 @@ test('an id with no element on the page is skipped', () => {
   preview.apply([text('gone', 'x'), style('gone', 'gap', '1px'), cls('gone', 'x', true)]);
   preview.clear();
 });
+
+test('a change with an item shows on that copy only', () => {
+  const copies = [1, 2, 3].map(() => fake({ style: 'gap: 1px' }));
+  const preview = page({ a: copies });
+  preview.apply([{ ...style('a', 'gap', '9px'), item: 1 }]);
+  assert.equal(copies[0]?.painted.get('gap'), '1px');
+  assert.equal(copies[1]?.painted.get('gap'), '9px');
+  assert.equal(copies[2]?.painted.get('gap'), '1px');
+  preview.clear();
+  assert.equal(copies[1]?.getAttribute('style'), 'gap: 1px');
+});
+
+test('a change with an item the page has no copy for shows nowhere', () => {
+  const copies = [fake({ style: 'gap: 1px' }), fake({ style: 'gap: 1px' })];
+  const preview = page({ a: copies });
+  preview.apply([{ ...cls('a', 'pro', true), item: 5 }]);
+  assert.equal(copies[0]?.getAttribute('class'), null);
+  assert.equal(copies[1]?.getAttribute('class'), null);
+});
+
+test('a change without an item still shows on every copy', () => {
+  const copies = [fake(), fake()];
+  const preview = page({ a: copies });
+  preview.apply([cls('a', 'pro', true)]);
+  assert.equal(copies[0]?.getAttribute('class'), 'pro');
+  assert.equal(copies[1]?.getAttribute('class'), 'pro');
+});

@@ -32,6 +32,8 @@ export type Gesture = {
   undoOps?: EditOp[];
   selectCreated?: boolean;
   flash?: boolean;
+  /** ADR 0072: the copy a "This item" change is for; its previews go to that copy only. */
+  item?: number;
   renames?: Readonly<Record<string, string>>;
 };
 
@@ -72,6 +74,13 @@ export type ChangeEntry = {
   files: string[];
   offKit: boolean;
   at: number;
+  /**
+   * Plan 18f: the one value the edit changed, as the panel read it before (`before`) and wrote it
+   * (`after`), cut for the list. Set when the step changed one named value (a style, a prop, the
+   * text); left out for a step with several, which carries `chips`, and for Claude's.
+   */
+  before?: string;
+  after?: string;
 };
 
 export type Conflict = { gesture: Gesture; outcome: Extract<EditOutcome, { outcome: 'conflict' }> };

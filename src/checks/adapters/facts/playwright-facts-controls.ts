@@ -206,6 +206,50 @@ export function readControls(): ControlFacts[] {
     };
   };
 
+  /**
+   * The lines the visible label takes: its text nodes' line boxes grouped by the band they sit in,
+   * as the text facts count them. An input button, an empty label and parts that cannot be seen
+   * count as one.
+   */
+  const labelLines = (element: Element): number => {
+    if (element instanceof HTMLInputElement) return 1;
+    const texts: Text[] = [];
+    const collect = (parent: Element): void => {
+      for (const child of Array.from(parent.childNodes)) {
+        if (child instanceof Text) {
+          if (child.data.trim() !== '') texts.push(child);
+          continue;
+        }
+        if (!(child instanceof Element) || SKIP.has(child.tagName.toLowerCase())) continue;
+        const tag = child.tagName.toLowerCase();
+        if (tag === 'svg' || tag === 'img') continue;
+        const style = getComputedStyle(child);
+        if (style.display === 'none' || style.visibility === 'hidden' || tools.hidden(child)) {
+          continue;
+        }
+        collect(child);
+      }
+    };
+    collect(element);
+    const range = document.createRange();
+    const bands: { top: number; bottom: number }[] = [];
+    for (const text of texts) {
+      range.selectNodeContents(text);
+      for (const rect of Array.from(range.getClientRects())) {
+        if (rect.width <= 0 || rect.height <= 0) continue;
+        const middle = rect.top + rect.height / 2;
+        const band = bands.find((entry) => middle >= entry.top && middle <= entry.bottom);
+        if (band === undefined) {
+          bands.push({ top: rect.top, bottom: rect.bottom });
+        } else {
+          band.top = Math.min(band.top, rect.top);
+          band.bottom = Math.max(band.bottom, rect.bottom);
+        }
+      }
+    }
+    return Math.max(1, bands.length);
+  };
+
   const actionOf = (element: Element, role: string | null): ActionFacts | null => {
     const tag = element.tagName.toLowerCase();
     const input =
@@ -243,6 +287,7 @@ export function readControls(): ControlFacts[] {
       disabled: element.matches(':disabled') || element.getAttribute('aria-disabled') === 'true',
       menu: element.hasAttribute('aria-haspopup') || element.hasAttribute('aria-expanded'),
       current: element.getAttribute('aria-current'),
+      lines: labelLines(element),
     };
   };
 
@@ -252,6 +297,7 @@ export function readControls(): ControlFacts[] {
       (element.hasAttribute('width') && element.hasAttribute('height')) ||
       getComputedStyle(element).aspectRatio !== 'auto',
     alt: element.getAttribute('alt'),
+    vector: /^data:image\/svg\+xml|\.svg([?#]|$)/i.test(element.currentSrc || element.src),
   });
 
   const controls: ControlFacts[] = [];

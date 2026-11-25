@@ -1,6 +1,7 @@
 // Entry of the draft page's script, served as `/assets/draft.js`. The page works without it.
 
 import { startDraftPage } from './draft/page.ts';
+import { mountRan } from './edit/checks/run.ts';
 import { mountChecksFilter } from './edit/live/filter.ts';
 import { mountBarStatus } from './shell/bar-status.ts';
 import { mountShell } from './shell/shell.ts';
@@ -22,4 +23,6 @@ if (main instanceof HTMLElement) {
   startDraftPage(main);
   // An older version, a comparison and a draft not built have no editor, and a filter all the same.
   mountChecksFilter(main);
+  // "Full check ran 3 minutes ago", kept current on every version.
+  mountRan(main);
 }

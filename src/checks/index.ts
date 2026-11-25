@@ -3,6 +3,7 @@
 export * from './app/before.ts';
 export * from './app/browser-checks.ts';
 export * from './app/crop-kit.ts';
+export * from './app/kit-previews.ts';
 export * from './app/propose-protected.ts';
 export * from './app/read-checks.ts';
 export * from './app/run-checks.ts';
@@ -23,6 +24,7 @@ export * from './domain/findings/finding.ts';
 export * from './domain/guidelines/index.ts';
 export * from './domain/kit/kit-verify.ts';
 export * from './domain/kit/look-score.ts';
+export * from './domain/kit/previews.ts';
 export * from './domain/locks/guideline.ts';
 export * from './domain/locks/locked-changed.ts';
 export * from './domain/page/craft-facts.ts';

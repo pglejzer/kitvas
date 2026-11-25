@@ -238,3 +238,12 @@ test('a structure entry names the lists around the element, or says they cannot 
     assert.equal(parseStructureStudio(message, CHANNEL), undefined, `lists ${index}`);
   }
 });
+
+test('the page may say the last drop was not taken, with nothing else in the message', () => {
+  const fields = { type: 'drop-back' };
+  assert.deepEqual(parseStructureStudio(fields, CHANNEL), { ...head, ...fields });
+  // And through the whole channel, as the frame hears it.
+  assert.deepEqual(parseStudioMessage({ ...head, ...fields }, CHANNEL), { ...head, ...fields });
+  // The frame never says it.
+  assert.equal(parseStructureFrame(fields, CHANNEL), undefined);
+});

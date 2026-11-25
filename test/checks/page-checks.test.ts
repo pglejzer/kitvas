@@ -64,8 +64,10 @@ test('every state is visited at both widths and a screenshot is listed for each'
       [
         ['filled', 390, 844],
         ['filled', 1280, 900],
+        ['filled', 768, 1024],
         ['empty', 390, 844],
         ['empty', 1280, 900],
+        ['empty', 768, 1024],
       ],
     );
     assert.equal(fake.visits[0]?.page, join(version, 'build', 'html', 'index.html'));

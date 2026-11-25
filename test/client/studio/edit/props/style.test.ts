@@ -11,3 +11,9 @@ test('a row names the shorthand that holds its value, else the rule alone', () =
   assert.equal(ruleSourceText('card', 'border'), 'props.source.shorthand');
   assert.equal(ruleSourceText('card', undefined), 'props.source.scss');
 });
+
+test('the shared rule says how many items it changes', () => {
+  // Outside a page every text shows as its key.
+  assert.equal(ruleSourceText('plans__card', undefined, 3), 'props.source.scssAll');
+  assert.equal(ruleSourceText('plans__card', undefined), 'props.source.scss');
+});

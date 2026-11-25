@@ -10,11 +10,17 @@ export const WHY_FOLDER = 'why';
 export const MAX_WHY_LINE = 200;
 /** A section's file name: its component name, as `src/tsx/sections/<Name>.tsx` has it. */
 export const WHY_NAME = /^[A-Z][A-Za-z0-9]{0,63}$/;
+/** A guideline id: lower-case words and digits with hyphens, one `/` between area and name allowed. */
+export const GUIDELINE_ID = /^[a-z0-9][a-z0-9-]*(\/[a-z0-9][a-z0-9-]*)?$/;
 
 export const WhyFileSchema = z.strictObject({
   lines: z.array(z.string().trim().min(1).max(MAX_WHY_LINE)).min(1).max(5),
-  /** Guideline ids of the book (`kitvas guidelines`), such as `ui-type-scale`. */
-  guidelines: z.array(z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/)).max(20),
+  /**
+   * Guideline ids of the book (`kitvas guidelines`): `<area>/<name>`, such as `ux/one-primary`.
+   * A slash must pass: a file whose ids hold one failed to read, and every section of the version
+   * showed "No reasons are written" (the owner's lab draft, version 4).
+   */
+  guidelines: z.array(z.string().max(64).regex(GUIDELINE_ID)).max(20),
   /** sha256 hex of the section's TSX when the lines were written. */
   hash: z.string().regex(/^[a-f0-9]{64}$/),
 });

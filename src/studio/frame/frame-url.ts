@@ -68,6 +68,18 @@ export function catalogRefUrl(target: Omit<CatalogTarget, 'example'> & { file: s
   return `http://${hostname}:${port}/k/${key}/${kitId}/img/refs/${encodeURIComponent(file)}`;
 }
 
+/**
+ * A preview image of a kit for the editor's Insert pane (ADR 0075), on the prototype origin:
+ * `previews/<set>/<file>` of the kit's catalog folder, `path` being that path below the folder.
+ */
+export function catalogPreviewUrl(
+  target: Omit<CatalogTarget, 'example'> & { path: string },
+): string {
+  const { hostname, port, key, kitId, path } = target;
+  const file = path.split('/').map(encodeURIComponent).join('/');
+  return `http://${hostname}:${port}/k/${key}/${kitId}/${file}`;
+}
+
 /** Where the studio frames one built example of a kit. */
 export function catalogFrameUrl(target: CatalogTarget): string {
   const { hostname, port, key, kitId, example } = target;
