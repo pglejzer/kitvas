@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - License: PolyForm Shield 1.0.0 (LICENSE.md). kitvas may be used, modified and distributed, including for commercial purposes, provided it is not used to offer competing products or services.
 - `kitvas status` and `kitvas init`, each with `--json`.
+- The project's decisions file, `.kitvas/decisions.md`: a short front matter (`kit`, `copy`, `check`) the CLI reads, then dated decisions in five sections that every skill reads and keeps; `kitvas decisions [add | set | replace]` with `--json`, and a `decisions` check in `kitvas doctor` (ADR 0076).
 - Kit contract (`kit.json`), DTCG 2025.10 tokens turned into `--kit-*` custom properties, and `kitvas kit list | show | check | component | css`.
 - The built-in kit "Base": tokens, 12 components and 8 icons; the `/kitvas:kit` skill.
 - Dependency install into the plugin data folder, from a session hook and from the CLI. The hook's command names only `${CLAUDE_PLUGIN_ROOT}` and reads the data folder from the environment Claude Code gives it (ADR 0011, 0071).
@@ -45,7 +46,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - The editor's panes: Layers that fold, versions with the result of their check, Properties in groups with kit values, Changes and Claude with counts on their tabs, and Checks as cards with evidence and the nearest kit token.
 - The Insert pane shows each kit component and icon as a picture: `kitvas kit previews` takes them once per kit change, as a studio job (ADR 0075). Uploaded images can be deleted, and an image uploaded twice is kept once.
 - Width visits in `kitvas check`: 768 px in every check, and 1024, 1440, 1920 and 2560 px with `--deep`, with rules for button labels on two lines, text in narrow columns, images shown larger than their file and fields that run across a wide page (ADR 0073, 0074).
-- The studio's own look, in light and dark, with Cards and Flush layouts and accents (ADR 0057); a start page with the moving logo, Claude's status in every bar, and Guide, Shortcuts and Doctor pages (ADR 0068).
+- The studio's own look, in light and dark, with Cards and Flush layouts and accents (ADR 0057); a start page with the moving logo, the mark as every page's tab icon, Claude's status in every bar, and Guide, Shortcuts and Doctor pages (ADR 0068).
 - `kitvas:scout`, an agent that looks facts up on the web for the compose and craft skills and writes one research note (ADR 0062).
 - `kitvas doctor`: a report of the setup that holds nothing private, also as a studio page (ADR 0063).
 - `kitvas draft delete | restore | purge`, with a trash in `.kitvas/trash/` and a page for a draft in it (ADR 0064).

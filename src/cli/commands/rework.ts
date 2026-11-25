@@ -12,10 +12,11 @@ import {
 } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
-import { KitvasError, loadSettings, type Translate } from '../../shared/index.ts';
+import { KitvasError, type Translate } from '../../shared/index.ts';
 import { columns } from '../output/columns.ts';
 import { type Command, type CommandContext, defineCommand } from '../registry.ts';
 import { openDrafts, slugAt } from './draft.ts';
+import { projectKitId } from './project-kit.ts';
 
 export type ReworkCommandDeps = {
   draftsAt(cwd: string): DraftStore;
@@ -78,7 +79,7 @@ export function createReworkCommand(deps: ReworkCommandDeps): Command {
         case 'new': {
           const slug = slugAt(ctx, 1);
           const source = sourceOf(ctx);
-          const kit = ctx.flags.kit ?? loadSettings({ home: ctx.home, cwd: ctx.cwd }).kit;
+          const kit = ctx.flags.kit ?? projectKitId(deps.kits, ctx);
           const input = { slug, title: ctx.flags.title ?? slug, kit, source };
           return { view: 'new', ...(await deps.start(ctx.cwd, input, ctx.t)) };
         }

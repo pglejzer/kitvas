@@ -10,4 +10,7 @@ export * from './errors/errors.ts';
 export * from './i18n/i18n.ts';
 export type * from './issues/issue.ts';
 export * from './settings/config.ts';
+export * from './settings/decision-warnings.ts';
+export * from './settings/decisions.ts';
+export * from './settings/project-file.ts';
 export * from './settings/workspace.ts';

@@ -3,7 +3,7 @@
 // the View popover.
 
 import type { Translate, ViewSettings } from '../../shared/index.ts';
-import { logo } from './brand/logo.ts';
+import { FAVICON, logo } from './brand/logo.ts';
 import { type Html, html, trusted } from './html.ts';
 import { iconSprite } from './icons/icon.ts';
 import { pausedView } from './paused.ts';
@@ -72,7 +72,7 @@ export function page(input: PageFrame): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>${input.title} - kitvas</title>
-<link rel="icon" href="data:,">
+<link rel="icon" type="image/svg+xml" href="${FAVICON}">
 <style nonce="${input.nonce}">${trusted(skinCss(input.skin))}</style>
 </head>
 <body${screen ? trusted(' class="screen"') : ''}>

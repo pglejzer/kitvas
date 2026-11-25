@@ -67,7 +67,7 @@ function harness(survey: (input: Survey) => SurveyReport = surveyed) {
     localesDir: join(PLUGIN_ROOT, 'locales'),
   };
   initWorkspace(io.cwd);
-  writeFileSync(join(io.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"tiny"}');
+  writeFileSync(join(io.cwd, '.kitvas', 'decisions.md'), '---\nkit: tiny\n---\n');
   const deps = {
     draftsAt: (cwd: string) => createFsDraftStore(join(workspaceDir(cwd), 'drafts')),
     kits: createFolderKitStore(FIXTURE_KITS),

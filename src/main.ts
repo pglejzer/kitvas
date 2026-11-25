@@ -26,6 +26,7 @@ import {
   createCheckCommand,
   createContextCommand,
   createCraftCommand,
+  createDecisionsCommand,
   createDoctorCommand,
   createDraftCommand,
   createInboxCommand,
@@ -345,6 +346,7 @@ export function main(argv: string[]): Promise<number> {
   const commands = [
     statusCommand,
     initCommand,
+    createDecisionsCommand({ kits }),
     createKitCommand({
       kits,
       kitWriter,

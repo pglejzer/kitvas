@@ -35,7 +35,7 @@ function harness(
   };
   if (options.workspace ?? true) {
     initWorkspace(io.cwd);
-    writeFileSync(join(io.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"tiny"}');
+    writeFileSync(join(io.cwd, '.kitvas', 'decisions.md'), '---\nkit: tiny\n---\n');
   }
   const projects: string[] = [];
   const served: string[] = [];

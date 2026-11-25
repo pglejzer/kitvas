@@ -5,6 +5,7 @@
 // letters. A letter's place is the `transform` of its inner path, so a rule that moves the letter's
 // group never takes the place away.
 
+import { THEME_COLORS } from '../../theme/tokens.ts';
 import { type Html, html, trusted } from '../html.ts';
 
 export type LogoKind = 'full' | 'mark';
@@ -49,6 +50,14 @@ const WORD = `<g transform="${WORD_PLACE}">${LETTERS.map(
   ({ d, place }) =>
     `<g class="k-logo-letter"><path fill-rule="evenodd"${place === null ? '' : ` transform="${place}"`} d="${d}"/></g>`,
 ).join('')}</g>`;
+
+/**
+ * The browser tab's icon, as a data address: the mark in the studio's ink, dark on a light tab bar
+ * and light on a dark one. The pages' policy lets `img-src` take `data:`.
+ */
+export const FAVICON = `data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><style>path{fill:${THEME_COLORS.light.ink}}@media (prefers-color-scheme:dark){path{fill:${THEME_COLORS.dark.ink}}}</style><path d="${BLOCK}"/><path transform="${POINTER_PLACE}" d="${V}"/></svg>`,
+)}`;
 
 /** `full`: the mark and the word, viewBox `0 0 245 64`. `mark`: the mark alone, `0 0 64 64`. */
 export function logo(kind: LogoKind, options: LogoOptions = {}): Html {

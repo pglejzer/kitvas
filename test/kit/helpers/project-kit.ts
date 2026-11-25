@@ -158,7 +158,7 @@ export function tempProject(
     const file = join(dir, 'node_modules', ...name.split('/'), 'package.json');
     writeText(file, JSON.stringify({ name, ...pkg }));
   }
-  if (workspace) writeText(join(dir, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"base"}');
+  if (workspace) writeText(join(dir, '.kitvas', 'decisions.md'), '---\nkit: base\n---\n');
   return dir;
 }
 

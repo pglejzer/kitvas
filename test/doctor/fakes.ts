@@ -72,6 +72,8 @@ export const DRAFTS = join('/project', '.kitvas', 'drafts');
 export const SETTINGS: Settings = {
   language: 'en',
   kit: 'base',
+  copy: null,
+  check: 'normal',
   studioIdleMinutes: 30,
   workspace: { path: join('/project', '.kitvas'), exists: true },
 };
@@ -107,6 +109,7 @@ export function healthy(
       issues: 0,
       stale: undefined,
     }),
+    decisions: () => ({ exists: true, warnings: [] }),
     browser: async () => ({ found: 'chromium', dir: '/data/browsers' }),
     studio: async () => ({ running: true, logFile: '/data/studio/a.log' }),
     ...over,

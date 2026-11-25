@@ -6,6 +6,7 @@ export const CHECK_IDS = [
   'plugin',
   'workspace',
   'kit',
+  'decisions',
   'browser',
   'data',
   'ports',

@@ -11,7 +11,7 @@ You write one section of a prototype. You have no shell: you cannot run commands
 
 ## Input
 
-Your prompt holds the path of the saved section context (a JSON file from `kitvas context --save`), the draft folder, and the path of the maker rules. Read the maker rules first, then read the context file and work from it only. Do not open kit files to find out what exists: the context lists the components, props, tokens and icons you may use.
+Your prompt holds the path of the saved section context (a JSON file from `kitvas context --save`), the draft folder, the path of the maker rules, and sometimes the project's decisions as data (R-COMPOSE-48). Read the maker rules first, then read the context file and work from it only. Do not open kit files to find out what exists: the context lists the components, props, tokens and icons you may use.
 
 If `kit.references` lists images, look at each one with the Read tool before you write. Match the look they show: layout, weight, colour roles. If the layout's shared text (`shared` in the context) is not empty, follow it.
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import type { Browser } from '../../src/checks/index.ts';
@@ -65,6 +65,19 @@ function harness(open: Browser['open'], workspace = true) {
   return { cwd, out, err, run, data, deps, io };
 }
 
+const IDS = [
+  'node',
+  'deps',
+  'plugin',
+  'workspace',
+  'kit',
+  'decisions',
+  'browser',
+  'data',
+  'ports',
+  'studio',
+];
+
 const statuses = (checks: CheckResult[]) =>
   Object.fromEntries(checks.map((check) => [check.id, check.status]));
 
@@ -76,7 +89,7 @@ test('doctor --json answers every check; with none failing the exit code is 0', 
   const checks = h.data().checks;
   assert.deepEqual(
     checks.map((check) => check.id),
-    ['node', 'deps', 'plugin', 'workspace', 'kit', 'browser', 'data', 'ports', 'studio'],
+    IDS,
   );
   assert.deepEqual(statuses(checks), {
     node: 'ok',
@@ -84,6 +97,7 @@ test('doctor --json answers every check; with none failing the exit code is 0', 
     plugin: 'ok',
     workspace: 'ok',
     kit: 'ok',
+    decisions: 'ok',
     browser: 'ok',
     data: 'ok',
     ports: 'ok',
@@ -115,17 +129,20 @@ test('no workspace is a warning, and the checks that need one are skipped', asyn
   assert.equal(await h.run('--json'), 0);
   const result = statuses(h.data().checks);
   assert.equal(result.workspace, 'warn');
+  assert.equal(result.decisions, 'skipped');
   assert.equal(result.studio, 'skipped');
 });
 
 test('a config file that does not parse is reported by the workspace check, not a stop', async () => {
   const h = harness(found);
-  writeFileSync(join(h.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"../x"}');
+  mkdirSync(join(h.io.home, '.kitvas'), { recursive: true });
+  writeFileSync(join(h.io.home, '.kitvas', 'config.json'), '{"schemaVersion":1,"extra":true}');
   // The report is printed and the exit code says a check failed, not that the config is invalid.
   assert.equal(await h.run('--json'), 60);
   const result = statuses(h.data().checks);
   assert.equal(result.workspace, 'fail');
   assert.equal(result.kit, 'skipped');
+  assert.equal(result.decisions, 'skipped');
   assert.deepEqual(h.err, []);
 
   // Any other command still ends with CONFIG_INVALID.
@@ -133,10 +150,36 @@ test('a config file that does not parse is reported by the workspace check, not 
     out: () => undefined,
     err: (text: string) => h.err.push(text),
     cwd: h.cwd,
-    home: tempDir(),
+    home: h.io.home,
     localesDir: join(PLUGIN_ROOT, 'locales'),
   });
   assert.equal(other, 3);
+});
+
+test('a kit the decisions file names that does not exist is a warning, with base loaded', async () => {
+  const h = harness(found);
+  writeFileSync(join(h.cwd, '.kitvas', 'decisions.md'), '---\nkit: gone\n---\n');
+  assert.equal(await h.run('--json'), 0);
+  const checks = h.data().checks;
+  const result = statuses(checks);
+  assert.equal(result.decisions, 'warn');
+  assert.equal(result.kit, 'ok');
+  const decisions = checks.find((check) => check.id === 'decisions');
+  assert.match(decisions?.detail ?? '', /doctor\.decisions\.found/);
+  assert.match(decisions?.fix ?? '', /decisions\.fixKit/);
+});
+
+test('a decisions file with a bad line is a warning, a clean one passes', async () => {
+  const h = harness(found);
+  writeFileSync(join(h.cwd, '.kitvas', 'decisions.md'), '---\ncheck: sometimes\n---\n');
+  assert.equal(await h.run('--json'), 0);
+  const checks = h.data().checks;
+  const decisions = checks.find((check) => check.id === 'decisions');
+  assert.equal(decisions?.status, 'warn');
+  assert.match(decisions?.fix ?? '', /decisions\.fix$/);
+  writeFileSync(join(h.cwd, '.kitvas', 'decisions.md'), '---\ncheck: deep\n---\n');
+  assert.equal(await h.run('--json'), 0);
+  assert.equal(statuses(h.data().checks).decisions, 'ok');
 });
 
 test('--report adds the text to paste, with the project folder written out', async () => {
@@ -144,7 +187,7 @@ test('--report adds the text to paste, with the project folder written out', asy
   assert.equal(await h.run('--report', '--json'), 0);
   const report = h.data().report ?? '';
   assert.match(report, /doctor\.report\.title/);
-  assert.equal(report.split('\n').length, 4 + 9);
+  assert.equal(report.split('\n').length, 4 + IDS.length);
   assert.equal(report.includes(h.cwd), false);
 
   assert.equal(await h.run('--report'), 0);
@@ -157,7 +200,7 @@ test('doctorReport answers the checks and the report the command prints, for the
   const answer = await doctorReport(h.deps, { cwd: h.cwd, home: h.io.home, t });
   assert.deepEqual(
     answer.checks.map((check) => check.id),
-    ['node', 'deps', 'plugin', 'workspace', 'kit', 'browser', 'data', 'ports', 'studio'],
+    IDS,
   );
   assert.match(answer.report, /doctor\.report\.title/);
   assert.equal(answer.report.includes(h.cwd), false);

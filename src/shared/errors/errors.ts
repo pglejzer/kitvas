@@ -72,6 +72,9 @@ export const ERROR_TABLE = {
   IMAGE_NOT_FOUND: { exit: 63, http: 404 },
   // Plan 18e (ADR 0075): the examples of a kit did not build, so no preview could be shot.
   PREVIEWS_FAILED: { exit: 64, http: 500 },
+  // Plan 20 (ADR 0076): the project's decisions file.
+  DECISION_INVALID: { exit: 65, http: 400 },
+  DECISION_NOT_FOUND: { exit: 66, http: 404 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;

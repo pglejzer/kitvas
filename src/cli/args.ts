@@ -58,6 +58,10 @@ export type Flags = {
   deleted: boolean;
   /** `draft purge --all`: every deleted draft, for good. */
   all: boolean;
+  /** `decisions add|replace --text <one line>`: the decision to keep. */
+  text: string | undefined;
+  /** `decisions replace --old <line>`: the decision it swaps. */
+  old: string | undefined;
 };
 
 export type ParsedArgs = {
@@ -105,6 +109,8 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         report: { type: 'boolean' },
         deleted: { type: 'boolean' },
         all: { type: 'boolean' },
+        text: { type: 'string' },
+        old: { type: 'string' },
       },
     });
     const [command, ...rest] = positionals;
@@ -142,6 +148,8 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         report: values.report === true,
         deleted: values.deleted === true,
         all: values.all === true,
+        text: values.text,
+        old: values.old,
       },
     };
   } catch (cause) {

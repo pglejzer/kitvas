@@ -79,7 +79,7 @@ const ACME_FILES = {
 };
 
 const useKitInConfig = (cwd: string, id: string): void =>
-  writeText(join(cwd, '.kitvas', 'config.json'), JSON.stringify({ schemaVersion: 1, kit: id }));
+  writeText(join(cwd, '.kitvas', 'decisions.md'), `---\nkit: ${id}\n---\n`);
 
 test('list shows every kit and marks the ones that are not valid', async () => {
   const h = harness();
@@ -132,7 +132,7 @@ test('without an id the project kit is used; an unknown kit is exit code 6', asy
   assert.equal(await h.run('show', '--json'), 6);
   assert.equal(h.error().code, 'KIT_NOT_FOUND');
   mkdirSync(join(h.io.cwd, '.kitvas'));
-  writeFileSync(join(h.io.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"tiny"}');
+  writeFileSync(join(h.io.cwd, '.kitvas', 'decisions.md'), '---\nkit: tiny\n---\n');
   assert.equal(await h.run('--json'), 0);
   assert.equal(h.data('show').kit.id, 'tiny');
 });
@@ -288,7 +288,7 @@ test('build says what was built in words', async () => {
 test('build without an id uses the project kit', async () => {
   const h = harness();
   mkdirSync(join(h.io.cwd, '.kitvas'));
-  writeFileSync(join(h.io.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"tiny"}');
+  writeFileSync(join(h.io.cwd, '.kitvas', 'decisions.md'), '---\nkit: tiny\n---\n');
   assert.equal(await h.run('build', '--json'), 0);
   assert.equal(h.data('build').id, 'tiny');
 });

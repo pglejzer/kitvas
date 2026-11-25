@@ -1,6 +1,6 @@
 // The checks of the project: its workspace, its kit and the browser the checks use.
 
-import type { Settings } from '../../../shared/index.ts';
+import { decisionWarningText, type Settings } from '../../../shared/index.ts';
 import { type CheckResult, codeOf, fail, pass, skip, warn } from '../../domain/check.ts';
 import type { DoctorInput } from '../input.ts';
 
@@ -66,6 +66,22 @@ export function checkKit(input: DoctorInput, settings: Settings | undefined): Ch
     const code = codeOf(error);
     return fail('kit', t('doctor.kit.failed', { id, code }), t('doctor.kit.fixLoad'), code);
   }
+}
+
+/** The project's decisions file reads with no problem; each one it has is a warning, never a failure. */
+export function checkDecisions(input: DoctorInput, hasWorkspace: boolean): CheckResult {
+  const { t } = input;
+  if (!hasWorkspace) return skip('decisions', t('doctor.decisions.skipped'));
+  const found = input.decisions();
+  if (!found.exists) return pass('decisions', t('doctor.decisions.none'));
+  if (found.warnings.length === 0) return pass('decisions', t('doctor.decisions.ok'));
+  const text = found.warnings.map((warning) => decisionWarningText(t, warning)).join(' ');
+  const kitLost = found.warnings.some((warning) => warning.code === 'kitMissing');
+  return warn(
+    'decisions',
+    t('doctor.decisions.found', { count: found.warnings.length, text }),
+    t(kitLost ? 'doctor.decisions.fixKit' : 'doctor.decisions.fix'),
+  );
 }
 
 /** What `kitvas browser` reports: found or missing, and the folder it would be installed in. */
