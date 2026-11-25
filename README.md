@@ -7,7 +7,7 @@
 
 kitvas is a Claude Code plugin that builds UI prototypes from your project's own design system, checks them, and shows them in a local studio where you can edit them.
 
-It is for a developer who has to ship a screen with no designer at hand: you go from an idea to a checked prototype on your own machine.
+It is for a developer who has to ship a screen with no designer at hand. You go from an idea to a checked prototype on your own machine.
 
 ![A screen asked for in Claude Code, the built and checked draft in the local studio, and a change made in the editor](docs/readme/demo.gif)
 
@@ -16,7 +16,7 @@ It is for a developer who has to ship a screen with no designer at hand: you go 
 - **Generated UI ignores your design system.** kitvas builds only from a kit: the catalog of components, tokens and icons it learned from your project. Without one it uses a built-in kit, Base.
 - **Nobody checks the result.** kitvas builds the draft, type-checks it, applies the kit's rules, and opens the page in a real browser at 390 and 1280 px in every state.
 - **Changing one detail means prompting again.** The studio's editor writes your change into the draft's own TSX or SCSS, touching only the lines it changes.
-- **Generated code lands in your application.** Everything stays under `.kitvas/` in your project until you export it.
+- **Generated code lands in your application.** Drafts stay in `.kitvas/` until you export them.
 
 ## Runs on your machine
 
@@ -37,7 +37,7 @@ The rest is in [docs/security.md](docs/security.md).
 - Access to the npm registry during the first session.
 - Chrome, Edge or Chromium for the browser checks. `kitvas browser` says which one is used; `kitvas browser install` downloads Chromium when none is found.
 
-`kitvas <command>` is shorthand. [Commands](docs/commands.md) says how a command is run.
+There is no global `kitvas` command. In these docs `kitvas <command>` means `node <plugin folder>/bin/kitvas.ts <command>`; [Commands](docs/commands.md) says where the plugin folder is.
 
 ## Install
 
@@ -81,12 +81,12 @@ Rework keeps the content and purpose and may change the layout. The report says 
 - [Checks](docs/checks.md): what `kitvas check` covers and how findings are waived.
 - [The studio editor](docs/editor.md): the studio, every key and rule of the editor, and what works offline.
 - [Commands](docs/commands.md): every command, and how to run one by hand.
-- [Security](docs/security.md): what leaves your machine, the model and the controls. Report a vulnerability through [SECURITY.md](SECURITY.md).
+- [Security](docs/security.md): what leaves your machine, the threat model and the controls. Report a vulnerability through [SECURITY.md](SECURITY.md).
 - [When something does not work](docs/troubleshooting.md): `kitvas doctor`, how to open an issue, and the limits.
 
 ## Status
 
-0.1.0, early. Prototypes are React (with SCSS, or Tailwind v4 when the kit uses it), whatever technology your application uses, because kitvas never writes into your application.
+0.1.0, early. Prototypes are React, with SCSS or with Tailwind v4 when the kit uses it, whatever your application is written in.
 
 ## Develop
 
