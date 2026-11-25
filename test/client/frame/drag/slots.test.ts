@@ -5,6 +5,9 @@ import {
   type Box,
   chooseSlot,
   flowOf,
+  HOME_REACH,
+  heldSearches,
+  near,
   placeIndicator,
   type Slot,
   type SlotChild,
@@ -26,6 +29,7 @@ const child = (id: string, at: Box): SlotChild => ({ id, box: at });
 const entry = (id: string, over: Partial<FrameEntry> = {}): FrameEntry => ({
   id,
   movable: true,
+  lists: [],
   item: false,
   accepts: true,
   mixed: false,
@@ -161,13 +165,14 @@ test('a column stack gives before and after by the pointer height on the nearest
     place: 'before',
     // Half way through the gap above it, as wide as the child.
     line: { x: 10, y: 100, length: 180, axis: 'x' },
-    box: null,
+    // The box of the parent that takes the drop, for its outline.
+    box: COLUMN.box,
   });
   assert.deepEqual(slotFrom({ x: 100, y: 180 }, COLUMN), {
     anchor: 'S:stack/b',
     place: 'after',
     line: { x: 10, y: 200, length: 180, axis: 'x' },
-    box: null,
+    box: COLUMN.box,
   });
   // The x never matters in a column.
   assert.deepEqual(where(slotFrom({ x: 5, y: 60 }, COLUMN)), ['S:stack/a', 'after']);
@@ -178,13 +183,13 @@ test('a row stack gives before and after by the pointer x', () => {
     anchor: 'S:row/b',
     place: 'before',
     line: { x: 100, y: 10, length: 40, axis: 'y' },
-    box: null,
+    box: ROW.box,
   });
   assert.deepEqual(slotFrom({ x: 180, y: 55 }, ROW), {
     anchor: 'S:row/b',
     place: 'after',
     line: { x: 200, y: 10, length: 40, axis: 'y' },
-    box: null,
+    box: ROW.box,
   });
 });
 
@@ -193,13 +198,13 @@ test('row-reverse swaps before and after, and the line stays under the pointer',
     anchor: 'S:row/b',
     place: 'after',
     line: { x: 100, y: 10, length: 40, axis: 'y' },
-    box: null,
+    box: REVERSED.box,
   });
   assert.deepEqual(slotFrom({ x: 180, y: 30 }, REVERSED), {
     anchor: 'S:row/b',
     place: 'before',
     line: { x: 200, y: 10, length: 40, axis: 'y' },
-    box: null,
+    box: REVERSED.box,
   });
 });
 
@@ -221,7 +226,7 @@ test('a grid of two columns gives slots inside the row the pointer is on', () =>
     place: 'before',
     // Between `c` and `d`, as high as the second row only.
     line: { x: 110, y: 115, length: 95, axis: 'y' },
-    box: null,
+    box: grid.box,
   });
   assert.deepEqual(where(slotFrom({ x: 190, y: 40 }, grid)), ['S:grid/b', 'after']);
   // The left padding of the second row is no start of the grid: `c` is not the first child.
@@ -229,7 +234,7 @@ test('a grid of two columns gives slots inside the row the pointer is on', () =>
     anchor: 'S:grid/c',
     place: 'before',
     line: { x: 5, y: 115, length: 95, axis: 'y' },
-    box: null,
+    box: grid.box,
   });
 });
 
@@ -417,6 +422,95 @@ test('nothing moves into a slot or out of it, but its own elements move inside i
   // Out of the slot: the card's own children are no place for it.
   const out = chooseSlot({ x: 100, y: 150 }, [card], own, entries);
   assert.equal(out, null);
+});
+
+// Leaving a container (ADR 0066).
+
+test('near a box is inside it, or within the reach outside it', () => {
+  const grid = box(100, 100, 200, 100);
+  assert.equal(HOME_REACH, 32);
+  assert.equal(near({ x: 150, y: 150 }, grid, 0), true);
+  assert.equal(near({ x: 150, y: 230 }, grid, HOME_REACH), true);
+  assert.equal(near({ x: 150, y: 233 }, grid, HOME_REACH), false);
+  // Off a corner the distance is the straight one: 25 and 25 are 35 px away.
+  assert.equal(near({ x: 320, y: 220 }, grid, HOME_REACH), true);
+  assert.equal(near({ x: 325, y: 225 }, grid, HOME_REACH), false);
+  // The reach is in screen pixels: at a canvas zoom of 50 % it is twice as many frame pixels.
+  assert.equal(near({ x: 150, y: 250 }, grid, HOME_REACH * 2), true);
+});
+
+test('near its own parent a drag looks for its slot in that parent first', () => {
+  // The marked elements from the one under the pointer outwards.
+  const chain = ['text', 'card', 'grid', 'section'];
+  // The dragged element's parent, then what is around it.
+  const home = ['grid', 'section'];
+  // Inside the parent: nothing around it takes the drop. Then the chain as it is.
+  assert.deepEqual(heldSearches(chain, { home, near: true, bound: null }), [
+    { chain, depth: 3 },
+    { chain, depth: 4 },
+  ]);
+  // A few pixels outside it the pointer is over the section: the parent alone is asked first.
+  assert.deepEqual(heldSearches(['section'], { home, near: true, bound: null }), [
+    { chain: home, depth: 1 },
+    { chain: ['section'], depth: 1 },
+  ]);
+  // Further away, and for a drag with no parent on the page: only the chain as it is.
+  const far = heldSearches(['section'], { home, near: false, bound: null });
+  assert.deepEqual(far, [{ chain: ['section'], depth: 1 }]);
+  const insert = heldSearches(chain, { home: null, near: false, bound: null });
+  assert.deepEqual(insert, [{ chain, depth: 4 }]);
+});
+
+test('a part of a list item looks for its slot inside the copy of its item only', () => {
+  const chain = ['price', 'card', 'grid', 'section'];
+  // The dragged part stands right inside the item, whose copy is `card`.
+  const hold = { home: ['card', 'grid', 'section'], near: true, bound: 'card' };
+  assert.deepEqual(heldSearches(chain, hold), [
+    { chain, depth: 2 },
+    { chain, depth: 2 },
+  ]);
+  // Over another copy, a few pixels outside its own: its own copy is still asked.
+  const other = ['card.2', 'grid', 'section'];
+  assert.deepEqual(heldSearches(other, hold), [{ chain: hold.home, depth: 1 }]);
+  // Away from its own copy there is no place for it.
+  assert.deepEqual(heldSearches(other, { ...hold, near: false }), []);
+});
+
+test('a drop a few pixels past the edge of its own parent stays in that parent', () => {
+  const cards = child('S:sec/grid/cards', box(10, 10, 380, 190));
+  const note = child('S:sec/grid/note', box(10, 210, 380, 30));
+  const grid = node('S:sec/grid', box(0, 0, 400, 250), { children: [cards, note] });
+  const footer = child('S:sec/footer', box(0, 280, 400, 40));
+  const section = node('S:sec', box(0, 0, 400, 340), {
+    children: [child(grid.id, grid.box), footer],
+  });
+  const entries = entriesOf(
+    entry(cards.id),
+    entry(note.id),
+    entry(grid.id),
+    entry(footer.id),
+    entry(section.id, { movable: false, root: 'section' }),
+  );
+  const dragged = source({ dragged: new Set([note.id]) });
+  // 8 px under the grid the pointer is over the section. By its place alone the note would land
+  // among the section's children.
+  const under = { x: 200, y: 258 };
+  const alone = chooseSlot(under, [section], dragged, entries);
+  assert.deepEqual(where(alone), ['S:sec/grid', 'after']);
+  // Asked of its own parent alone (the first search of `heldSearches`), it stays the last child.
+  const held = chooseSlot(under, [grid, section], dragged, entries, 1);
+  assert.deepEqual(where(held), ['S:sec/grid', 'last']);
+  assert.deepEqual(held?.box, grid.box);
+  // Inside the grid, in the band at its lower edge: by its place alone the drop goes beside it.
+  const inner = { x: 200, y: 247 };
+  assert.deepEqual(where(chooseSlot(inner, [grid, section], dragged, entries)), [
+    'S:sec/grid',
+    'after',
+  ]);
+  assert.deepEqual(where(chooseSlot(inner, [grid, section], dragged, entries, 1)), [
+    'S:sec/grid',
+    'last',
+  ]);
 });
 
 test('an element the structure does not list gives no slot', () => {

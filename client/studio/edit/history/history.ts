@@ -9,7 +9,8 @@
 //
 // Ids: an answer's `renames` move the selection, the hover, hidden elements, the menu and the change
 // list (`remapCurrent`). The steps keep the ids of their own time: a step is sent only after every
-// later step was undone, which puts every id back as it left them (see `remap.ts`).
+// later step was undone, which puts every id back as it left them (see `remap.ts`). The chosen
+// copies of the selection follow their elements (ADR 0065, `copiesAfter`).
 //
 // A request that gets no answer, or an error, saves nothing: both stacks stay as they were and
 // `failed` tells the person (ADR 0061). The stacks and the change list are kept across a reload by
@@ -21,8 +22,10 @@ import type {
   EditRequest,
   EditState,
 } from '../../../../src/studio/api/edit/edit-schemas.ts';
+import type { CopyRef } from '../../../channel/edit-protocol.ts';
 import { type Answer, getEditState, postEdits } from '../api.ts';
 import type { History, HistoryDeps } from '../context.ts';
+import { copiesAfter } from '../select/copies.ts';
 import { elementOf, type Gesture } from '../store.ts';
 import { previewOf } from '../style/preview-of.ts';
 import {
@@ -201,6 +204,36 @@ const wantsCreated = (gesture: Gesture): boolean =>
 const withoutStep = (stack: Gesture[], step: Gesture): Gesture[] =>
   stack.filter((item) => !sameStep(item, step));
 
+/**
+ * Whether an id names no element of before the answer any more: the request removed it, or its
+ * name went to another element (one renamed to it, or one the answer created).
+ */
+export function goneAfter(
+  renames: Renames,
+  created: readonly string[],
+  removed: ReadonlySet<string> = new Set(),
+): (id: string) => boolean {
+  const taken = new Set([...Object.values(renames), ...created]);
+  return (id) => removed.has(id) || (!Object.hasOwn(renames, id) && taken.has(id));
+}
+
+/**
+ * The chosen copies after an undo or a redo: each follows its element's id. Text a patch put
+ * back may have moved the items of a list, so a copy named by its place in one may be another
+ * item now: it is dropped, and its element stays selected as itself.
+ */
+export function copiesBack(
+  copies: readonly CopyRef[],
+  sent: readonly EditOp[],
+  renames: Renames,
+  created: readonly string[],
+): CopyRef[] {
+  const patched = sent.some((op) => op.op === 'patch' || op.op === 'file');
+  return copiesAfter(copies, renames, goneAfter(renames, created)).filter(
+    (copy) => !(patched && copy.path !== undefined),
+  );
+}
+
 type Applied = Extract<EditOutcome, { outcome: 'applied' }>;
 type Kind = 'apply' | 'undo' | 'redo';
 /** What a conflict was about, so "keep mine" and "keep theirs" can finish the right stack. */
@@ -287,7 +320,10 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
       const view = remapCurrent({ ...state, changes, selection }, renames, outcome.created);
       const created =
         wantsCreated(sent) && outcome.created.length > 0 ? { selection: [...outcome.created] } : {};
-      store.set({ etags, edit, undo, redo: [], changes, selection, ...view, ...created });
+      // What stays selected stays on its copies; the store drops those of ids that left.
+      const gone = goneAfter(renames, outcome.created, removed);
+      const copies = copiesAfter(state.copies, renames, gone);
+      store.set({ etags, edit, undo, redo: [], changes, selection, copies, ...view, ...created });
       return;
     }
     last = null;
@@ -295,7 +331,14 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
     // outside the hunks it put back and wins there; inside them only the step's own renames know.
     const renames = { ...invertRenames(renamesOf(original)), ...outcome.renames };
     const step = stepOf(sent, outcome, renames);
-    const view = remapCurrent(state, renames, outcome.created);
+    const moved = remapCurrent(state, renames, outcome.created);
+    const kept = copiesBack(state.copies, sent.ops, renames, outcome.created);
+    // The copies are set with the selection, which the store settles them by.
+    const chosen =
+      moved.selection === undefined && kept.length === state.copies.length
+        ? {}
+        : { selection: moved.selection ?? state.selection, copies: kept };
+    const view = { ...moved, ...chosen };
     // After an undo the step's own ops name the element as it is again; hunks name none.
     const label = text(`history.${kind}`, { label: sent.label });
     const id = firstElement(original.ops) ?? firstElement(sent.ops);

@@ -13,6 +13,8 @@ export type KeyLike = {
 
 /** Ctrl or Cmd with a letter (and Shift for the few that take it). */
 const COMMANDS: ReadonlyMap<string, EditKey> = new Map([
+  // Also keeps the page's own select-all from marking the prototype's text.
+  ['a', 'select-all'],
   ['d', 'duplicate'],
   ['c', 'copy'],
   ['x', 'cut'],

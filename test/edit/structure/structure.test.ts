@@ -158,13 +158,14 @@ test('an element says where its < is, and the structure names the version folder
   assert.equal(structure.folder.includes('\\'), false);
 });
 
-test('an item of a mapped list and everything inside it cannot move: in-expression', async () => {
+test('an item of a mapped list cannot move as an element; a plain child inside it can', async () => {
   const structure = await structureOf(shop());
   const card = entry(structure, `${P}/Stack/Card`);
   assert.equal(card.movable, 'in-expression');
   assert.equal(card.root, null);
   assert.equal(card.parent, `${P}/Stack`);
-  assert.equal(entry(structure, `${P}/Stack/Card/Text`).movable, 'in-expression');
+  // Only the element's own place counts: a child of the template moves like any other.
+  assert.equal(entry(structure, `${P}/Stack/Card/Text`).movable, null);
   // Its siblings outside the expression move as usual.
   assert.equal(entry(structure, `${P}/Stack/Text`).movable, null);
   assert.equal(entry(structure, `${P}/Stack/Button`).movable, null);
@@ -178,6 +179,89 @@ test('the element a map over a literal array returns is a list item, nothing els
   // Outside any map, in an expression or not.
   const plain = [P, `${P}/Stack`, `${P}/Stack/Text`, `${P}/Stack/Checkbox/Text`, `${P}/Stack/p`];
   for (const id of plain) assert.equal(entry(structure, id).item, false, id);
+});
+
+test('an element names the roots of the lists around it, outer first', async () => {
+  const structure = await structureOf(shop());
+  const card = `${P}/Stack/Card`;
+  assert.deepEqual(entry(structure, card).lists, [card]);
+  assert.deepEqual(entry(structure, `${card}/Text`).lists, [card]);
+  const outside = [P, `${P}/Stack`, `${P}/Stack/Text`, `${P}/Stack/Checkbox/Text`, `${P}/Stack/p`];
+  for (const id of outside) assert.deepEqual(entry(structure, id).lists, [], id);
+});
+
+/** The plans with a list of features in each: a list inside a list item. */
+const NESTED_TSX = [
+  "import { Card, Heading, Stack } from '@kit';",
+  '',
+  'const PLANS = [',
+  "  { name: 'Starter', features: ['Up to 3 projects', 'Kanban views'] },",
+  "  { name: 'Business', features: ['Everything in Pro'] },",
+  '];',
+  '',
+  'export function Pricing(_props: { state: string }) {',
+  '  return (',
+  '    <section className="pricing">',
+  '      <Stack gap="md">',
+  '        {PLANS.map((plan) => (',
+  '          <Card key={plan.name}>',
+  '            <Heading>{plan.name}</Heading>',
+  '            <ul>',
+  '              {plan.features.map((feature) => (',
+  '                <li key={feature}>',
+  '                  <span>{feature}</span>',
+  '                </li>',
+  '              ))}',
+  '            </ul>',
+  '          </Card>',
+  '        ))}',
+  '      </Stack>',
+  '    </section>',
+  '  );',
+  '}',
+  '',
+].join('\n');
+
+test('the root of a list inside a list item is an item too, and its parts are not', async () => {
+  const structure = await structureOf(shop({ [PRICING_FILE]: NESTED_TSX }));
+  const card = `${P}/Stack/Card`;
+  const row = `${card}/ul/li`;
+  const facts = (id: string) => {
+    const { lists, item, movable } = entry(structure, id);
+    return { lists, item, movable };
+  };
+  assert.deepEqual(facts(card), { lists: [card], item: true, movable: 'in-expression' });
+  assert.deepEqual(facts(`${card}/Heading`), { lists: [card], item: false, movable: null });
+  assert.deepEqual(facts(`${card}/ul`), { lists: [card], item: false, movable: null });
+  assert.deepEqual(facts(row), { lists: [card, row], item: true, movable: 'in-expression' });
+  assert.deepEqual(facts(`${row}/span`), { lists: [card, row], item: false, movable: null });
+});
+
+test('a list whose copies cannot be counted is named by no root', async () => {
+  // A condition at the top of the callback: some items render another element.
+  const either = NESTED_TSX.replace(
+    '                <li key={feature}>',
+    '                feature === \'\' ? <li key="none" /> : <li key={feature}>',
+  )
+    .replace('{plan.features.map((feature) => (', '{plan.features.map((feature) =>')
+    .replace('              ))}', '              )}');
+  assert.notEqual(either, NESTED_TSX);
+  const structure = await structureOf(shop({ [PRICING_FILE]: either }));
+  const rows = structure.elements.filter((each) => each.tag === 'li');
+  assert.equal(rows.length, 2);
+  for (const row of rows) assert.deepEqual([row.lists, row.item], [null, false], row.id);
+  // The outer list is still counted.
+  const card = `${P}/Stack/Card`;
+  assert.deepEqual(entry(structure, card).lists, [card]);
+  assert.equal(entry(structure, card).item, true);
+});
+
+test('an inner list over anything but a field of the outer item makes no item', async () => {
+  const computed = NESTED_TSX.replace('plan.features.map(', 'plan.features.slice(1).map(');
+  assert.notEqual(computed, NESTED_TSX);
+  const structure = await structureOf(shop({ [PRICING_FILE]: computed }));
+  const row = entry(structure, `${P}/Stack/Card/ul/li`);
+  assert.deepEqual([row.lists, row.item], [[`${P}/Stack/Card`, row.id], false]);
 });
 
 test('an element mapped over a list the editor cannot change is no list item', async () => {

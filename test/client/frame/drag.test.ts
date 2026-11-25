@@ -1,22 +1,24 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { type EditFrameMessage, parseEditFrame } from '../../../client/channel/edit-protocol.ts';
+import {
+  type CopyRef,
+  type EditFrameMessage,
+  parseEditFrame,
+} from '../../../client/channel/edit-protocol.ts';
 import type { DragSource } from '../../../client/channel/structure-protocol.ts';
-import type { ItemSlot } from '../../../client/frame/drag/item-slots.ts';
+import type { ListSlot } from '../../../client/frame/drag/item-slots.ts';
 import {
   createSession,
   type Family,
   type ItemSource,
   type Press,
-  type PressInput,
   passed,
-  pressOf,
   type Session,
+  samePath,
   samePlace,
   THRESHOLD,
 } from '../../../client/frame/drag/session.ts';
 import type { Box, Point, Slot } from '../../../client/frame/drag/slots.ts';
-import type { Taken } from '../../../client/frame/page/rect.ts';
 
 const at = (x: number, y: number): Point => ({ x, y });
 const box = (left: number, top: number, width: number, height: number): Box => ({
@@ -30,18 +32,23 @@ const LINE: Slot = {
   anchor: 'A:main/Card.2',
   place: 'before',
   line: { x: 0, y: 40, length: 200, axis: 'x' },
-  box: null,
+  box: box(0, 0, 200, 400),
 };
 const INSIDE: Slot = { anchor: 'A:main/Stack', place: 'last', line: null, box: box(0, 0, 10, 10) };
 
 /** The copies of one list item share this id. */
 const PLAN = 'A:main/Stack/Card';
+/** The box of the element the plans sit in. */
+const STACK = box(0, 0, 400, 120);
 /** Before the first copy: the dragged second item becomes the first. */
-const FIRST: ItemSlot = {
+const FIRST: ListSlot = {
   to: 0,
   anchor: 0,
   place: 'before',
   line: { x: 4, y: 0, length: 120, axis: 'y' },
+  list: 0,
+  path: [0],
+  box: STACK,
 };
 
 type Bench = {
@@ -50,15 +57,18 @@ type Bench = {
   /** What happened around the session, in order. */
   log: string[];
   shown: (Slot | null)[];
+  /** The lists outlined with each slot shown. */
+  around: (readonly Box[] | undefined)[];
   outlines: { rect: Box | null; boxes: readonly Box[] }[];
   previews: { source: DragSource; slot: Slot }[];
-  itemPreviews: { source: ItemSource; slot: ItemSlot }[];
+  itemPreviews: { source: ItemSource; slot: ListSlot }[];
   asked: { point: Point; source: DragSource }[];
   set: {
     slot: Slot | null;
-    itemSlot: ItemSlot | null;
+    itemSlot: ListSlot | null;
+    lists: Box[];
     scroll: Point;
-    taken: Taken;
+    taken: { picks: CopyRef[]; boxes: Box[] };
     family: Family;
     scale: number;
   };
@@ -71,6 +81,7 @@ function bench(): Bench {
   const posted: EditFrameMessage[] = [];
   const log: string[] = [];
   const shown: (Slot | null)[] = [];
+  const around: Bench['around'] = [];
   const outlines: Bench['outlines'] = [];
   const previews: Bench['previews'] = [];
   const itemPreviews: Bench['itemPreviews'] = [];
@@ -78,8 +89,9 @@ function bench(): Bench {
   const set: Bench['set'] = {
     slot: null,
     itemSlot: null,
+    lists: [STACK],
     scroll: at(0, 0),
-    taken: { ids: [], boxes: [] },
+    taken: { picks: [], boxes: [] },
     // Nowhere yet: no slot is the dragged element's own place unless a test says where it is.
     family: { parent: null, row: [] },
     scale: 1,
@@ -95,15 +107,16 @@ function bench(): Bench {
       asked.push({ point, source });
       return set.slot;
     },
-    itemSlot: () => set.itemSlot,
-    indicate: (slot) => {
+    itemSlot: () => ({ slot: set.itemSlot, lists: set.lists }),
+    indicate: (slot, lists) => {
       shown.push(slot);
+      around.push(lists);
     },
     scroll: () => set.scroll,
     outline: (rect, boxes) => {
       outlines.push({ rect, boxes });
     },
-    taken: () => set.taken,
+    taken: () => ({ boxes: set.taken.boxes, picks: () => set.taken.picks }),
     family: () => set.family,
     started: (source) => {
       log.push(source ? `started:${source.kind}` : 'started:rect');
@@ -120,7 +133,7 @@ function bench(): Bench {
       log.push('previewItem');
     },
   });
-  return { session, posted, log, shown, outlines, previews, itemPreviews, asked, set };
+  return { session, posted, log, shown, around, outlines, previews, itemPreviews, asked, set };
 }
 
 /** A press on a selected element: nothing to pick. */
@@ -129,19 +142,13 @@ const MOVE: Press = { kind: 'move', ids: ['A:main/Card'], pick: null };
 const UNSELECTED: Press = { kind: 'move', ids: ['A:main/Card'], pick: { id: 'A:main/Card' } };
 const RECT: Press = { kind: 'rect' };
 /** A press on the second copy of a list item. */
-const ITEM: Press = { kind: 'item', id: PLAN, from: 1, pick: { id: PLAN, item: 1 } };
-
-const press = (over: Partial<PressInput>): PressInput => ({
-  path: [],
-  selection: [],
-  add: false,
-  movable: () => true,
-  item: () => false,
-  section: () => false,
-  siblings: () => [],
-  copy: () => undefined,
-  ...over,
-});
+const ITEM: Press = {
+  kind: 'item',
+  id: PLAN,
+  item: 1,
+  from: [1],
+  pick: { id: PLAN, item: 1, path: [1] },
+};
 
 // The threshold.
 
@@ -313,7 +320,8 @@ test('every posted message is one the studio accepts', () => {
   const b = bench();
   b.set.slot = INSIDE;
   b.set.itemSlot = FIRST;
-  b.set.taken = { ids: ['A:main/h1'], boxes: [box(0, 0, 10, 10)] };
+  const picks = [{ id: 'A:main/h1' }, { id: PLAN, item: 4, path: [1, 1] }];
+  b.set.taken = { picks, boxes: [box(0, 0, 10, 10), box(0, 20, 10, 10)] };
   const run: Press = { kind: 'move', ids: ['A:main/Card', 'A:main/Card.2'], pick: null };
   b.session.press(run, at(0, 0), false);
   b.session.move(at(0, 9));
@@ -335,23 +343,35 @@ test('every posted message is one the studio accepts', () => {
 
 // A list item.
 
-test('a list item drags among its copies: its copy is picked, the line shows the place', () => {
+test('a list item drags among its lists: its copy is picked, the line shows the place', () => {
   const b = bench();
   b.set.itemSlot = FIRST;
+  b.set.lists = [STACK, box(0, 200, 400, 120)];
   b.session.press(ITEM, at(100, 100), false);
   b.session.move(at(100, 103));
   assert.equal(b.session.active(), false);
   b.session.move(at(60, 100));
   assert.equal(b.session.active(), true);
   assert.deepEqual(b.log, ['post:pick', 'started:item']);
-  const pick = { kitvas: 1, channel: 'c1', type: 'pick', id: PLAN, item: 1, add: false };
-  assert.deepEqual(b.posted, [{ ...pick, double: false }]);
-  assert.deepEqual(b.shown, [{ anchor: PLAN, place: 'before', line: FIRST.line, box: null }]);
+  const pick = { kitvas: 1, channel: 'c1', type: 'pick', id: PLAN, item: 1, path: [1] };
+  assert.deepEqual(b.posted, [{ ...pick, add: false, double: false }]);
+  // The line, with the box of the list that takes the item around it.
+  assert.deepEqual(b.shown, [{ anchor: PLAN, place: 'before', line: FIRST.line, box: STACK }]);
+  // Every list the item can go to is outlined from the start.
+  assert.deepEqual(b.around, [[STACK, box(0, 200, 400, 120)]]);
   // Only places among the copies: the slots of an element drag are never asked for.
   assert.deepEqual(b.asked, []);
 });
 
-test('a dropped list item posts `reorder` with its place and the new one, then previews', () => {
+test('with no place under the pointer the lists stay outlined, with no line', () => {
+  const b = bench();
+  b.session.press(ITEM, at(100, 100), false);
+  b.session.move(at(100, 110));
+  assert.deepEqual(b.shown, [null]);
+  assert.deepEqual(b.around, [[STACK]]);
+});
+
+test('a dropped list item posts `reorder` with its path and the new one, then previews', () => {
   const b = bench();
   b.set.itemSlot = FIRST;
   b.session.press(ITEM, at(100, 100), false);
@@ -362,19 +382,45 @@ test('a dropped list item posts `reorder` with its place and the new one, then p
     channel: 'c1',
     type: 'reorder',
     id: PLAN,
-    item: 1,
-    to: 0,
+    from: [1],
+    to: [0],
   });
-  assert.deepEqual(b.itemPreviews, [{ source: { kind: 'item', id: PLAN, from: 1 }, slot: FIRST }]);
+  const source = { kind: 'item', id: PLAN, item: 1, from: [1] };
+  assert.deepEqual(b.itemPreviews, [{ source, slot: FIRST }]);
   assert.equal(b.shown.at(-1), null);
   assert.deepEqual(b.log, ['post:pick', 'started:item', 'ended', 'post:reorder', 'previewItem']);
   // An item never moves as an element.
   assert.deepEqual(b.previews, []);
 });
 
+test('an item dropped in the same list of another parent posts the path it has there', () => {
+  const b = bench();
+  /** The third row of the first card. */
+  const row = 'A:main/Stack/Card/Row';
+  const pressed: Press = {
+    kind: 'item',
+    id: row,
+    item: 2,
+    from: [0, 2],
+    pick: { id: row, item: 2, path: [0, 2] },
+  };
+  // The first place among the rows of the second card.
+  b.set.itemSlot = { ...FIRST, list: 1, path: [1, 0] };
+  b.session.press(pressed, at(100, 100), false);
+  b.session.move(at(300, 100));
+  b.session.release(at(300, 100));
+  const reorder = { kitvas: 1, channel: 'c1', type: 'reorder', id: row, from: [0, 2], to: [1, 0] };
+  assert.deepEqual(b.posted.at(-1), reorder);
+  assert.deepEqual(parseEditFrame(reorder, 'c1'), reorder);
+  // The same number in another list is another place.
+  assert.equal(samePath([0, 2], [1, 2]), false);
+  assert.equal(samePath([0, 2], [0, 2]), true);
+  assert.equal(samePath([2], [0, 2]), false);
+});
+
 test('a list item dropped on its own place, or on none, writes nothing', () => {
   const own = bench();
-  own.set.itemSlot = { ...FIRST, to: 1, anchor: 2 };
+  own.set.itemSlot = { ...FIRST, to: 1, anchor: 2, path: [1] };
   own.session.press(ITEM, at(100, 100), false);
   own.session.move(at(100, 110));
   // The line still shows where it would go.
@@ -417,13 +463,15 @@ test('Esc during an item drag removes the line and reorders nothing', () => {
   b.session.move(at(60, 100));
   b.session.cancel();
   assert.equal(b.shown.at(-1), null);
+  // The lists' outlines leave with the line.
+  assert.equal(b.around.at(-1), undefined);
   b.session.release(at(10, 100));
   assert.deepEqual(b.log, ['post:pick', 'started:item', 'ended']);
 });
 
 test('Esc during a rectangle removes it and selects nothing', () => {
   const b = bench();
-  b.set.taken = { ids: ['A:main/Card'], boxes: [box(0, 0, 10, 10)] };
+  b.set.taken = { picks: [{ id: 'A:main/Card' }], boxes: [box(0, 0, 10, 10)] };
   b.session.press(RECT, at(10, 10), false);
   b.session.move(at(60, 60));
   assert.equal(b.session.drawing(), true);
@@ -443,161 +491,13 @@ test('Esc before the threshold forgets the press', () => {
   assert.deepEqual(b.log, []);
 });
 
-// What a press does.
-
-const MAIN = 'A:main';
-const inMain = { section: (id: string): boolean => id === MAIN };
-
-test('a press on an element that is not selected drags it at once and picks it', () => {
-  const path = ['A:main/h1', MAIN];
-  const pressed = pressOf(press({ ...inMain, path, selection: ['A:main/p'] }));
-  assert.deepEqual(pressed, { kind: 'move', ids: ['A:main/h1'], pick: { id: 'A:main/h1' } });
-  // One of several elements with the id: the pick says which copy.
-  const copy = pressOf(press({ ...inMain, path, copy: () => 2 }));
-  assert.deepEqual(copy, { kind: 'move', ids: ['A:main/h1'], pick: { id: 'A:main/h1', item: 2 } });
-});
-
-test('the nearest element that can move is the one dragged', () => {
-  const path = ['A:main/Card/Text', 'A:main/Card', MAIN];
-  const pressed = pressOf(press({ ...inMain, path, movable: (id) => id === 'A:main/Card' }));
-  assert.deepEqual(pressed, { kind: 'move', ids: ['A:main/Card'], pick: { id: 'A:main/Card' } });
-});
-
-test('a press on the section root, or on nothing, draws a rectangle', () => {
-  const still = { ...inMain, movable: (id: string): boolean => id !== MAIN };
-  assert.deepEqual(pressOf(press({ ...still, path: [MAIN], selection: [] })), { kind: 'rect' });
-  assert.deepEqual(pressOf(press({ path: [], selection: ['A:main/p'] })), { kind: 'rect' });
-  // Nothing up to the section root can move: the search ends there, not at the page around it.
-  const fixed = press({
-    ...inMain,
-    path: ['A:main/Text', MAIN, 'App:page'],
-    movable: (id) => id === 'App:page',
-  });
-  assert.deepEqual(pressOf(fixed), { kind: 'rect' });
-});
-
-test('with Shift, Ctrl or Cmd held a press draws a rectangle, wherever it starts', () => {
-  const path = ['A:main/Card', MAIN];
-  assert.deepEqual(pressOf(press({ ...inMain, path, add: true })), { kind: 'rect' });
-  // Also on a selected element, and on a list item.
-  const chosen = press({ ...inMain, path, add: true, selection: ['A:main/Card'] });
-  assert.deepEqual(pressOf(chosen), { kind: 'rect' });
-  assert.deepEqual(pressOf(press({ ...inMain, path, add: true, item: () => true })), {
-    kind: 'rect',
-  });
-});
-
-test('a press on a selected element moves it, also when a child of it was pressed', () => {
-  const input = press({ ...inMain, path: ['A:main/Card/Text', 'A:main/Card', MAIN] });
-  assert.deepEqual(pressOf({ ...input, selection: ['A:main/Card'] }), {
-    kind: 'move',
-    ids: ['A:main/Card'],
-    pick: null,
-  });
-});
-
-test('selected neighbouring siblings move together, in document order', () => {
-  const pressed = pressOf(
-    press({
-      path: ['A:main/Card.2', MAIN],
-      selection: ['A:main/Card.3', 'A:main/Card.2', 'A:main/Card'],
-      siblings: (id) => {
-        assert.equal(id, 'A:main/Card.2');
-        return ROW;
-      },
-    }),
-  );
-  assert.deepEqual(pressed, {
-    kind: 'move',
-    ids: ['A:main/Card', 'A:main/Card.2', 'A:main/Card.3'],
-    pick: null,
-  });
-});
-
-test('a mixed selection moves only the element under the pointer', () => {
-  const path = ['A:main/Card', MAIN];
-  const alone = { kind: 'move', ids: ['A:main/Card'], pick: null };
-  // Another parent.
-  const elsewhere = pressOf(
-    press({ path, selection: ['A:main/Card', 'B:footer/p'], siblings: () => ROW }),
-  );
-  assert.deepEqual(elsewhere, alone);
-  // The same parent, with an element between them.
-  const apart = pressOf(
-    press({ path, selection: ['A:main/Card', 'A:main/Card.3'], siblings: () => ROW }),
-  );
-  assert.deepEqual(apart, alone);
-  // Siblings, but one of them cannot move.
-  const stuck = pressOf(
-    press({
-      path,
-      selection: ['A:main/Card', 'A:main/Card.2'],
-      siblings: () => ROW,
-      movable: (id) => id !== 'A:main/Card.2',
-    }),
-  );
-  assert.deepEqual(stuck, alone);
-});
-
-test('a selected element that cannot move is not dragged: the press draws a rectangle', () => {
-  const pressed = pressOf(
-    press({ ...inMain, path: ['A:main/h1', MAIN], selection: [MAIN], movable: () => false }),
-  );
-  assert.deepEqual(pressed, { kind: 'rect' });
-  // What was pressed inside it can move: that one is dragged, and picked.
-  const child = pressOf(
-    press({
-      ...inMain,
-      path: ['A:main/h1', MAIN],
-      selection: [MAIN],
-      movable: (id) => id === 'A:main/h1',
-    }),
-  );
-  assert.deepEqual(child, { kind: 'move', ids: ['A:main/h1'], pick: { id: 'A:main/h1' } });
-});
-
-test('a list item drags as an item, by the copy that was pressed', () => {
-  const input = press({
-    ...inMain,
-    path: ['A:main/Stack/Card/Heading', PLAN, 'A:main/Stack', MAIN],
-    // Inside a `.map` nothing moves as an element; the list around it does.
-    movable: (id) => id === 'A:main/Stack',
-    item: (id) => id === PLAN,
-    copy: (id) => (id === PLAN ? 2 : undefined),
-  });
-  const dragged = { kind: 'item', id: PLAN, from: 2, pick: { id: PLAN, item: 2 } };
-  assert.deepEqual(pressOf(input), dragged);
-  // Selected or not, and with a child of it selected: the pressed copy is the one that goes.
-  assert.deepEqual(pressOf({ ...input, selection: [PLAN] }), dragged);
-  assert.deepEqual(pressOf({ ...input, selection: ['A:main/Stack/Card/Heading'] }), dragged);
-  // The only copy has no place to name.
-  assert.deepEqual(pressOf({ ...input, copy: () => undefined }), {
-    kind: 'item',
-    id: PLAN,
-    from: 0,
-    pick: { id: PLAN },
-  });
-});
-
-test('of an element that can move and a list item, the nearer one is dragged', () => {
-  const path = ['A:main/Stack/Card/Button', PLAN, 'A:main/Stack', MAIN];
-  const item = (id: string): boolean => id === PLAN;
-  const inner = pressOf(press({ ...inMain, path, item, movable: (id) => id !== PLAN }));
-  assert.deepEqual(inner, {
-    kind: 'move',
-    ids: ['A:main/Stack/Card/Button'],
-    pick: { id: 'A:main/Stack/Card/Button' },
-  });
-  const outer = pressOf(press({ ...inMain, path, item, movable: (id) => id === 'A:main/Stack' }));
-  assert.equal(outer.kind, 'item');
-});
-
-// The rectangle.
+// The rectangle. What a press does (`pressOf`) is in `drag/press.test.ts`.
 
 test('a press on the root draws the rectangle, outlines what it would take and posts it', () => {
   const b = bench();
   const boxes = [box(10, 60, 200, 200), box(220, 60, 170, 200)];
-  b.set.taken = { ids: ['A:main/Card', 'A:main/aside'], boxes };
+  const picks = [{ id: 'A:main/Card' }, { id: 'A:main/aside' }];
+  b.set.taken = { picks, boxes };
   b.session.press(RECT, at(50, 50), false);
   b.session.move(at(52, 52));
   assert.deepEqual(b.outlines, []);
@@ -606,25 +506,40 @@ test('a press on the root draws the rectangle, outlines what it would take and p
   assert.deepEqual(b.outlines, [{ rect: box(20, 10, 30, 40), boxes }]);
   b.session.release(at(10, 10));
   assert.deepEqual(b.outlines.at(-1), { rect: null, boxes: [] });
-  assert.deepEqual(b.posted, [
-    { kitvas: 1, channel: 'c1', type: 'rect', ids: ['A:main/Card', 'A:main/aside'], add: false },
-  ]);
+  assert.deepEqual(b.posted, [{ kitvas: 1, channel: 'c1', type: 'rect', picks, add: false }]);
   assert.deepEqual(b.log, ['started:rect', 'ended', 'post:rect']);
   // No slot was ever asked for, and no element moved.
   assert.deepEqual(b.asked, []);
   assert.deepEqual(b.previews, []);
 });
 
+test('a rectangle posts every copy it took, each with its place and its path', () => {
+  const b = bench();
+  const row = 'A:main/Stack/Card/Row';
+  // Three rows of the second card, of the nineteen rows that carry the id.
+  const picks = [
+    { id: row, item: 6, path: [1, 0] },
+    { id: row, item: 7, path: [1, 1] },
+    { id: row, item: 8, path: [1, 2] },
+  ];
+  b.set.taken = { picks, boxes: [box(0, 0, 9, 9), box(0, 10, 9, 9), box(0, 20, 9, 9)] };
+  b.session.press(RECT, at(0, 0), false);
+  b.session.move(at(30, 30));
+  b.session.release(at(30, 30));
+  const rect = { kitvas: 1, channel: 'c1', type: 'rect', picks, add: false };
+  assert.deepEqual(b.posted, [rect]);
+  assert.deepEqual(parseEditFrame(rect, 'c1'), rect);
+});
+
 test('Ctrl held: a rectangle that adds', () => {
   const b = bench();
-  b.set.taken = { ids: ['A:main/h1'], boxes: [box(0, 0, 20, 20)] };
-  // `drag.ts` passes Shift, Ctrl or Cmd as the one flag; the press rule made it a rectangle.
-  const pressed = pressOf(press({ path: ['A:main/h1', MAIN], add: true }));
-  b.session.press(pressed, at(0, 0), true);
+  b.set.taken = { picks: [{ id: 'A:main/h1' }], boxes: [box(0, 0, 20, 20)] };
+  // `drag.ts` passes Shift, Ctrl or Cmd as the one flag; `pressOf` made the press a rectangle.
+  b.session.press(RECT, at(0, 0), true);
   b.session.move(at(30, 30));
   b.session.release(at(30, 30));
   assert.deepEqual(b.posted, [
-    { kitvas: 1, channel: 'c1', type: 'rect', ids: ['A:main/h1'], add: true },
+    { kitvas: 1, channel: 'c1', type: 'rect', picks: [{ id: 'A:main/h1' }], add: true },
   ]);
 });
 
@@ -633,7 +548,7 @@ test('a rectangle that took nothing still posts: the selection is cleared', () =
   b.session.press(RECT, at(0, 0), false);
   b.session.move(at(30, 30));
   b.session.release(at(30, 30));
-  assert.deepEqual(b.posted, [{ kitvas: 1, channel: 'c1', type: 'rect', ids: [], add: false }]);
+  assert.deepEqual(b.posted, [{ kitvas: 1, channel: 'c1', type: 'rect', picks: [], add: false }]);
 });
 
 test('the rectangle keeps its first corner on the page while the page scrolls', () => {

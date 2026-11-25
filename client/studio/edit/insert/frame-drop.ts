@@ -8,6 +8,8 @@ import type { EditOp } from '../../../../src/edit/index.ts';
 import type { Structure } from '../../../../src/studio/api/edit/structure-schemas.ts';
 import type { Place } from '../../../channel/structure-protocol.ts';
 import type { EditorContext } from '../context.ts';
+import { partDone, partOf } from '../structure/list-parts.ts';
+import { sayDone } from '../structure/refusal-note.ts';
 import { text } from '../texts.ts';
 import { mountFileDrop } from './file-drop.ts';
 
@@ -53,8 +55,13 @@ export function mountFrameDrop(ctx: EditorContext): void {
     const slot = { anchor: message.anchor, place: message.place };
     const ops = frameMoveOps(message.source.ids, slot, structure);
     if (ops.length === 0) return;
+    // A part of a list item moves in the template: once written, that is said (ADR 0065).
+    const [only] = message.source.ids;
+    const part =
+      only === undefined || message.source.ids.length !== 1 ? null : partOf(store.get(), only);
     void history.apply({ ops, label: text('layers.move') }).then((outcome) => {
       if (outcome?.outcome !== 'applied') reloadFrame(bridge);
+      else if (part !== null) sayDone(ctx.main, partDone(part, 'move'));
     });
   });
 }

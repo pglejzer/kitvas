@@ -67,6 +67,8 @@ export const UTILITY = /^[A-Za-z0-9:_\-[\]/.#%(),]{1,120}$/;
 const ItemSchema = z.number().int().min(0).max(10_000);
 /** The most `.map` lists around one element that a text's path names (ADR 0060). */
 export const MAX_LIST_DEPTH = 8;
+/** A copy's place in each `.map` around its element, outer first (ADR 0060). */
+const PathSchema = z.array(ItemSchema).max(MAX_LIST_DEPTH);
 
 /** A literal prop value: `name="v"`, `name={3}`, `name` (true) or `name={false}`. */
 export const PropValueSchema = z.discriminatedUnion('kind', [
@@ -155,7 +157,8 @@ export const EditOpSchema = z.discriminatedUnion('op', [
     newRule: z.boolean(),
     /**
      * Spec 4c: the declaration goes into the rule's nested block for this context (`@media`,
-     * `&:hover`, both). `newBlock`: that block did not exist and this op creates it.
+     * `&:hover`, both). `newBlock`: the op may create that block, when the class's last rule has
+     * none for the context.
      */
     context: StyleContextSchema.optional(),
     newBlock: z.boolean().optional(),
@@ -238,13 +241,37 @@ export const EditOpSchema = z.discriminatedUnion('op', [
     after: SectionSchema.nullable(),
   }),
   z.strictObject({ op: z.literal('removeSection'), section: SectionSchema }),
-  // Data lists (spec 4c, goal 9): `id` is the element inside the `.map` callback, `item` which
-  // rendered copy of it, which is the array element at that index. Server-made inverses.
-  /** The array element at `item` to index `to` (the others shift). */
-  z.strictObject({ op: z.literal('moveItem'), ...target, item: ItemSchema, to: ItemSchema }),
+  // Data lists (spec 4c, goal 9; ADR 0065): `id` is the root element a `.map` callback returns,
+  // `item` which array element. Server-made inverses. `path`: the copy's place in each `.map`
+  // around the element, outer first (ADR 0060); with it the op is for the innermost list of that
+  // copy (the features of one plan) and `item` is the path's last place, for the change list.
+  /**
+   * The array element at `item` to index `to` (the others shift). `toPath`, with `path` and as
+   * long: where the item goes. Places before the last that differ name the same list of another
+   * parent: the item leaves its array and stands in that one at `toPath`'s last place, counted
+   * among that array's items as they are; `to` is then that place.
+   */
+  z.strictObject({
+    op: z.literal('moveItem'),
+    ...target,
+    item: ItemSchema,
+    to: ItemSchema,
+    path: PathSchema.optional(),
+    toPath: PathSchema.optional(),
+  }),
   /** A copy of the array element at `item`, right after it. */
-  z.strictObject({ op: z.literal('duplicateItem'), ...target, item: ItemSchema }),
-  z.strictObject({ op: z.literal('removeItem'), ...target, item: ItemSchema }),
+  z.strictObject({
+    op: z.literal('duplicateItem'),
+    ...target,
+    item: ItemSchema,
+    path: PathSchema.optional(),
+  }),
+  z.strictObject({
+    op: z.literal('removeItem'),
+    ...target,
+    item: ItemSchema,
+    path: PathSchema.optional(),
+  }),
   /** The string literal field the element's text reads (`{plan.title}`) of the item at `item`. */
   z.strictObject({
     op: z.literal('setItemText'),
@@ -258,7 +285,7 @@ export const EditOpSchema = z.discriminatedUnion('op', [
      * (a branch of a condition, a field of the item, of an outer item's list too), in its own
      * quotes; `item` is then the last place, for the change list.
      */
-    path: z.array(ItemSchema).max(MAX_LIST_DEPTH).optional(),
+    path: PathSchema.optional(),
   }),
   /**
    * Server-made inverses (decision 4). `patch`: each hunk's `find` occurs exactly once in the

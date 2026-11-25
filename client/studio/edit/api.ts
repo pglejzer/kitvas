@@ -51,8 +51,18 @@ const base = (slug: string): string => `/api/v1/drafts/${encodeURIComponent(slug
 export const getEditState = (slug: string): Promise<Answer<EditState>> =>
   call('GET', `${base(slug)}/edits`);
 
-export const inspect = (slug: string, id: string): Promise<Answer<Inspect>> =>
-  call('GET', `${base(slug)}/inspect?id=${encodeURIComponent(id)}`);
+/**
+ * One element as its source writes it. `path` (ADR 0065): the rendered copy its `list` is read
+ * for, its place in each list around it; left out, the list is read for no one copy.
+ */
+export const inspect = (
+  slug: string,
+  id: string,
+  path?: readonly number[],
+): Promise<Answer<Inspect>> => {
+  const copy = path === undefined ? '' : `&path=${path.join(',')}`;
+  return call('GET', `${base(slug)}/inspect?id=${encodeURIComponent(id)}${copy}`);
+};
 
 /**
  * ADR 0060: whether the text copy `path` of the element shows has one string literal of its file

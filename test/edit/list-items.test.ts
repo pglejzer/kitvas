@@ -90,10 +90,32 @@ const retext = (item: number, value: string, before: string): ListOp => ({
 });
 
 test('a move swaps only the item texts of the places between; each keeps its separator', () => {
-  assert.equal(edited(PRICING, 'Heading', move(0, 2)), pricing([PRO, TEAM, FREE]));
+  assert.equal(edited(PRICING, 'Card', move(0, 2)), pricing([PRO, TEAM, FREE]));
   assert.equal(edited(PRICING, 'Card', move(2, 0)), pricing([TEAM, FREE, PRO]));
-  assert.equal(edited(PRICING, 'Text', move(1, 2)), pricing([FREE, TEAM, PRO]));
+  assert.equal(edited(PRICING, 'Card', move(1, 2)), pricing([FREE, TEAM, PRO]));
   assert.equal(edited(PRICING, 'Card', move(1, 1)), PRICING);
+});
+
+test('a move, a copy and a removal are for the item: a part of it is refused', () => {
+  for (const tag of ['Heading', 'Text']) {
+    for (const op of [move(0, 1), duplicate(0), remove(0)]) {
+      assert.deepEqual(run(PRICING, tag, op), { refused: 'not-list-item' }, `${tag} ${op.op}`);
+    }
+  }
+  // The item's text is still written through the part that shows it.
+  const pro = "  { name: 'Pro plus', price: '20' },";
+  const retexted = edited(PRICING, 'Heading', retext(1, 'Pro plus', 'Pro'));
+  assert.equal(retexted, pricing([FREE, pro, TEAM]));
+  // The path of the item's one list does the same as its index.
+  const byPath: ListOp = { op: 'removeItem', id: ID, item: 1, path: [1] };
+  assert.equal(edited(PRICING, 'Card', byPath), pricing([FREE, TEAM]));
+  const moved: ListOp = { op: 'moveItem', id: ID, item: 0, to: 2, path: [0], toPath: [2] };
+  assert.equal(edited(PRICING, 'Card', moved), pricing([PRO, TEAM, FREE]));
+  // A path that names another number of lists, or a place to go with no place to leave.
+  const deep: ListOp = { op: 'removeItem', id: ID, item: 1, path: [0, 1] };
+  assert.deepEqual(run(PRICING, 'Card', deep), { refused: 'not-found' });
+  const blind: ListOp = { op: 'moveItem', id: ID, item: 0, to: 1, toPath: [1] };
+  assert.deepEqual(run(PRICING, 'Card', blind), { refused: 'not-found' });
 });
 
 test('duplicate puts a copy right after the item, with the separator the array uses', () => {

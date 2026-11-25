@@ -76,6 +76,8 @@ export const REFUSALS = [
   'list-item-gone',
   /** The item's text is not a string literal field of the item (`{item.title}`). */
   'list-text-not-literal',
+  /** A list item edit on an element that is not the root its list's callback returns (ADR 0065). */
+  'not-list-item',
   /** A utility class of a Tailwind draft that kitvas does not know how to swap. */
   'utility-unknown',
   /** The kit's own rule for this state weighs more than the editor's: the value would not show. */

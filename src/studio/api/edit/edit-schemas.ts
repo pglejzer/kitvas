@@ -77,11 +77,17 @@ export const EditStateSchema = z.strictObject({
   tokens: z.array(TokenOptionSchema),
 });
 
-/** The query of `GET /api/v1/drafts/{slug}/inspect?id=<element id>`. */
-export const InspectQuerySchema = z.strictObject({ id: ElementIdSchema });
-
 /** A copy's place in each `.map` around an element, outer first (ADR 0060). */
 const PathSchema = z.array(z.number().int().min(0).max(10_000)).max(MAX_LIST_DEPTH);
+
+/**
+ * The query of `GET /api/v1/drafts/{slug}/inspect?id=<element id>&path=0,2`. `path` (ADR 0065):
+ * the rendered copy the answer's `list` is read for; left out, the list is read for no one copy.
+ */
+export const InspectQuerySchema = z.strictObject({
+  id: ElementIdSchema,
+  path: PathSchema.optional(),
+});
 
 /**
  * The query of `GET /api/v1/drafts/{slug}/text-source?id=…&text=…&path=0,2` (ADR 0060): the
@@ -170,7 +176,9 @@ export const InspectSchema = z.strictObject({
   /**
    * Spec 4c, goal 9: the element is rendered by a `.map`. `literal`: over an inline array or a
    * `const` array in the same file, so its items can be edited; any other kind is read-only and
-   * `reason` says why. `count`: the array's items when literal, else `null`.
+   * `reason` says why. `count`: the array's items when literal, else `null`. A list inside
+   * another list is read for the copy the query's `path` names (ADR 0065): `literal` with the
+   * items of that copy's own array; asked without a path, `literal` with `count: null`.
    */
   list: z
     .strictObject({
@@ -179,6 +187,17 @@ export const InspectSchema = z.strictObject({
       reason: z.enum(REFUSALS).nullable(),
       /** A literal list: each item's text the element shows (`{item.title}`), `null` when not a string field. */
       texts: z.array(z.string().nullable()).nullable().optional(),
+      /**
+       * The element is the list's item: the root its innermost list's callback returns. `false`:
+       * a part of an item, an element of the template every item shares.
+       */
+      root: z.boolean().optional(),
+      /**
+       * Asked with a `path`: the place of that copy of the item among all the copies the list
+       * renders, in page order, and how many the arrays hold; `null` when one is not read.
+       */
+      copy: z.number().int().min(0).nullable().optional(),
+      copies: z.number().int().min(0).nullable().optional(),
     })
     .nullable()
     .optional(),

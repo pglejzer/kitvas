@@ -9,10 +9,10 @@ const FRAME = join(PLUGIN_ROOT, 'client', 'frame');
 
 /** Every overlay of the frame that draws a colour (the sheets in these files). */
 const SHEETS = [
-  'drag/drag.ts',
   'drag/guides.ts',
-  'drag/handles.ts',
+  'drag/handles-sheet.ts',
   'drag/preview.ts',
+  'drag/rect-layer.ts',
   'edit/edit.ts',
   'edit/indicator.ts',
   'edit/label.ts',

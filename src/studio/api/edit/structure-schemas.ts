@@ -1,7 +1,7 @@
 // Shapes of the editor's structure API (spec 4b; plan 14, C10). The routes are in
 // `structure-routes.ts` (task B6); the rules are in the edit module.
 
-import { ElementIdSchema, HASH, REFUSALS } from '../../../edit/index.ts';
+import { ElementIdSchema, HASH, MAX_LIST_DEPTH, REFUSALS } from '../../../edit/index.ts';
 import { type Zod, z } from '../../../shared/index.ts';
 import { EtagsSchema } from './edit-schemas.ts';
 
@@ -25,11 +25,22 @@ export const StructureEntrySchema = z.strictObject({
   props: z.array(z.string()),
   /** The kit component it is; `null` for a plain element. */
   component: z.string().nullable(),
-  /** Why it cannot be moved, deleted or duplicated as an element; `null` when it can. */
+  /**
+   * Why it cannot be moved, deleted or duplicated as an element; `null` when it can. It follows
+   * the element's own place (ADR 0065): a plain child inside a list item's template moves, and
+   * the move changes the template every item shares.
+   */
   movable: z.enum(REFUSALS).nullable(),
   /**
-   * It is what a `.map` over a literal array of the file returns, one copy per item: a drag in
-   * the frame reorders the items of the data (ADR 0059). Left out means `false`.
+   * The ids of the root elements of the `.map` lists around it, outer first, its own id last
+   * when it is such a root (ADR 0065); `[]` in no list; `null` when the copies of a list around
+   * it cannot be counted. Left out means `[]`.
+   */
+  lists: z.array(ElementIdSchema).max(MAX_LIST_DEPTH).nullable().optional(),
+  /**
+   * It is the root a `.map` callback returns, at any depth, and the array of its first copy is
+   * a literal of the file: a drag in the frame reorders the items of the data (ADR 0059, ADR
+   * 0065). Left out means `false`.
    */
   item: z.boolean().optional(),
   /** It takes an element dropped inside: `children: node` in the catalog, or a non-void element. */

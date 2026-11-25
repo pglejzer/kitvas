@@ -230,6 +230,17 @@ test('every op kind has its fields checked', () => {
   assert.equal(isOp(extra), true);
   assert.deepEqual(readGesture({ ops: [extra], label: 'Edit' })?.ops, [extra]);
   assert.equal(isOp({ op: 'moveItem', id: ID, item: -1, to: 0 }), false);
+  // A list op with the copy's path (ADR 0065): the paths are places, at most eight deep.
+  const across = { op: 'moveItem', id: ID, item: 0, to: 1, path: [2, 0], toPath: [0, 1] };
+  assert.equal(isOp(across), true);
+  assert.deepEqual(readGesture({ ops: [across], label: 'Move' })?.ops, [across]);
+  assert.equal(isOp({ op: 'duplicateItem', id: ID, item: 1, path: [1, 1] }), true);
+  assert.equal(isOp({ op: 'removeItem', id: ID, item: 1, path: [1, 1] }), true);
+  assert.equal(isOp({ ...across, toPath: [0, -1] }), false);
+  assert.equal(isOp({ ...across, path: '2,0' }), false);
+  assert.equal(isOp({ op: 'removeItem', id: ID, item: 1, path: [0, 1.5] }), false);
+  const deep = Array.from({ length: 9 }, () => 0);
+  assert.equal(isOp({ op: 'duplicateItem', id: ID, item: 0, path: deep }), false);
   assert.equal(readChange({ ...claude, by: 'someone' }), null);
 });
 

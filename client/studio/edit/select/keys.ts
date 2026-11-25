@@ -1,10 +1,20 @@
 // The editor's keys (spec 4b, keyboard; plan 14, task D3): the frame's `key` messages and the same keys
-// pressed on the page, turned into `runAction` calls. Never while focus is in a text field.
+// pressed on the page, turned into `runAction` calls. Never while focus is in a text field. A key
+// whose action is off says why over the canvas (ADR 0065), and select-all selects the siblings.
 
 import type { EditKey } from '../../../channel/edit-protocol.ts';
 import type { EditorContext } from '../context.ts';
-import { type ActionId, type ActionState, actionsFor, runAction } from '../structure/actions.ts';
+import {
+  type ActionId,
+  type ActionReason,
+  type ActionState,
+  actionsFor,
+  runAction,
+} from '../structure/actions.ts';
 import { openMenuFromKey } from '../structure/menu.ts';
+import { sayReason } from '../structure/refusal-note.ts';
+import { sameChosen } from './copies.ts';
+import { selectAll } from './select-all.ts';
 
 /** The parts of a keyboard event the mapping reads, so tests need no DOM. */
 export type KeyLike = {
@@ -63,6 +73,7 @@ export function editKeyOf(event: KeyLike): EditKey | null {
   if (!mod || event.altKey) return null;
   if (name === 'g') return event.shiftKey ? 'unwrap' : 'wrap';
   if (event.shiftKey) return null;
+  if (name === 'a') return 'select-all';
   if (name === 'd') return 'duplicate';
   if (name === 'c') return 'copy';
   if (name === 'x') return 'cut';
@@ -82,8 +93,8 @@ export function isTextTarget(target: TargetLike): boolean {
 }
 
 /**
- * What a key does now: the action to run, `'menu'` to open the menu, or `null` when nothing happens
- * (an action that is off does nothing; its reason is in the menu).
+ * What a key does now: the action to run, `'menu'` to open the menu, or `null` when no action
+ * runs (one that is off says why, `offReason`).
  */
 export function resolveKey(
   key: EditKey,
@@ -95,14 +106,33 @@ export function resolveKey(
   return actions.some((action) => action.id === id && action.enabled) ? id : null;
 }
 
+/** Why the action of `key` is off now; `null` when it is on, and for a key with no action. */
+export function offReason(key: EditKey, actions: readonly ActionState[]): ActionReason | null {
+  const id = actionOfKey(key);
+  const action = id === null ? undefined : actions.find((one) => one.id === id);
+  return action === undefined || action.enabled ? null : action.reason;
+}
+
 export function mountKeys(ctx: EditorContext): void {
   const { store, bridge, history } = ctx;
 
+  /** Whether the editor took the key: the page's own answer to it is then stopped. */
   function press(key: EditKey): boolean {
     const state = store.get();
     if (!state.on) return false;
-    const todo = resolveKey(key, actionsFor(state));
-    if (todo === null) return false;
+    if (key === 'select-all') {
+      const all = selectAll(state);
+      if (all !== null && !sameChosen(all, state)) store.set(all);
+      return true;
+    }
+    const actions = actionsFor(state);
+    const todo = resolveKey(key, actions);
+    if (todo === null) {
+      const off = offReason(key, actions);
+      if (off === null) return false;
+      sayReason(ctx.main, off);
+      return true;
+    }
     if (todo === 'menu') openMenuFromKey(ctx);
     else void runAction(ctx, todo);
     return true;

@@ -19,11 +19,11 @@ import { placeRing, type Rect } from '../drag/place.ts';
 import { toned } from '../tones/tones.ts';
 import { createInline } from './inline.ts';
 import {
-  choiceOf,
+  type Chosen,
   chosenElements,
+  chosenOf,
   copyAt,
-  type ItemChoice,
-  itemOfPick,
+  copyOfPick,
   locateCopy,
   textElement,
 } from './items.ts';
@@ -101,6 +101,11 @@ export type Edit = {
   follow(until: Promise<unknown>): void;
   /** The size of the name labels, as a multiple of their own: the inverse of the canvas zoom. */
   scale(value: number): void;
+  /**
+   * While a drag runs (`true`) no outline and no label is drawn (ADR 0066); what the studio says
+   * meanwhile is kept, and drawn when the drag ends.
+   */
+  quiet(on: boolean): void;
 };
 
 type Layer = {
@@ -148,8 +153,12 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
   let on = false;
   let layer: Layer | undefined;
   let selected: ReadonlySet<string> = new Set();
-  /** The copy of a list item the page chose (spec 4c, goal 9); `null`: every copy. */
-  let choice: ItemChoice = null;
+  /** The copies the page chose (`select`'s `copies`); an id without one keeps every copy. */
+  let chosen: Chosen = chosenOf(undefined);
+  /** The lists around each element (the structure's `FrameEntry.lists`): a pick's `path`. */
+  let lists: ReadonlyMap<string, string[] | null> = new Map();
+  /** A drag runs: nothing is drawn here until it ends. */
+  let hushed = false;
   /** What the pointer is over in the frame. */
   let overElement: Element | null = null;
   let overId: string | null = null;
@@ -171,6 +180,7 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
     typeof MutationObserver === 'function' ? new MutationObserver(() => schedule()) : undefined;
 
   function targets(): { element: Element; kind: 'hover' | 'select' }[] {
+    if (hushed) return [];
     const hovered = new Set<Element>();
     if (overElement?.isConnected) hovered.add(overElement);
     const shown = shownId === null ? [] : elementsWith(new Set([shownId]));
@@ -178,7 +188,7 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
     const list: { element: Element; kind: 'hover' | 'select' }[] = [];
     for (const element of hovered) list.push({ element, kind: 'hover' });
     // Selected last, so its outline is drawn over a hover outline on the same element.
-    for (const element of chosenElements(selected, choice)) {
+    for (const element of chosenElements(selected, chosen)) {
       list.push({ element, kind: 'select' });
       if (resizes && !observed.has(element)) {
         observed.add(element);
@@ -232,7 +242,7 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
   /** An inline edit of `id`: exactly copy `item` when the page names one, else the chosen copy. */
   function startText(id: string, item: number | undefined): void {
     if (!on) inline.start(id, undefined);
-    else inline.start(id, item === undefined ? textElement(id, choice) : copyAt(id, item));
+    else inline.start(id, item === undefined ? textElement(id, chosen) : copyAt(id, item));
   }
 
   function onPointer(event: MouseEvent): void {
@@ -257,7 +267,8 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
     if (!double && !(event.type === 'click' && event.detail <= 1)) return;
     const picked = nearest(event.target);
     const pick = pickOf(picked, addsToSelection(event), double);
-    post({ ...head, type: 'pick', ...pick, ...itemOfPick(picked, pick.id) });
+    const around = pick.id === null ? null : lists.get(pick.id);
+    post({ ...head, type: 'pick', ...pick, ...copyOfPick(picked, pick.id, around) });
   }
 
   function onKey(event: KeyboardEvent): void {
@@ -356,7 +367,8 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
     layer?.host.remove();
     layer = undefined;
     selected = new Set();
-    choice = null;
+    chosen = chosenOf(undefined);
+    hushed = false;
     overElement = null;
     overId = null;
     shownId = null;
@@ -374,8 +386,11 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
           // Outside edit mode nothing is drawn; the studio sends the selection again with `edit`.
           if (!on) break;
           selected = new Set(message.ids);
-          choice = choiceOf(message.ids, message.item);
+          chosen = chosenOf(message.copies);
           draw();
+          break;
+        case 'structure':
+          lists = new Map(message.entries.map((entry) => [entry.id, entry.lists]));
           break;
         case 'hover':
           if (!on) break;
@@ -419,6 +434,12 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
 
     scale(value) {
       labelScale = value > 0 && Number.isFinite(value) ? value : 1;
+      if (on) draw();
+    },
+
+    quiet(next) {
+      if (next === hushed) return;
+      hushed = next;
       if (on) draw();
     },
 

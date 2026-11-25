@@ -472,3 +472,17 @@ test('copy style keeps scss declarations and paste adds the class and rule once'
     [true, false],
   );
 });
+
+test('a part of a list item takes the element actions: Delete changes the template', async () => {
+  const part: Inspect = {
+    ...inspected(INNER, []),
+    list: { kind: 'literal', count: 3, reason: null, root: false },
+  };
+  // Chosen on the second item's copy, it is still the one element every item shares.
+  const f = fixture([INNER], { inspected: part, copies: [{ id: INNER, item: 1, path: [1] }] });
+  assert.deepEqual(stateOf(f, 'delete'), { id: 'delete', enabled: true, reason: null });
+  await runAction(f.ctx, 'delete');
+  assert.deepEqual(f.gestures, [
+    { ops: [{ op: 'removeElement', id: INNER, hash: HASH(13) }], label: 'actions.label.delete' },
+  ]);
+});

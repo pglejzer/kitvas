@@ -74,13 +74,18 @@ export type LabelView = {
   scale: number;
 };
 
-/** The items that get a label: an element hovered and selected keeps the select one only. */
+/**
+ * The items that get a label: an element hovered and selected keeps the select one only, and a
+ * selection is labelled only while it is one element (ADR 0066): a name and a size on each of
+ * several outlines would cover the page.
+ */
 export function labelled(items: readonly LabelItem[]): (LabelItem & { id: string; box: Rect })[] {
   const selected = items.filter((item) => item.kind === 'select');
   const picked = new Set(selected.map((item) => item.element));
   const shown: (LabelItem & { id: string; box: Rect })[] = [];
   for (const item of items) {
     if (item.kind === 'hover' && picked.has(item.element)) continue;
+    if (item.kind === 'select' && picked.size !== 1) continue;
     if (item.id !== null && item.box) shown.push({ ...item, id: item.id, box: item.box });
   }
   return shown;

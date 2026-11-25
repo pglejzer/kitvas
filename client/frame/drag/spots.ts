@@ -42,6 +42,11 @@ const INSET = 14;
 /** Smaller elements get no padding handles on that axis: they would cover the element. */
 const MIN_HEIGHT = 48;
 const MIN_WIDTH = 64;
+/**
+ * An element smaller than this in a direction, in pixels on the screen, has its size handles for
+ * that direction outside its box (ADR 0066): on it they would leave no place to press the element.
+ */
+export const SMALL = 40;
 export const MAX_GAPS = 24;
 /** Rounding slack when asking whether one child starts where the other ends. */
 const SLACK = 0.5;
@@ -111,15 +116,32 @@ export function gapSpots(children: readonly Box[], scale = 1): Spot[] {
   return spots;
 }
 
-/** Every handle of an element. The corner comes first, so it wins where zones meet. */
+/** Half of the zone of a bar `size` thick, across it: how far a handle moves to clear an edge. */
+const clear = (size: number, scale: number): number =>
+  Math.max(size + HIT_MORE * scale, HIT_MIN * scale) / 2;
+
+/**
+ * Every handle of an element. The corner comes first, so it wins where zones meet. The size
+ * handles sit on the right and the bottom edge; on an element under `SMALL` wide the width handle
+ * stands right of the box, on one under `SMALL` high the height handle stands below it, each with
+ * its zone starting at the edge, and the corner goes out with either.
+ */
 export function spotsFor({ box, padding, display, children, scale = 1 }: SpotsInput): Spot[] {
   const [right, bottom] = [box.left + box.width, box.top + box.height];
   const [x, y] = [box.left + box.width / 2, box.top + box.height / 2];
   const [thick, long, short] = [THICK * scale, LONG * scale, SHORT * scale];
   const inset = (side: Side): number => Math.max(padding[side] / 2, INSET * scale);
-  const edge = centred(right, y, thick, Math.min(long, box.height));
-  const base = centred(x, bottom, Math.min(long, box.width), thick);
-  const corner = centred(right, bottom, CORNER * scale, CORNER * scale);
+  const narrow = box.width < SMALL * scale;
+  const flat = box.height < SMALL * scale;
+  const out = (small: boolean, size: number): number => (small ? clear(size, scale) : 0);
+  const edge = centred(right + out(narrow, thick), y, thick, Math.min(long, box.height));
+  const base = centred(x, bottom + out(flat, thick), Math.min(long, box.width), thick);
+  const corner = centred(
+    right + out(narrow, CORNER * scale),
+    bottom + out(flat, CORNER * scale),
+    CORNER * scale,
+    CORNER * scale,
+  );
   const spots: Spot[] = [
     spot('size', corner, 'both', 1, scale),
     spot('width', edge, 'x', 1, scale),

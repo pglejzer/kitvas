@@ -23,6 +23,15 @@ const CLASS = /^[a-z][a-z0-9_-]{0,63}$/;
 export const MAX_SELECTED = 200;
 /** The most lists around one element a `locate-copy` names (`MAX_LIST_DEPTH` of the edit ops). */
 export const MAX_LIST_DEPTH = 8;
+/**
+ * One rendered copy of an element. `item`: its place among the elements that carry `id`, in
+ * document order, from 0; left out when one element carries the id. `path`: its place in each
+ * `.map` list around it, outer first (ADR 0060); left out when it stands in no list or the
+ * frame cannot count one of them.
+ */
+export type CopyRef = { id: string; item?: number; path?: number[] };
+/** The most copies one message names. */
+export const MAX_COPIES = 200;
 export const MAX_NODES = 2000;
 export const MAX_NAME = 80;
 export const MAX_INLINE_TEXT = 2000;
@@ -49,6 +58,8 @@ export const EDIT_KEYS = [
   'wrap',
   'unwrap',
   'menu',
+  // Ctrl or Cmd with A (ADR 0065): the siblings of the selected element, or the page's sections.
+  'select-all',
 ] as const;
 export type EditKey = (typeof EDIT_KEYS)[number];
 
@@ -94,9 +105,18 @@ export type EditFrameMessage =
       /**
        * `item` (spec 4c, goal 9): which rendered copy of `id` was picked when several elements
        * carry it (a `.map`), counted in document order from 0; absent when only one does.
+       * `path` (ADR 0065): the picked copy's place in each `.map` list around it, outer first, as
+       * a `CopyRef` has it.
        */
       (
-        | { type: 'pick'; id: string | null; add: boolean; double: boolean; item?: number }
+        | {
+            type: 'pick';
+            id: string | null;
+            add: boolean;
+            double: boolean;
+            item?: number;
+            path?: number[];
+          }
         | { type: 'hovered'; id: string | null }
         | { type: 'key'; key: EditKey }
         | { type: 'tree'; request: number; nodes: TreeNode[] }
@@ -131,8 +151,12 @@ export type EditStudioMessage =
   | (Head &
       (
         | { type: 'edit'; on: boolean }
-        /** `item`: only that rendered copy of `ids[0]` is outlined (a list item, spec 4c). */
-        | { type: 'select'; ids: string[]; item?: number }
+        /**
+         * `copies` (ADR 0065): an id with entries is outlined only on those rendered copies of it
+         * (`item`: the copy's place among the elements that carry the id); an id without one is
+         * outlined on every copy.
+         */
+        | { type: 'select'; ids: string[]; copies?: { id: string; item: number }[] }
         | { type: 'hover'; id: string | null }
         | { type: 'tree'; request: number }
         | { type: 'inspect'; request: number; id: string }
@@ -196,6 +220,13 @@ const isCount = (value: unknown): value is number =>
 const isPath = (value: unknown): value is number[] =>
   Array.isArray(value) && value.length <= MAX_LIST_DEPTH && value.every(isItem);
 
+/** One chosen copy of a `select`: the id and the copy's place among the elements carrying it. */
+function chosenCopy(value: unknown): { id: string; item: number } | undefined {
+  if (!isObject(value)) return undefined;
+  const { id, item } = value;
+  return isId(id) && isItem(item) ? { id, item } : undefined;
+}
+
 function node(value: unknown): TreeNode | undefined {
   if (!isObject(value)) return undefined;
   const { id, parent, name, count } = value;
@@ -242,10 +273,18 @@ export function parseEditFrame(message: Loose, channel: string): EditFrameMessag
       const { id, add, double } = message;
       if (!isIdOrNull(id) || typeof add !== 'boolean' || typeof double !== 'boolean')
         return undefined;
-      const { item } = message;
-      if (item === undefined) return { ...head, type: 'pick', id, add, double };
-      if (!isItem(item)) return undefined;
-      return { ...head, type: 'pick', id, add, double, item };
+      const { item, path } = message;
+      if (!(item === undefined || isItem(item))) return undefined;
+      if (!(path === undefined || isPath(path))) return undefined;
+      return {
+        ...head,
+        type: 'pick',
+        id,
+        add,
+        double,
+        ...(item === undefined ? {} : { item }),
+        ...(path === undefined ? {} : { path: [...path] }),
+      };
     }
     case 'hovered':
       return isIdOrNull(message.id) ? { ...head, type: 'hovered', id: message.id } : undefined;
@@ -298,10 +337,17 @@ export function parseEditStudio(message: Loose, channel: string): EditStudioMess
     case 'select': {
       const { ids } = message;
       if (!Array.isArray(ids) || ids.length > MAX_SELECTED || !ids.every(isId)) return undefined;
-      const { item } = message;
-      if (item === undefined) return { ...head, type: 'select', ids: [...ids] };
-      if (!isItem(item)) return undefined;
-      return { ...head, type: 'select', ids: [...ids], item };
+      const { copies } = message;
+      if (copies === undefined) return { ...head, type: 'select', ids: [...ids] };
+      if (!Array.isArray(copies) || copies.length > MAX_COPIES) return undefined;
+      const chosen = copies.map(chosenCopy);
+      if (chosen.some((copy) => copy === undefined)) return undefined;
+      return {
+        ...head,
+        type: 'select',
+        ids: [...ids],
+        copies: chosen as { id: string; item: number }[],
+      };
     }
     case 'hover':
       return isIdOrNull(message.id) ? { ...head, type: 'hover', id: message.id } : undefined;

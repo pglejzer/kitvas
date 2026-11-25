@@ -1,12 +1,17 @@
-// The drop indicator in the frame's overlay (spec 4b, decision 11; plan 14, task C1): a line
-// between two siblings or an outline of the parent, in viewport pixels like everything in
-// `slots.ts`, which re-exports it. Split out of `slots.ts` to keep both files under 500 lines.
+// The drop indicator in the frame's overlay (spec 4b, decision 11; plan 14, task C1; ADR 0066): a
+// line where the dragged thing would go, a soft outline of the element that would take it, and a
+// faint outline of every list a dragged item can go to. In viewport pixels like everything in
+// `slots.ts`, which re-exports it.
 
 import type { Box, Point, Slot } from '../drag/slots.ts';
 import { toned } from '../tones/tones.ts';
 
 /** The indicator line's thickness, in pixels on the screen. */
 const LINE = 2;
+/** The thickness of the outline of the element that takes the drop, when a line shows the place. */
+const SOFT = 1;
+/** The most lists outlined at once. */
+export const MAX_LISTS = 60;
 
 /**
  * Where the indicator's parts go inside the overlay, whose own corner is at `host`. `scale`:
@@ -32,7 +37,11 @@ export function placeIndicator(
 
 /** The indicator in the frame's overlay (not part of the page, like the marks). */
 export type Indicator = {
-  show(slot: Slot | null): void;
+  /**
+   * The slot under the pointer; `lists`: the box of every list a dragged item can go to. Nothing
+   * of either takes the indicator away.
+   */
+  show(slot: Slot | null, lists?: readonly Box[]): void;
   /** Frame pixels per pixel on the screen: the inverse of the canvas zoom. */
   scale(value: number): void;
   dispose(): void;
@@ -43,13 +52,17 @@ export type Indicator = {
 const COLOUR = 'var(--kv-select, Highlight)';
 
 const SHEET = `
-.line, .box { position: absolute; left: 0; top: 0; box-sizing: border-box; pointer-events: none; }
+.line, .box, .list {
+  position: absolute; left: 0; top: 0; box-sizing: border-box; pointer-events: none;
+}
 .line { background: ${COLOUR}; border-radius: ${LINE / 2}px; }
-.box { outline: ${LINE}px solid ${COLOUR}; outline-offset: -${LINE}px; }
+.box { outline: ${SOFT}px solid ${COLOUR}; outline-offset: -${SOFT}px; opacity: 0.6; }
+.box[data-alone] { opacity: 1; }
+.list { outline: ${SOFT}px dashed ${COLOUR}; outline-offset: -${SOFT}px; opacity: 0.35; }
 .off { display: none; }
 @media (forced-colors: active) {
   .line { background: Highlight; }
-  .box { outline-color: Highlight; }
+  .box, .list { outline-color: Highlight; opacity: 1; }
 }
 `;
 
@@ -67,22 +80,28 @@ const HOST_RULES = [
 /** Inline and important, so no rule of the prototype moves or hides the overlay itself. */
 const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
 
-type Layer = { host: HTMLElement; line: HTMLElement; box: HTMLElement };
+type Layer = {
+  host: HTMLElement;
+  root: ShadowRoot;
+  line: HTMLElement;
+  box: HTMLElement;
+  lists: HTMLElement[];
+};
 
 function createLayer(document: Document): Layer {
   const host = document.createElement('kitvas-slot');
   host.setAttribute('aria-hidden', 'true');
   host.style.cssText = HOST_STYLE;
   toned(host);
-  const shadow = host.attachShadow({ mode: 'closed' });
+  const root = host.attachShadow({ mode: 'closed' });
   const sheet = document.createElement('style');
   sheet.textContent = SHEET;
   const box = document.createElement('div');
   box.className = 'box off';
   const line = document.createElement('div');
   line.className = 'line off';
-  shadow.append(sheet, box, line);
-  return { host, line, box };
+  root.append(sheet, box, line);
+  return { host, root, line, box, lists: [] };
 }
 
 function setBox(node: HTMLElement, box: Box | null): void {
@@ -94,30 +113,57 @@ function setBox(node: HTMLElement, box: Box | null): void {
   node.style.height = `${box.height}px`;
 }
 
+function setOutline(node: HTMLElement, thick: number): void {
+  node.style.outlineWidth = `${thick}px`;
+  node.style.outlineOffset = `${-thick}px`;
+}
+
 /**
- * One line and one box in an overlay of their own at the end of `body`, inside a closed shadow
- * root, made on the first slot shown. The caller shows the slot again when the page scrolls.
+ * One line, one box and the lists' outlines in an overlay of their own at the end of `body`,
+ * inside a closed shadow root, made on the first slot shown. The caller shows the slot again when
+ * the page scrolls.
  */
 export function createIndicator(document: Document): Indicator {
   let layer: Layer | undefined;
   let zoom = 1;
+
+  /** A faint outline for each list, under the line and the box. */
+  function drawLists(to: Layer, lists: readonly Box[], host: Point): void {
+    const shown = lists.slice(0, MAX_LISTS);
+    while (to.lists.length < shown.length) {
+      const node = document.createElement('div');
+      node.className = 'list off';
+      to.root.insertBefore(node, to.box);
+      to.lists.push(node);
+    }
+    for (const [index, node] of to.lists.entries()) {
+      const box = shown[index];
+      setBox(node, box ? { ...box, left: box.left - host.x, top: box.top - host.y } : null);
+      if (box) setOutline(node, SOFT * zoom);
+    }
+  }
+
   return {
-    show(slot) {
-      if (!slot) {
+    show(slot, lists = []) {
+      if (!slot && lists.length === 0) {
         if (!layer) return;
         setBox(layer.line, null);
         setBox(layer.box, null);
+        for (const node of layer.lists) setBox(node, null);
         return;
       }
       layer ??= createLayer(document);
       // A page that replaced its body's content took the overlay out with it.
       if (!layer.host.isConnected) document.body.append(layer.host);
       const corner = layer.host.getBoundingClientRect();
-      const placed = placeIndicator(slot, { x: corner.left, y: corner.top }, zoom);
-      const thick = LINE * zoom;
-      layer.line.style.borderRadius = `${thick / 2}px`;
-      layer.box.style.outlineWidth = `${thick}px`;
-      layer.box.style.outlineOffset = `${-thick}px`;
+      const host = { x: corner.left, y: corner.top };
+      drawLists(layer, lists, host);
+      const placed = slot ? placeIndicator(slot, host, zoom) : { line: null, box: null };
+      layer.line.style.borderRadius = `${(LINE * zoom) / 2}px`;
+      // With no line to show the place, the outline of the element that takes the drop says it.
+      const alone = placed.line === null;
+      layer.box.toggleAttribute('data-alone', alone);
+      setOutline(layer.box, (alone ? LINE : SOFT) * zoom);
       setBox(layer.line, placed.line);
       setBox(layer.box, placed.box);
     },

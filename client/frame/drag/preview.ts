@@ -152,10 +152,21 @@ function glide(nodes: Element[], joined: Element, change: () => void): void {
   }
 }
 
+/** Into itself: the slots never offer it, and the DOM would refuse it with an error. */
+const fits = (nodes: Element[], anchor: Element): boolean =>
+  nodes.length > 0 && !nodes.some((node) => node.contains(anchor));
+
 /** Puts `nodes` at the slot (`anchor`, `place`) at once, with motion. */
 export function showDrop(nodes: Element[], anchor: Element, place: Place): void {
-  // Into itself: the slots never offer it, and the DOM would refuse it with an error.
-  if (nodes.length === 0 || nodes.some((node) => node.contains(anchor))) return;
+  if (!fits(nodes, anchor)) return;
   const joined = place === 'first' || place === 'last' ? anchor : anchor.parentElement;
   if (joined) glide(nodes, joined, () => put(anchor, place, nodes));
+}
+
+/**
+ * Puts `nodes` at the slot at once with no motion: the same part of a list item's template in
+ * the copies the person did not drag.
+ */
+export function placeDrop(nodes: Element[], anchor: Element, place: Place): void {
+  if (fits(nodes, anchor)) put(anchor, place, nodes);
 }

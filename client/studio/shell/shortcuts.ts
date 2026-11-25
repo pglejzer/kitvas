@@ -42,6 +42,7 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'parent', keys: ['ArrowUp'], label: 'shortcuts.parent', group: 'selection' },
   { id: 'child', keys: ['ArrowDown'], label: 'shortcuts.child', group: 'selection' },
   { id: 'add', keys: ['Shift+Click'], label: 'shortcuts.add', group: 'selection' },
+  { id: 'select-all', keys: ['Mod+A'], label: 'shortcuts.select-all', group: 'selection' },
   { id: 'undo', keys: ['Mod+Z'], label: 'shortcuts.undo', group: 'history' },
   { id: 'redo', keys: ['Mod+Shift+Z', 'Ctrl+Y'], label: 'shortcuts.redo', group: 'history' },
   { id: 'delete', keys: ['Delete', 'Backspace'], label: 'shortcuts.delete', group: 'structure' },

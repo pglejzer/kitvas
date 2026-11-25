@@ -18,12 +18,15 @@ import { type Answer, getStructure } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { afterOtherChange } from '../sync/match.ts';
 import { text } from '../texts.ts';
+import { hideNote, showNote } from './refusal-note.ts';
 
 /** What the frame needs of each element to offer drop slots; as many as the channel takes. */
 export function frameEntries(structure: Structure): FrameEntry[] {
   return structure.elements.slice(0, MAX_ENTRIES).map((entry) => ({
     id: entry.id,
     movable: entry.movable === null,
+    // A structure read by an older server names no lists: in none.
+    lists: entry.lists === undefined ? [] : entry.lists,
     item: entry.item === true,
     accepts: entry.accepts,
     mixed: entry.mixed,
@@ -74,11 +77,12 @@ export function createStructureSync(
     // An element the editor's own edit removed (a delete, the undo of an insert) leaves the
     // selection here, so the panels never ask the server about it.
     const ids = new Set(next.elements.map((entry) => entry.id));
-    const { selection, hovered } = store.get();
+    const { selection, hovered, copies } = store.get();
     const kept = selection.filter((id) => ids.has(id));
     store.set({
       structure: next,
-      ...(kept.length === selection.length ? {} : { selection: kept }),
+      // What stays selected stays on its copies.
+      ...(kept.length === selection.length ? {} : { selection: kept, copies }),
       ...(hovered !== null && !ids.has(hovered) ? { hovered: null } : {}),
     });
     send(next);
@@ -135,28 +139,25 @@ export function createStructureSync(
 }
 
 export function mountStructure(ctx: EditorContext): void {
-  const { panel, store, bridge, slug } = ctx;
-  const note = document.createElement('p');
-  note.className = 'k-pop structure-note';
-  note.dataset.editNote = 'structure';
-  note.setAttribute('role', 'status');
-  note.hidden = true;
-  note.textContent = text('structure.lost');
-  // It floats over the canvas, at its top, where the toast at the foot never covers it.
-  panel.prepend(note);
+  const { main, store, bridge, slug } = ctx;
+  /** The note of a lost element is up. */
+  let lost = false;
 
   const sync = createStructureSync(ctx, {
     getStructure,
     lost: () => {
-      note.hidden = false;
+      lost = true;
+      // Over the canvas, at its top, where the toast at the foot never covers it.
+      showNote(main, 'lost', text('structure.lost'), null);
     },
   });
 
   // The note stays until the person selects again or leaves edit mode.
   store.subscribe((state, previous) => {
-    if (note.hidden) return;
+    if (!lost) return;
     if (!state.on || (state.selection !== previous.selection && state.selection.length > 0)) {
-      note.hidden = true;
+      lost = false;
+      hideNote(main, 'lost');
     }
   });
 

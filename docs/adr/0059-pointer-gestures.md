@@ -1,6 +1,6 @@
 # 0059. Pointer gestures in the frame
 
-Date: 2026-11-24. Status: accepted. Changes three parts of ADR 0053: the rectangle, which press starts a drag, and the snap of the handles. Builds on ADRs 0053 (canvas tools), 0055 (data lists) and 0058 (a build taken in place). Plan 18b, agent B.
+Date: 2026-11-24. Status: accepted, changed in part by ADR 0066. Changes three parts of ADR 0053: the rectangle, which press starts a drag, and the snap of the handles. Builds on ADRs 0053 (canvas tools), 0055 (data lists) and 0058 (a build taken in place). Plan 18b, agent B.
 
 ## Context
 

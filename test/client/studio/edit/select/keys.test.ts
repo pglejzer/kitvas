@@ -7,6 +7,7 @@ import {
   historyKeyOf,
   isTextTarget,
   type KeyLike,
+  offReason,
   resolveKey,
 } from '../../../../../client/studio/edit/select/keys.ts';
 import type { ActionState } from '../../../../../client/studio/edit/structure/actions.ts';
@@ -35,12 +36,16 @@ test('each key of the spec gives its structure key', () => {
     [press('G', { ctrlKey: true, shiftKey: true }), 'unwrap'],
     [press('F10', { shiftKey: true }), 'menu'],
     [press('ContextMenu'), 'menu'],
+    [press('a', { ctrlKey: true }), 'select-all'],
+    [press('A', { metaKey: true }), 'select-all'],
   ];
   for (const [event, key] of cases) assert.equal(editKeyOf(event), key, event.key);
 });
 
 test('other keys and other modifier mixes give nothing', () => {
   assert.equal(editKeyOf(press('a')), null);
+  assert.equal(editKeyOf(press('a', { ctrlKey: true, shiftKey: true })), null);
+  assert.equal(editKeyOf(press('a', { ctrlKey: true, altKey: true })), null);
   assert.equal(editKeyOf(press('F10')), null);
   assert.equal(editKeyOf(press('d')), null);
   assert.equal(editKeyOf(press('ArrowUp')), null);
@@ -63,6 +68,8 @@ test('every structure key but the menu key maps to an action', () => {
   assert.equal(actionOfKey('unwrap'), 'unwrap');
   assert.equal(actionOfKey('menu'), null);
   assert.equal(actionOfKey('undo'), null);
+  // Select-all changes the selection; it is no action of the menu.
+  assert.equal(actionOfKey('select-all'), null);
 });
 
 test('nothing happens in a text field, a select, a textarea or contenteditable', () => {
@@ -86,6 +93,16 @@ test('a key runs its action only when the action is on', () => {
   assert.equal(resolveKey('wrap', ACTIONS), 'wrap-stack');
   assert.equal(resolveKey('delete', ACTIONS), null);
   assert.equal(resolveKey('paste', ACTIONS), null);
+});
+
+test('a key whose action is off has the reason to say; any other key has none', () => {
+  assert.equal(offReason('delete', ACTIONS), 'section-root');
+  assert.equal(offReason('duplicate', ACTIONS), null);
+  // An action the list does not hold, and keys without an action.
+  assert.equal(offReason('paste', ACTIONS), null);
+  assert.equal(offReason('menu', ACTIONS), null);
+  assert.equal(offReason('select-all', ACTIONS), null);
+  assert.equal(offReason('undo', ACTIONS), null);
 });
 
 test('the menu key opens the menu whatever the actions are', () => {

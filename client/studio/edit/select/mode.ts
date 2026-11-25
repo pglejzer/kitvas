@@ -2,9 +2,10 @@
 // and keys (plan 13, task F; plan 15, task A). It talks to the frame through the bridge and to the
 // other panels only through the store and the history. `store.on` is the truth;
 // `main.dataset.mode` follows it, so the screen outside the editor reads the mode there, and
-// `main[data-selected]` marks the rails while something is selected. A double click edits a text
-// in place: a plain one here, one through its source in `source-text.ts` (ADR 0060). The
-// session's controls are `session.ts`.
+// `main[data-selected]` marks the rails while something is selected. A click takes the copy it
+// was on (ADR 0065, `copies.ts`); this file alone tells the frame the selection and its copies.
+// A double click edits a text in place: a plain one here, one through its source in
+// `source-text.ts` (ADR 0060). The session's controls are `session.ts`.
 
 import { type EditFrameMessage, textEditOf } from '../../../channel/edit-protocol.ts';
 import type { Mode } from '../../shell/layout.ts';
@@ -12,11 +13,22 @@ import { inspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
-import { firstChildOf, nextSelection, parentOf } from './selection.ts';
+import { chosenCopy, pickSelection, sameChosen, selectBody } from './copies.ts';
+import { firstChildOf, parentOf } from './selection.ts';
 import { createSourceText, doubleKind } from './source-text.ts';
 
 const sameIds = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((id, index) => id === b[index]);
+
+const samePath = (a: readonly number[] | undefined, b: readonly number[] | undefined): boolean =>
+  a === undefined || b === undefined
+    ? a === b
+    : a.length === b.length && a.every((place, index) => place === b[index]);
+
+/** The path of the one chosen copy of the one selected element: what its list is read for. */
+export const inspectPath = (
+  state: Pick<EditorState, 'selection' | 'copies'>,
+): readonly number[] | undefined => chosenCopy(state.selection, state.copies)?.path;
 
 /** The screen's mode for the editor's `on`. */
 export const modeOf = (on: boolean): Mode => (on ? 'edit' : 'preview');
@@ -59,7 +71,8 @@ export function mountMode(ctx: EditorContext): void {
     const token = ++inspectToken;
     if (!keep) store.set({ inspected: null, computed: null });
     sendInspectToFrame(id);
-    inspect(store.get().slug, id).then((answer) => {
+    // With the chosen copy's path the list is read for that copy: the features of that plan.
+    inspect(store.get().slug, id, inspectPath(store.get())).then((answer) => {
       if (token !== inspectToken || store.get().selection[0] !== id) return;
       store.set({ inspected: answer.ok ? answer.body : null });
       const waiting = pendingDouble;
@@ -71,7 +84,7 @@ export function mountMode(ctx: EditorContext): void {
   }
 
   function onSelection(state: EditorState): void {
-    bridge.send({ type: 'select', ids: state.selection });
+    bridge.send(selectBody(state));
     const first = state.selection[0];
     if (first === undefined) {
       inspectToken += 1;
@@ -100,8 +113,8 @@ export function mountMode(ctx: EditorContext): void {
     bridge.send({ type: 'edit', on });
     if (!on) return;
     requestTree();
-    const { selection } = store.get();
-    if (selection.length > 0) bridge.send({ type: 'select', ids: selection });
+    const state = store.get();
+    if (state.selection.length > 0) bridge.send(selectBody(state));
   }
 
   store.subscribe((state, previous) => {
@@ -109,11 +122,18 @@ export function mountMode(ctx: EditorContext): void {
     if (state.selection !== previous.selection) {
       main.toggleAttribute('data-selected', state.selection.length > 0);
     }
+    const first = state.selection[0];
     if (state.on && !sameIds(state.selection, previous.selection)) {
       onSelection(state);
-    } else if (state.on && state.etags !== previous.etags && state.selection[0] !== undefined) {
+    } else if (state.on && state.copies !== previous.copies) {
+      // The same elements on other copies: the frame outlines those, and the list of the first
+      // one is read again when its copy stands in another list.
+      bridge.send(selectBody(state));
+      const moved = !samePath(inspectPath(state), inspectPath(previous));
+      if (first !== undefined && (moved || state.etags !== previous.etags)) load(first, true);
+    } else if (state.on && state.etags !== previous.etags && first !== undefined) {
       // A file changed (our edit, or Claude's): the source view of the element may have moved.
-      load(state.selection[0], true);
+      load(first, true);
     }
   });
 
@@ -163,11 +183,17 @@ export function mountMode(ctx: EditorContext): void {
     // Ids that are gone after a build leave the selection; an empty tree prunes nothing.
     const kept =
       nodes.length === 0 ? state.selection : state.selection.filter((id) => known.has(id));
-    const pruned = kept.length === state.selection.length ? {} : { selection: kept };
+    // What stays selected stays on its copies.
+    const pruned =
+      kept.length === state.selection.length ? {} : { selection: kept, copies: state.copies };
     store.set({ tree: nodes, ...pruned });
     // A tree after a build: the computed values of the selection are from the old page.
-    const first = store.get().selection[0];
-    if (state.on && first !== undefined) sendInspectToFrame(first);
+    const after = store.get();
+    const first = after.selection[0];
+    if (!state.on || first === undefined) return;
+    sendInspectToFrame(first);
+    // A page that loaded again was told the selection before it knew its copies: once more.
+    if (after.copies.length > 0) bridge.send(selectBody(after));
   }
 
   bridge.on((message) => {
@@ -179,8 +205,8 @@ export function mountMode(ctx: EditorContext): void {
         // A double click with Shift, Ctrl or Cmd held: its first click added or took the element
         // out, and it starts no text edit.
         if (message.double && message.add) break;
-        const selection = nextSelection(state.selection, { id: message.id, add: message.add });
-        if (!sameIds(selection, state.selection)) store.set({ selection });
+        const next = pickSelection(state, message);
+        if (!sameChosen(next, state)) store.set(next);
         const edited = textEditOf(message);
         if (edited !== null) {
           // Edited once the element's source view is in: another selection reads it first.

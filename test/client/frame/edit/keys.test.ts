@@ -29,6 +29,15 @@ test('the structure keys map to their editor keys', () => {
   assert.equal(keyOf(press('ContextMenu')), 'menu');
 });
 
+test('Ctrl or Cmd with A selects all, so the page never marks its own text', () => {
+  assert.equal(keyOf(press('a', { ctrlKey: true })), 'select-all');
+  assert.equal(keyOf(press('A', { metaKey: true })), 'select-all');
+  // With Shift or Alt it means something else, and alone it is a letter.
+  assert.equal(keyOf(press('A', { ctrlKey: true, shiftKey: true })), undefined);
+  assert.equal(keyOf(press('a', { ctrlKey: true, altKey: true })), undefined);
+  assert.equal(keyOf(press('a')), undefined);
+});
+
 test('the four 4a keys still map as before', () => {
   assert.equal(keyOf(press('Escape')), 'clear');
   assert.equal(keyOf(press('ArrowUp')), 'parent');
@@ -46,6 +55,7 @@ test('the mapping gives exactly the keys the protocol carries', () => {
     press('z', { ctrlKey: true }),
     press('y', { ctrlKey: true }),
     press('Delete'),
+    press('a', { ctrlKey: true }),
     press('d', { ctrlKey: true }),
     press('c', { ctrlKey: true }),
     press('x', { ctrlKey: true }),
