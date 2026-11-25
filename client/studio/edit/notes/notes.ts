@@ -26,6 +26,7 @@ import {
   pinsOf,
   waitingRequest,
 } from './model.ts';
+import { type Box, menuAnchor } from './place.ts';
 
 /** How long after a change of the files the notes are read again: their ids may have moved. */
 const RELOAD_MS = 300;
@@ -104,11 +105,24 @@ export function mountNotes(ctx: EditorContext): void {
     return true;
   }
 
+  /** The panel's box, for a form opened from the Notes list. */
+  function panelBox(): Box | null {
+    const box = host instanceof HTMLElement ? host.getBoundingClientRect() : null;
+    return box === null ? null : { x: box.left, y: box.top, width: box.width, height: box.height };
+  }
+
+  /** The point of the last context menu click, kept until a form takes it. */
+  let clicked: { id: string | null; x: number; y: number; box?: Box } | null = null;
+
   function create(id: string | null): void {
+    const click = clicked !== null && clicked.id === id ? clicked : null;
+    clicked = null;
     openNoteForm(main, {
       place: id === null ? null : elementName(id),
       text: '',
       for: 'me',
+      at: click === null ? null : menuAnchor(click),
+      panel: panelBox(),
       save: (values) => save(id, values),
     });
   }
@@ -125,6 +139,8 @@ export function mountNotes(ctx: EditorContext): void {
         place: row.place?.name ?? null,
         text: note.text,
         for: null,
+        at: null,
+        panel: panelBox(),
         save: async (values) => {
           const notes = await changeNote(slug, note.id, { text: values.text });
           if (notes === null) return false;
@@ -182,6 +198,7 @@ export function mountNotes(ctx: EditorContext): void {
   }
 
   store.subscribe((state, previous) => {
+    if (state.menu !== null && state.menu !== previous.menu) clicked = state.menu;
     if (state.notes !== previous.notes || state.selection !== previous.selection) render();
     if (state.notes !== previous.notes || state.on !== previous.on) sendPins();
     else if (state.builds !== previous.builds) sendPins();

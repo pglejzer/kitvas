@@ -414,6 +414,8 @@ const PANEL_TEXT_KEYS = [
   'gesture.capture-lost',
   'gesture.selection-changed',
   'gesture.unloaded',
+  'layers.countShort',
+  'layers.badgeTitle',
   'layers.countKind',
   'layers.kind.literal',
   'layers.kind.prop',

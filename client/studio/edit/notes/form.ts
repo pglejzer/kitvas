@@ -5,6 +5,7 @@
 import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
 import { MAX_NOTE_TEXT, noteText } from './model.ts';
+import { type Box, placeBeside, placeBesidePanel, savesNote } from './place.ts';
 
 const DIALOG = 'dialog[data-edit="note"]';
 
@@ -15,6 +16,13 @@ export type NoteForm = {
   text: string;
   /** Who the note is for; `null` when that cannot change (an edited note). */
   for: 'me' | 'claude' | null;
+  /**
+   * What the form stands beside, in window pixels: the element's box, or the point of the click
+   * as a box with no size. `null` when opened from the Notes list.
+   */
+  at: Box | null;
+  /** The Notes panel's box: the form stands at its side of the canvas when `at` is `null`. */
+  panel: Box | null;
   /** Saves; `false` keeps the form open with a line saying it did not work. */
   save(values: { text: string; for: 'me' | 'claude' }): Promise<boolean>;
 };
@@ -51,7 +59,8 @@ export function openNoteForm(main: HTMLElement, form: NoteForm): void {
   field.required = true;
   field.value = form.text;
   field.setAttribute('aria-label', text('notes.text'));
-  shape.append(title, place, field);
+  const hint = el('p', 'k-meta notes-hint', text('notes.hint'));
+  shape.append(title, place, field, hint);
   const name = 'edit-note-for';
   if (form.for !== null) {
     const group = el('fieldset', 'notes-form-fors');
@@ -84,6 +93,12 @@ export function openNoteForm(main: HTMLElement, form: NoteForm): void {
   cancel.addEventListener('click', close);
   dialog.addEventListener('cancel', close);
   field.addEventListener('input', sync);
+  // Ctrl+Enter (Cmd+Enter) saves, as in the Notes list's field; Enter is a new line.
+  field.addEventListener('keydown', (event) => {
+    if (!savesNote(event)) return;
+    event.preventDefault();
+    if (!save.disabled) shape.requestSubmit();
+  });
   shape.addEventListener('submit', (event) => {
     event.preventDefault();
     const words = noteText(field.value);
@@ -104,5 +119,22 @@ export function openNoteForm(main: HTMLElement, form: NoteForm): void {
   main.append(dialog);
   sync();
   dialog.showModal();
+  stand(dialog, form);
   field.focus();
+}
+
+/** Puts the open dialog beside its element (or the panel's side); the CSS reads the two properties. */
+function stand(dialog: HTMLDialogElement, form: NoteForm): void {
+  const size = { width: dialog.offsetWidth, height: dialog.offsetHeight };
+  const view = { width: window.innerWidth, height: window.innerHeight };
+  const spot =
+    form.at !== null
+      ? placeBeside(form.at, size, view)
+      : form.panel !== null
+        ? placeBesidePanel(form.panel, size, view)
+        : null;
+  if (spot === null) return;
+  dialog.style.setProperty('--notes-form-left', `${Math.round(spot.left)}px`);
+  dialog.style.setProperty('--notes-form-top', `${Math.round(spot.top)}px`);
+  dialog.dataset.placed = '';
 }

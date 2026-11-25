@@ -43,10 +43,10 @@ export function createLive({ channel, post }: LiveDeps): Live {
     post({ kitvas: 1, channel, type: 'live-facts', request, width: frameWidth(), facts });
   }
 
-  function card(request: number, id: string): void {
+  function card(request: number, id: string, item: number | undefined): void {
     let read: A11yCard | null = null;
     try {
-      read = readCard(id);
+      read = readCard(id, item);
     } catch {
       // An element the card cannot read is answered as not there.
     }
@@ -58,7 +58,7 @@ export function createLive({ channel, post }: LiveDeps): Live {
       if (message.type === 'measure-live') {
         void measure(message.request, message.ids, message.expect);
       } else if (message.type === 'a11y') {
-        card(message.request, message.id);
+        card(message.request, message.id, message.item);
       } else if (message.type === 'live-marks') {
         // The page's numbers, at the elements' top-left corners (`live-marks.ts`).
         marks.draw(message.marks);

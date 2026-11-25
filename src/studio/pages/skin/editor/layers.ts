@@ -31,8 +31,8 @@ export const SKIN_EDITOR_LAYERS = `
 .layers-row:focus-visible { outline-offset: -2px; }
 .layers-section .layers-name { font-weight: var(--st-font-weight-bold); }
 .layers-kit-wrap { display: inline-flex; flex: none; color: var(--st-color-ink-mid); }
-.layers-name { flex: 0 1 auto; }
-.layers-badge { flex: none; margin-left: auto; }
+.layers-name { flex: 0 1 auto; min-width: 8ch; }
+.layers-badge { flex: none; margin-left: auto; white-space: nowrap; }
 .layers-dot {
   width: 6px;
   height: 6px;

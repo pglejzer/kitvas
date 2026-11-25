@@ -78,7 +78,10 @@ function barPart(main: HTMLElement): ((listening: Listening) => void) | null {
     const next = barStatus(listening);
     setDot(dot, next.dot);
     const said = text(next.key);
-    if (words.textContent !== said) words.textContent = said;
+    if (words.textContent === said) return;
+    words.textContent = said;
+    // The bar cuts the words short in a narrow window: the whole line is one hover away.
+    words.title = said;
   };
 }
 

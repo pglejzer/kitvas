@@ -103,12 +103,12 @@ test('the repeat badge says which kind of list renders the element', () => {
   assert.equal(literal.kind, 'literal');
   // Texts show as their keys outside a page.
   assert.deepEqual(badgeOf(literal), {
-    label: 'layers.countKind',
-    title: 'layers.kindTitle.literal',
+    label: 'layers.countShort',
+    title: 'layers.badgeTitle',
   });
   assert.deepEqual(badgeOf(rowFacts(node('a', null, 3), null, changed)), {
-    label: 'layers.count',
-    title: null,
+    label: 'layers.countShort',
+    title: 'layers.count',
   });
   // One copy has no badge, so no kind either.
   const single = rowFacts(node('b', null, 1), null, changed, 'prop');

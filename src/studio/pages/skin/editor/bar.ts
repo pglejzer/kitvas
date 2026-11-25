@@ -49,10 +49,12 @@ export const SKIN_EDITOR_BAR = `
 /* Preview | Edit. */
 .bar-modes > button { min-width: 64px; }
 
-/* The end: what Claude does, the session, the actions of the mode shown, then View, More, Save. */
+/* The end: what Claude does, the session, the actions of the mode shown, then View, More, Save.
+   In a narrow window the status gives way first: it is cut short, never laid over Preview | Edit. */
 .bar-listen {
   display: inline-flex;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
   align-items: center;
   gap: var(--st-space-6);
   padding: 0 var(--st-space-6);

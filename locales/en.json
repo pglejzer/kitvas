@@ -918,6 +918,8 @@
   "studio.edit.layers.kindTitle.prop": "A list from a prop: read-only here",
   "studio.edit.layers.kindTitle.import": "A list imported from another file: read-only here",
   "studio.edit.layers.kindTitle.computed": "A list computed in code: read-only here",
+  "studio.edit.layers.countShort": "×{count}",
+  "studio.edit.layers.badgeTitle": "{words}. {kind}",
   "studio.edit.copy.done": "Copied.",
   "studio.edit.copy.failed": "Could not copy. Try again.",
   "studio.edit.copy.locationDone": "Code location copied.",

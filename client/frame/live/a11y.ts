@@ -5,7 +5,7 @@
 // a subset of HTML-AAM and accname that covers what drafts write); `readCard` reads the page.
 
 import { type A11yCard, type NameSource, parseLiveFrame } from '../../channel/live-protocol.ts';
-import { elementsWith } from '../edit/tree.ts';
+import { copyAt } from '../edit/items.ts';
 import { cut } from '../page/snapshot.ts';
 import { formatRgb, isLargeText, over, shownRatio, textContrast } from './colour.ts';
 import { backgroundOf, hasOwnText, isInteractive, painted, toRgba, weightOf } from './measure.ts';
@@ -255,9 +255,12 @@ function accepted(card: A11yCard): boolean {
   return parseLiveFrame(probe, 'probe') !== undefined;
 }
 
-/** The answer to `a11y`: the card of the first element with `id`; `null` when it is not there. */
-export function readCard(id: string): A11yCard | null {
-  const element = elementsWith(new Set([id]))[0];
+/**
+ * The answer to `a11y`: the card of copy `item` of `id` (the first without `item`); `null` when it
+ * is not there.
+ */
+export function readCard(id: string, item?: number): A11yCard | null {
+  const element = copyAt(id, item);
   if (!element) return null;
   const tag = element.tagName.toLowerCase();
   const alt = tag === 'img' || tag === 'area' ? element.getAttribute('alt') : null;

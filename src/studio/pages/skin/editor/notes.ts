@@ -46,6 +46,14 @@ textarea.notes-field {
 /* The note form. */
 .notes-form-body { display: grid; gap: var(--st-space-10); }
 .notes-form-text { min-height: 96px; }
+/* Beside its element: the script sets the two properties; the dialog leaves the centre. */
+.notes-form[data-placed] {
+  inset: auto;
+  margin: 0;
+  left: var(--notes-form-left, 0);
+  top: var(--notes-form-top, 0);
+}
+.notes-form .notes-hint { margin: 0; }
 .notes-form-fors {
   display: flex;
   align-items: center;
