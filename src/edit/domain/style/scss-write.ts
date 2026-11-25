@@ -17,16 +17,20 @@ import {
   type Own,
 } from './scss-reader.ts';
 import { classRules, type Found, readRules } from './scss-rules.ts';
+import type { VarKind } from './shorthand.ts';
 
 export type ScssOp = Extract<EditOp, { op: 'setStyle' | 'removeStyle' }>;
 /**
  * `hasImage`: the version has this file in `src/img`. Without it no background image is written,
  * since nothing says the file is there. `breakpoints`: the kit's widths; with it a context of
- * another width is refused (`not-breakpoint`).
+ * another width is refused (`not-breakpoint`). `varKind`: what types a `var(--kit-…)` in a
+ * `border`, an `outline` or a `background` (ADR 0070); without it such a shorthand does not split,
+ * so nothing is written into it.
  */
 export type ScssOptions = ApplyOptions & {
   hasImage?: ((file: string) => boolean) | undefined;
   breakpoints?: (() => readonly number[]) | undefined;
+  varKind?: VarKind | undefined;
 };
 
 export const splice = (text: string, start: number, end: number, insert: string): string =>
@@ -86,19 +90,25 @@ export function lastDeclaration(
 }
 
 /**
- * A new value in an existing declaration. Only the value and the marker change; the spacing
- * around the colon and the semicolon is the file's own, so the inverse puts back every byte.
+ * A new value text in an existing declaration, with the marker or without. Only the value and the
+ * marker change; the spacing around the colon and the semicolon is the file's own, and a marker
+ * that stays is the file's own too.
  */
-export function replaceValue(text: string, found: Own, value: StyleValue): ApplyResult {
+export function replaceText(text: string, found: Own, value: string, offKit: boolean): ApplyResult {
   const { start, end } = found.view.span;
-  const written = styleText(value);
   const mark = found.view.offKit ? text.slice(found.semiEnd, end) : ` ${OFF_KIT_MARKER}`;
   const next =
     text.slice(start, found.value.start) +
-    written.value +
+    value +
     text.slice(found.value.end, found.semiEnd) +
-    (written.offKit ? mark : '');
+    (offKit ? mark : '');
   return { text: splice(text, start, end, next), changed: [{ start, end: start + next.length }] };
+}
+
+/** A new value in an existing declaration, so that the inverse puts back every byte. */
+export function replaceValue(text: string, found: Own, value: StyleValue): ApplyResult {
+  const written = styleText(value);
+  return replaceText(text, found, written.value, written.offKit);
 }
 
 /** Where a new statement goes, and how: on lines of its own, or inside a line. */

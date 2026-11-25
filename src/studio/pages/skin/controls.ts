@@ -1,6 +1,7 @@
-// The studio's skin, shared rules: the controls every page and panel builds on (ADR 0057).
-// Studio tokens only. The accent is for the primary action, the chosen item, the selection and
-// focus, and nothing else (editor-practices 1.5).
+// The studio's skin, shared rules: the controls every page and panel builds on (ADR 0057), and the
+// bar's own parts (the logo's link, Claude's status, a word that gives way). Studio tokens only.
+// The accent is for the primary action, the chosen item, the selection and focus, and nothing
+// else (editor-practices 1.5).
 
 export const SKIN_CONTROLS = `
 /* A text button. Quiet by default; \`.k-btn-primary\` is the one main action of a view. */
@@ -194,6 +195,43 @@ textarea.k-field { min-height: 64px; padding: var(--st-space-6) var(--st-space-8
 }
 .k-dot[data-state="fix"] { background: var(--st-color-fix); }
 .k-dot[data-state="review"] { background: var(--st-color-review); }
+/* The logo of a bar, a link home. */
+.k-logo-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: var(--st-size-control);
+  padding: 0 var(--st-space-4);
+  border-radius: var(--st-radius-sm);
+  color: var(--st-color-ink);
+  text-decoration: none;
+}
+/* Claude's status in a bar: the dot and short words, painted by the page's script; empty when no
+   session listens. */
+.k-bar-status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--st-space-6);
+  padding: 0 var(--st-space-6);
+  color: var(--st-color-ink-mid);
+  font-size: var(--st-font-size-sm);
+  white-space: nowrap;
+}
+.k-bar-status:empty { display: none; }
+.k-bar-status-words { white-space: nowrap; }
+/* A word beside an icon in a bar (View, More): it gives way in a narrow bar, and still names
+   its control for assistive technology. */
+.k-bar-word { white-space: nowrap; }
+@media (max-width: 40rem) {
+  .k-bar-status-words, .k-bar-word {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
 /* A colour sample. Its colour is set by the rule or the script that knows the value. */
 .k-swatch {
   width: 16px;

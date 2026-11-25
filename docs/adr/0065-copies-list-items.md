@@ -1,6 +1,6 @@
 # 0065. A selection of copies, and list items at any depth
 
-Date: 2026-11-24. Status: accepted. Changes two parts of ADR 0055 (which element is a list item, and where the list ops reach) and one of ADR 0059 (the `rect` and `reorder` messages, and that an element inside a list item cannot move). Builds on ADR 0060 (a copy's path through its lists). Plan 18c, agent A.
+Date: 2026-11-24. Status: accepted, changed in part by ADR 0069. Changes two parts of ADR 0055 (which element is a list item, and where the list ops reach) and one of ADR 0059 (the `rect` and `reorder` messages, and that an element inside a list item cannot move). Builds on ADR 0060 (a copy's path through its lists). Plan 18c, agent A.
 
 ## Context
 

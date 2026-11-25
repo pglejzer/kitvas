@@ -108,7 +108,10 @@ export const RequestViewSchema = z.strictObject({
 });
 export type RequestView = Zod.infer<typeof RequestViewSchema>;
 
-/** Whether a Claude Code session takes the requests now (spec 4d, goal 1). */
+/**
+ * Whether a Claude Code session takes the requests now (spec 4d, goal 1). The studio has one
+ * session: `GET /api/v1/listening` answers it, and the `listening` event carries each new one.
+ */
 export const ListeningSchema = z.strictObject({
   state: z.enum(['listening', 'working', 'off']),
   /** When the state began, ISO; `null` when no session was seen since the studio started. */

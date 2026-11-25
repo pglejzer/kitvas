@@ -63,7 +63,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0054](0054-editor-screen.md) | The editor screen | 2026-11-24 | accepted |
 | [0055](0055-editor-widths-states-live.md) | The editor at every width and state, live checks, waivers, lists and uploads | 2026-11-24 | accepted, changed in part by ADR 0065 |
 | [0056](0056-editor-claude-notes-locks-time.md) | The editor with Claude: requests, variants, notes, locks, time, suggestions and reasons | 2026-11-24 | accepted |
-| [0057](0057-studio-theme.md) | The studio's own theme | 2026-11-24 | accepted |
+| [0057](0057-studio-theme.md) | The studio's own theme | 2026-11-24 | accepted, changed in part by ADR 0068 |
 | [0058](0058-live-swap.md) | A build is taken into the frame in place | 2026-11-24 | accepted |
 | [0059](0059-pointer-gestures.md) | Pointer gestures in the frame | 2026-11-24 | accepted, changed in part by ADR 0066 |
 | [0060](0060-text-sources.md) | Text sources | 2026-11-24 | accepted |
@@ -71,6 +71,9 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0062](0062-scout.md) | Scout, the agent that reads the web | 2026-11-24 | accepted |
 | [0063](0063-doctor.md) | Doctor | 2026-11-24 | accepted |
 | [0064](0064-delete-draft.md) | Delete a draft, with a way back | 2026-11-24 | accepted |
-| [0065](0065-copies-list-items.md) | A selection of copies, and list items at any depth | 2026-11-24 | accepted |
+| [0065](0065-copies-list-items.md) | A selection of copies, and list items at any depth | 2026-11-24 | accepted, changed in part by ADR 0069 |
 | [0066](0066-drag-copies-lists-edges.md) | Gestures in the frame: copies, lists and a container's edge | 2026-11-24 | accepted |
 | [0067](0067-nested-class-rules.md) | Nested class rules, and class names after the section | 2026-11-24 | accepted |
+| [0068](0068-logo-motion.md) | The logo moves: an entrance once for a tab, and a sign while Claude works | 2026-11-25 | accepted |
+| [0069](0069-click-takes-the-row.md) | A click in a list takes the row first | 2026-11-25 | accepted |
+| [0070](0070-shorthand-write.md) | A shorthand is read as a source and written in place | 2026-11-25 | accepted |

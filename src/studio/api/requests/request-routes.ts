@@ -1,7 +1,8 @@
 // The request routes (spec 4d, goals 1 and 2; plan 17, task A): the editor keeps, lists and drops
 // a draft's requests to Claude; Claude reads one (`kitvas request show`) and answers it
 // (`answer`, `done`, `fail`). The rules are in `src/studio/requests/`; a handler checks the input
-// and calls them. Every change tells the draft's pages with a `requests` event.
+// and calls them. Every change tells the draft's pages with a `requests` event. The bar of every
+// page reads the listening session alone (`listening`) and hears its `listening` event.
 
 import { SLUG } from '../../../drafts/index.ts';
 import { z } from '../../../shared/index.ts';
@@ -10,10 +11,11 @@ import { type ApiRoute, apiRoute } from '../../http/router.ts';
 import { newRequestProblems, refuseProblems } from '../../requests/request-checks.ts';
 import { requestsOf } from '../../requests/requests.ts';
 import type { ApiDeps } from '../routes.ts';
-import { EmptyBody, SlugParams } from '../schemas.ts';
+import { EmptyBody, NoParams, SlugParams } from '../schemas.ts';
 import {
   DoneSchema,
   FailSchema,
+  ListeningSchema,
   MAX_ANSWER_BYTES,
   NewRequestSchema,
   RequestContextSchema,
@@ -39,6 +41,17 @@ export function requestRoutes(deps: ApiDeps): ApiRoute[] {
       request: null,
       response: { status: 200, schema: RequestsSchema },
       handle: async ({ params }) => ({ status: 200, body: await requests.list(params.slug) }),
+    }),
+    apiRoute({
+      id: 'listening',
+      summary: 'Whether a Claude Code session listens now: the state the bar of every page shows.',
+      method: 'GET',
+      path: '/api/v1/listening',
+      policy: 'read',
+      params: NoParams,
+      request: null,
+      response: { status: 200, schema: ListeningSchema },
+      handle: () => ({ status: 200, body: requests.listening() }),
     }),
     apiRoute({
       id: 'addRequest',

@@ -12,7 +12,7 @@ import type { LiveTools } from '../live/index.ts';
 import type { StudioAssets } from '../pages/asset-routes.ts';
 import type { LifecycleDeps } from './lifecycle.ts';
 import { forceKill, isAlive, spawnServer } from './processes.ts';
-import { serveStudio } from './serve.ts';
+import { type ServeDeps, serveStudio } from './serve.ts';
 import {
   readState as readStateFile,
   removeState as removeStateFile,
@@ -127,6 +127,8 @@ export type ServeInput = {
   live?: LiveTools;
   /** Image uploads (stage 4c). */
   imageStore?: ImageStore;
+  /** `kitvas doctor` for the Doctor page. */
+  doctor?: ServeDeps['doctor'];
 };
 
 /** `kitvas studio serve`: errors go to stderr, which is the log file of a detached studio. */
@@ -142,6 +144,16 @@ export function serveProject(input: ServeInput): Promise<StudioState> {
     ...(input.edit ? { edit: input.edit } : {}),
     ...(input.live ? { live: input.live } : {}),
     ...(input.imageStore ? { imageStore: input.imageStore } : {}),
+    ...(input.doctor ? { doctor: input.doctor } : {}),
+    // Read on each page: `kit use` may change it while the studio runs. A config that does not
+    // read is the doctor's to report; the start page then names the built-in kit.
+    projectKit: () => {
+      try {
+        return loadSettings({ home: input.home, cwd: input.project }).kit;
+      } catch {
+        return 'base';
+      }
+    },
     files: studioFiles(input.dataDir, input.project),
     view: createViewStore(input.home),
     // Read once at the start: a changed setting applies from the next start of the studio.

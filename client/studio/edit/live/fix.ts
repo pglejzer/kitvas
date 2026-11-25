@@ -11,7 +11,7 @@ import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import type { NewRequest } from '../../../../src/studio/api/requests/request-schemas.ts';
 import { MAX_REQUEST_ELEMENTS, MAX_REQUEST_TEXT } from '../ai/requests.ts';
 import { PROPERTIES, styleValueOf } from '../props/steps.ts';
-import { type Format, opsForStyle, readOnlyReason } from '../style/ops.ts';
+import { type Format, opsForStyle, readOnlyReason, ruleHeld } from '../style/ops.ts';
 import {
   CANVAS,
   luminance,
@@ -211,10 +211,18 @@ export const isPlan = (plan: FixPlan | NoPlan | null): plan is FixPlan =>
 const sameValue = (a: StyleValue, b: StyleValue): boolean =>
   JSON.stringify(a) === JSON.stringify(b);
 
-/** The class rule's own declaration of `property` holds `value` already. */
-function holds(inspected: Inspect, property: string, value: StyleValue): boolean {
+/** What the class rule holds for `property`: a declaration, or the part of a shorthand (ADR 0070). */
+function ruleValue(inspected: Inspect, property: string): StyleValue | null {
+  const row = PROPERTIES.find((one) => one === property);
   const own = inspected.scss?.declarations.find((one) => one.property === property);
-  return own !== undefined && sameValue(styleValueOf(own.value, own.offKit), value);
+  const held = row === undefined ? own : ruleHeld(inspected, row);
+  return held ? styleValueOf(held.value, held.offKit) : null;
+}
+
+/** The class rule holds `value` for `property` already. */
+function holds(inspected: Inspect, property: string, value: StyleValue): boolean {
+  const before = ruleValue(inspected, property);
+  return before !== null && sameValue(before, value);
 }
 
 /**
@@ -233,9 +241,8 @@ function ruleOps(
   if (component && !component.takesClassName) return { reason: 'no-classname' };
   if (!scss || !styleClass) return { reason: 'not-found' };
   if (className?.kind === 'expr' && !styleClass.exists) return { reason: 'computed' };
-  const own = scss.declarations.find((one) => one.property === property);
-  if (!own && scss.nested.includes(property)) return { reason: 'nested' };
-  const before = own ? styleValueOf(own.value, own.offKit) : null;
+  const before = ruleValue(inspected, property);
+  if (before === null && scss.nested.includes(property)) return { reason: 'nested' };
   if (before && sameValue(before, value)) return { ops: [] };
   const name = styleClass.className;
   const ops: EditOp[] = styleClass.exists ? [] : [{ op: 'addClass', id, className: name }];

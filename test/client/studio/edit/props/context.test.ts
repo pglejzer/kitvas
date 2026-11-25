@@ -64,6 +64,12 @@ test('the source line says where a value in a context comes from', () => {
   assert.equal(words(base, { width: null, state: 'active' }).key, 'context.source.default');
   const hovered = { kind: 'below', width: null, state: 'hover', value: '8px' } as const;
   assert.equal(words(hovered, { width: 768, state: 'hover' }).key, 'context.source.all');
+  // A shorthand of the context's block holds the value (ADR 0070): the line names it.
+  const part = { kind: 'here', value: '24px', offKit: false, via: 'padding' } as const;
+  assert.deepEqual(words(part, TABLET), {
+    key: 'context.source.shorthand',
+    params: { shorthand: 'padding' },
+  });
 });
 
 test('a property a prop sets is covered in every context but the base', () => {

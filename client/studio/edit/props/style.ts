@@ -4,15 +4,25 @@
 // Stage 4c (spec goals 1 and 5): the row shows and writes the value at the edit context (a width,
 // a state), says where the value comes from, offers "Remove for this width" and "Apply to all
 // widths", and marks colour and size options that would fail a live check. Plan 18: a colour row
-// shows a swatch of the colour before its list; an off-kit value says so with a review chip.
+// shows a swatch of the colour before its list; an off-kit value says so with a review chip. A
+// value a shorthand of the rule holds shows as its part, and the source names the shorthand; a
+// side of a box or of a pair has no reset (ADR 0070).
 
-import type { EditOp, StyleProperty, StyleValue, TokenOption } from '../../../../src/edit/index.ts';
+import type {
+  EditOp,
+  Shorthand,
+  StyleProperty,
+  StyleValue,
+  TokenOption,
+} from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import { isBase, sourceAt } from '../style/context-ops.ts';
 import {
+  heldBySides,
   opsForAll,
   opsForProp,
   readOnlyReason,
+  ruleHeld,
   type StyleOptions,
   sharedText,
 } from '../style/ops.ts';
@@ -44,6 +54,15 @@ import { isOffKit, styleValueOf, tokensFor, varOf } from './steps.ts';
 import { allowsNegative, unitsFor } from './units.ts';
 import { optionWarning, resolveCss } from './warn.ts';
 
+/**
+ * The words of a class rule as a row's source: the rule, or the shorthand of it that holds the
+ * value (ADR 0070), as in "from padding of .card".
+ */
+export function ruleSourceText(className: string, via: Shorthand | undefined): string {
+  if (via !== undefined) return text('props.source.shorthand', { shorthand: via, className });
+  return text('props.source.scss', { className });
+}
+
 function sourceText(env: Env, property: StyleProperty): string {
   const { context } = env.state;
   const source = env.inspected.styles[property];
@@ -53,7 +72,7 @@ function sourceText(env: Env, property: StyleProperty): string {
     const words = sourceWords(sourceAt(env.inspected, property, context), context);
     return text(words.key, words.params);
   }
-  if (source?.kind === 'scss') return text('props.source.scss', { className: source.className });
+  if (source?.kind === 'scss') return ruleSourceText(source.className, source.via);
   if (source?.kind === 'utility')
     return text('props.source.utility', { className: source.className });
   return text('props.source.kit');
@@ -202,8 +221,9 @@ function heldOf(
     const held = written?.kind === 'literal' ? String(written.value.value) : null;
     return { held, offKit: false, mixed: false };
   }
-  const declaration = inspected.scss?.declarations.find((own) => own.property === property);
-  return { held: declaration?.value ?? null, offKit: declaration?.offKit ?? false, mixed: false };
+  // The rule's own declaration, or the part of a shorthand that holds the property (ADR 0070).
+  const rule = ruleHeld(inspected, property);
+  return { held: rule?.value ?? null, offKit: rule?.offKit ?? false, mixed: false };
 }
 
 /** The value shown when the context sets none: what it inherits, else what the frame computes. */
@@ -269,7 +289,8 @@ export function styleRow(env: Env, property: StyleProperty): HTMLElement {
   } else if (!reason && !base) {
     if (beaten) row.meta.append(heldNote(env));
     row.meta.append(...contextActions(env, property, key));
-  } else if (!reason && (held !== null || mixed)) {
+  } else if (!reason && (held !== null || mixed) && !heldBySides(env.views, property)) {
+    // A side a box or a pair holds has no reset: the whole `padding` or `margin` has one.
     const name = single && source?.kind === 'prop' ? source.prop : property;
     row.meta.append(resetButton(text('props.reset.label', { name }), () => set(null)));
   }

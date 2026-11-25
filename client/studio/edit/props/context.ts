@@ -44,7 +44,13 @@ export function sourceWords(
   source: RowSource,
   context: StyleContext,
 ): { key: string; params: Record<string, string | number> } {
-  if (source.kind === 'here') return { key: 'context.source.here', params: {} };
+  if (source.kind === 'here') {
+    // A shorthand of the context's block holds the value (ADR 0070): the row names it.
+    if (source.via !== undefined) {
+      return { key: 'context.source.shorthand', params: { shorthand: source.via } };
+    }
+    return { key: 'context.source.here', params: {} };
+  }
   if (source.kind === 'kit') return { key: 'context.source.kit', params: {} };
   // The resting state of the same width: the state bar's Default.
   if (context.state !== null && source.state === null && source.width === context.width) {

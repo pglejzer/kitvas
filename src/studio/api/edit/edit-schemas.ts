@@ -15,6 +15,7 @@ import {
   MAX_OPS,
   MAX_TEXT,
   REFUSALS,
+  SHORTHANDS,
   STYLE_PROPERTIES,
   StyleContextSchema,
   TOKEN_VAR,
@@ -58,6 +59,12 @@ export const StyleSourceSchema = z.discriminatedUnion('kind', [
     className: z.string(),
     value: z.string(),
     offKit: z.boolean(),
+    /**
+     * The shorthand of the class rule that holds the value (ADR 0070): `value` and `offKit` are
+     * then those of its part, and an edit writes that part. Left out for the property's own
+     * declaration.
+     */
+    via: z.enum(SHORTHANDS).optional(),
   }),
   z.strictObject({ kind: z.literal('utility'), className: z.string() }),
   z.strictObject({ kind: z.literal('kit') }),
@@ -239,6 +246,8 @@ export const InspectSchema = z.strictObject({
         offKit: z.boolean(),
         /** Tailwind: the prefixed utility that sets it (`md:p-6`); `null` in SCSS. */
         utility: z.string().nullable(),
+        /** SCSS: the shorthand of the block that holds the value, as in `styles` (ADR 0070). */
+        via: z.enum(SHORTHANDS).optional(),
       }),
     )
     .optional(),

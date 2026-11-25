@@ -25,6 +25,8 @@ function pages(store: DraftStore) {
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
+    version: '0.1.0',
+    projectKit: () => 'base',
   });
   return async (id: string, ask: Ask = {}): Promise<string> => {
     const route = routes.find((candidate) => candidate.id === id);
@@ -165,11 +167,13 @@ test('the top bar has three parts: the draft, the mode, and the session', async 
   const text = await pages(store)('draft', SHOP);
   const bar = region(text, '<header class="k-bar bar-editor">', 'header');
   const start = region(bar, '<div class="k-bar-start">', 'div');
+  // The mark is a link home, then Drafts / title.
   assert.ok(
     start.startsWith(
-      '<div class="k-bar-start"><span class="k-mark">kitvas</span><a class="k-btn bar-crumb" href="/">',
+      '<div class="k-bar-start"><a class="k-logo-link" href="/"><svg class="k-logo" viewBox="0 0 64 64"',
     ),
   );
+  assert.ok(start.includes('</svg></a><a class="k-btn bar-crumb" href="/">'));
   assert.ok(start.includes('<h1 class="bar-title k-clip" title="Shop">Shop</h1>'));
   assert.ok(start.includes('<details class="bar-menu" data-shell="version">'));
   const modes = region(bar, '<div class="k-seg bar-modes" role="group"', 'div');
@@ -181,7 +185,7 @@ test('the top bar has three parts: the draft, the mode, and the session', async 
   assert.ok(editMode(modes).endsWith('data-shell-mode="edit" aria-pressed="false">'));
   const end = region(bar, '<div class="k-bar-end">', 'div');
   for (const part of [
-    'data-edit-listening',
+    'data-bar-listening',
     'data-edit-session',
     'data-edit-undo disabled',
     'data-edit-redo disabled',
@@ -413,7 +417,9 @@ test('without compare every other version is offered; a lone version has none', 
   const latest = await view('draft', SHOP);
   const offered = region(latest, '<details class="bar-menu" data-shell="compare">', 'details');
   assert.ok(
-    offered.includes(`<summary class="k-btn">${COMPARE_ICON}${t('studio.edit.shell.compare')}<svg`),
+    offered.includes(
+      `<summary class="k-btn">${COMPARE_ICON}<span class="k-bar-word">${t('studio.edit.shell.compare')}</span><svg`,
+    ),
   );
   assert.ok(
     offered.includes(
@@ -479,6 +485,16 @@ test('a note carries its tone and, when it has one, its element', async () => {
   );
   assert.ok(text.includes(`${row} data-tone="review" data-rule="ds/raw-color">`));
   assert.ok(text.includes('<span class="num checks-num" data-tone="review">2</span>'));
+});
+
+test('the Guide, Shortcuts and Doctor pages are routes that load the page script', async () => {
+  const { store } = shopDraft();
+  const view = pages(store);
+  for (const id of ['guide', 'shortcuts', 'doctor']) {
+    const text = await view(id);
+    assert.ok(text.includes('<main class="k-page start info">'), id);
+    assert.ok(text.includes('src="/assets/page.js"></script></main>'), id);
+  }
 });
 
 test('the gallery ends its main with the gallery script', async () => {

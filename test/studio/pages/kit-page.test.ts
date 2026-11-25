@@ -10,7 +10,7 @@ import { tempDrafts } from '../../helpers/drafts.ts';
 import { builtinKits, copyKit, FIXTURE_KITS, tinyKitJson } from '../../helpers/kits.ts';
 import { t } from '../../helpers/translate.ts';
 
-function pages(kits: KitStore) {
+function pages(kits: KitStore, projectKit = 'base') {
   const { store } = tempDrafts();
   const routes = pageRoutes({
     drafts: store,
@@ -18,6 +18,8 @@ function pages(kits: KitStore) {
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
+    version: '0.1.0',
+    projectKit: () => projectKit,
   });
   return async (id: string, params: Record<string, string> = {}): Promise<string> => {
     const route = routes.find((candidate) => candidate.id === id);
@@ -143,7 +145,7 @@ test('values from the kit are escaped', async () => {
 
 test('the list shows each kit with its component count and its state', async () => {
   const text = await pages(createFolderKitStore(FIXTURE_KITS))('kits');
-  assert.ok(text.includes('<h1 class="kit-title">Kits</h1>'));
+  assert.ok(text.includes('<h1>Kits</h1>'));
   assert.ok(text.includes('<a class="kit-tile-name" href="/kit/tiny">Tiny</a>'));
   assert.ok(text.includes('Version 1.0.0, 2 components'));
   assert.ok(text.includes('<span class="k-quiet">Valid</span>'));
@@ -169,4 +171,109 @@ test('the nav marks the current page', async () => {
   const home = await view('home');
   assert.ok(home.includes('<a class="k-btn" href="/" aria-current="page">Drafts</a>'));
   assert.ok(home.includes('<a class="k-btn" href="/kit">Kit</a>'));
+});
+
+test('the list has the block of the start page, the kits as cards, two ways to add one, and the foot line', async () => {
+  const text = await pages(createFolderKitStore(FIXTURE_KITS), 'tiny')('kits');
+  assert.ok(text.includes('<main class="k-page start kit-page">'));
+  assert.ok(text.includes('<section class="start-block k-inverse info-block">'));
+  assert.ok(text.includes('<a class="info-back" href="/">'));
+  assert.ok(text.includes(t('studio.kit.lead')));
+  assert.ok(/<span>\d+ kits?<\/span>/.test(text), 'the count line');
+  assert.ok(text.includes('This project uses Tiny'));
+  assert.equal(text.split('Used by this project').length - 1, 1, 'the chip is on one kit only');
+  const tiny = /<li class="kit-tile">(?:(?!<\/li>)[\s\S])*href="\/kit\/tiny"[\s\S]*?<\/li>/.exec(
+    text,
+  );
+  assert.ok(tiny?.[0].includes('Used by this project'));
+  assert.ok(tiny?.[0].includes('<span class="k-meta kit-tile-source">'), 'the source line');
+  assert.ok(text.includes('Add your own kit'));
+  const add = text.slice(text.indexOf('id="kit-add"'));
+  assert.equal(
+    add.slice(0, add.indexOf('</section>')).split('data-copy aria-label').length - 1,
+    2,
+    'two command boxes with a copy button',
+  );
+  assert.ok(text.includes('<code>/kitvas:learn</code>'));
+  assert.ok(text.includes('kit use &lt;id&gt;</code>'));
+  assert.ok(text.includes('<footer class="start-foot">'));
+  assert.ok(text.includes('src="/assets/kit.js"'));
+});
+
+test('on the list no kit carries the chip when the kit of the project is not among them', async () => {
+  const text = await pages(createFolderKitStore(FIXTURE_KITS), 'base')('kits');
+  assert.ok(!text.includes('Used by this project'));
+});
+
+test('a kit that is not Base has the block with its facts, a card per section and the foot line', async () => {
+  const text = await pages(createFolderKitStore(FIXTURE_KITS))('kit', { id: 'tiny' });
+  assert.ok(
+    text.includes('<main class="k-page start kit-page" data-kit="tiny" data-catalog="missing">'),
+  );
+  assert.ok(text.includes('<a class="info-back" href="/kit">'));
+  assert.ok(text.includes('<span>All kits</span>'));
+  assert.ok(text.includes('<h1>Tiny</h1>'));
+  assert.ok(text.includes('data-kit-source'));
+  assert.ok(
+    text.includes(
+      '<span><code>tiny</code></span><span>Version 1.0.0</span><span>2 components</span>',
+    ),
+  );
+  assert.ok(/<span>\d+ tokens?<\/span><\/p>/.test(text));
+  // Never verified: the command is a box with a copy button, once.
+  assert.equal(text.split('class="kit-cmd"').length - 1, 1);
+  assert.ok(text.includes('kit verify tiny</code>'));
+  for (const id of ['kit-colors', 'kit-spacing', 'kit-type']) {
+    assert.ok(
+      text.includes(
+        `<section class="kit-part kit-card" aria-labelledby="${id}"><header class="kit-part-head"><h2 id="${id}">`,
+      ),
+      id,
+    );
+  }
+  assert.ok(text.includes('<footer class="start-foot">'));
+  assert.ok(!text.includes('kit-verify'), 'no verification card without verify problems');
+});
+
+test('a kit with problems has its problems as a card with a count', async () => {
+  const text = await pages(kitWithProblems())('kit', { id: 'tiny' });
+  assert.ok(
+    text.includes(
+      '<section class="kit-part kit-card" aria-labelledby="kit-problems"><header class="kit-part-head"><h2 id="kit-problems">Problems</h2><span class="k-meta">1</span>',
+    ),
+  );
+});
+
+test('a kit that cannot be read has a page that says why, with the check command', async () => {
+  const kits = createFolderKitStore(FIXTURE_KITS);
+  const routes = pageRoutes({
+    drafts: tempDrafts().store,
+    kits,
+    t,
+    skin: '/* skin */',
+    frame: { port: 5001, key: 'k3y' },
+    version: '0.1.0',
+    projectKit: () => 'base',
+  });
+  const route = routes.find((candidate) => candidate.id === 'kit');
+  assert.ok(route);
+  const answer = await route.handle({
+    params: { id: 'broken' },
+    headers: {},
+    query: new URLSearchParams(),
+    host: '127.0.0.1:5000',
+    nonce: 'N0nce',
+  });
+  assert.ok(typeof answer === 'object' && answer !== null && 'status' in answer);
+  assert.equal(answer.status, 422);
+  const text = String(answer.body);
+  assert.ok(text.includes('<main class="k-page start kit-page">'));
+  assert.ok(text.includes('<a class="info-back" href="/kit">'));
+  assert.ok(text.includes('<h1>broken</h1>'));
+  assert.ok(text.includes('data-kit-unreadable>Kit &quot;broken&quot; is not valid:'));
+  assert.ok(text.includes('kit check broken</code>'));
+  assert.ok(text.includes('<footer class="start-foot">'));
+  // The list links the kit to this page.
+  const list = await pages(kits)('kits');
+  assert.ok(list.includes('<a class="kit-tile-name" href="/kit/broken">broken</a>'));
 });

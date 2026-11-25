@@ -42,6 +42,8 @@ function pageOf(setupResult: ReturnType<typeof setup>): string {
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
+    version: '0.1.0',
+    projectKit: () => 'base',
   });
   const route = routes.find((candidate) => candidate.id === 'kit');
   assert.ok(route);
@@ -87,7 +89,9 @@ test('a written kit shows its source line and the reference beside the frame wit
   writeRef(made.project);
   writeVerify(made.dir, made.hash);
   const text = pageOf(made);
-  assert.ok(text.includes('<span data-kit-source>Website example.com</span>'));
+  assert.ok(
+    text.includes('<span class="kit-lead-line" data-kit-source>Website example.com</span>'),
+  );
   assert.ok(text.includes('<div class="kit-pair"><iframe class="kit-frame"'));
   assert.ok(
     text.includes(
@@ -103,9 +107,13 @@ test('a written kit shows its source line and the reference beside the frame wit
 
 test('the figma and images sources have their own lines', () => {
   const figma = setup({ type: 'figma', url: `https://www.figma.com/design/${'a'.repeat(22)}/x` });
-  assert.ok(pageOf(figma).includes('<span data-kit-source>Figma file</span>'));
+  assert.ok(
+    pageOf(figma).includes('<span class="kit-lead-line" data-kit-source>Figma file</span>'),
+  );
   const images = setup({ type: 'images' });
-  assert.ok(pageOf(images).includes('<span data-kit-source>Screenshots</span>'));
+  assert.ok(
+    pageOf(images).includes('<span class="kit-lead-line" data-kit-source>Screenshots</span>'),
+  );
 });
 
 test('a score for another kit hash is replaced by the stale note', () => {

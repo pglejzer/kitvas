@@ -88,6 +88,20 @@ export const ON_TONE: Record<Theme, string> = { dark: '#1d2025', light: '#ffffff
 /** How strong a soft fill (a colour over the surface behind it) is in each theme. */
 export const SOFT_ALPHA: Record<Theme, number> = { dark: 0.16, light: 0.1 };
 
+/**
+ * The inverted scope (`.k-inverse`): a block filled with the theme's ink, where the theme's panel
+ * colour is the text. Each token below is the panel colour at this strength over the ink.
+ */
+export const INVERSE_MIX = {
+  'ink-mid': 0.7,
+  'ink-soft': 0.5,
+  panel: 0.09,
+  raised: 0.11,
+  'raised-strong': 0.18,
+  pressed: 0.24,
+  line: 0.16,
+} as const satisfies Record<string, number>;
+
 /** The colours with an alpha, as `[#rrggbb, alpha]`. */
 export const THEME_TINTS = {
   dark: {

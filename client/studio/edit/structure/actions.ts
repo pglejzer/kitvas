@@ -15,6 +15,7 @@ import type { EditorContext } from '../context.ts';
 import { opsForProp, opsForStyle } from '../props/panel.ts';
 import { PROPERTIES, styleValueOf } from '../props/steps.ts';
 import type { EditorState, Gesture } from '../store.ts';
+import { ruleHeld } from '../style/ops.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 import { copyElements, copyLocation, pasteClip } from './clipboard.ts';
@@ -159,7 +160,9 @@ function styleOf(inspected: Inspect): StyleClip {
       }
       continue;
     }
-    const declaration = inspected.scss?.declarations.find((own) => own.property === property);
+    const declaration = ruleHeld(inspected, property);
+    // A part of a shorthand the clip keeps whole (`padding-left` of `padding`) is not kept twice.
+    if (PROPERTIES.some((row) => row === declaration?.via)) continue;
     if (declaration && source?.kind !== 'utility') {
       out.push({
         property,

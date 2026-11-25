@@ -42,6 +42,8 @@ export interface DraftStore {
   readText(slug: string, relPath: string): string | undefined;
   /** Parsed JSON, `undefined` when missing. Throws DRAFT_INVALID when the file is not JSON. */
   readJson(slug: string, relPath: string): unknown;
+  /** The newest modification time of the files under a folder of the draft, at any depth; `undefined` when there is none. */
+  modifiedAt(slug: string, relPath: string): Date | undefined;
   /** Creates parent folders. Throws DRAFT_INVALID for a path outside the draft. */
   writeText(slug: string, relPath: string, text: string): void;
   makeDir(slug: string, relPath: string): void;

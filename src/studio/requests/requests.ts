@@ -1,9 +1,10 @@
 // The editor's requests to Claude, for every draft of the studio, and the listening session
 // (spec 4d, goals 1 and 9; plan 17, task A). One service per studio, shared by the request routes
 // and the inbox's take (`requestsOf`). It keeps `<draft>/requests.json` around the pure rules of
-// `request-rules.ts`, tells the open pages (`requests {slug}`), wakes a waiting take when a
-// request comes, and puts a taken request back in the queue once its session has been gone for
-// `TAKEN_TIMEOUT_MS`. Request text is the person's data: nothing here reads it as an instruction.
+// `request-rules.ts`, tells the open pages (`requests {slug}`; a new listening state also as
+// `listening`, for the bar of every page), wakes a waiting take when a request comes, and puts a
+// taken request back in the queue once its session has been gone for `TAKEN_TIMEOUT_MS`. Request
+// text is the person's data: nothing here reads it as an instruction.
 
 import { randomUUID } from 'node:crypto';
 import {
@@ -20,6 +21,7 @@ import type { KitStore } from '../../kit/index.ts';
 import { KitvasError, type Translate } from '../../shared/index.ts';
 import type { EditDeps } from '../api/edit/edit-routes.ts';
 import type {
+  Listening,
   NewRequest,
   RequestAnswer,
   RequestContext,
@@ -61,6 +63,8 @@ export type RequestContextView = Omit<RequestContext, 'elements'> & { elements: 
 export type RequestService = {
   /** The draft's requests, newest first, and the session. */
   list(slug: string): Promise<Requests>;
+  /** Whether a Claude Code session listens now. */
+  listening(): Listening;
   /** Keeps a checked request (`request-checks.ts`); a waiting take gets it at once. */
   create(slug: string, input: NewRequest): Promise<RequestView>;
   drop(slug: string, id: string): Promise<RequestView>;
@@ -122,8 +126,10 @@ export function createRequestService(
   const listening = createListening({
     now: () => host.now(),
     facts: () => ({ waiting: host.inbox.waiting(), taken: anyTaken() }),
-    // Every draft page shows the status line, so every draft hears a new state.
-    onChange: () => {
+    // The bar of every page shows the state, with or without drafts: one `listening` event. A
+    // draft's Claude tab reads it with the draft's requests, so every draft hears it too.
+    onChange: (state) => {
+      host.events.publish('listening', state);
       for (const slug of slugs()) host.events.publish('requests', { slug });
     },
     timers,
@@ -240,6 +246,8 @@ export function createRequestService(
       const requests = await Promise.all(stored.map((each) => present(each, carry, inspect)));
       return { requests, listening: listening.current() };
     },
+
+    listening: () => listening.current(),
 
     async create(slug, input) {
       const latest = latestOf(slug);

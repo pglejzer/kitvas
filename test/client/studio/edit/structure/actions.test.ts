@@ -473,6 +473,80 @@ test('copy style keeps scss declarations and paste adds the class and rule once'
   );
 });
 
+/** An element whose class rule holds `property` in the shorthand `via` (ADR 0070). */
+function heldBy(
+  property: 'padding-left' | 'border-color',
+  via: 'padding' | 'border',
+  part: string,
+  whole: string,
+): Inspect {
+  const view = inspected(CARD, []);
+  view.styles = {
+    ...view.styles,
+    [property]: { kind: 'scss', className: 'plans', value: part, offKit: true, via },
+  };
+  view.scss = {
+    file: 'src/scss/sections/pricing.scss',
+    etag: ETAG,
+    rule: true,
+    declarations: [{ property: via, value: whole, offKit: true }],
+    nested: [],
+  };
+  view.styleClass = { className: 'plans', exists: true };
+  return view;
+}
+
+test('copy style keeps a shorthand of the rows whole, never its parts beside it', async () => {
+  const held = (left: string): Inspect => heldBy('padding-left', 'padding', left, `8px ${left}`);
+  const f = fixture([CARD], { inspected: held('16px') });
+  await runAction(f.ctx, 'copy-style');
+  f.store.set({ selection: [HEAD, CARD2], inspected: null });
+  stubFetch({
+    [`/api/v1/drafts/demo/inspect?id=${HEAD}`]: { ...held('12px'), id: HEAD },
+    [`/api/v1/drafts/demo/inspect?id=${CARD2}`]: { ...held('16px'), id: CARD2 },
+  });
+  await runAction(f.ctx, 'paste-style');
+  const styles = (f.gestures[0]?.ops ?? []).filter((op) => op.op === 'setStyle');
+  // One op on the shorthand of the element that differs; no second op on a side of it.
+  assert.deepEqual(styles, [
+    {
+      op: 'setStyle',
+      id: HEAD,
+      className: 'plans',
+      property: 'padding',
+      value: { raw: '8px 16px' },
+      before: { raw: '8px 12px' },
+      newRule: false,
+    },
+  ] satisfies EditOp[]);
+});
+
+test('copy style keeps the part of a shorthand outside the rows, and paste reads the target the same way', async () => {
+  const held = (colour: string): Inspect =>
+    heldBy('border-color', 'border', colour, `1px solid ${colour}`);
+  const f = fixture([CARD], { inspected: held('#dddddd') });
+  await runAction(f.ctx, 'copy-style');
+  f.store.set({ selection: [HEAD, CARD2], inspected: null });
+  stubFetch({
+    [`/api/v1/drafts/demo/inspect?id=${HEAD}`]: { ...held('#cccccc'), id: HEAD },
+    [`/api/v1/drafts/demo/inspect?id=${CARD2}`]: { ...held('#dddddd'), id: CARD2 },
+  });
+  await runAction(f.ctx, 'paste-style');
+  const styles = (f.gestures[0]?.ops ?? []).filter((op) => op.op === 'setStyle');
+  // The element holding another colour is set with its part as before; the one holding it, nothing.
+  assert.deepEqual(styles, [
+    {
+      op: 'setStyle',
+      id: HEAD,
+      className: 'plans',
+      property: 'border-color',
+      value: { raw: '#dddddd' },
+      before: { raw: '#cccccc' },
+      newRule: false,
+    },
+  ] satisfies EditOp[]);
+});
+
 test('a part of a list item takes the element actions: Delete changes the template', async () => {
   const part: Inspect = {
     ...inspected(INNER, []),

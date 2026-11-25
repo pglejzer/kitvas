@@ -38,6 +38,7 @@ function draftWithStyles() {
 test('lists every raw value of the section files, with the nearest token', () => {
   const result = offKitValues({ drafts: draftWithStyles(), kits }, 'shop');
   assert.equal(result.version, 1);
+  // `padding: 13px` is one value for every side: one item, under its own name.
   const padding = result.items.find((item) => item.property === 'padding');
   assert.equal(padding?.file, 'src/scss/sections/hero.scss');
   assert.equal(padding?.className, 'hero');
@@ -65,7 +66,15 @@ test('a property outside the editor list has no nearest token', () => {
 test('reads a partial file and lists the rules of every class in it', () => {
   const result = offKitValues({ drafts: draftWithStyles(), kits }, 'shop');
   const summary = result.items.filter((item) => item.file.endsWith('_order-summary.scss'));
-  assert.deepEqual(summary.map((item) => item.className).sort(), ['summary', 'total']);
+  assert.deepEqual([...new Set(summary.map((item) => item.className))].sort(), [
+    'summary',
+    'total',
+  ]);
+  // `margin: 30px` is one value for every side: one item.
+  assert.deepEqual(
+    summary.filter((item) => item.className === 'total').map((item) => item.property),
+    ['margin'],
+  );
   const colour = summary.find((item) => item.property === 'background-color');
   assert.ok(['color.ink', 'color.accent'].includes(colour?.nearest?.path ?? ''));
 });
@@ -94,6 +103,47 @@ test('a keyword and a background image are never off-kit, even with a marker', (
   // One side of padding takes the spacing scale; the outline colour the colours.
   assert.equal(items[0]?.nearest?.type, 'dimension');
   assert.equal(items[1]?.nearest?.type, 'color');
+});
+
+test('a shorthand that splits is listed by its raw parts, each with its nearest token', () => {
+  const { store } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  const text = [
+    '.hero {',
+    '  border: 1px solid #123456; /* off-kit */',
+    '  padding: var(--kit-space-sm) 13px; /* off-kit */',
+    '  margin-top: 5px;',
+    '  margin: 7px; /* off-kit */',
+    '}',
+    '',
+  ].join('\n');
+  store.writeText('shop', 'v1/src/scss/sections/hero.scss', text);
+  const items = offKitValues({ drafts: store, kits }, 'shop').items;
+  assert.deepEqual(
+    items.map((item) => [item.property, item.value]),
+    [
+      ['border-width', '1px'],
+      ['border-color', '#123456'],
+      ['padding-right', '13px'],
+      ['padding-left', '13px'],
+      // One value for every side stays one item, with its nearest token.
+      ['margin', '7px'],
+    ],
+  );
+  assert.equal(items[1]?.nearest?.type, 'color');
+  assert.equal(items[4]?.nearest?.path, 'space.sm');
+});
+
+test('a shorthand that does not split stays listed under its own name', () => {
+  const { store } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  const text = ['.hero {', '  padding: 1px 2px 3px 4px 5px; /* off-kit */', '}', ''].join('\n');
+  store.writeText('shop', 'v1/src/scss/sections/hero.scss', text);
+  const items = offKitValues({ drafts: store, kits }, 'shop').items;
+  assert.deepEqual(
+    items.map((item) => [item.property, item.value]),
+    [['padding', '1px 2px 3px 4px 5px']],
+  );
 });
 
 test('a draft without section styles has an empty list', () => {

@@ -25,7 +25,14 @@ import {
   type StyleContext,
 } from '../domain/ops.ts';
 import { elementSpan } from '../domain/structure/subtree.ts';
-import { IMAGE_FILE, MAX_IMAGES, readRule, scssOverrides } from '../domain/style/apply-scss.ts';
+import {
+  IMAGE_FILE,
+  MAX_IMAGES,
+  readRule,
+  type Shorthand,
+  scssOverrides,
+  varKindOf,
+} from '../domain/style/apply-scss.ts';
 import { newClassName } from '../domain/style/class-name.ts';
 import { type SourceInput, styleSource, tokenGroupsOf } from '../domain/style/source.ts';
 import { utilityOverrides } from '../domain/style/utilities.ts';
@@ -105,6 +112,7 @@ export type InspectView = {
   /**
    * Every value set for a width or a state: a context block of the class rule, or a prefixed
    * utility of a Tailwind draft (`utility`; `null` in SCSS). The base values are in `styles`.
+   * `via`: the shorthand of the block that holds the value (ADR 0070).
    */
   overrides: {
     context: StyleContext;
@@ -112,6 +120,7 @@ export type InspectView = {
     value: string;
     offKit: boolean;
     utility: string | null;
+    via?: Shorthand;
   }[];
   /**
    * Spec 4c, goal 9: the `.map` the element is rendered by; `null` when it is not in one. Asked
@@ -310,21 +319,26 @@ export async function inspectElement(
 
   const format = styleFormat(kit);
   const tokens = tokenOptions(kit);
+  const tokenGroups = tokenGroupsOf(tokens);
   const input: Omit<SourceInput, 'property'> = {
     component: catalog === null ? null : { props: catalog },
     written: props.map((prop) => prop.name),
     rule,
     classes: classesOf(tag),
     format,
-    tokenGroups: tokenGroupsOf(tokens),
+    tokenGroups,
   };
-  // The values of the widths and states: prefixed utilities, or the rule's context blocks.
+  // The values of the widths and states: prefixed utilities, or the rule's context blocks, read
+  // with the token types the base is read with, so a shorthand splits the same in both.
   const overrides: InspectView['overrides'] =
     format === 'tailwind'
       ? utilityOverrides(classesOf(tag), tokens)
       : rule === null || scssText === undefined
         ? []
-        : scssOverrides(scssText, rule.className).map((each) => ({ ...each, utility: null }));
+        : scssOverrides(scssText, rule.className, varKindOf(tokenGroups)).map((each) => ({
+            ...each,
+            utility: null,
+          }));
   const styles = Object.fromEntries(
     STYLE_PROPERTIES.map((property) => [property, styleSource({ ...input, property })]),
   ) as Record<StyleProperty, StyleSource>;

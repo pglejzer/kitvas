@@ -6,19 +6,20 @@
 // width is the one of the nearest block at or below it. A state's value wins over every resting
 // one, whatever their widths, because `.a:hover` is the more specific selector.
 
-import type { EditOp, StyleContext, StyleProperty } from '../../../../src/edit/index.ts';
+import type { EditOp, Shorthand, StyleContext, StyleProperty } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import { styleValueOf } from '../props/steps.ts';
-import { opsForStyle, readOnlyReason, type StyleOptions } from './ops.ts';
+import { keepsPart, opsForStyle, readOnlyReason, type StyleOptions } from './ops.ts';
 import { currentUtility, isOwn, splitUtility, variantPrefix } from './utility-ops.ts';
 
 /**
- * Where the value a property shows in `context` comes from. `here`: set in exactly this context.
- * `below`: inherited from a smaller width's block (`width`), the base (`width: null`) or the
- * resting state of this width. `kit`: nothing in the source sets it (or a prop does, see `styles`).
+ * Where the value a property shows in `context` comes from. `here`: set in exactly this context;
+ * `via`: by the shorthand of its block that holds the property (ADR 0070). `below`: inherited from
+ * a smaller width's block (`width`), the base (`width: null`) or the resting state of this width.
+ * `kit`: nothing in the source sets it (or a prop does, see `styles`).
  */
 export type RowSource =
-  | { kind: 'here'; value: string; offKit: boolean }
+  | { kind: 'here'; value: string; offKit: boolean; via?: Shorthand }
   | { kind: 'below'; width: number | null; state: StyleContext['state']; value: string }
   | { kind: 'kit' };
 
@@ -28,7 +29,17 @@ export const BASE_CONTEXT: StyleContext = { width: null, state: null };
 export const isBase = (context: StyleContext): boolean =>
   context.width === null && context.state === null;
 
-type Entry = { context: StyleContext; value: string; offKit: boolean; utility: string | null };
+type Entry = {
+  context: StyleContext;
+  value: string;
+  offKit: boolean;
+  utility: string | null;
+  via?: Shorthand;
+};
+
+/** `via` as a key only where a shorthand holds the value. */
+const viaOf = (via: Shorthand | undefined): { via?: Shorthand } =>
+  via === undefined ? {} : { via };
 
 const sameContext = (a: StyleContext, b: StyleContext): boolean =>
   a.width === b.width && a.state === b.state;
@@ -38,7 +49,8 @@ function entriesOf(inspect: Inspect, property: StyleProperty): Entry[] {
   const entries: Entry[] = [];
   const base = inspect.styles[property];
   if (base?.kind === 'scss') {
-    entries.push({ context: BASE_CONTEXT, value: base.value, offKit: base.offKit, utility: null });
+    const { value, offKit } = base;
+    entries.push({ context: BASE_CONTEXT, value, offKit, utility: null, ...viaOf(base.via) });
   } else if (base?.kind === 'utility') {
     // The base of a Tailwind draft is known by its class only.
     const { className } = base;
@@ -47,7 +59,7 @@ function entriesOf(inspect: Inspect, property: StyleProperty): Entry[] {
   for (const each of inspect.overrides ?? []) {
     if (each.property !== property) continue;
     const { context, value, offKit, utility } = each;
-    entries.push({ context, value, offKit, utility });
+    entries.push({ context, value, offKit, utility, ...viaOf(each.via) });
   }
   return entries;
 }
@@ -78,7 +90,7 @@ export function sourceAt(
     (state === null ? undefined : nearest(entries, width, state)) ?? nearest(entries, width, null);
   if (found === undefined) return { kind: 'kit' };
   if (sameContext(found.context, context)) {
-    return { kind: 'here', value: found.value, offKit: found.offKit };
+    return { kind: 'here', value: found.value, offKit: found.offKit, ...viaOf(found.via) };
   }
   return {
     kind: 'below',
@@ -151,6 +163,8 @@ export function applyToAllWidths(
   );
   const here = wide.find((entry) => entry.context.width === context.width);
   if (here === undefined) return null;
+  // A side a box or a pair holds at some width cannot be taken out of it (ADR 0070).
+  if (wide.some((entry) => keepsPart(entry.via))) return null;
   const target: StyleContext = { width: null, state: context.state };
   // Where the value cannot be written for all widths, the overrides stay too.
   if (readOnlyReason(inspect, property, format, target) !== null) return null;

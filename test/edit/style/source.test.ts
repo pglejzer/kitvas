@@ -459,7 +459,191 @@ test('one side of padding and margin is a declaration of its own in the class ru
     value: '3px',
     offKit: true,
   });
-  assert.deepEqual(styleSource(input('padding-left', { rule: card })), { kind: 'kit' });
+  // The side no declaration of its own sets is held by the shorthand (ADR 0070).
+  assert.deepEqual(styleSource(input('padding-left', { rule: card })), {
+    kind: 'scss',
+    className: 'card',
+    value: 'var(--kit-space-md)',
+    offKit: false,
+    via: 'padding',
+  });
+});
+
+// ---- Shorthands (ADR 0070) ----------------------------------------------------------------------
+
+/** A small kit, so a `var` in a border or a background has a type. */
+const typed = tokenGroupsOf([
+  { path: 'color.line', type: 'color' },
+  { path: 'color.surface', type: 'color' },
+  { path: 'color.accent', type: 'color' },
+  { path: 'border.sm', type: 'dimension' },
+  { path: 'space.md', type: 'dimension' },
+]);
+
+type Declarations = Parameters<typeof rule>[1];
+type Held = Pick<Extract<StyleSource, { kind: 'scss' }>, 'value' | 'offKit' | 'via'>;
+
+/** What the class rule holds for the property, or `null` when the source is not the rule. */
+function held(property: StyleProperty, declarations: Declarations, nested?: string[]): Held | null {
+  const card = rule('card', declarations, nested);
+  const found = styleSource(input(property, { rule: card, tokenGroups: typed }));
+  if (found.kind !== 'scss') return null;
+  const { value, offKit, via } = found;
+  return via === undefined ? { value, offKit } : { value, offKit, via };
+}
+
+test('background-color is read from a background of one colour', () => {
+  assert.deepEqual(held('background-color', [['background', '#fff', true]]), {
+    value: '#fff',
+    offKit: true,
+    via: 'background',
+  });
+  assert.deepEqual(held('background-color', [['background', 'var(--kit-color-surface)']]), {
+    value: 'var(--kit-color-surface)',
+    offKit: false,
+    via: 'background',
+  });
+  // The image is a part the shorthand leaves out: no source in this rule.
+  assert.equal(held('background-image', [['background', '#fff']]), null);
+});
+
+test('a border gives its width, its style and its colour, each with its own mark', () => {
+  const border: Declarations = [['border', '1px solid var(--kit-color-line)', true]];
+  assert.deepEqual(held('border-width', border), { value: '1px', offKit: true, via: 'border' });
+  assert.deepEqual(held('border-style', border), { value: 'solid', offKit: false, via: 'border' });
+  assert.deepEqual(held('border-color', border), {
+    value: 'var(--kit-color-line)',
+    offKit: false,
+    via: 'border',
+  });
+  // An outline is read the same, and a flex-flow by its keywords.
+  assert.deepEqual(held('outline-color', [['outline', '2px solid red']]), {
+    value: 'red',
+    offKit: false,
+    via: 'outline',
+  });
+  assert.deepEqual(held('flex-wrap', [['flex-flow', 'row wrap']]), {
+    value: 'wrap',
+    offKit: false,
+    via: 'flex-flow',
+  });
+});
+
+test('padding and margin give each side, and a pair as one value or two', () => {
+  const box: Declarations = [['padding', '8px 16px 24px']];
+  assert.deepEqual(held('padding-bottom', box), { value: '24px', offKit: false, via: 'padding' });
+  assert.deepEqual(held('padding-left', box), { value: '16px', offKit: false, via: 'padding' });
+  assert.deepEqual(held('padding-inline', box), { value: '16px', offKit: false, via: 'padding' });
+  assert.deepEqual(held('padding-block', box), {
+    value: '8px 24px',
+    offKit: false,
+    via: 'padding',
+  });
+  // The box itself is its own declaration.
+  assert.deepEqual(held('padding', box), { value: '8px 16px 24px', offKit: false });
+  assert.deepEqual(held('margin-right', [['margin-inline', '0 auto']]), {
+    value: 'auto',
+    offKit: false,
+    via: 'margin-inline',
+  });
+});
+
+test('a longhand written after its shorthand wins and is the source', () => {
+  const found = held('border-color', [
+    ['border', '1px solid #ddd'],
+    ['border-color', 'var(--kit-color-line)'],
+  ]);
+  assert.deepEqual(found, { value: 'var(--kit-color-line)', offKit: false });
+});
+
+test('a longhand written before its shorthand loses to it', () => {
+  const found = held('border-color', [
+    ['border-color', 'var(--kit-color-line)'],
+    ['border', '1px solid #ddd', true],
+  ]);
+  assert.deepEqual(found, { value: '#ddd', offKit: true, via: 'border' });
+});
+
+test('the declarations of a class with several rules are read in the order of the file', () => {
+  // A class's rules read together list a property once, at its first place, with its last span.
+  const card: RuleView = {
+    className: 'card',
+    span,
+    declarations: [
+      { property: 'padding-top', value: '4px', offKit: false, span: { start: 90, end: 100 } },
+      { property: 'padding', value: '8px', offKit: false, span: { start: 40, end: 50 } },
+    ],
+    nested: [],
+  };
+  assert.deepEqual(styleSource(input('padding-top', { rule: card })), {
+    kind: 'scss',
+    className: 'card',
+    value: '4px',
+    offKit: false,
+  });
+});
+
+test('a shorthand that does not split holds nothing: the property reads as without it', () => {
+  const values = [
+    'linear-gradient(#fff, #000)',
+    'url(a.png), url(b.png)',
+    '#fff url(a.png) no-repeat',
+    '#fff !important',
+    '$surface',
+    '#{$surface}',
+    'var(--surface)',
+  ];
+  for (const value of values) {
+    assert.equal(held('background-color', [['background', value]]), null, value);
+  }
+  // A longhand of the rule is then the source, wherever it stands.
+  const own = held('background-color', [
+    ['background-color', 'var(--kit-color-surface)'],
+    ['background', 'linear-gradient(#fff, #000)'],
+  ]);
+  assert.deepEqual(own, { value: 'var(--kit-color-surface)', offKit: false });
+});
+
+test('a var is typed by the kit of the draft', () => {
+  const border: Declarations = [['border', '1px solid var(--kit-color-accent)']];
+  assert.equal(held('border-color', border)?.via, 'border');
+  // Base has no token `color.accent`: the value does not split there, and no part is read.
+  const card = rule('card', border);
+  assert.deepEqual(styleSource(input('border-color', { rule: card })), { kind: 'kit' });
+  assert.deepEqual(styleSource(input('border-width', { rule: card })), { kind: 'kit' });
+  // Base types its own tokens.
+  const line = rule('card', [['border', 'var(--kit-space-xs) solid var(--kit-color-line)']]);
+  assert.deepEqual(styleSource(input('border-width', { rule: line })), {
+    kind: 'scss',
+    className: 'card',
+    value: 'var(--kit-space-xs)',
+    offKit: false,
+    via: 'border',
+  });
+});
+
+test('a shorthand only inside a nested block is not the rule source', () => {
+  // `.card { gap: 4px; &.is-open { background: #fff; border: 1px solid #ddd; } }`
+  const nested = ['background', 'border'];
+  assert.equal(held('background-color', [['gap', '4px']], nested), null);
+  assert.equal(held('border-width', [['gap', '4px']], nested), null);
+});
+
+test('a prop of the kit component comes before a shorthand of the class rule', () => {
+  const card = rule('card', [['padding', '8px 16px']]);
+  const found = styleSource(input('padding', { component: baseComponent('Card'), rule: card }));
+  assert.deepEqual(found, { kind: 'prop', prop: 'padding' });
+});
+
+test('a property outside the table reads as before beside a shorthand', () => {
+  const declarations: Declarations = [
+    ['border', '1px solid #ddd'],
+    ['border-top', '2px solid red'],
+    ['flex', '1 1 auto'],
+  ];
+  assert.equal(held('border-radius', declarations), null);
+  assert.equal(held('gap', declarations), null);
+  assert.equal(held('background-size', [['background', '#fff']]), null);
 });
 
 test('the Tailwind utilities of the plan 15 properties name their class', () => {

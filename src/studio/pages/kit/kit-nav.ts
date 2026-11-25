@@ -26,5 +26,5 @@ export function kitSide(
     const nested = categories.map((category) => link(category, true));
     return html`${link(anchor, false)}${nested}`;
   });
-  return html`<aside class="k-island kit-side">${kitPicker(t, rows, current)}<nav aria-label="${t('studio.kit.onPage')}"><h2 class="kit-side-title">${t('studio.kit.onPage')}</h2><ul class="kit-links" role="list">${items}</ul></nav></aside>`;
+  return html`<aside class="kit-side">${kitPicker(t, rows, current)}<nav aria-label="${t('studio.kit.onPage')}"><h2 class="kit-side-title">${t('studio.kit.onPage')}</h2><ul class="kit-links" role="list">${items}</ul></nav></aside>`;
 }

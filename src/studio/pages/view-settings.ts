@@ -33,10 +33,13 @@ function choices(t: Translate): Record<keyof ViewSettings, Choice[]> {
   };
 }
 
-/** The button that opens the popover; a bar puts it at its end. */
+/**
+ * The button that opens the popover; a bar puts it at its end. Its word (`k-bar-word`) gives way
+ * in a narrow bar; the icon and the name stay.
+ */
 export function viewButton(t: Translate): Html {
   const label = t('studio.view.open');
-  return html`<button type="button" class="k-icon-btn" data-view-open aria-haspopup="dialog" aria-expanded="false" aria-label="${label}" title="${label}">${icon('sliders')}</button>`;
+  return html`<button type="button" class="k-btn" data-view-open aria-haspopup="dialog" aria-expanded="false" aria-label="${label}" title="${label}">${icon('sliders')}<span class="k-bar-word">${label}</span></button>`;
 }
 
 const pressed = (on: boolean): string => (on ? 'true' : 'false');

@@ -20,6 +20,8 @@ async function page(store: DraftStore, id: 'home' | 'draft', path = '', query = 
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
+    version: '0.1.0',
+    projectKit: () => 'base',
   });
   const route = routes.find((candidate) => candidate.id === id);
   assert.ok(route);
@@ -89,7 +91,7 @@ test('Deleted with nothing deleted shows the drafts, and a gallery of only delet
   assert.ok(!none.includes('data-trash-list'));
   deleteDraft(store, 'shop', AT);
   const only = (await page(store, 'home')).body;
-  assert.ok(only.includes('class="k-empty gallery-empty"'));
+  assert.ok(only.includes('<ol class="start-steps">'));
   assert.ok(only.includes('show=deleted'));
 });
 

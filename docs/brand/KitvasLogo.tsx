@@ -32,10 +32,10 @@ export function KitvasLogo({ size = 64, title, tone = 'colour' }: KitvasLogoAPro
       height={size}
       fill="currentColor"
       data-craft-tone={tone}
-      aria-hidden={title === undefined ? true : undefined}
       role={title === undefined ? undefined : 'img'}
+      aria-label={title}
+      aria-hidden={title === undefined ? true : undefined}
     >
-      {title === undefined ? null : <title>{title}</title>}
       <path d={PART} />
       <path d={POINTER} transform="translate(34 34) rotate(135) scale(0.83) translate(-16 -35)" />
       {small ? null : (
