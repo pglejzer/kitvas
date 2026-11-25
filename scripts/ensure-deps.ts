@@ -4,13 +4,14 @@ import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { ensureDeps } from '../src/shared/deps/deps-install.ts';
-import { PLUGIN_ROOT, resolveDataDir } from '../src/shared/env/paths.ts';
+import { hookDataDir, PLUGIN_ROOT, resolveDataDir } from '../src/shared/env/paths.ts';
 import { createTranslator, loadMessages } from '../src/shared/i18n/i18n.ts';
 
 const t = createTranslator(loadMessages(join(PLUGIN_ROOT, 'locales'), 'en'));
+// `--data` is for a run by hand; as a hook, the folder comes from the environment Claude Code sets.
 const flag = process.argv.indexOf('--data');
 const dataDir = resolveDataDir({
-  flag: flag > -1 ? process.argv[flag + 1] : undefined,
+  flag: flag > -1 ? process.argv[flag + 1] : hookDataDir(process.env, PLUGIN_ROOT),
   env: process.env.KITVAS_DATA_DIR,
   home: homedir(),
 });

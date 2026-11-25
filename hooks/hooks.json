@@ -7,11 +7,7 @@
           {
             "type": "command",
             "command": "node",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/scripts/ensure-deps.ts",
-              "--data",
-              "${CLAUDE_PLUGIN_DATA}"
-            ],
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/ensure-deps.ts"],
             "timeout": 300
           }
         ]

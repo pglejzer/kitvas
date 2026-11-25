@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a vulnerability
+    url: https://github.com/pglejzer/kitvas/security/advisories/new
+    about: A security problem goes through a private advisory, never a public issue. See SECURITY.md.
+  - name: When something does not work
+    url: https://github.com/pglejzer/kitvas/blob/main/docs/troubleshooting.md
+    about: Run kitvas doctor first. It names most setup problems and says what to do.

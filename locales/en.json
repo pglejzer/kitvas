@@ -436,6 +436,7 @@
   "studio.kit.unreadable": "Cannot be read",
   "studio.kit.unreadableTitle": "What to do",
   "studio.kit.unreadableBody": "kitvas cannot read this kit, so it has no page yet. Run this command to see what is wrong, mend the kit, then open this page again.",
+  "studio.kit.missingBody": "This project has no kit with this id. The link may be old or the id mistyped. Run this command to see the kits there are, or go back to all kits.",
   "studio.kit.summary": "Version {version}, {count} components",
   "studio.kit.source.builtin": "Built in",
   "studio.kit.source.npm": "Package {name} {version}",

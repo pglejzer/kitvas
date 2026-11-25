@@ -1,0 +1,120 @@
+name: Kit
+description: A design system that kitvas cannot learn, verify or render as it looks in your product.
+title: "[kit] "
+labels: [kit]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when `/kitvas:learn`, `kitvas kit new` or `kitvas kit verify` fails on your design system, or
+        when its components look or behave differently in a draft than in your product.
+
+        kitvas learns a design system from the package or the folder your project already has. It never installs a
+        package, and it never copies fonts, images or logos. For an internal design system, describe it: do not
+        paste its code.
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Source of the design system
+      options:
+        - An npm package (kit new --from npm:<package>)
+        - A folder of components in the project (kit new --from repo:<folder>)
+        - Tailwind v4
+        - A Figma file
+        - A website
+        - Screenshots
+    validations:
+      required: true
+
+  - type: input
+    id: system
+    attributes:
+      label: Design system and version
+      description: The package and the version your project's package.json names, or what the source is.
+      placeholder: "@mui/material 6.4.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: step
+    attributes:
+      label: Where it goes wrong
+      options:
+        - kit new
+        - The learner or tailor agent writing the kit
+        - "kit verify: schema"
+        - "kit verify: imports"
+        - "kit verify: types"
+        - "kit verify: render"
+        - "kit verify: tokens"
+        - "kit verify: look"
+        - A component in a draft renders or behaves wrong
+        - A token, theme or mode is missing
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened
+      description: What you saw, and what the design system does in your own product.
+    validations:
+      required: true
+
+  - type: textarea
+    id: components
+    attributes:
+      label: Components or tokens
+      description: The components, props or tokens that are missing or wrong, by their names in the design system.
+      placeholder: "Tabs is missing; Button's size prop has no value lg."
+
+  - type: textarea
+    id: verify
+    attributes:
+      label: kit verify output
+      description: The output of `kitvas kit verify <kit id> --json`, if the kit was made.
+      render: json
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: kitvas doctor report
+      description: >-
+        The output of `kitvas doctor --report`. It writes your home folder as `~` and the project folder as
+        `<project>`, and leaves out names and addresses. Read it before you paste it.
+      render: text
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Windows with WSL
+    validations:
+      required: true
+
+  - type: input
+    id: claude_code
+    attributes:
+      label: Claude Code version
+      description: The output of `claude --version`.
+      placeholder: 2.1.332 (Claude Code)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: before
+    attributes:
+      label: Before you send
+      options:
+        - label: I searched the open and closed issues, and this one is not there yet.
+          required: true
+        - label: What I pasted holds no code, names or addresses that are not public.
+          required: true

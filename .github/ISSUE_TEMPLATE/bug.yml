@@ -1,0 +1,127 @@
+name: Bug
+description: Something in kitvas does not work as the README or the docs say.
+title: "[bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for something that does not work as described. A vulnerability goes through a private
+        security advisory instead (see SECURITY.md). A design system that kitvas cannot learn or shows wrong has
+        its own form, "Kit".
+
+        Before you write: run `kitvas doctor`. In Claude Code you can ask "run kitvas doctor". It checks Node,
+        packages, the plugin, the workspace, the kit, the browser, the folders and the studio, and says what to do
+        for each check that is not ok.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Part of kitvas
+      description: Where the problem shows. Pick the closest one.
+      options:
+        - Install or update (the session hook, npm ci)
+        - /kitvas (status, init, language)
+        - /kitvas:kit (components, props, tokens)
+        - /kitvas:compose (drafts and versions)
+        - /kitvas:learn (project kits)
+        - /kitvas:craft (sketches of a component, icon or logo)
+        - /kitvas:rework (rework of a page or a screenshot)
+        - /kitvas:edit (requests from the editor)
+        - The studio's pages
+        - The studio's editor
+        - Checks (kitvas check, kitvas kit verify)
+        - The command line (kitvas <command>)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened
+      description: >-
+        What you saw. Paste an error exactly as it was printed. For a command run with `--json`, give
+        `error.code` and `error.message`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What should have happened instead, and where the docs say so if you know.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: >-
+        The fewest steps that show the problem. Name the skill or the command with its options, the kind of
+        project (framework, package manager) and the kit in use.
+      placeholder: |
+        1. In a new Vite project with React 19, run /kitvas:compose and ask for a sign-up screen.
+        2. Run `kitvas build signup --json`.
+        3. The build answers `"ok": false` with ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: kitvas doctor report
+      description: >-
+        The output of `kitvas doctor --report`. It writes your home folder as `~` and the project folder as
+        `<project>`, and leaves out names and addresses. Read it before you paste it.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Command output or log
+      description: >-
+        The full `--json` answer of the command that failed, or the lines of the studio log around the error.
+        Remove anything private: names, addresses, tokens, code that is not public.
+      render: text
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Windows with WSL
+    validations:
+      required: true
+
+  - type: input
+    id: claude_code
+    attributes:
+      label: Claude Code version
+      description: The output of `claude --version`.
+      placeholder: 2.1.332 (Claude Code)
+    validations:
+      required: true
+
+  - type: input
+    id: kit
+    attributes:
+      label: Kit in use
+      description: Base, or a project kit with its source (an npm package and its version, a folder, Figma, a website, screenshots).
+      placeholder: "acme, from npm: @acme/ui 1.2.0"
+
+  - type: checkboxes
+    id: before
+    attributes:
+      label: Before you send
+      options:
+        - label: I searched the open and closed issues, and this one is not there yet.
+          required: true
+        - label: What I pasted holds no names, addresses, tokens or code that is not public.
+          required: true

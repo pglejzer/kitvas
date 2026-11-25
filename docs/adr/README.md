@@ -77,3 +77,4 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0068](0068-logo-motion.md) | The logo moves: an entrance once for a tab, and a sign while Claude works | 2026-11-25 | accepted |
 | [0069](0069-click-takes-the-row.md) | A click in a list takes the row first | 2026-11-25 | accepted |
 | [0070](0070-shorthand-write.md) | A shorthand is read as a source and written in place | 2026-11-25 | accepted |
+| [0071](0071-hook-data-folder.md) | The session hook reads its data folder from its environment | 2026-11-25 | accepted |

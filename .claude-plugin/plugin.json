@@ -5,10 +5,14 @@
   "author": { "name": "Piotr Glejzer", "url": "https://github.com/pglejzer" },
   "homepage": "https://github.com/pglejzer/kitvas#readme",
   "repository": "https://github.com/pglejzer/kitvas",
-  "license": "PolyForm-Shield-1.0.0",
+  "license": "LicenseRef-PolyForm-Shield-1.0.0",
   "keywords": ["design-system", "prototyping", "ui", "react", "design-tokens", "figma"],
   "icon": "./.claude-plugin/icon.png",
   "documentationUrl": "https://github.com/pglejzer/kitvas#readme",
   "supportUrl": "https://github.com/pglejzer/kitvas/issues",
+  "privacyPolicyUrl": "https://github.com/pglejzer/kitvas#runs-on-your-machine",
+  "network": {
+    "hosts": ["registry.npmjs.org", "cdn.playwright.dev", "playwright.download.prss.microsoft.com"]
+  },
   "skills": ["./"]
 }

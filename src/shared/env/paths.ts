@@ -1,6 +1,6 @@
 // Where kitvas keeps things: the plugin folder, the user folder, a project's workspace, the data folder.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,4 +26,30 @@ export function resolveDataDir({ flag, env, home }: DataDirInput): string {
     if (saved) return saved;
   }
   return join(userDir(home), 'data');
+}
+
+/** A folder as the file system knows it, links and letter case settled; undefined when it is not there. */
+function realFolder(path: string): string | undefined {
+  try {
+    const real = realpathSync.native(resolve(path));
+    return process.platform === 'win32' ? real.toLowerCase() : real;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The data folder Claude Code gives this plugin's hook in `CLAUDE_PLUGIN_DATA`. It counts only when
+ * `CLAUDE_PLUGIN_ROOT` in the same environment is this plugin's own folder, because a shell can hold the pair of
+ * another plugin. The hook gets the folder this way, not as an argument: the plugin directory refuses a hook
+ * command that names a variable other than `CLAUDE_PLUGIN_ROOT` (ADR 0071).
+ */
+export function hookDataDir(
+  env: Readonly<Record<string, string | undefined>>,
+  root: string,
+): string | undefined {
+  const { CLAUDE_PLUGIN_DATA: data, CLAUDE_PLUGIN_ROOT: own } = env;
+  if (!data || !own) return undefined;
+  const ownReal = realFolder(own);
+  return ownReal !== undefined && ownReal === realFolder(root) ? data : undefined;
 }
