@@ -5,7 +5,6 @@ import type { Translate } from '../../../../src/shared/index.ts';
 import {
   checkCounts,
   elementIn,
-  elementLabel,
   guidelineNote,
   notesSection,
 } from '../../../../src/studio/pages/draft/notes.ts';
@@ -194,13 +193,6 @@ test('the element is named with its section, and the elements helper splits the 
     section: 'Pricing',
   });
   assert.deepEqual(elementIn('plain'), { element: 'plain', section: '' });
-});
-
-test('an element is named by its section and its last tag, as the editor names it', () => {
-  assert.equal(elementLabel('sections/Pricing:section/Stack/Card.2'), 'Pricing / Card.2');
-  assert.equal(elementLabel('Draft:main/Input.0'), 'Draft / Input.0');
-  assert.equal(elementLabel(':main'), 'main');
-  assert.equal(elementLabel('plain'), 'plain');
 });
 
 test('an accepted finding with no element has no element attribute, and none means no heading', () => {

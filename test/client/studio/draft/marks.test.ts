@@ -1,58 +1,31 @@
+// The marks a draft page sends (plan 19, task 1): compare's outlines alone, in every lens. The
+// findings' numbered dots are the Checks lens's pins now (`test/client/studio/lens/send.test.ts`).
+
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MAX_ITEMS, type Mark } from '../../../../client/channel/protocol.ts';
-import { marksFromNotes, type NoteInfo, pageMarks } from '../../../../client/studio/draft/marks.ts';
+import { MAX_ITEMS, parseStudioMessage } from '../../../../client/channel/protocol.ts';
+import { pageMarks } from '../../../../client/studio/draft/marks.ts';
 
-function note(element: string | undefined, label: string, tone: string | undefined): NoteInfo {
-  return { element, label, tone };
-}
-
-test('each note on an element gives a mark with its number and tone', () => {
-  const notes = [
-    note('a:main/Button', '1', 'fix'),
-    note(undefined, '2', 'fix'),
-    note('a:main/h1', ' 3 ', 'review'),
-  ];
-  assert.deepEqual(marksFromNotes(notes), [
-    { id: 'a:main/Button', label: '1', tone: 'fix' },
-    { id: 'a:main/h1', label: '3', tone: 'review' },
-  ]);
-});
-
-test('no notes give no marks', () => {
-  assert.deepEqual(marksFromNotes([]), []);
-});
-
-test('a note the frame would refuse gives no mark', () => {
-  const notes = [
-    note('a:main', '1', 'changed'),
-    note('a:main', '2', undefined),
-    note('a main', '3', 'fix'),
-    note('', '4', 'fix'),
-    note('a:main', '123456789', 'fix'),
-    note('a:main', '5', 'review'),
-  ];
-  assert.deepEqual(marksFromNotes(notes), [{ id: 'a:main', label: '5', tone: 'review' }]);
-});
-
-test('compare adds ~ on changed and + on added elements after the findings', () => {
-  const findings: Mark[] = [{ id: 'a:main', label: '1', tone: 'fix' }];
+test('compare marks ~ on changed and + on added elements, and nothing on removed ones', () => {
   const diff = { changed: ['a:main', 'a:main/p'], added: ['a:main/new'], removed: ['a:old'] };
-  assert.deepEqual(pageMarks(findings, diff), [
-    { id: 'a:main', label: '1', tone: 'fix' },
+  assert.deepEqual(pageMarks(diff), [
     { id: 'a:main', label: '~', tone: 'changed' },
     { id: 'a:main/p', label: '~', tone: 'changed' },
     { id: 'a:main/new', label: '+', tone: 'added' },
   ]);
-  assert.deepEqual(pageMarks(findings, undefined), findings);
+  const message = { kitvas: 1, channel: 'mark-check', type: 'marks', marks: pageMarks(diff) };
+  assert.ok(parseStudioMessage(message, 'mark-check'), 'a frame takes them');
 });
 
-test('marks stop at the protocol limit, findings first', () => {
-  const findings: Mark[] = [{ id: 'a:main', label: '1', tone: 'fix' }];
+test('without compare the page sends no marks: no finding gets a numbered dot', () => {
+  assert.deepEqual(pageMarks(undefined), []);
+  assert.deepEqual(pageMarks({ changed: [], added: [], removed: [] }), []);
+});
+
+test('marks stop at the protocol limit, the changed ones first', () => {
   const many = Array.from({ length: MAX_ITEMS + 5 }, (_, index) => `a:item-${index}`);
-  const marks = pageMarks(findings, { changed: many, added: ['a:late'], removed: [] });
+  const marks = pageMarks({ changed: many, added: ['a:late'], removed: [] });
   assert.equal(marks.length, MAX_ITEMS);
-  assert.deepEqual(marks[0], findings[0]);
   assert.equal(
     marks.some((mark) => mark.id === 'a:late'),
     false,

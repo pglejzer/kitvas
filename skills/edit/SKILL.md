@@ -6,7 +6,7 @@ description: "Use when the user runs /kitvas:edit <slug>, or wants Claude to ans
 
 # kitvas: answer the editor
 
-The person edits a draft in the studio and asks Claude from the editor's AI tab. You listen in the background and answer each request; the chat stays free meanwhile. You run every command.
+The person edits a draft in the studio and asks Claude from the editor's ask bar under the canvas (a sentence, or Improve). You listen in the background and answer each request; the chat stays free meanwhile. You run every command.
 
 `KITVAS` means: `node "${CLAUDE_PLUGIN_ROOT}/bin/kitvas.ts"`. Run it from the user's project folder. Every command takes `--json`: `{"ok":true,"data":…}` or `{"ok":false,"error":{"code","message"}}`.
 

@@ -60,11 +60,6 @@ export function pinsOf(rows: readonly NoteRow[]): NotePin[] {
   );
 }
 
-/** The note a pin or a selection points at: the first open one on that element. */
-export function rowOn(rows: readonly NoteRow[], id: string): NoteRow | undefined {
-  return rows.find((row) => row.pinned && row.note.current === id);
-}
-
 /**
  * The `note` request of a note for Claude (spec 4d, goal 3): its element, the edit context it was
  * written in, its text (cut to what a request takes) and the note's id, so closing the request

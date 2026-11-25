@@ -11,7 +11,6 @@ import {
   LIVE_RULE_IDS,
   type LiveGroup,
   liveGroups,
-  liveMarks,
   mismatchedIds,
   sentOps,
   topsOf,
@@ -193,25 +192,6 @@ test('a waived finding shows as accepted; an element with only waived ones has n
   // A waiver of another element is not this one's.
   const elsewhere = liveGroups([item({ id: OTHER })], [waiver(LIVE_RULE_IDS.contrast, TITLE)]);
   assert.equal(elsewhere[0]?.label, 'L1');
-});
-
-test('each card gets the marks of the findings open at its width, and every code finding', () => {
-  const groups = liveGroups(
-    [
-      item({ id: TITLE, width: 1280 }),
-      item({ id: BUTTON, rule: LIVE_RULE_IDS['target-size'], severity: 'review', width: 390 }),
-      item({ id: SECTION, rule: 'ds/raw-size', severity: 'review', width: null, source: 'code' }),
-    ],
-    [],
-  );
-  assert.deepEqual(liveMarks(groups, 1280), [
-    { id: TITLE, label: 'L1', tone: 'fix' },
-    { id: SECTION, label: 'L3', tone: 'review' },
-  ]);
-  assert.deepEqual(liveMarks(groups, 390), [
-    { id: BUTTON, label: 'L2', tone: 'review' },
-    { id: SECTION, label: 'L3', tone: 'review' },
-  ]);
 });
 
 test('elements whose build differs from the editor are found for the change list', () => {

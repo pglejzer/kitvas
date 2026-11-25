@@ -1,5 +1,5 @@
-// The marks the studio asks for, drawn on the prototype: a numbered dot at the top-right corner of
-// each marked element, and an outline around changed and added ones. Everything sits in one
+// The marks of a compare, drawn on the prototype: `~` or `+` at the top-right corner of each
+// changed or added element, and an outline around it. The findings are the Checks lens's pins. Everything sits in one
 // overlay at the end of `body`, inside a closed shadow root: the prototype's styles do not reach
 // it and its own styles do not leak. It never takes pointer events and is hidden from assistive
 // technology. Positions are page coordinates, so the marks scroll with the page; they are worked
@@ -20,9 +20,6 @@ const SHEET = `
   font-variant-numeric: tabular-nums; letter-spacing: 0;
   background: var(--kv-review, Canvas); color: var(--kv-on-tone, CanvasText);
   box-shadow: inset 0 0 0 2px var(--kv-on-tone, CanvasText);
-}
-.dot[data-tone="fix"] {
-  background: var(--kv-fix, CanvasText); color: var(--kv-on-tone, Canvas); box-shadow: none;
 }
 .ring {
   outline: 2px solid var(--kv-select, CanvasText); outline-offset: 0;

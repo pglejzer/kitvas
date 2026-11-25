@@ -16,7 +16,7 @@ Switch a draft to Edit to change it by hand:
 - widths and states: an edit at 768 or 1280 px is written as a media query, a hover or focus edit as `&:hover` or `&:focus-visible`;
 - live findings after each edit, with Apply for a target that is too small and for text of too low contrast.
 
-Everything above works with no network, no account and no model: the studio, the edits, the builds, the checks and the versions. The AI tab (variants for a sentence or "Improve"), requests for changes kitvas cannot write itself, and the reasons behind a section need a listening session: run `/kitvas:edit <draft>` in Claude Code and leave it running.
+Everything above works with no network, no account and no model: the studio, the edits, the builds, the checks and the versions. Asking Claude (the ask bar under the canvas: variants for a sentence or "Improve"), requests for changes kitvas cannot write itself, and the reasons behind a section need a listening session: run `/kitvas:edit <draft>` in Claude Code and leave it running.
 
 ## The screen
 
@@ -45,6 +45,8 @@ Switch to Edit in the bar to change the draft.
 | `Ctrl+Z` | Undo |
 | `Ctrl+Shift+Z` or `Ctrl+Y` | Redo |
 | `Ctrl+Enter` (`Cmd+Enter`) | Save a note |
+| `Ctrl+K` (`Cmd+K`) | Put the cursor in the ask bar |
+| `←` and `→` | Flip Claude's variants while the variant pill shows |
 
 The sizes of the panels are kept.
 
@@ -55,10 +57,18 @@ The sizes of the panels are kept.
 - Press and drag on the page to move an element (see Structure). Drag a rectangle over empty space to select several elements. It takes the elements it touches that do not hold it whole, the outermost of those, never a locked element. A rectangle with Shift, Ctrl or Cmd held adds to the selection. A rectangle that takes nothing clears it.
 - A locked element is picked in the layers list only: a click on it in the prototype selects what is under it.
 
+## On the canvas
+
+- **Lenses.** The pill over the canvas switches what the pins on the prototype say. Design shows none. Kit shows a container's spacing token, a value off the kit with the nearest token, and the kit component a plain element could be. Checks shows one pin per finding, with the count on the pill. Why shows the first reason of each section. Changes shows who changed each element in this session. Kit and Changes need Edit. A click on a pin selects its element and opens the pane it is about. A lens never reloads the prototype; the canvas shows 200 pins at most.
+- **The action bar** sits above the selection: Ask Claude, the element's quick actions and More. It leaves while you drag, resize, pan or zoom, and comes back when you stop. The arrow keys move between its buttons.
+- **The ask bar** under the canvas takes a sentence about the selection and sends it to Claude. Type `/` for the commands (Improve first, then Duplicate and the rest); an action that is off says why. Without a listening session it says so and keeps your words.
+- **The variant pill** shows when the selected element has Claude's answer: `←` and `→` flip the variants on the canvas, Apply writes the one shown as one undo step, and Discard closes the pill.
+
 ## What you can change
 
 - A kit component's props: variant, size, gap and the rest.
 - Spacing, colour, typography, radius, border, width and height, with the kit's tokens offered first and the arrow keys stepping through the kit's scale.
+- A value of your own: "Custom…" at the foot of a token list. A colour opens a picker (square, hue, opacity, an eyedropper where the browser has one, a typed value) that shows on the canvas while you drag and writes once when you let go. Any other value opens a number field with its unit. The editor names the nearest token, with "Use <token>". Escape closes it and writes nothing.
 - The text, by a double click.
 
 Each row says where its value lives: a kit prop, the section's SCSS, or the kit's default. kitvas writes the change into the draft's TSX or SCSS itself, touching only the lines it changes. The studio takes each finished build into the prototype in place, with no reload: the page keeps its scroll and the editor's overlays, and the change shows within about a second. A value outside the kit is allowed. It is marked in the code and in the session's change list, and it can be mapped to the nearest token.
@@ -110,14 +120,14 @@ Undo and redo work with Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y. The undo history and th
 
 The editor works with Claude, with notes, with locks and with time.
 
-- **Ask Claude to change things.** The AI tab takes a sentence about the selected elements, or "Improve", and Claude answers one to three variants. Each previews on hover with its checks (contrast, target size, overflow, changed text); a click applies it as one undo step. **This needs a Claude Code session that is listening:** run `/kitvas:edit <draft>` in Claude Code and leave it running. Without one, requests wait on disk and are answered when a session starts. Your text is data for Claude, never an instruction to its tools.
+- **Ask Claude to change things.** The ask bar under the canvas takes a sentence about the selected elements, or "Improve" (`/`), and Claude answers one to three variants. They show in the variant pill on the canvas and in the Claude tab, where each previews on hover with its checks (contrast, target size, overflow, changed text); Apply or a click applies one as one undo step. **This needs a Claude Code session that is listening:** run `/kitvas:edit <draft>` in Claude Code and leave it running. Without one, requests wait on disk and are answered when a session starts. Your text is data for Claude, never an instruction to its tools.
 - **Notes** (right click, "Note…") pin to an element, for you or for Claude, and follow it to later versions. A note is typed in a multi-line field: Enter starts a new line, and Ctrl or Cmd with Enter saves it.
 - **Locks** hold against Claude too: the editor refuses to change a locked element, Claude is told never to, and if a file changes one anyway kitvas shows it (also in `kitvas check`) and offers Restore. Lock and hide survive a reload. Nothing is reverted behind your back.
 - **The timeline** under the canvas shows any version read only, marks where the selected element changed, and brings one element back as a diff. An identifier the current file lacks refuses it with the name; a kit import it needs is added.
 - **Suggestions.** A plain `<button>`, input, heading or card-like `div` that a kit component covers shows "This looks like <Component> from the kit" with Replace.
 - **Why.** The Why tab lists, per section, the reasons Claude wrote when it made it, and says when the section changed since. An older section offers "Ask Claude for the reasons".
 
-What works offline: the studio, every edit above, the builds, the checks and the versions. No account, network or model is involved. What needs Claude: the AI tab and the reasons (a listening Claude Code session), and asking for a change kitvas cannot write itself.
+What works offline: the studio, every edit above, the builds, the checks and the versions. No account, network or model is involved. What needs Claude: the ask bar, the variants and the reasons (a listening Claude Code session), and asking for a change kitvas cannot write itself.
 
 ## What is refused
 

@@ -8,6 +8,7 @@ import {
 import {
   MARK_TONES,
   ON_SELECT,
+  POP_TONES,
   SELECT,
   setTones,
   TONE_NAMES,
@@ -46,6 +47,14 @@ test('the table of the frame holds the same colours as the studio theme', () => 
       good: colors.good,
       on: theme.ON_TONE[name],
     });
+    // The lens pins are popovers (plan 19): the frame has no `--st-*` property, so the
+    // light theme's ring is the line colour itself.
+    assert.deepEqual(POP_TONES[name], {
+      pop: colors.pop,
+      ink: colors.ink,
+      inkMid: colors['ink-mid'],
+      shadow: theme.THEME_SHADOWS[name].pop.replace('var(--st-color-line)', colors.line),
+    });
   }
 });
 
@@ -54,7 +63,10 @@ test('every pair of a theme and an accent has a value for every name a sheet may
     for (const accent of FRAME_ACCENTS) {
       const values = toneValues({ theme: name, accent });
       assert.deepEqual(Object.keys(values), [...TONE_NAMES]);
-      for (const value of Object.values(values)) assert.match(value, /^#[0-9a-f]{6}$/);
+      for (const [key, value] of Object.entries(values)) {
+        if (key === '--kv-pop-shadow') assert.doesNotMatch(value, /var\(|;|\{|\}/);
+        else assert.match(value, /^#[0-9a-f]{6}$/, key);
+      }
       assert.equal(values['--kv-select'], SELECT[accent]);
     }
   }

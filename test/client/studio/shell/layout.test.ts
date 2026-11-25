@@ -13,7 +13,6 @@ import {
   GRIP_STEP,
   gripKey,
   LAYOUT_KEY,
-  LEFT_PANES,
   MAX_SIDE,
   MIN_SIDE,
   nextTab,
@@ -232,8 +231,9 @@ test('the arrow keys move along the tabs and wrap around; Home and End go to the
   assert.equal(nextTab([], 'changes', 'ArrowRight'), null);
 });
 
+const LEFT_PANES = ['layers', 'insert', 'why', 'notes'] as const;
+
 test('the rail holds the left panel panes in order, Notes among them', () => {
-  assert.deepEqual([...LEFT_PANES], ['layers', 'insert', 'why', 'notes']);
   assert.equal(tabFor('left', 'edit', 'notes', LEFT_PANES), 'notes');
 });
 

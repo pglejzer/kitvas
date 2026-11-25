@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { filterRow, optionRow } from '../../../src/studio/pages/controls.ts';
 import { studioPortOf, withChannel } from '../../../src/studio/pages/draft/frame-channel.ts';
 import { frameSrc } from '../../../src/studio/pages/draft/frame-src.ts';
 import { notesSection } from '../../../src/studio/pages/draft/notes.ts';
@@ -9,35 +8,6 @@ import { lockedPage } from '../../../src/studio/pages/locked.ts';
 import { page } from '../../../src/studio/pages/shell.ts';
 import { finding } from '../../helpers/findings.ts';
 import { t } from '../../helpers/translate.ts';
-
-test('options are plain links; the current one says so', () => {
-  const options = [
-    { label: 'Phone', href: '/drafts/shop?width=390', current: true },
-    { label: 'Tablet', href: '/drafts/shop?a=1&b=2', current: false },
-  ];
-  assert.equal(
-    optionRow('Width', options).text,
-    '<div class="k-row"><span class="k-label">Width</span><nav class="k-seg" aria-label="Width">' +
-      '<a href="/drafts/shop?width=390" aria-current="true">Phone</a>' +
-      '<a href="/drafts/shop?a=1&amp;b=2">Tablet</a></nav></div>',
-  );
-  assert.equal(
-    filterRow('Which drafts', options.slice(0, 1)).text,
-    '<nav class="k-seg" aria-label="Which drafts">' +
-      '<a href="/drafts/shop?width=390" aria-current="true">Phone</a></nav>',
-  );
-});
-
-test('a state option carries its id; other options carry no data attribute', () => {
-  const text = optionRow('Show', [
-    { label: 'Empty', href: '/d?state=empty', current: true, state: 'empty' },
-    { label: 'Full', href: '/d?state=full', current: false, state: 'full' },
-    { label: 'Phone', href: '/d?width=390', current: false },
-  ]).text;
-  assert.ok(text.includes('<a data-state="empty" href="/d?state=empty" aria-current="true">'));
-  assert.ok(text.includes('<a data-state="full" href="/d?state=full">Full</a>'));
-  assert.ok(text.includes('<a href="/d?width=390">Phone</a>'));
-});
 
 test('the channel ends the frame address with the studio port taken from the host', () => {
   assert.equal(

@@ -51,6 +51,27 @@ test('the page may ask a frame where an element is', () => {
   assert.deepEqual(parseStudioMessage(locate, CHANNEL), locate);
 });
 
+test('a locate may name one copy of a list item and ask the frame not to scroll (plan 19)', () => {
+  const id = 'sections/Plans:section/Grid/Card';
+  const still = sent({ type: 'locate', request: 600_000_001, id, item: 2, scroll: false });
+  assert.deepEqual(parseStudioMessage(still, CHANNEL), still);
+  const first = sent({ type: 'locate', request: 3, id, item: 0 });
+  assert.deepEqual(parseStudioMessage(first, CHANNEL), first);
+  for (const bad of [
+    { item: -1 },
+    { item: 1.5 },
+    { item: 10_001 },
+    { item: '2' },
+    { scroll: 'no' },
+    { scroll: 0 },
+  ]) {
+    assert.equal(
+      parseStudioMessage(sent({ type: 'locate', request: 3, id, ...bad }), CHANNEL),
+      undefined,
+    );
+  }
+});
+
 test('the page tells a frame the canvas zoom, inside the limits only', () => {
   const zoom = sent({ type: 'zoom', value: 0.25 });
   assert.deepEqual(parseStudioMessage(zoom, CHANNEL), zoom);

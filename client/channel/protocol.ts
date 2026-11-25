@@ -48,7 +48,7 @@ export function flashIds(ids: readonly string[]): string[] {
   return [...new Set(ids)].slice(0, MAX_FLASH);
 }
 
-export type Tone = 'fix' | 'review' | 'changed' | 'added';
+export type Tone = 'changed' | 'added';
 export type Mark = { id: string; label: string; tone: Tone };
 export type ElementSnapshot = {
   id: string;
@@ -175,8 +175,7 @@ function mark(value: unknown): Mark | undefined {
   if (!isObject(value)) return undefined;
   const { id, label, tone } = value;
   if (typeof id !== 'string' || !ELEMENT_ID.test(id) || !isText(label, 8)) return undefined;
-  if (tone !== 'fix' && tone !== 'review' && tone !== 'changed' && tone !== 'added')
-    return undefined;
+  if (tone !== 'changed' && tone !== 'added') return undefined;
   return { id, label, tone };
 }
 

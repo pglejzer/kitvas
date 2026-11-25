@@ -2,7 +2,7 @@
 // px, rem or %; `auto` only for width and height. A raw length is off-kit and marked so; `auto`
 // belongs to the size scale, as the size handles write it. Pure: no DOM.
 
-import type { StyleProperty, StyleValue } from '../../../../src/edit/index.ts';
+import type { StyleProperty } from '../../../../src/edit/index.ts';
 
 export const LENGTH_UNITS = ['px', 'rem', '%'] as const;
 export type LengthUnit = (typeof LENGTH_UNITS)[number];
@@ -49,32 +49,4 @@ export function lengthPx(css: string): number | null {
   const read = readLength(css);
   if (read === null || read === 'auto' || read.unit === '%') return null;
   return read.unit === 'rem' ? read.amount * REM : read.amount;
-}
-
-/** A number without float noise: `0.1 + 0.2` shows as `0.3`. */
-const tidy = (amount: number): string => String(Math.round(amount * 1000) / 1000);
-
-/**
- * The style value the person's amount and unit make for the property: a raw length marked
- * off-kit, or `auto` as it is. `null` when the amount is no number, the unit is not offered, or
- * the amount is negative where it may not be.
- */
-export function lengthValue(
-  property: StyleProperty,
-  amount: string,
-  unit: string,
-): StyleValue | null {
-  if (!unitsFor(property).includes(unit)) return null;
-  if (unit === 'auto') return { raw: 'auto', mark: false };
-  const text = amount.trim();
-  if (!/^-?(?:\d+\.?\d*|\.\d+)$/.test(text)) return null;
-  const number = Number(text);
-  if (!Number.isFinite(number) || (number < 0 && !allowsNegative(property))) return null;
-  return { raw: `${tidy(number)}${unit}` };
-}
-
-/** The amount in another unit: px and rem convert at 16 px; to or from % the number stays. */
-export function convertLength(amount: number, from: LengthUnit, to: LengthUnit): number {
-  if (from === to || from === '%' || to === '%') return amount;
-  return from === 'px' ? Number(tidy(amount / REM)) : Number(tidy(amount * REM));
 }

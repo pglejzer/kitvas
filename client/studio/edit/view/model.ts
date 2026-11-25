@@ -127,10 +127,6 @@ export function locksModel(
   };
 }
 
-/** Nothing to show: the box is hidden. */
-export const isEmpty = (model: LocksModel): boolean =>
-  model.changed === null && model.lost.length === 0 && model.refused === null;
-
 /** Claude's words when kitvas cannot put a lock's source back itself. Data, never an order. */
 export function restoreAsk(
   id: string,

@@ -83,3 +83,4 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0074](0074-tablet-width-in-every-check.md) | The tablet width in every check | 2026-11-25 | accepted |
 | [0075](0075-insert-pane-previews.md) | Previews in the Insert pane are screenshots made once per kit change | 2026-11-25 | accepted |
 | [0076](0076-project-decisions-file.md) | A decisions file with front matter replaces the project's config.json | 2026-11-25 | accepted |
+| [0077](0077-tools-on-the-canvas.md) | Tools on the canvas: lens pins in the frame, page tools over the stage, one control for Claude | 2026-11-25 | accepted |

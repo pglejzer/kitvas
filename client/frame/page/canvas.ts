@@ -219,10 +219,14 @@ export function createCanvas({ channel, post }: CanvasDeps): Canvas {
         return;
       }
       if (message.type !== 'locate') return;
-      const element = elementsWith(new Set([message.id]))[0];
+      // One copy of a list item when the page names it; the first otherwise.
+      const element = elementsWith(new Set([message.id]))[message.item ?? 0];
       let box: FrameBox | null = null;
       if (element) {
-        element.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+        // The tools on the selection only read the box: they must not fight the person's scroll.
+        if (message.scroll !== false) {
+          element.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+        }
         box = boxOf(element.getBoundingClientRect());
       }
       post({ ...head, type: 'located', request: message.request, box });

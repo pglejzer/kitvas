@@ -65,6 +65,9 @@ test('the mapping gives exactly the keys the protocol carries', () => {
     press('g', { ctrlKey: true }),
     press('G', { ctrlKey: true, shiftKey: true }),
     press('F10', { shiftKey: true }),
+    press('k', { ctrlKey: true }),
+    press('ArrowLeft'),
+    press('ArrowRight'),
   ];
   const keys = new Set(presses.map(keyOf));
   assert.deepEqual([...keys].sort(), [...EDIT_KEYS].sort());
@@ -81,4 +84,18 @@ test('a letter alone, or with a modifier that means something else, stays with t
   assert.equal(keyOf(press('ArrowLeft', { altKey: true })), undefined);
   assert.equal(keyOf(press('F10')), undefined);
   assert.equal(keyOf(press('F10', { shiftKey: true, ctrlKey: true })), undefined);
+});
+
+test('Ctrl or Cmd with K asks Claude, and the plain side arrows flip the variant (plan 19)', () => {
+  assert.equal(keyOf(press('k', { ctrlKey: true })), 'ask');
+  assert.equal(keyOf(press('K', { metaKey: true })), 'ask');
+  assert.equal(keyOf(press('ArrowLeft')), 'variant-prev');
+  assert.equal(keyOf(press('ArrowRight')), 'variant-next');
+  // With another modifier the press means something else: the page keeps it.
+  assert.equal(keyOf(press('k', { ctrlKey: true, shiftKey: true })), undefined);
+  assert.equal(keyOf(press('k', { ctrlKey: true, altKey: true })), undefined);
+  assert.equal(keyOf(press('k')), undefined);
+  assert.equal(keyOf(press('ArrowLeft', { altKey: true })), undefined);
+  assert.equal(keyOf(press('ArrowRight', { shiftKey: true })), undefined);
+  assert.equal(keyOf(press('ArrowLeft', { ctrlKey: true })), undefined);
 });

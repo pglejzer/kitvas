@@ -76,6 +76,18 @@ export function restoreFocus(section: HTMLElement, kept: Kept | null): void {
   }
 }
 
+/**
+ * The cursor goes into the "Custom" editor of `row` (plan 19, task T5): the one control of the
+ * editor that says `data-editor-focus`. A redraw has drawn the row by now.
+ */
+export function focusCustom(section: HTMLElement, row: string): void {
+  const entry = section.querySelector<HTMLElement>(`[data-row="${CSS.escape(row)}"]`);
+  const target = entry?.querySelector<HTMLElement>('[data-editor-focus]:not(:disabled)');
+  if (!target || target.closest('[hidden]')) return;
+  target.focus();
+  if (target instanceof HTMLInputElement) target.select();
+}
+
 /** Fills a box: replaced whole for a new selection, else laid over what it holds (`patch.ts`). */
 export function fill(into: HTMLElement, nodes: readonly HTMLElement[], replace: boolean): void {
   if (replace) {

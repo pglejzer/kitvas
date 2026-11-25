@@ -1,6 +1,6 @@
 // A lifecycle with processes and a state file in memory, for the use cases and the CLI.
 
-import type { InboxItem, LifecycleDeps, StudioState } from '../../src/studio/index.ts';
+import type { LifecycleDeps, StudioState } from '../../src/studio/index.ts';
 import { SAMPLE_STATE } from './studio-state.ts';
 
 export type FakeOptions = {
@@ -15,8 +15,6 @@ export type FakeOptions = {
   stubborn?: boolean;
   /** Started processes never write their state file. */
   neverStarts?: boolean;
-  /** What the inbox route answers. */
-  notes?: InboxItem[];
 };
 
 export function fakeLifecycle(options: FakeOptions = {}) {
@@ -53,10 +51,6 @@ export function fakeLifecycle(options: FakeOptions = {}) {
       calls.push(`shutdown ${current.pid}`);
       if (!options.stubborn) alive.delete(current.pid);
       return true;
-    },
-    inbox: async (current, seconds) => {
-      calls.push(`inbox ${current.pid} ${seconds}`);
-      return options.notes ?? [];
     },
     link: async (current, path) => {
       calls.push(`link ${current.pid} ${path}`);

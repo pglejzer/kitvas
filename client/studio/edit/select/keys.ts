@@ -3,7 +3,9 @@
 // whose action is off says why over the canvas (ADR 0065), and select-all selects the siblings.
 
 import type { EditKey } from '../../../channel/edit-protocol.ts';
+import { focusAsk } from '../ask/focus.ts';
 import type { EditorContext } from '../context.ts';
+import { stepVariant } from '../seltools/step.ts';
 import {
   type ActionId,
   type ActionReason,
@@ -63,6 +65,9 @@ export function editKeyOf(event: KeyLike): EditKey | null {
     if (name === 'Delete' || name === 'Backspace') return 'delete';
     if (name === 'ContextMenu') return 'menu';
     if (name === 'F10' && event.shiftKey) return 'menu';
+    if (event.shiftKey) return null;
+    if (name === 'ArrowLeft') return 'variant-prev';
+    if (name === 'ArrowRight') return 'variant-next';
     return null;
   }
   if (event.altKey && !mod) {
@@ -78,6 +83,7 @@ export function editKeyOf(event: KeyLike): EditKey | null {
   if (name === 'c') return 'copy';
   if (name === 'x') return 'cut';
   if (name === 'v') return 'paste';
+  if (name === 'k') return 'ask';
   return null;
 }
 
@@ -125,6 +131,10 @@ export function mountKeys(ctx: EditorContext): void {
       if (all !== null && !sameChosen(all, state)) store.set(all);
       return true;
     }
+    // Plan 19: the ask bar and the variant pill answer their own keys; with none, the key is free.
+    if (key === 'ask') return focusAsk();
+    if (key === 'variant-prev') return stepVariant(-1);
+    if (key === 'variant-next') return stepVariant(1);
     const actions = actionsFor(state);
     const todo = resolveKey(key, actions);
     if (todo === null) {
@@ -145,6 +155,11 @@ export function mountKeys(ctx: EditorContext): void {
   document.addEventListener('keydown', (event) => {
     if (event.defaultPrevented || store.get().menu) return;
     const target = event.target instanceof HTMLElement ? event.target : null;
+    // Ctrl or Cmd with K reaches the ask bar from a field too: there is one place to type to Claude.
+    if (editKeyOf(event) === 'ask') {
+      if (press('ask')) event.preventDefault();
+      return;
+    }
     if (isTextTarget(target)) return;
     const back = store.get().on ? historyKeyOf(event) : null;
     if (back !== null) {

@@ -19,6 +19,7 @@ const COMMANDS: ReadonlyMap<string, EditKey> = new Map([
   ['c', 'copy'],
   ['x', 'cut'],
   ['v', 'paste'],
+  ['k', 'ask'],
 ]);
 
 /** The editor key a key press stands for; `undefined` for a key the page keeps. */
@@ -43,6 +44,8 @@ export function keyOf(event: KeyLike): EditKey | undefined {
   if (event.key === 'Escape') return 'clear';
   if (event.key === 'ArrowUp') return 'parent';
   if (event.key === 'ArrowDown') return 'child';
+  if (event.key === 'ArrowLeft') return 'variant-prev';
+  if (event.key === 'ArrowRight') return 'variant-next';
   if (event.key === 'Delete' || event.key === 'Backspace') return 'delete';
   if (event.key === 'ContextMenu') return 'menu';
   return undefined;

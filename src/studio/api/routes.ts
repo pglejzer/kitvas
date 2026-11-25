@@ -18,6 +18,7 @@ import type { Jobs } from '../jobs/jobs.ts';
 import type { PalettePreviews } from '../previews/answer.ts';
 import type { OpenLinks } from '../security/open-links.ts';
 import { type EditDeps, editRoutes } from './edit/edit-routes.ts';
+import { kitLensRoutes } from './edit/kit-lens-routes.ts';
 import { structureRoutes } from './edit/structure-routes.ts';
 import { eventRoutes } from './event-routes.ts';
 import { historyRoutes } from './history/history-routes.ts';
@@ -191,6 +192,7 @@ export function apiRoutes(deps: ApiDeps): ApiRoute[] {
     ...linkRoutes(deps),
     ...editRoutes(deps),
     ...structureRoutes(deps),
+    ...kitLensRoutes(deps),
     ...imageRoutes(deps),
     ...waiverRoutes(deps),
     // Stage 4d (plan 17).

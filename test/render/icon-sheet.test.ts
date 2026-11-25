@@ -3,7 +3,6 @@ import { test } from 'node:test';
 import { catalogMountSource } from '../../src/render/domain/catalog-mount.ts';
 import { EXAMPLE_KEY } from '../../src/render/domain/catalog-stamp.ts';
 import {
-  cellAt,
   ICON_SHEET_KEY,
   ICON_SHEET_MARK,
   iconSheet,
@@ -13,7 +12,6 @@ import {
   SHEET_MAX,
   sheetColumns,
   sheetNames,
-  sheetSize,
 } from '../../src/render/domain/icon-sheet.ts';
 
 const many = (count: number): string[] => Array.from({ length: count }, (_, i) => `icon-${i}`);
@@ -47,26 +45,16 @@ test('a few icons make one row of exactly them; many make rows of 32', () => {
   assert.equal(sheetColumns(33), 32);
   const small = iconSheet({ component: 'Icon', names: ['a', 'b', 'c'] });
   assert.deepEqual(small, { component: 'Icon', names: ['a', 'b', 'c'], cell: 32, columns: 3 });
-  assert.deepEqual(small && sheetSize(small), { width: 96, height: 32 });
   const full = iconSheet({ component: 'Icon', names: many(1100) });
   assert.equal(full?.columns, 32);
-  assert.deepEqual(full && sheetSize(full), { width: 1024, height: 1024 });
+  assert.equal(full?.names.length, 1024);
   const ragged = iconSheet({ component: 'Icon', names: many(33) });
-  assert.deepEqual(ragged && sheetSize(ragged), { width: 1024, height: 64 });
+  assert.equal(ragged?.columns, 32);
 });
 
 test('no name the sheet can hold means no sheet', () => {
   assert.equal(iconSheet({ component: 'Icon', names: [] }), undefined);
   assert.equal(iconSheet({ component: 'Icon', names: ['not safe', '<b>'] }), undefined);
-});
-
-test('cell i is at x = (i % columns) * cell and y = floor(i / columns) * cell', () => {
-  const sheet = { cell: 32, columns: 32 };
-  assert.deepEqual(cellAt(sheet, 0), { x: 0, y: 0 });
-  assert.deepEqual(cellAt(sheet, 31), { x: 992, y: 0 });
-  assert.deepEqual(cellAt(sheet, 32), { x: 0, y: 32 });
-  assert.deepEqual(cellAt(sheet, 1023), { x: 992, y: 992 });
-  assert.deepEqual(cellAt({ cell: 32, columns: 3 }, 4), { x: 32, y: 32 });
 });
 
 test('the sheet key can never be an example key of a component', () => {

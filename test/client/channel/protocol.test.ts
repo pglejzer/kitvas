@@ -31,8 +31,8 @@ const elements = (items: unknown, request: unknown = 3) =>
 
 const mark = (fields: Record<string, unknown> = {}) => ({
   id: 'index:Hero',
-  label: '1',
-  tone: 'fix',
+  label: '~',
+  tone: 'changed',
   ...fields,
 });
 const marks = (list: unknown) => sent({ type: 'marks', marks: list });
@@ -258,8 +258,7 @@ test('a frame takes swap from its channel: a whole build number and nothing else
 test('a frame takes marks of every tone, and only their known fields', () => {
   const list = [
     mark(),
-    mark({ tone: 'review', label: '12' }),
-    mark({ tone: 'changed', label: '~' }),
+    mark({ label: '12' }),
     mark({ tone: 'added', label: '+', id: 'sections/Hero:section/p' }),
     mark({ label: '12345678' }),
   ];

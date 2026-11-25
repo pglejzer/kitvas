@@ -1,6 +1,7 @@
 // The draft's requests to Claude on the page (spec 4d, goals 1 and 2; plan 17, task B), as plain
 // data: the GET answer read with care (the page uses no shape it did not check), the `requests`
-// event, the order the AI tab lists them in, and the bodies the tab posts. No DOM.
+// event, the order the AI tab lists them in, the bodies the tab posts, and the variants the pill
+// on the canvas offers (plan 19, task 4). No DOM.
 //
 // The client may not import values from `src/`, so the lists and limits are copies of those in
 // `src/studio/api/requests/request-schemas.ts`; `test/client/studio/edit/ai/requests.test.ts`
@@ -20,6 +21,7 @@ import type {
 } from '../../../../src/studio/api/requests/request-schemas.ts';
 import type { StreamEvent } from '../../live/sse.ts';
 import { PROPERTIES } from '../props/steps.ts';
+import type { VariantRef } from './control.ts';
 
 export const REQUEST_KIND_LIST: readonly RequestKind[] = ['say', 'improve', 'ask', 'note', 'why'];
 export const REQUEST_STATUS_LIST: readonly RequestStatus[] = [
@@ -275,3 +277,50 @@ export const variantsOf = (request: RequestView): Variant[] =>
 
 /** The key of a variant's card: its request and its place in the answer. */
 export const variantKey = (request: string, index: number): string => `${request}#${index}`;
+
+/** What the tab knows of a variant's card now: whether it can be tried, and why not. */
+export type CardNow = { ready: boolean; reason: string | null };
+
+/**
+ * A variant as the pill names it. `reason`: the card's words for why it cannot be applied now,
+ * beside the control's `VariantRef` (plan 19, task 4); `null` while it can.
+ */
+export type PillVariant = VariantRef & { reason: string | null };
+
+/**
+ * The variants the pill on the canvas offers for `selection[0]` (plan 19, task 4): those of the
+ * newest answered request with variants that names it and has none applied from this page. None
+ * with nothing selected, and none when that request is out of date: a newer answer of Claude's
+ * supersedes the older ones, and an out-of-date one cannot be applied. A dropped, waiting or
+ * failed request has no variants; one applied here is finished (`applied`). `card`: the drawn
+ * card of a key, `undefined` while it is not drawn (then it is not ready).
+ */
+export function variantRefs(
+  requests: readonly RequestView[],
+  selection: readonly string[],
+  applied: ReadonlyMap<string, number>,
+  card: (key: string) => CardNow | undefined,
+): PillVariant[] {
+  const id = selection[0];
+  if (id === undefined) return [];
+  const newest = requests.find(
+    (request) =>
+      request.status === 'answered' &&
+      request.answer?.kind === 'variants' &&
+      request.elements.includes(id) &&
+      !applied.has(request.id),
+  );
+  if (newest === undefined || newest.stale) return [];
+  return variantsOf(newest).map((variant, index) => {
+    const key = variantKey(newest.id, index);
+    const now = card(key);
+    return {
+      key,
+      request: newest.id,
+      index,
+      label: variant.label,
+      ready: now?.ready === true,
+      reason: now === undefined ? null : now.reason,
+    };
+  });
+}

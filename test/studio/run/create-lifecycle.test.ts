@@ -43,7 +43,6 @@ test('the real lifecycle reads the state file and talks to the studio it names',
     assert.deepEqual(lifecycle.readState(), state);
     assert.deepEqual(await lifecycle.probe(state), { version: '1.0.0' });
     assert.equal(await lifecycle.probe({ ...state, token: 'x'.repeat(43) }), undefined);
-    assert.deepEqual(await lifecycle.inbox(state, 0), []);
     const links = await lifecycle.link(state, '/drafts/shop');
     const link = new URL(links.url);
     assert.equal(link.origin, `http://kitvas.localhost:${studio.port}`);
@@ -51,7 +50,6 @@ test('the real lifecycle reads the state file and talks to the studio it names',
     assert.equal(link.searchParams.get('to'), '/drafts/shop');
     assert.equal(links.fallbackUrl, `http://localhost:${studio.port}/open${link.search}`);
     await assert.rejects(lifecycle.link(state, '/nowhere'));
-    await assert.rejects(lifecycle.inbox({ ...state, token: 'x'.repeat(43) }, 0));
     assert.equal(await lifecycle.shutdown(state), true);
     await until(() => stopped);
     assert.equal(lifecycle.isAlive(process.pid), true);

@@ -2,7 +2,6 @@
 // studio's own markup is moved in; nothing a frame sends is ever put into the page.
 
 import { compareSummary, type ElementDiff } from './diff.ts';
-import type { NoteInfo } from './marks.ts';
 
 /**
  * The regions of the editor screen (plan 15, C4; plan 18, C8) a switch takes from the server's
@@ -27,14 +26,6 @@ const SWAPPED = [
 ] as const;
 const STATE_OPTION = '[data-dock="states"] a[data-state]';
 const FOCUSABLE = 'a[href], button, summary, input, select, textarea, [tabindex]';
-
-export function readNotes(main: HTMLElement): NoteInfo[] {
-  return [...main.querySelectorAll<HTMLElement>('li.note')].map((note) => ({
-    element: note.dataset.element,
-    label: note.querySelector('.num')?.textContent ?? '',
-    tone: note.dataset.tone,
-  }));
-}
 
 /** The state option a click landed on, inside this page's `main`. */
 export function stateLinkOf(

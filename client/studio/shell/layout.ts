@@ -27,9 +27,6 @@ export const GRIP_STEP = 16;
 /** Below 1100 px the panels open over the canvas; the same line as the skin's media queries. */
 export const NARROW_QUERY = '(max-width: 1099.98px)';
 
-/** The left panel's panes, in the rail's order (C8). */
-export const LEFT_PANES = ['layers', 'insert', 'why', 'notes'] as const;
-
 /**
  * A panel's width in a room `room` wide, beside the other panel's `other`: 220 at least; at most
  * 720, 45 % of the room, and what leaves the canvas 320. The minimum wins in a room too small.

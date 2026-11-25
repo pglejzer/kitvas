@@ -240,7 +240,11 @@ export function styleRow(env: Env, property: StyleProperty, look: RowLook = {}):
   // A keyword and an image of the version are never off-kit; a prop holds the kit's own word.
   const tokenKind = kind !== 'keyword' && kind !== 'image';
   const fromRule = source?.kind !== 'prop' || !base;
-  if (tokenKind && fromRule) row.meta.append(...offKitMarks(style, reason === null));
+  // An open "Custom" editor says "Off kit · nearest <token>" itself (plan 19): one line, not two.
+  const editing = row.root.querySelector('[data-custom-editor]:not([hidden])') !== null;
+  if (tokenKind && fromRule && !editing) {
+    row.meta.append(...offKitMarks(style, reason === null));
+  }
   if (single) {
     const said = sourceText(env, property);
     if (base) explain(row.label, said);

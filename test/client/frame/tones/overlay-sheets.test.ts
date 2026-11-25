@@ -16,8 +16,8 @@ const SHEETS = [
   'edit/edit.ts',
   'edit/indicator.ts',
   'edit/label.ts',
-  'live/marks.ts',
   'live/pins.ts',
+  'lens/pins.ts',
   'page/marks.ts',
 ];
 

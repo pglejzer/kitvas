@@ -77,6 +77,8 @@ export const ICONS = {
   'align-stretch': '<path d="M2.5 2.5v11M13.5 2.5v11M5 6h6M5 10h6"/>',
   // Space between: one item against each edge.
   'align-between': '<path d="M2.5 2.5v11M13.5 2.5v11M5 5.5h3.5M7.5 10.5h3.5"/>',
+  // Plan 19: the colour picker's eyedropper.
+  pipette: '<path d="M9.5 4.5l2 2M11.6 2.4a1.4 1.4 0 012 2L11.5 6.5l-2-2zM9 5L3.5 10.5v2h2L11 7"/>',
 } as const satisfies Record<string, string>;
 
 export type IconName = keyof typeof ICONS;

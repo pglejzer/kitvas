@@ -41,7 +41,7 @@ import type { Skin } from '../skin.ts';
 import { trashTexts } from '../trash/trash-texts.ts';
 import { craftPick } from './craft-board.ts';
 import { choiceLink } from './draft-links.ts';
-import { pills, stage } from './draft-stage.ts';
+import { canvasTools, pills, stage } from './draft-stage.ts';
 import { type FrameOrigin, frameSrc } from './frame-src.ts';
 import { notesSection, type RunInput } from './notes.ts';
 import { originalPane } from './original-pane.ts';
@@ -227,7 +227,7 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
     sketches: craftPick(t, draft),
     timeline: info.built && compare === null,
   };
-  const canvas = html`<section class="stage-canvas" data-shell="canvas" aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link, breakpoints: breakpointsOf(deps.kits, draft.kit.id) })}</section>`;
+  const canvas = html`<section class="stage-canvas" data-shell="canvas" aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link, breakpoints: breakpointsOf(deps.kits, draft.kit.id) })}${canvasTools(t)}</section>`;
   const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}${openingLayout(request.nonce)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce })}${trashTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
   return page({
     title: draft.title,

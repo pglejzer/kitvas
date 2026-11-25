@@ -7,7 +7,6 @@ import { createViewStore, KitvasError, loadSettings, type Translate } from '../.
 import type { EditDeps } from '../api/edit/edit-routes.ts';
 import type { ImageStore } from '../api/images/image-rules.ts';
 import { LinkSchema } from '../api/schemas.ts';
-import type { InboxItem } from '../inbox/inbox.ts';
 import type { LiveTools } from '../live/index.ts';
 import type { StudioAssets } from '../pages/asset-routes.ts';
 import type { LifecycleDeps } from './lifecycle.ts';
@@ -75,19 +74,6 @@ export function createLifecycle(input: LifecycleInput): LifecycleDeps {
       } catch {
         return false;
       }
-    },
-    inbox: async (state, seconds) => {
-      const answer = await callStudio(state, {
-        method: 'POST',
-        path: '/api/v1/inbox/take',
-        body: { timeout: seconds },
-        // The studio answers by the end of the wait; the extra time covers a slow machine.
-        timeoutMs: (seconds + 10) * 1_000,
-      });
-      if (answer.status !== 200) {
-        throw new KitvasError('INTERNAL', { detail: `the inbox answered ${answer.status}` });
-      }
-      return (answer.body as { items: InboxItem[] }).items;
     },
     link: async (state, path) => {
       const answer = await callStudio(state, {

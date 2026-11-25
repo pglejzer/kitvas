@@ -8,7 +8,6 @@ import {
   noteText,
   orderNotes,
   pinsOf,
-  rowOn,
   waitingRequest,
 } from '../../../../../client/studio/edit/notes/model.ts';
 import { MAX_NOTE_TEXT as SERVER_MAX } from '../../../../../src/drafts/index.ts';
@@ -68,8 +67,6 @@ test('rows are numbered as in the list; only open notes on an element now are pi
     { id: BUTTON, label: 'N1' },
     { id: TITLE, label: 'N4' },
   ]);
-  assert.equal(rowOn(rows, TITLE)?.label, 'N4');
-  assert.equal(rowOn(rows, 'sections/Hero:section'), undefined);
 });
 
 test('a note for Claude sends a note request with its element, context and id', () => {

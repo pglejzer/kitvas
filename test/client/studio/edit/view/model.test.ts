@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { EditorState, LiveItem } from '../../../../../client/studio/edit/store.ts';
 import {
-  isEmpty,
   LOCK_RULE,
   lockItems,
   locksModel,
@@ -83,10 +82,9 @@ test('the locks box offers Restore on a changed lock that is selected', () => {
     [],
   );
   assert.deepEqual(model.changed, { id: BADGE, name: 'Hero / Badge' });
-  assert.equal(isEmpty(model), false);
   // Unlocked meanwhile, or not editing: nothing to restore.
   assert.equal(locksModel(state({ selection: [BADGE], lockChanged: [BADGE] }), []).changed, null);
-  assert.ok(isEmpty(locksModel(state({ on: false, lockChanged: [BADGE] }), [BADGE])));
+  assert.equal(locksModel(state({ on: false, lockChanged: [BADGE] }), [BADGE]).changed, null);
 });
 
 test('a lost lock is locked again on a selection that is not locked yet', () => {

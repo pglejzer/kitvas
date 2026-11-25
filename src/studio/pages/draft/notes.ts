@@ -54,19 +54,6 @@ export function checkCounts(
   return { all: shown.length + waived.length, fix, review, accepted: waived.length };
 }
 
-/** `Pricing / Card.2` for `sections/Pricing:section/Stack/Card.2`, as the editor names it. */
-export function elementLabel(id: string): string {
-  const colon = id.indexOf(':');
-  if (colon < 0) return id;
-  const stem = id.slice(0, colon).split('/').pop() ?? '';
-  const tag =
-    id
-      .slice(colon + 1)
-      .split('/')
-      .pop() ?? '';
-  return stem === '' ? tag : `${stem} / ${tag}`;
-}
-
 /** `Card.2` in `Pricing` for `sections/Pricing:section/Stack/Card.2`; no section for a bare id. */
 export function elementIn(id: string): { element: string; section: string } {
   const colon = id.indexOf(':');

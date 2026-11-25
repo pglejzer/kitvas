@@ -6,13 +6,17 @@
 // The findings, their marks, compare and the state switch belong to `page.frames` (the frame of
 // the width shown and a compared one). The width cards beside it (`cards`) get the state and the
 // editor's messages, and their own zoom, but no marks of findings made at another width.
+//
+// Plan 19: the lenses (`../lens/mount.ts`) draw over the width shown and the width cards. The
+// findings' numbered dots are the Checks lens's pins now, so `marks` carries compare's outlines
+// alone; the lenses hear every moment the marks were sent at.
 
 import { isCanvasFrame } from '../../channel/canvas-protocol.ts';
 import { isEditFrameMessage } from '../../channel/edit-protocol.ts';
 import { isLiveFrame } from '../../channel/live-protocol.ts';
 import type { ElementSnapshot } from '../../channel/protocol.ts';
 import { type Canvas, mountCanvas } from '../canvas/canvas.ts';
-import { createCardList } from '../canvas/card-list.ts';
+import { createCardList, frameWidth } from '../canvas/card-list.ts';
 import { type Cards, mountCards } from '../canvas/cards.ts';
 import { mountWidth, type WidthControl } from '../canvas/width-control.ts';
 import { isPlainClick } from '../clicks.ts';
@@ -28,17 +32,11 @@ import {
   sendMeasure,
   sendState,
 } from '../frames.ts';
+import { type LensPage, mountLens } from '../lens/mount.ts';
 import { reloadWhenJobsEnd } from '../live/live.ts';
 import { diffElements, type ElementDiff } from './diff.ts';
-import {
-  markStateOption,
-  readNotes,
-  sameOriginHref,
-  stateLinkOf,
-  swapSections,
-  writeSummary,
-} from './dom.ts';
-import { marksFromNotes, pageMarks } from './marks.ts';
+import { markStateOption, sameOriginHref, stateLinkOf, swapSections, writeSummary } from './dom.ts';
+import { pageMarks } from './marks.ts';
 
 /** How long the current frame has to show a new state before the page is loaded the plain way. */
 const SHOWN_TIMEOUT_MS = 3_000;
@@ -68,6 +66,8 @@ type Page = {
   width: WidthControl | undefined;
   /** The width cards beside the width shown (stage 4c); none while comparing. */
   cards: Cards | undefined;
+  /** Tells the lenses what the marks hear: the findings, the width, the diff (plan 19). */
+  lensChanged(): void;
 };
 
 /** The frames of the width cards beside the width shown. */
@@ -88,17 +88,28 @@ function loadPlainly(page: Page, href: string): void {
 }
 
 /**
- * Marks always match the notes on the page now, plus the diff in compare mode. The findings were
- * seen at the three preset widths: at any other width, and while the notes of a new width are on
- * their way, their marks are hidden.
+ * The findings were seen at the three preset widths: at any other width, and while the notes of a
+ * new width are on their way, the Checks lens shows none of them.
+ */
+const findingsHidden = (page: Page): boolean =>
+  page.width?.marksHidden() === true || page.awaited === page.switches;
+
+/**
+ * The marks match the diff in compare mode, and the lenses the notes on the page now. Before plan
+ * 19 the findings' dots went here too; the Checks lens draws them as pins (`../lens/`).
  */
 function refreshMarks(page: Page): void {
+  page.lensChanged();
   const frame = currentFrame(page);
   if (!frame?.ready) return;
-  const hidden = page.width?.marksHidden() === true || page.awaited === page.switches;
-  const findings = hidden ? [] : marksFromNotes(readNotes(page.main));
-  sendMarks(frame, pageMarks(findings, page.diff));
+  sendMarks(frame, pageMarks(page.diff));
 }
+
+/** The cards the lenses draw on: the width shown and the cards beside it, never a compared one. */
+const lensFrames = (page: Page): Frame[] => {
+  const current = currentFrame(page);
+  return current ? [current, ...extraFrames(page)] : [];
+};
 
 /** Also a probe: a frame that loaded before this script ran answers it, so it counts as ready. */
 function measure(page: Page): void {
@@ -285,6 +296,7 @@ export function startDraftPage(main: HTMLElement): void {
   const frames = findFrames(main);
   if (frames.length === 0) return;
   const roles = new Set(frames.map((frame) => frame.role));
+  const lensListeners = new Set<() => void>();
   const page: Page = {
     main,
     frames,
@@ -298,6 +310,9 @@ export function startDraftPage(main: HTMLElement): void {
     awaited: -1,
     width: undefined,
     cards: undefined,
+    lensChanged() {
+      for (const listener of [...lensListeners]) listener();
+    },
   };
   const current = currentFrame(page);
   // Before the editor starts: its bridge finds the cards by the current frame (`cardsOf`).
@@ -328,6 +343,22 @@ export function startDraftPage(main: HTMLElement): void {
   }
   const editor = current && !page.compare ? startEditor(main, current) : undefined;
   if (canvas && editor) joinEditor(canvas, editor);
+  // Plan 19: the lenses, in Preview and in Edit, on a version that cannot be edited too.
+  const lensPage: LensPage = {
+    main,
+    frames: () => lensFrames(page),
+    widthOf: (frame) => list?.widthOf(frame) ?? frameWidth(frame),
+    findingsHidden: () => findingsHidden(page),
+    onChange(listener) {
+      lensListeners.add(listener);
+      return () => {
+        lensListeners.delete(listener);
+      };
+    },
+  };
+  // A card that comes or goes, or another width: its pins are built again.
+  list?.onChange(() => page.lensChanged());
+  mountLens(editor?.store ?? null, lensPage);
   window.addEventListener('message', (event) => {
     const extras = extraFrames(page);
     const heard = frameMessage([...page.frames, ...extras], event);

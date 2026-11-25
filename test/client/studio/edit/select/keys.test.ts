@@ -119,3 +119,24 @@ test('undo and redo on the page take the same keys as in the frame', () => {
   assert.equal(historyKeyOf(press('z', { ctrlKey: true, altKey: true })), null);
   assert.equal(historyKeyOf(press('g', { ctrlKey: true })), null);
 });
+
+test('the page hears the ask key and the variant arrows as the frame does (plan 19)', () => {
+  assert.equal(editKeyOf(press('k', { ctrlKey: true })), 'ask');
+  assert.equal(editKeyOf(press('K', { metaKey: true })), 'ask');
+  assert.equal(editKeyOf(press('ArrowLeft')), 'variant-prev');
+  assert.equal(editKeyOf(press('ArrowRight')), 'variant-next');
+  assert.equal(editKeyOf(press('k', { ctrlKey: true, shiftKey: true })), null);
+  assert.equal(editKeyOf(press('k', { ctrlKey: true, altKey: true })), null);
+  assert.equal(editKeyOf(press('k')), null);
+  assert.equal(editKeyOf(press('ArrowLeft', { altKey: true })), null);
+  assert.equal(editKeyOf(press('ArrowRight', { shiftKey: true })), null);
+  assert.equal(editKeyOf(press('ArrowLeft', { ctrlKey: true })), null);
+});
+
+test('the new keys run no element action: the ask bar and the variant pill answer them', () => {
+  for (const key of ['ask', 'variant-prev', 'variant-next'] as const) {
+    assert.equal(actionOfKey(key), null);
+    assert.equal(resolveKey(key, []), null);
+    assert.equal(offReason(key, []), null);
+  }
+});

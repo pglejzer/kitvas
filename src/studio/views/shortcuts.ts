@@ -2,13 +2,14 @@
 // this table. Keys are written as the browser names them (`event.key`), parts joined by `+`; `Mod`
 // is Ctrl, or Cmd on a Mac. A word that is not a key's name (wheel, drag, click) is a text key.
 
-export type ShortcutGroup = 'screen' | 'canvas' | 'selection' | 'history' | 'structure';
+export type ShortcutGroup = 'screen' | 'canvas' | 'selection' | 'history' | 'structure' | 'claude';
 export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
   'screen',
   'canvas',
   'selection',
   'history',
   'structure',
+  'claude',
 ];
 
 export type ShortcutRow = {
@@ -48,6 +49,9 @@ export const SHORTCUT_ROWS: readonly ShortcutRow[] = [
   { id: 'wrap', keys: ['Mod+G'], label: 'shortcuts.wrap', group: 'structure' },
   { id: 'unwrap', keys: ['Mod+Shift+G'], label: 'shortcuts.unwrap', group: 'structure' },
   { id: 'menu', keys: ['Shift+F10', 'ContextMenu'], label: 'shortcuts.menu', group: 'structure' },
+  { id: 'ask', keys: ['Mod+K'], label: 'shortcuts.ask', group: 'claude' },
+  { id: 'variant-prev', keys: ['ArrowLeft'], label: 'shortcuts.variant-prev', group: 'claude' },
+  { id: 'variant-next', keys: ['ArrowRight'], label: 'shortcuts.variant-next', group: 'claude' },
 ];
 
 /** Names that are words for people, not a key's name: the text key (under `studio.edit.`) says each. */

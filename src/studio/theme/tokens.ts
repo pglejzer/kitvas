@@ -46,8 +46,6 @@ export const THEME_COLORS = {
   },
 } as const satisfies Record<Theme, Record<string, string>>;
 
-export type ThemeColor = keyof (typeof THEME_COLORS)['dark'];
-
 /**
  * An accent in each theme (`accent`, and `on`: text on it), and `select`: the one colour the
  * selection is drawn in over a draft, picked to show on a white page and on a dark one, and
