@@ -1,7 +1,7 @@
 ---
 type: tool_used
 tool: Bash
-input_match: 'kitvas\.ts"?\s+layout\s'
+input_match: '(?:kitvas\.ts|\$\{?\w+\}?|\bK(?:ITVAS)?)\\?"?\s+layout\s'
 min: 2
 ---
 

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Northwind Bikes</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        color: #222;
+        background: #fff;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 24px;
+        border-bottom: 1px solid #ccc;
+      }
+      .brand {
+        font-weight: bold;
+        font-size: 20px;
+      }
+      nav a {
+        margin-left: 16px;
+        color: #1a4fa0;
+      }
+      main {
+        padding: 24px;
+        max-width: 900px;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 0 0 8px;
+      }
+      .offer {
+        border: 1px solid #ccc;
+        padding: 16px;
+        margin: 16px 0;
+      }
+      .price {
+        font-size: 22px;
+        font-weight: bold;
+      }
+      label {
+        display: block;
+        margin: 12px 0 4px;
+      }
+      input {
+        padding: 8px;
+        width: 260px;
+        border: 1px solid #888;
+      }
+      button {
+        margin-top: 12px;
+        padding: 10px 18px;
+        background: #1a4fa0;
+        color: #fff;
+        border: 0;
+      }
+      footer {
+        padding: 16px 24px;
+        color: #555;
+        font-size: 13px;
+        border-top: 1px solid #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">Northwind Bikes</div>
+      <nav><a href="#bikes">Bikes</a><a href="#prices">Prices</a><a href="#contact">Contact</a></nav>
+    </header>
+    <main>
+      <h1>Rent a city bike</h1>
+      <p>Pick up in the old town, ride all day, bring it back before 8 pm.</p>
+      <div class="offer">
+        <h2>City Cruiser</h2>
+        <p>Seven gears, a basket and lights. Helmet and lock included.</p>
+        <p class="price">12 EUR per day</p>
+      </div>
+      <form>
+        <h2>Book your bike</h2>
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" />
+        <br />
+        <button type="button">Book now</button>
+      </form>
+    </main>
+    <footer>Northwind Bikes, Old Town Square 4. Open daily 9 am to 8 pm.</footer>
+  </body>
+</html>

@@ -62,8 +62,9 @@ function run(args: string[], cwd: string): Promise<{ code: number | null; output
 export function createTscChecker({ roots }: { roots: string[] }): TypeChecker {
   return {
     async check({ workingDir, entry, kitEntry, project }) {
-      // `bin/tsc` is not in the package's exports, so it is found next to package.json.
-      const tsc = join(dirname(resolveDep('typescript/package.json', roots)), 'bin', 'tsc');
+      // `lib/tsc.js` is what `bin/tsc` imports. Neither is in the package's exports, so it is found next to
+      // package.json. A sandbox that hides `node_modules/.bin/tsc` hides `bin/tsc`, its target, too.
+      const tsc = join(dirname(resolveDep('typescript/package.json', roots)), 'lib', 'tsc.js');
       const cwd = realpathSync.native(workingDir);
       const config = join(cwd, 'build', 'json', 'tsconfig.json');
       mkdirSync(dirname(config), { recursive: true });

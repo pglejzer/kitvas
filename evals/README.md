@@ -1,31 +1,94 @@
 # Skill evals
 
-Evals for the three skills of the plugin, in the format of `claude plugin eval`:
+Evals for six skills of the plugin, in the format of `claude plugin eval`:
 
-- `evals/kitvas/`: `/kitvas` (status, init, language). Cheap, tagged `smoke`.
-- `evals/kit/`: `/kitvas:kit` (components, tones, a missing component). Cheap, tagged `smoke`.
-- `evals/compose/`: `/kitvas:compose` (a screen, states, a second version). Tagged `slow`: one run each, minutes per case.
+- `evals/kitvas/`: `/kitvas` (status, init, language). Tagged `smoke`.
+- `evals/kit/`: `/kitvas:kit` (components, tones, a missing component). Tagged `smoke`.
+- `evals/craft/`: `/kitvas:craft` (a near match in the kit, three sketches of an icon, a pick added to the kit).
+  `near-match` is `smoke`, the other two are `slow`.
+- `evals/rework/`: `/kitvas:rework` (a local address, a design system not learned yet, a rework from a
+  screenshot). The first two are `smoke`, `from-image` is `slow`.
+- `evals/compose/`: `/kitvas:compose` (a screen, states, a second version). Tagged `slow`: one run each,
+  minutes per case.
+- `evals/learn/`: `/kitvas:learn` (a package, a missing package, one more component). Tagged `slow`.
+  `website-kit` is tagged `browser` and cannot run yet, see "What a case cannot do".
+
+`/kitvas:edit` has no evals: it answers requests through the running studio, and a case cannot keep a
+server alive between two commands.
 
 A case is a folder with `prompt.md` (the user's message and the run limits) and `graders/*.md`
-(`tool_used`, `regex`, `file_exists`, `llm`). The truth for components, props and tones is
-`kits/base/kit.json`; graders must never reward a name that is not in it.
+(`tool_used`, `regex`, `file_exists`, `llm`). A case that needs a prepared project also has `case.yaml`
+and `scaffold.sh`. The truth for components, props and tones is `kits/base/kit.json`; graders must never
+reward a name that is not in it.
 
 ## Run
 
-Run from the plugin folder. The tools flag is needed because the skills run Bash and write files.
+On Linux, from the plugin folder:
 
 ```bash
-claude plugin eval . --allow-tools Bash Write Edit --tag smoke --model haiku
-claude plugin eval . --allow-tools Bash Write Edit --tag smoke --model sonnet
-claude plugin eval . --allow-tools Bash Write Edit --tag smoke --model opus
-claude plugin eval . --allow-tools Bash Write Edit --tag slow --scaffold --model sonnet
+bash evals/run.sh --tag smoke
+bash evals/run.sh --tag slow --ablation none
+bash evals/run.sh --tag smoke --model haiku
 ```
 
-Every case grants Bash, and `claude plugin eval` runs a granted shell only inside its OS sandbox.
-On Windows that sandbox is not available yet (checked 2026-11-23, Claude Code 2.1.330: the runs are
-refused), so run the evals on Linux or macOS with the sandbox backend installed.
+`evals/run.sh` calls `claude plugin eval .` with what the cases need: `--allow-tools Bash Write Edit`
+(the skills run the CLI and write files), `--scaffold` (some cases prepare their project first), Sonnet
+as the model and as the judge of the `llm` graders (the judge is Haiku otherwise), three runs at a time,
+and the two settings below. Options after the script's name go to `claude plugin eval`.
 
-`--scaffold` is needed for `compose/second-version`: its `scaffold.sh` creates a built draft first and
-finds the CLI through `CLAUDE_PLUGIN_ROOT`. It stops with a message when that is not set.
+- A temp folder outside `/tmp`. `claude plugin eval` keeps each run's project folder under `$TMPDIR`,
+  and its sandbox denies writes below `/tmp`. With the default the shell can write nothing, so
+  `kitvas init` stops with "Read-only file system" and every case that creates `.kitvas/` fails with it.
+  The script uses `~/.cache/kitvas-eval`; `KITVAS_EVAL_TMP` names another folder.
+- No Windows folders on `PATH`. Under WSL they make a run fail now and then with "examining the PATH
+  directories took longer than 5s".
 
-Results go to `evals/results/`, which is git-ignored.
+Without `--ablation none` every case also runs without the plugin, and the table shows the difference.
+Keep that for the `smoke` cases: a `slow` case without the plugin runs until its time limit.
+
+A run starts with a warning that `evals/` overlaps the declared skills path `./`. It is expected:
+`.claude-plugin/plugin.json` lists the plugin folder so that the root `SKILL.md` loads as `/kitvas`,
+and `evals/results/` holds only a JSON file and an HTML file. Results go to `evals/results/`, which is
+git-ignored.
+
+Every case grants Bash, and `claude plugin eval` runs a granted shell only inside its OS sandbox. On
+Windows that sandbox is not available yet (the runs are refused), so run the evals on Linux or macOS.
+An Ubuntu under WSL works once `bubblewrap` and `socat` are installed; clone the repo into the Linux
+home folder and run `npm ci --ignore-scripts` there, never from `/mnt/c`.
+
+## What a case cannot do
+
+Checked on 2026-11-25 with Claude Code 2.1.332 on Ubuntu 24.04 under WSL:
+
+- Every Bash call is its own sandbox with no network. A server the scaffold started on `127.0.0.1` is
+  out of reach, and a background process ends with the call: the studio that `studio --open` starts is
+  gone by the next command. That rules out `inbox` and `request`, and with them `/kitvas:edit`.
+- There is no browser. The one `kitvas browser install` fetches lives in the home folder, which the
+  sandbox hides. The `a11y`, `ui`, `ux` and `runtime` checks, screenshots, `kit scan` and
+  `rework new --url` do not run, and `kit verify` skips `render`, `tokens` and `look`. A grader must
+  not expect them; an answer that says they were skipped is right.
+- Some files cannot be read at all: the targets of the plugin's `node_modules/.bin` links (so kitvas
+  runs `typescript/lib/tsc.js`, not `bin/tsc`), and `.pnp.data.json`, `.pnp.cjs` and `.pnp.js` in the
+  case's home folder, the parent of the project. esbuild looks for those Yarn files above every file it
+  bundles and stops at one it cannot read: `Cannot read file "…/.pnp.data.json": permission denied`.
+  The scaffold of every case that builds, checks or verifies therefore sources `evals/lib/sandbox.sh`
+  and calls `pnp_folders`, which puts folders of those names there first; esbuild skips a folder.
+- A scaffold runs outside the sandbox, with a 120 second limit and without `CLAUDE_PLUGIN_ROOT`. Each
+  `scaffold.sh` finds the plugin folder from its own path.
+
+## Writing a grader
+
+- `tool_used` matches `input_match` against the tool's input as JSON text, so a quote in a command is
+  written `\"` there. A model may also put the CLI in a shell variable or a function. Every pattern
+  for a kitvas command therefore starts `(?:kitvas\.ts|\$\{?\w+\}?|\bK(?:ITVAS)?)\\?"?\s+`. A grader
+  that expects one of a few names also takes a loop over them (`for c in Input Select; do … $c`).
+- `tool_used` needs at least one call unless `min` says otherwise. A grader for "this must not happen"
+  sets `min: 0` and `max: 0`; with `max: 0` alone it can never pass.
+- An `llm` grader's judge reads only the last message. With `focus: trace` it also reads every tool call
+  and its result. A grader that compares the answer with what the commands printed sets it and names
+  that output as the truth, so the kit's facts are not copied into the criteria. A long case leaves
+  `focus` out: its trace holds every agent's steps.
+- `file_exists` counts a file the run created, and the CLI's own starting files count too: `craft new`
+  writes placeholder sketches and `rework new --image` an empty inventory. To check what a file holds,
+  use a `regex` grader with `target: { source: file, path: '<path from the project folder>' }`. That
+  path takes no glob, and a missing file fails the grader.

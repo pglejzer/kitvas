@@ -1,7 +1,7 @@
 ---
 type: tool_used
 tool: Bash
-input_match: 'kitvas\.ts"?\s+draft\s+version\s+shop'
+input_match: '(?:kitvas\.ts|\$\{?\w+\}?|\bK(?:ITVAS)?)\\?"?\s+draft\s+version\s+shop'
 min: 1
 ---
 

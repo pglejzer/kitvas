@@ -1,6 +1,6 @@
 ---
 name: learn-website-kit
-tags: [slow]
+tags: [browser]
 runs: 1
 max_turns: 150
 timeout_seconds: 2400

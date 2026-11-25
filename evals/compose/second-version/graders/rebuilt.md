@@ -1,7 +1,7 @@
 ---
 type: tool_used
 tool: Bash
-input_match: 'kitvas\.ts"?\s+(build|check)\s+shop'
+input_match: '(?:kitvas\.ts|\$\{?\w+\}?|\bK(?:ITVAS)?)\\?"?\s+(build|check)\s+shop'
 min: 2
 ---
 
