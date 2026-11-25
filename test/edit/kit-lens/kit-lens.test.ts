@@ -93,6 +93,15 @@ test('a token gap, a token padding, an off-kit colour and a plain button are fou
   assert.deepEqual([button?.spacing, button?.offKit], [[], []]);
 });
 
+test('a visually hidden helper (a rule of width 1px and height 1px) is never off the kit', async () => {
+  const hidden = scss('#1a73e8').replace(
+    '.hero {',
+    '.hero {\n  position: absolute;\n  margin: -1px;\n  padding: 3px;\n  width: 1px;\n  height: 1px;',
+  );
+  const lens = await lensOf(shop({ [SCSS_FILE]: hidden }));
+  assert.ok(lens.elements.every((each) => each.offKit.length === 0));
+});
+
 test('an element with nothing to say is absent', async () => {
   const lens = await lensOf(
     shop({ [TSX_FILE]: TSX.replace(/ {6}<div className="[a-z]+">.*<\/div>\n/g, '') }),

@@ -9,16 +9,24 @@ export type CustomMemory = {
   toggle(row: string): void;
   open(row: string): void;
   close(row: string): void;
+  /**
+   * Escape in the editor: closes it as `close` does, and the cursor goes back to what opened it
+   * after the redraw. `false` when the memory did not hold the row (nothing is drawn again).
+   */
+  cancel(row: string): boolean;
   /** Forgets every row: another element is selected. */
   clear(): void;
   /** The row whose editor should take the cursor after the next draw, once; else `null`. */
   takeFocus(): string | null;
+  /** The row whose opener ("Custom..." or its list) takes the cursor after the next draw, once. */
+  takeBack(): string | null;
 };
 
 /** `redraw` asks the panel to draw again; it is called after every change. */
 export function createCustomMemory(redraw: () => void): CustomMemory {
   const rows = new Set<string>();
   let focus: string | null = null;
+  let back: string | null = null;
   return {
     has: (row) => rows.has(row),
     toggle(row) {
@@ -40,13 +48,27 @@ export function createCustomMemory(redraw: () => void): CustomMemory {
       if (focus === row) focus = null;
       redraw();
     },
+    cancel(row) {
+      if (!rows.has(row)) return false;
+      back = row;
+      rows.delete(row);
+      if (focus === row) focus = null;
+      redraw();
+      return true;
+    },
     clear() {
       rows.clear();
       focus = null;
+      back = null;
     },
     takeFocus() {
       const row = focus;
       focus = null;
+      return row;
+    },
+    takeBack() {
+      const row = back;
+      back = null;
       return row;
     },
   };

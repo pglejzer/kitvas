@@ -68,6 +68,25 @@ test('a new selection forgets every row', () => {
   assert.equal(memory.takeFocus(), null);
 });
 
+test('Escape closes the editor, and after the redraw the cursor goes back to its opener once', () => {
+  const { memory, drawn } = panel();
+  memory.toggle(ROW);
+  memory.takeFocus();
+  assert.equal(memory.cancel(ROW), true);
+  assert.equal(memory.has(ROW), false);
+  assert.equal(drawn.at(-1), false);
+  assert.equal(memory.takeBack(), ROW);
+  assert.equal(memory.takeBack(), null);
+  assert.equal(memory.takeFocus(), null);
+});
+
+test('Escape in an editor the memory does not hold (a raw value) draws nothing and asks nothing', () => {
+  const { memory, drawn } = panel();
+  assert.equal(memory.cancel(ROW), false);
+  assert.deepEqual(drawn, []);
+  assert.equal(memory.takeBack(), null);
+});
+
 test('the raw item of the source shows the editor; a token is a token', () => {
   assert.equal(listChoice(ITEMS.raw, false, ITEMS), 'show');
   assert.equal(listChoice('--kit-x', true, ITEMS), 'token');

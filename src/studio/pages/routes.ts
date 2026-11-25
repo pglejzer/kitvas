@@ -34,6 +34,8 @@ export type PageDeps = {
   projectKit(): string;
   /** The doctor's checks and its report with nothing private; left out where the studio has no doctor. */
   doctor?: (() => Promise<{ checks: CheckResult[]; report: string }>) | undefined;
+  /** A draft's page was made: the live loop's `opened`, where the studio builds drafts. */
+  opened?: ((slug: string) => void) | undefined;
 };
 
 export function pageRoutes(deps: PageDeps): PageRoute[] {
@@ -58,7 +60,9 @@ export function pageRoutes(deps: PageDeps): PageRoute[] {
           const body = deletedPage({ t, nonce, skin, slug: gone.slug, title: gone.title });
           return { status: 410, body };
         }
-        return draftPage(deps, params.slug, { query, host, nonce });
+        const page = draftPage(deps, params.slug, { query, host, nonce });
+        deps.opened?.(params.slug);
+        return page;
       },
     }),
     pageRoute({

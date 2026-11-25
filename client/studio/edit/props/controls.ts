@@ -259,7 +259,7 @@ export function tokenPicker(options: {
    * is what it holds now; the list's "Custom..." and a token pick tell it through `show` and
    * `hide`, so the redraw the list's close asks for draws the editor open.
    */
-  custom?: { open: boolean; show(): void; hide(): void };
+  custom?: { open: boolean; show(): void; hide(): void; cancel(): boolean };
   /** The editor goes into this element (the row, for the colour panel) instead of under the list. */
   dock?: HTMLElement;
   onPick(value: StyleValue): void;
@@ -320,6 +320,14 @@ export function tokenPicker(options: {
     start,
     onPreview: (value) => options.onPreview?.(value),
     onPick: pick,
+    // Escape closes the editor. The cursor goes back to what opened it: after the redraw a
+    // closed memory asks for, the panel gives it to the row's opener; else to this list.
+    onCancel: () => {
+      editorShown = false;
+      memoryOpen = false;
+      editor.hidden(true);
+      if (options.custom?.cancel() !== true) picker.trigger.focus();
+    },
   });
   editor.hidden(!editorShown);
 

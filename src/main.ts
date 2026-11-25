@@ -328,7 +328,7 @@ export function main(argv: string[]): Promise<number> {
               { drafts: projectDrafts, kits: projectKits, ...warm },
               slug,
             );
-            return { ok: report.built, version: report.version };
+            return { ok: report.built, version: report.version, cached: report.cached };
           },
           dispose: () => disposeRenderTools(warm),
         },

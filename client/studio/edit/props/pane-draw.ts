@@ -88,6 +88,19 @@ export function focusCustom(section: HTMLElement, row: string): void {
   if (target instanceof HTMLInputElement) target.select();
 }
 
+/**
+ * The cursor goes back to what opened the "Custom" editor of `row` after Escape closed it: the
+ * row's "Custom..." button, else its list.
+ */
+export function focusOpener(section: HTMLElement, row: string): void {
+  const entry = section.querySelector<HTMLElement>(`[data-row="${CSS.escape(row)}"]`);
+  const target =
+    entry?.querySelector<HTMLElement>('[data-control="custom"]') ??
+    entry?.querySelector<HTMLElement>('[role="combobox"]');
+  if (!target || target.closest('[hidden]')) return;
+  target.focus();
+}
+
 /** Fills a box: replaced whole for a new selection, else laid over what it holds (`patch.ts`). */
 export function fill(into: HTMLElement, nodes: readonly HTMLElement[], replace: boolean): void {
   if (replace) {

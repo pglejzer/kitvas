@@ -60,7 +60,7 @@ test('a spacing token is a plain pin with the property as its code', () => {
   ]);
 });
 
-test('an off-kit value names the nearest token of its own scale; none ends after the value', () => {
+test('one off-kit pin an element: a single value names its nearest token, several list their values', () => {
   const report: KitLens = {
     version: 1,
     elements: [
@@ -73,13 +73,49 @@ test('an off-kit value names the nearest token of its own scale; none ends after
       element('b', { offKit: [{ property: 'background-color', value: '#1a73e8' }] }),
     ],
   };
-  const [colour, padding] = kitPins(report, TOKENS);
-  assert.equal(colour?.tone, 'review');
-  assert.equal(colour?.text, `${text('lens.kit.off')}: #1a73e8 · ${text('lens.kit.nearest')} ink`);
-  assert.equal(padding?.text, `${text('lens.kit.off')}: 13px · ${text('lens.kit.nearest')} md`);
+  const pins = kitPins(report, TOKENS);
+  assert.equal(pins.length, 2);
+  const [both, one] = pins;
+  assert.equal(both?.tone, 'review');
+  assert.equal(both?.text, `${text('lens.kit.off')}: #1a73e8, 13px`);
+  assert.equal(one?.text, `${text('lens.kit.off')}: #1a73e8 · ${text('lens.kit.nearest')} ink`);
+  const padding = kitPins(
+    { version: 1, elements: [element('c', { offKit: [{ property: 'padding', value: '13px' }] })] },
+    TOKENS,
+  );
+  assert.equal(padding[0]?.text, `${text('lens.kit.off')}: 13px · ${text('lens.kit.nearest')} md`);
   const bare = kitPins(report, []);
-  assert.equal(bare[0]?.text, `${text('lens.kit.off')}: #1a73e8`);
-  assert.equal(bare[0]?.code, undefined);
+  assert.equal(bare[1]?.text, `${text('lens.kit.off')}: #1a73e8`);
+  assert.equal(bare[1]?.code, undefined);
+});
+
+test('a size the kit has no scale for is not off the kit, and a scale of another kind is no nearest', () => {
+  const report: KitLens = {
+    version: 1,
+    elements: [
+      element('card', {
+        offKit: [
+          { property: 'border-width', value: '1px' },
+          { property: 'width', value: '340px' },
+        ],
+      }),
+    ],
+  };
+  // TOKENS have spaces and a colour, no border widths and no sizes: nothing to miss.
+  assert.deepEqual(kitPins(report, TOKENS), []);
+  const borders: TokenOption[] = [
+    ...TOKENS,
+    { var: '--kit-border-thin', path: 'border.thin', type: 'dimension', css: '1px' },
+  ];
+  const [pin, ...rest] = kitPins(
+    {
+      version: 1,
+      elements: [element('card', { offKit: [{ property: 'border-width', value: '2px' }] })],
+    },
+    borders,
+  );
+  assert.equal(pin?.text, `${text('lens.kit.off')}: 2px · ${text('lens.kit.nearest')} thin`);
+  assert.deepEqual(rest, []);
 });
 
 test('a suggestion is a plain pin', () => {
@@ -117,6 +153,6 @@ test('keys are unique and stable; texts, codes and keys keep their limits', () =
     assert.ok(pin.key.length <= MAX_PIN_KEY);
     assert.ok((pin.code ?? '').length <= MAX_PIN_CODE);
   }
-  // Four of the first element (one spacing, two off kit, one suggestion), two of the long one, one of the last.
-  assert.equal(pins.length, 7);
+  // Three of the first element (one spacing, one off kit, one suggestion), two of the long one, one of the last.
+  assert.equal(pins.length, 6);
 });

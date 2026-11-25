@@ -8,6 +8,7 @@ import {
   clipBox,
   EDGE,
   GAP,
+  LABEL,
   type PageBox,
   placeBar,
 } from '../../../../../client/studio/edit/seltools/place.ts';
@@ -32,9 +33,9 @@ const covers = (at: { left: number; top: number }, other: PageBox): boolean =>
   at.top < other.y + other.height &&
   other.y < at.top + BAR.height;
 
-test('centred 8 px above the element', () => {
+test("centred 8 px above the frame's label of the element, never over the label", () => {
   const at = placeBar(box(400, 200, 200, 40), BAR, VIEW, []);
-  assert.deepEqual(at, { left: 390, top: 200 - GAP - BAR.height });
+  assert.deepEqual(at, { left: 390, top: 200 - LABEL - GAP - BAR.height });
 });
 
 test('an element at the top edge gets the tools below it', () => {
@@ -59,9 +60,9 @@ test('an element cut by the stage is placed by what shows of it', () => {
 
 test('the tools never leave the stage at its sides', () => {
   const right = placeBar(box(950, 300, 40, 20), BAR, VIEW, []);
-  assert.deepEqual(right, { left: VIEW.width - EDGE - BAR.width, top: 260 });
+  assert.deepEqual(right, { left: VIEW.width - EDGE - BAR.width, top: 244 });
   const left = placeBar(box(0, 300, 40, 20), BAR, VIEW, []);
-  assert.deepEqual(left, { left: EDGE, top: 260 });
+  assert.deepEqual(left, { left: EDGE, top: 244 });
 });
 
 test('a stage too small for the tools hides them', () => {
@@ -76,7 +77,7 @@ test('under the lens pill the tools go below the element', () => {
 
 test('a wide element under the lens pill keeps the tools above it, beside the pill', () => {
   const at = placeBar(box(20, 70, 500, 40), BAR, VIEW, [LENS, WIDTH, ASK]);
-  assert.deepEqual(at, { left: LENS.x + LENS.width + EDGE, top: 30 });
+  assert.deepEqual(at, { left: LENS.x + LENS.width + EDGE, top: 14 });
   assert.ok(at && !covers(at, LENS));
 });
 
@@ -91,13 +92,13 @@ test('the tools never cover the ask bar: with no room above either, they hide', 
   assert.equal(placeBar(box(400, 20, 200, 480), BAR, VIEW, [LENS, WIDTH, ASK]), null);
   // With room above, above it is.
   const at = placeBar(box(400, 470, 200, 60), BAR, VIEW, [LENS, WIDTH, ASK]);
-  assert.deepEqual(at, { left: 390, top: 430 });
+  assert.deepEqual(at, { left: 390, top: 414 });
   assert.ok(at && !covers(at, ASK));
 });
 
 test('a hidden pill (no size) keeps nothing out', () => {
   const at = placeBar(box(20, 70, 120, 40), BAR, VIEW, [box(12, 12, 0, 0)]);
-  assert.deepEqual(at, { left: EDGE, top: 30 });
+  assert.deepEqual(at, { left: EDGE, top: 14 });
 });
 
 test('what shows of a box: an empty element inside counts, one cut flat at the edge does not', () => {

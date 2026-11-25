@@ -39,6 +39,37 @@ test("the editor's write becomes its own source event, then a build event", asyn
   await live.close();
 });
 
+test('a draft page that opens builds its draft once a process, and a cached build tells nothing', async () => {
+  const builds: string[] = [];
+  const published: unknown[] = [];
+  let cached = true;
+  const live = startLiveLoop({
+    watch: () => ({ close: () => undefined }),
+    build: async (slug) => {
+      builds.push(slug);
+      return { ok: true, version: 2, cached };
+    },
+    dispose: async () => undefined,
+    drafts: { readText: () => undefined },
+    etag: etagOf,
+    publish: (_type, data) => {
+      published.push(data);
+    },
+    clock: fakeClock(0),
+  });
+  live.opened('shop');
+  await settled();
+  live.opened('shop');
+  await settled();
+  assert.deepEqual(builds, ['shop'], 'once a process: the runtime changes only with a new one');
+  assert.deepEqual(published, []);
+  cached = false;
+  live.opened('cart');
+  await settled();
+  assert.deepEqual(published, [{ slug: 'cart', version: 2, state: 'succeeded', ms: 0 }]);
+  await live.close();
+});
+
 test('close stops the watch, waits for the build that runs, then stops the tools once', async () => {
   const clock = fakeClock(0);
   const steps: string[] = [];

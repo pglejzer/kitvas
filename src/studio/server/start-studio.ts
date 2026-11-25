@@ -246,6 +246,7 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       version: deps.version,
       projectKit: deps.projectKit ?? (() => 'base'),
       doctor: deps.doctor,
+      ...(live ? { opened: (slug: string) => live.opened(slug) } : {}),
     }),
     ...assetRoutes(deps.assets),
     openRoute({ links, t, port, pageSecret, skin }),

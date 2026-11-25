@@ -1,6 +1,6 @@
 // The Kit lens's pins (redesign spec goal 9, plan 19 task 2): from what `GET …/kit-lens` answers,
-// the spacing token of a container, "Off kit: <value> · nearest <token>" and "Could be
-// <Component>". Pure: no DOM. The words come from text keys; the frame writes the texts with
+// the spacing token of a container, one "Off kit: <value> · nearest <token>" an element (its
+// values listed when there are several, only of scales the kit has) and "Could be <Component>". Pure: no DOM. The words come from text keys; the frame writes the texts with
 // `textContent`, so nothing here is HTML.
 
 import type { StyleProperty, TokenOption } from '../../../../src/edit/index.ts';
@@ -13,7 +13,7 @@ import {
 } from '../../../channel/lens-protocol.ts';
 import { nearestToken } from '../../edit/props/kit-value.ts';
 import { tokenNameOf } from '../../edit/props/stepper.ts';
-import { PROPERTIES, tokensFor } from '../../edit/props/steps.ts';
+import { hasOwnScale, PROPERTIES, TOKEN_TYPE, tokensFor } from '../../edit/props/steps.ts';
 import { text } from '../../edit/texts.ts';
 
 const SEP = ' · ';
@@ -50,6 +50,18 @@ function nearestOf(
   return known === null ? null : nearestToken(value, tokensFor(tokens, known));
 }
 
+/**
+ * Whether the kit has a scale a value of the property can be off: any colour for a colour, else
+ * tokens of the property's own groups. A kit with no border widths (the base kit) has no border
+ * width to miss, and the nearest token of another scale (`none` of the spaces for a 1px border)
+ * says nothing.
+ */
+function hasScaleFor(property: string, tokens: readonly TokenOption[]): boolean {
+  const known = styleProperty(property);
+  if (known === null || TOKEN_TYPE[known] === 'color') return true;
+  return hasOwnScale(tokens, known);
+}
+
 /** The pins of the Kit lens, in the order of the elements; `null` (nothing read) gives none. */
 export function kitPins(report: KitLens | null, tokens: readonly TokenOption[]): LensPin[] {
   if (report === null) return [];
@@ -65,17 +77,21 @@ export function kitPins(report: KitLens | null, tokens: readonly TokenOption[]):
         text: cut(`${spacing.token}${SEP}${bare(spacing.value)}`, MAX_PIN_TEXT),
       });
     }
-    element.offKit.forEach((off, index) => {
-      const near = nearestOf(off.property, off.value, tokens);
+    // One pin an element, however many of its values are off the kit: Properties shows each.
+    const offKit = element.offKit.filter((off) => hasScaleFor(off.property, tokens));
+    const [first, ...more] = offKit;
+    if (first !== undefined) {
+      const near = more.length === 0 ? nearestOf(first.property, first.value, tokens) : null;
       const nearest = near === null ? '' : `${SEP}${text('lens.kit.nearest')} ${tokenNameOf(near)}`;
+      const values = offKit.map((off) => off.value).join(', ');
       pins.push({
-        key: keyOf(element.id, `off${index}`),
+        key: keyOf(element.id, 'off'),
         id: element.id,
         kind: 'kit',
         tone: 'review',
-        text: cut(`${text('lens.kit.off')}: ${off.value}${nearest}`, MAX_PIN_TEXT),
+        text: cut(`${text('lens.kit.off')}: ${values}${nearest}`, MAX_PIN_TEXT),
       });
-    });
+    }
     if (element.suggest !== null) {
       pins.push({
         key: keyOf(element.id, 'suggest'),

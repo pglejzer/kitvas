@@ -73,6 +73,8 @@ export type Env = {
     toggle(row: string): void;
     open(row: string): void;
     close(row: string): void;
+    /** Escape: closes it, and the cursor goes back to its opener after the draw. */
+    cancel(row: string): boolean;
   };
 };
 
