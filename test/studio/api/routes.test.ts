@@ -37,7 +37,7 @@ test('status names the plugin version and the prototype port', async () => {
   const { run } = setup();
   assert.deepEqual((await run('getStatus')).body, {
     name: 'kitvas',
-    version: '0.1.0',
+    version: '1.0.0',
     startedAt: NOW.toISOString(),
     framePort: 5001,
   });

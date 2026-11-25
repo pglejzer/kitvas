@@ -71,7 +71,7 @@ test('versions and plain words are not touched', () => {
 test('the report holds the versions and one line per check and nothing private', () => {
   const report = buildReport({
     t: fakeT,
-    version: '0.1.0',
+    version: '1.0.0',
     nodeVersion: 'v26.13.1',
     system: { os: 'Windows_NT 10.0.26300', arch: 'x64' },
     home: POSIX.home,
@@ -89,7 +89,7 @@ test('the report holds the versions and one line per check and nothing private',
   });
   const lines = report.split('\n');
   assert.equal(lines.length, 4 + 2);
-  assert.match(report, /doctor\.report\.version \{"version":"0\.1\.0"\}/);
+  assert.match(report, /doctor\.report\.version \{"version":"1\.0\.0"\}/);
   assert.match(report, /<project>\/\.kitvas\/drafts\/<draft>\/a\.tsx/);
   assert.match(report, /~\/\.kitvas\/data/);
   assert.doesNotMatch(report, /piotr|my-secret-draft/);

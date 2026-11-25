@@ -86,7 +86,7 @@ Rework keeps the content and purpose and may change the layout. The report says 
 
 ## Status
 
-0.1.0, early. Prototypes are React, with SCSS or with Tailwind v4 when the kit uses it, whatever your application is written in.
+1.0.0, early. Prototypes are React, with SCSS or with Tailwind v4 when the kit uses it, whatever your application is written in.
 
 ## Develop
 

@@ -1,0 +1,12 @@
+{
+  "name": "kitvas",
+  "owner": { "name": "Piotr Glejzer", "url": "https://github.com/pglejzer" },
+  "description": "The kitvas plugin for Claude Code.",
+  "plugins": [
+    {
+      "name": "kitvas",
+      "source": "./",
+      "description": "Build UI prototypes from any design system, in any project, and check them in a local studio."
+    }
+  ]
+}

@@ -18,7 +18,7 @@ function pages(kits: KitStore, projectKit = 'base') {
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
-    version: '0.1.0',
+    version: '1.0.0',
     projectKit: () => projectKit,
   });
   return async (id: string, params: Record<string, string> = {}): Promise<string> => {
@@ -252,7 +252,7 @@ test('a kit that cannot be read has a page that says why, with the check command
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
-    version: '0.1.0',
+    version: '1.0.0',
     projectKit: () => 'base',
   });
   const route = routes.find((candidate) => candidate.id === 'kit');
