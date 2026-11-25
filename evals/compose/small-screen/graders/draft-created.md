@@ -1,8 +1,8 @@
 ---
 type: tool_used
 tool: Bash
-input_match: 'kitvas\.ts"?\s+draft\s+new'
+input_match: '\bdraft\s+new\s+\\?"?signup\b'
 min: 1
 ---
 
-A draft is created with `draft new`.
+A new draft is started under the name the person gave.

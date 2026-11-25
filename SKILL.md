@@ -20,7 +20,7 @@ Example output:
 {
   "ok": true,
   "data": {
-    "version": "0.1.0",
+    "version": "1.0.0",
     "node": "v26.13.1",
     "language": "en",
     "kit": "base",

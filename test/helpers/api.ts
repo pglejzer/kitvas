@@ -14,7 +14,7 @@ export function apiDeps(overrides: Partial<ApiDeps> = {}): ApiDeps {
   return {
     drafts: shopDraft().store,
     kits: builtinKits(),
-    version: '0.1.0',
+    version: '1.0.0',
     startedAt: NOW.toISOString(),
     port: 5000,
     framePort: 5001,

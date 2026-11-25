@@ -7,7 +7,7 @@ export const SAMPLE_STATE: StudioState = {
   port: 5000,
   framePort: 5001,
   token: 't'.repeat(43),
-  version: '0.1.0',
+  version: '1.0.0',
   project: 'C:/projects/shop',
   startedAt: '2026-11-22T10:00:00.000Z',
 };

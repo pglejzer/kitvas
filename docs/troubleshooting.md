@@ -10,7 +10,7 @@ Open an issue at https://github.com/pglejzer/kitvas/issues. Report a vulnerabili
 
 ## Limits
 
-- kitvas is early (0.1.0).
+- kitvas is early (1.0.0).
 - Prototypes are React only.
 - kitvas will not write into your application's code. Everything goes to `.kitvas/`, or to a folder you name when you export.
 - kitvas will not open a local or private address you give it, unless you allow it with `--allow-private`.

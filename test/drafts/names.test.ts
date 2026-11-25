@@ -10,7 +10,7 @@ const RAW = {
   slug: 'rent-a-bike',
   title: 'Rent a bike',
   kind: 'screen',
-  kit: { id: 'base', version: '0.1.0', hash: 'a'.repeat(64) },
+  kit: { id: 'base', version: '1.0.0', hash: 'a'.repeat(64) },
   createdAt: '2026-11-22T10:00:00.000Z',
   versions: [
     { number: 1, createdAt: '2026-11-22T10:00:00.000Z' },

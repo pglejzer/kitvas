@@ -209,11 +209,19 @@ export function parseKitSource(raw: unknown, id: string): KitSource {
   throw new KitvasError('KIT_INVALID', { id, detail: `${where}: ${first?.message ?? ''}` });
 }
 
-/** Checks raw JSON against the contract. `id` is only used to name the kit in the error. */
+/** How many of the contract's complaints a refused kit.json names, so one verify run shows most of them. */
+const LISTED_ISSUES = 5;
+
+/**
+ * Checks raw JSON against the contract. `id` is only used to name the kit in the error, whose detail
+ * names up to five places, the first one first: `gaps.0: Unrecognized key: "note"; components.2.props: …`.
+ */
 export function parseKit(raw: unknown, id: string): Kit {
   const parsed = KitSchema.safeParse(raw);
   if (parsed.success) return parsed.data;
-  const first = parsed.error.issues[0];
-  const where = first?.path.join('.') || 'kit.json';
-  throw new KitvasError('KIT_INVALID', { id, detail: `${where}: ${first?.message ?? ''}` });
+  const detail = parsed.error.issues
+    .slice(0, LISTED_ISSUES)
+    .map((issue) => `${issue.path.map(String).join('.') || 'kit.json'}: ${issue.message}`)
+    .join('; ');
+  throw new KitvasError('KIT_INVALID', { id, detail });
 }

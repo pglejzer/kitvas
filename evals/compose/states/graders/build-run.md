@@ -1,7 +1,7 @@
 ---
 type: tool_used
 tool: Bash
-input_match: 'kitvas\.ts"?\s+build\s'
+input_match: '\bbuild\s+\\?"?[a-z0-9]+(?:-[a-z0-9]+)*\b'
 min: 1
 ---
 

@@ -41,7 +41,7 @@ function serve(options: ServeOptions = {}) {
     kits: builtinKits(),
     t,
     assets: fakeAssets,
-    version: '0.1.0',
+    version: '1.0.0',
     project: 'C:/projects/shop',
     files,
     ...(options.browser ? { browser: options.browser } : {}),
@@ -84,7 +84,7 @@ test('serve writes the state file the CLI reads and answers with its token', asy
   const state = await until(() => readState(run.files.state));
   try {
     assert.equal(state.pid, process.pid);
-    assert.equal(state.version, '0.1.0');
+    assert.equal(state.version, '1.0.0');
     assert.equal(state.project, 'C:/projects/shop');
     const status = await callStudio(state, STATUS);
     assert.equal(status.status, 200);

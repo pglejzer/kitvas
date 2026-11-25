@@ -44,7 +44,7 @@ Tell the example apart by itself: an image path, a URL (a local or private addre
 
 ## 3. For a component: does the kit have it?
 
-Run `KITVAS kit show --json` and read the catalog: names, categories, descriptions. Look for near matches by what the thing does, not only by name. Show what you find in plain words ("the kit has `Card` with a `highlight` variant, which may already do this"). The person may stop here, or use a near match with `compose`. Go on only when they still want the new one. An icon is checked against the kit's icon names (`icons` in the same answer) the same way.
+Run `KITVAS kit show --json` and read the catalog: names, categories, descriptions. Look for near matches by what the thing does, not only by name. Read each near match with `KITVAS kit component <Name> --json` before you say what it can do, and name only the variants, tones and props that output lists ("the kit has `Card` with a `highlight` variant, which may already do this"). Then stop and ask whether they still want the new one: a request to sketch it is not that answer, since the person may not know the kit has the near match. They may stop here, or use the near match with `compose`. Start the draft only when they still want the new one, or when they already said they want it whatever the kit has; then name the near match in your report. An icon is checked against the kit's icon names (`icons` in the same answer) the same way.
 
 ## 4. Start the draft
 

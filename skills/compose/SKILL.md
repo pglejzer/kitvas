@@ -104,7 +104,7 @@ If there are findings or look notes, run `KITVAS map <slug> --json` (sections wi
 
 ## 9. Studio
 
-Run `KITVAS studio <slug> --open --json`. It opens the page in the user's browser. Still give the user `data.openUrl` (and `data.fallbackUrl` if the first does not load): a one-time link that works once, for 60 seconds. If it expires, run the command again for a new one. After the first visit, `http://kitvas.localhost:<port>/` opens without a link for 30 days.
+Run `KITVAS studio <slug> --open --json`. It opens the page in the user's browser. Run it also when `check` found no browser for its checks: the studio needs none of its own, the person opens the link in theirs. Still give the user `data.openUrl` (and `data.fallbackUrl` if the first does not load): a one-time link that works once, for 60 seconds. If it expires, run the command again for a new one. After the first visit, `http://kitvas.localhost:<port>/` opens without a link for 30 days.
 
 ## 10. Next version
 

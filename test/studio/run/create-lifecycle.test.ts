@@ -14,7 +14,7 @@ test('the real lifecycle reads the state file and talks to the studio it names',
   const lifecycle = createLifecycle({
     dataDir: tempDir(),
     project,
-    version: '0.1.0',
+    version: '1.0.0',
     bin: 'unused',
     env: {},
   });
@@ -25,7 +25,7 @@ test('the real lifecycle reads the state file and talks to the studio it names',
     kits: builtinKits(),
     t,
     assets: fakeAssets,
-    version: '0.1.0',
+    version: '1.0.0',
     shutdown: () => {
       stopped = true;
     },
@@ -41,7 +41,7 @@ test('the real lifecycle reads the state file and talks to the studio it names',
     };
     writeState(lifecycle.files.state, state);
     assert.deepEqual(lifecycle.readState(), state);
-    assert.deepEqual(await lifecycle.probe(state), { version: '0.1.0' });
+    assert.deepEqual(await lifecycle.probe(state), { version: '1.0.0' });
     assert.equal(await lifecycle.probe({ ...state, token: 'x'.repeat(43) }), undefined);
     assert.deepEqual(await lifecycle.inbox(state, 0), []);
     const links = await lifecycle.link(state, '/drafts/shop');

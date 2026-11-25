@@ -20,7 +20,7 @@ async function page(store: DraftStore, id: 'home' | 'draft', path = '', query = 
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
-    version: '0.1.0',
+    version: '1.0.0',
     projectKit: () => 'base',
   });
   const route = routes.find((candidate) => candidate.id === id);

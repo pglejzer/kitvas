@@ -85,12 +85,12 @@ export function healthy(
   machine.files.set(join(PLUGIN, 'package.json'), '{"engines":{"node":"^24.22.3 || >=26.13.1"}}');
   machine.files.set(
     join(PLUGIN, '.claude-plugin', 'plugin.json'),
-    '{"name":"kitvas","version":"0.1.0"}',
+    '{"name":"kitvas","version":"1.0.0"}',
   );
   const input: DoctorInput = {
     t: fakeT,
     now: new Date('2026-11-24T12:00:00Z'),
-    version: '0.1.0',
+    version: '1.0.0',
     nodeVersion: 'v26.13.1',
     home: '/home/ada',
     project: '/project',

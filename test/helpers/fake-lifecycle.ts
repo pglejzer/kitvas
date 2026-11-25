@@ -25,7 +25,7 @@ export function fakeLifecycle(options: FakeOptions = {}) {
   const silent = new Set(options.silent ?? []);
   const calls: string[] = [];
   let nextPid = 7000;
-  const version = options.version ?? '0.1.0';
+  const version = options.version ?? '1.0.0';
   const deps: LifecycleDeps = {
     version,
     files: { state: 'studio/state.json', log: 'studio/state.log' },

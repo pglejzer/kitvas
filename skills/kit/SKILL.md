@@ -29,6 +29,8 @@ Add a kit id as the last argument to read a kit other than the project's. Kits c
 ## Rules
 
 - Use only components, props, values and icon names the catalog lists. If something is missing, say so; do not invent it.
+- `kit show` gives names, not props. Read a component with `KITVAS kit component <Name> --json` before you name one of its props or values or use it in sample code. A prop you have not read is left out, never written as a guess. A component you mention but did not read stays out of the sample code: name it in a sentence and offer to read it.
+- When the kit lacks what the user asked for, say so, then read the one or two nearest components and say what each can and cannot do in its place. "Input might work, shall I check?" hands the user a question the catalog already answers.
 - Import components from `@kit`: `import { Button } from '@kit'`.
 - In styles use `--kit-*` custom properties, never raw colours or sizes.
 - `gaps` in `kit show` lists what the kit's source did not provide. Treat it as unknown, not as absent by design.

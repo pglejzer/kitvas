@@ -19,7 +19,7 @@ test('nothing runs: a studio is started and its address returned', async () => {
   assert.deepEqual(await ensureStudio(fake.deps), {
     pid: 7001,
     port: 7001,
-    version: '0.1.0',
+    version: '1.0.0',
     url: 'http://kitvas.localhost:7001',
     started: true,
   });

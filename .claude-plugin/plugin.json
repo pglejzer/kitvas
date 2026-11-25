@@ -1,7 +1,14 @@
 {
   "name": "kitvas",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Build UI prototypes from any design system, in any project, and check them in a local studio.",
-  "author": { "name": "Piotr Glejzer" },
-  "license": "PolyForm-Shield-1.0.0"
+  "author": { "name": "Piotr Glejzer", "url": "https://github.com/pglejzer" },
+  "homepage": "https://github.com/pglejzer/kitvas#readme",
+  "repository": "https://github.com/pglejzer/kitvas",
+  "license": "PolyForm-Shield-1.0.0",
+  "keywords": ["design-system", "prototyping", "ui", "react", "design-tokens", "figma"],
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://github.com/pglejzer/kitvas#readme",
+  "supportUrl": "https://github.com/pglejzer/kitvas/issues",
+  "skills": ["./"]
 }

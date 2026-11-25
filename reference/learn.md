@@ -13,11 +13,11 @@ Read by the `learner` agent before it writes a kit. Each rule has an id; reports
 
 - L5: Cover about 25 to 30 components first, by category: `action` (Button, IconButton, Link), `input` (text field, select, checkbox, radio, switch, textarea), `layout` (Stack, Grid, Box, Container, Divider), `typography` (Heading, Text), `display` (Card, Badge, Avatar, Table, List), `feedback` (Alert, Spinner, Progress, Skeleton), `overlay` (Dialog, Menu, Tooltip, Popover), `navigation` (Tabs, Breadcrumbs, Pagination).
 - L6: A request names components: do those, and only those. The rest of the core stays as it is.
-- L7: A component that needs a framework (Next.js only, a server setup) goes to `gaps` with `unsupported`. One that exists but you did not cover goes to `gaps` with `missing`. One you could not check goes to `gaps` with `unverified`. A `gaps` path is the component name, or a prop path such as `Button.loading`.
+- L7: A component that needs a framework (Next.js only, a server setup) goes to `gaps` with `unsupported`. One that exists but you did not cover goes to `gaps` with `missing`. One you could not check goes to `gaps` with `unverified`. A `gaps` path is the component name, or a prop path such as `Button.loading`. An entry has these two keys and no other: `{ "path": "Tabs", "reason": "missing" }`. A remark goes in your reply, never in kit.json.
 
 ## Props
 
-- L8: Read props from the package's `.d.ts` (npm) or the component's source and its types (repo). Name each prop as written.
+- L8: Read props from the package's `.d.ts` (npm) or the component's source and its types (repo). Name each prop as written. A component entry has `name`, `category`, `description`, `import` and `props`, and may have `parts`, `polymorphic`, `styling`, `state`, `examples`, `a11y` and `deprecated`; no other key. `props` is a list, `[{ "name": "variant", "type": "enum", "values": ["primary", "ghost"], "default": "primary" }]`, and a prop takes only `name`, `type`, `values`, `default`, `required`, `responsive`, `deprecated` and `description`.
 - L9: Type mapping: a union of string literals is `enum` with `values`; `boolean` is `boolean`; `string` is `string`; `number` is `number`; `ReactNode` and `ReactNode | string` are `node`; a function is `callback`; `ReactElement` is `element`; `ElementType` or a component type is `component`; an object type is `object`; any other union is `union`.
 - L10: A prop without `?` is `"required": true`. Set `default` only when the docs or the source say so.
 - L11: Skip props inherited from HTML attributes. Keep `className`, `style`, `id` and `aria-*` only when they matter, and list the styling props in `styling` (`sx`, `className`, `style`, `classes`). Keep `children` when the component takes it.

@@ -55,6 +55,18 @@ test('skills: size, name and a "Use when" description', () => {
   assert.deepEqual(problems, []);
 });
 
+test('the root skill is listed in the manifest, or an installed plugin never loads /kitvas', () => {
+  if (!existsSync(join(PLUGIN_ROOT, 'SKILL.md'))) return;
+  // An installed plugin reads skills from skills/ and from the manifest's paths only; "./" adds the
+  // plugin folder itself, whose SKILL.md is then `kitvas:kitvas`, run by typing /kitvas.
+  const manifest: unknown = JSON.parse(read('.claude-plugin/plugin.json'));
+  const listed =
+    typeof manifest === 'object' && manifest !== null && 'skills' in manifest
+      ? manifest.skills
+      : undefined;
+  assert.ok(Array.isArray(listed) && listed.includes('./'), 'plugin.json "skills" must hold "./"');
+});
+
 test('agents: frontmatter fields and no Bash tool', () => {
   const problems: string[] = [];
   for (const path of agents) {
