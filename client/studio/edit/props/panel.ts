@@ -22,9 +22,18 @@ import { previewContext, previewOf } from '../style/preview-of.ts';
 import { text } from '../texts.ts';
 import { BOX_START, type BoxState, ruleLink, pickSide as withSide } from './box.ts';
 import { el } from './controls.ts';
+import { createCustomMemory } from './custom/memory.ts';
 import { createDrawScheduler } from './draw.ts';
 import { readFolds, toggleFold, viewerStorage, writeFolds } from './groups.ts';
-import { emptyView, fill, keptFocus, restoreFocus, rise, settle } from './pane-draw.ts';
+import {
+  emptyView,
+  fill,
+  focusCustom,
+  keptFocus,
+  restoreFocus,
+  rise,
+  settle,
+} from './pane-draw.ts';
 import type { Env } from './rows.ts';
 import { itemReread, itemTargetOf, refusedScope, type ScopeMode, switchCountOf } from './scope.ts';
 import { type PanelUi, propsView } from './view.ts';
@@ -73,7 +82,7 @@ export function mountProps(ctx: EditorContext): void {
   /** Why "This item" was refused (a `props.reason.*` key), until the selection changes. */
   let scopeNote: string | null = null;
   /** The rows whose typed field "Custom" opened under the kit's control, for this selection. */
-  const custom = new Set<string>();
+  const custom = createCustomMemory(() => render());
   let inflight: Promise<void> = Promise.resolve();
   let chain: Promise<void> = Promise.resolve();
   let latest = 0;
@@ -206,6 +215,9 @@ export function mountProps(ctx: EditorContext): void {
       section.contains(focused) &&
       document.activeElement === focused;
     if (!stayed) restoreFocus(section, kept);
+    // "Custom" was just opened: the cursor goes into its editor (plan 19, task T5).
+    const wanted = custom.takeFocus();
+    if (wanted !== null) focusCustom(section, wanted);
   }
 
   function viewOf(
@@ -243,13 +255,7 @@ export function mountProps(ctx: EditorContext): void {
       reread: () => refresh(store.get()),
       preview: (ops) => sendPreview(ops, itemNow(state)?.item),
       scope: switchCount === null ? null : { mode: scope, count: switchCount },
-      custom: {
-        has: (row) => custom.has(row),
-        toggle(row) {
-          if (!custom.delete(row)) custom.add(row);
-          render();
-        },
-      },
+      custom,
     };
     const view = propsView(env, ui());
     // Under the head: the suggestion, what a handle could not write, then the notes.

@@ -5,14 +5,12 @@ import { test } from 'node:test';
 import {
   type ChangeChip,
   changeChips,
-  chipsOf,
   MAX_CHIP_TEXT,
   MAX_CHIPS,
   opChip,
   opChips,
   styleWords,
 } from '../../../../../client/studio/edit/history/chips.ts';
-import type { ChangeEntry } from '../../../../../client/studio/edit/store.ts';
 import type { EditOp } from '../../../../../src/edit/index.ts';
 
 const ID = 'sections/Pricing:section/Stack/Card.2';
@@ -110,17 +108,4 @@ test("a variant's changes are chips of what they set, before their elements are 
     { kind: 'prop', name: 'variant', before: null, after: 'outline' },
     { kind: 'text', name: '', before: null, after: 'Start free' },
   ]);
-});
-
-test('a change list line that history did not write has no chips', () => {
-  const entry: ChangeEntry = {
-    by: 'person',
-    id: ID,
-    label: 'Set gap',
-    files: [],
-    offKit: false,
-    at: 1_000,
-  };
-  assert.deepEqual(chipsOf(entry), []);
-  assert.deepEqual(chipsOf({ ...entry, chips: [chip({})] }), [chip({})]);
 });

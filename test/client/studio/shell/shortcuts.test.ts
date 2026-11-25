@@ -131,3 +131,17 @@ test('the context menu reads its key hint from the same table', () => {
   assert.equal(shortcutHint('menu', false, say), 'Shift+F10');
   assert.equal(shortcutHint('wrap-stack', false, say), null);
 });
+
+test('the Claude keys of the table are the keys the page and the frame hear (plan 19)', () => {
+  const listed = SHORTCUTS.filter((entry) => entry.group === 'claude');
+  assert.deepEqual(
+    listed.map((item) => item.id),
+    ['ask', 'variant-prev', 'variant-next'],
+  );
+  for (const item of listed) {
+    for (const combo of item.keys) {
+      assert.equal(editKeyOf(pressOf(combo)), item.id, combo);
+      assert.equal(keyOf(pressOf(combo)), item.id, combo);
+    }
+  }
+});

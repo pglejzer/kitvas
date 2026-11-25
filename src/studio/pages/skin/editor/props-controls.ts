@@ -10,7 +10,7 @@
 export const SKIN_EDITOR_PROPS_CONTROLS = `
 /* Fields and lists fill the control's column; a switch and a segmented row keep their size. */
 .props-select { min-width: 0; text-overflow: ellipsis; }
-.props-number, .props-raw-value { font-variant-numeric: tabular-nums; }
+.props-number { font-variant-numeric: tabular-nums; }
 .props-toggle { justify-self: start; }
 .props-static { min-width: 0; color: var(--st-color-ink); overflow-wrap: anywhere; }
 /* A value not edited here: the lock, the value in the code font; why is its tooltip. */
@@ -28,11 +28,111 @@ export const SKIN_EDITOR_PROPS_CONTROLS = `
 .props-picker { display: grid; gap: var(--st-space-4); min-width: 0; }
 .props-pick-line { display: flex; align-items: center; gap: var(--st-space-6); min-width: 0; }
 .props-pick-line > .props-select { flex: 1 1 auto; }
-.props-raw { display: flex; flex-wrap: wrap; gap: var(--st-space-4); min-width: 0; }
-.props-raw-value { flex: 1 1 64px; width: auto; min-width: 0; font-family: var(--st-font-mono); }
-.props-raw-unit { flex: none; width: auto; }
-.props-raw-value[aria-invalid="true"] { box-shadow: inset 0 0 0 1px var(--st-color-fix); }
-.props-raw > .props-error { flex-basis: 100%; }
+
+/* "Custom": a number under the list (a length, a weight, a line height), in the control column.
+   One field with its unit at the right end; under it the off-kit line, or the reason. */
+.props-num-editor { display: grid; gap: var(--st-space-4); min-width: 0; }
+.props-num-editor[hidden], .props-colour[hidden], .props-nearest[hidden] { display: none; }
+.props-num {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: var(--st-size-control);
+  border-radius: var(--st-radius-sm);
+  background: var(--st-color-raised);
+}
+.props-num:hover { box-shadow: inset 0 0 0 1px var(--st-color-line-strong); }
+.props-num:focus-within { box-shadow: inset 0 0 0 1px var(--st-color-accent); }
+.props-num[data-invalid="true"] { box-shadow: inset 0 0 0 1px var(--st-color-fix); }
+.props-num > .props-num-value, .props-num > .props-num-value:hover, .props-num > .props-num-value:focus {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+.props-num-unit { flex: none; width: auto; }
+.props-num-unit .k-select-trigger, .props-num-unit .k-select-trigger:hover {
+  width: auto;
+  background: transparent;
+  box-shadow: none;
+  color: var(--st-color-ink-mid);
+  font-size: var(--st-font-size-sm);
+}
+/* "Off kit · nearest <token>" and its button, under a number or the colour panel. */
+.props-nearest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--st-space-4) var(--st-space-6);
+  color: var(--st-color-review);
+  font-size: var(--st-font-size-sm);
+}
+.props-use {
+  padding: 0;
+  color: var(--st-color-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.props-warn { color: var(--st-color-review); font-size: var(--st-font-size-sm); }
+
+/* The colour panel: the whole row wide, in the pop tone. The sizes of its parts are all here
+   (the owner's mock, 2026-11-25): the square, the two tracks, the round handles. The colours of
+   the square and the tracks are canvases painted by script; nothing here paints them. */
+.props-colour {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--st-space-8);
+  min-width: 0;
+  margin: var(--st-space-2) 0 var(--st-space-8);
+  padding: var(--st-space-8);
+}
+.props-cp-square, .props-cp-track {
+  position: relative;
+  touch-action: none;
+  cursor: pointer;
+}
+.props-cp-square { height: 132px; border-radius: var(--st-radius-sm); cursor: crosshair; }
+.props-cp-track { height: 12px; border-radius: var(--st-radius-full); }
+.props-cp-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.props-cp-knob {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: var(--st-radius-full);
+  box-shadow: 0 0 0 2px var(--st-color-ink), 0 0 0 3px var(--st-color-pop);
+  pointer-events: none;
+}
+.props-cp-square > .props-cp-knob { top: 0; }
+.props-cp-square:focus-visible, .props-cp-track:focus-visible { outline-offset: 2px; }
+.props-cp-row { display: flex; align-items: center; gap: var(--st-space-8); min-width: 0; }
+.props-cp-tracks { flex: 1 1 auto; display: grid; gap: var(--st-space-8); min-width: 0; }
+.props-cp-field { flex: 1 1 auto; min-width: 0; }
+.props-cp-pct { flex: none; width: 62px; }
+.props-cp-swatch { width: 14px; height: 14px; border-radius: 4px; }
+.props-cp-input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--st-color-ink);
+  font-family: var(--st-font-mono);
+  font-size: var(--st-font-size-sm);
+  outline: none;
+}
+.props-cp-unit { color: var(--st-color-ink-mid); font-size: var(--st-font-size-sm); }
+.props-cp-input[aria-invalid="true"] { color: var(--st-color-fix); }
 
 /* The kit's own control of a token row: a stepper or swatches, the typed field under it. */
 .props-kit { display: grid; gap: var(--st-space-6); min-width: 0; }

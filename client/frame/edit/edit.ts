@@ -6,14 +6,14 @@
 //
 // Outlines sit in an overlay of their own at the end of `body`, inside a closed shadow root, the
 // way the marks do: no style of a page element is ever changed, and the overlay takes no pointer
-// events. `keyOf` and `pickOf` are pure; the rest is the DOM around them.
+// events. `keyOf` (`keys.ts`) and `pickOf` (`pick.ts`) are pure; the rest is the DOM around them.
+// A press on a lens pin (plan 19) is the pin's, never a pick (`leavesPointer`).
 
 import {
   addsToSelection,
   type EditFrameMessage,
   type EditStudioMessage,
   type PreviewChange,
-  parseEditFrame,
 } from '../../channel/edit-protocol.ts';
 import { placeRing, type Rect } from '../drag/place.ts';
 import { toned } from '../tones/tones.ts';
@@ -30,10 +30,18 @@ import {
 } from './items.ts';
 import { type KeyLike, keyOf } from './keys.ts';
 import { drawLabels, LABEL_SHEET } from './label.ts';
+import {
+  idOf,
+  leavesPointer,
+  MARKED,
+  type Picked,
+  POINTER_EVENTS,
+  pickOf,
+  type TargetLike,
+} from './pick.ts';
 import { type Listed, PLAIN, type Press, pressedElement } from './row-pick.ts';
 import { elementsWith, inspectStyles, readTree } from './tree.ts';
 
-const MARKED = '[data-ks]';
 /** More outlines than this are not drawn: a mapped list of thousands stays cheap to follow. */
 const MAX_BOXES = 500;
 
@@ -66,29 +74,7 @@ const HOST_RULES = [
 const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
 
 // Kept importable from here for the code and tests that already do.
-export { type KeyLike, keyOf };
-
-/** As much of an element as picking needs. */
-export type TargetLike = {
-  closest(selector: string): { getAttribute(name: string): string | null } | null;
-};
-export type Picked = { id: string | null; add: boolean; double: boolean };
-
-/** The id of the nearest marked element around `target`; `null` outside any, or for an odd id. */
-export function idOf(target: TargetLike | null): string | null {
-  const id = target?.closest(MARKED)?.getAttribute('data-ks') ?? null;
-  // The protocol's own check: an id the studio would refuse is no id.
-  if (id === null || !parseEditFrame({ type: 'hovered', id }, 'probe')) return null;
-  return id;
-}
-
-/**
- * What a click on `target` picks: `add` (`addsToSelection`) adds to the selection, a double click
- * asks for more. A double click with `add` only does what its first click did.
- */
-export function pickOf(target: TargetLike | null, add: boolean, double: boolean): Picked {
-  return { id: idOf(target), add, double };
-}
+export { idOf, type KeyLike, keyOf, leavesPointer, type Picked, pickOf, type TargetLike };
 
 export type EditDeps = {
   channel: string;
@@ -116,17 +102,6 @@ type Layer = {
   boxes: HTMLElement[];
   labels: HTMLElement[];
 };
-
-/** Stopped while edit mode is on, so no link, button or handler of the page acts. */
-const POINTER_EVENTS = [
-  'pointerdown',
-  'mousedown',
-  'pointerup',
-  'mouseup',
-  'click',
-  'dblclick',
-  'auxclick',
-] as const;
 
 const pageRect = (element: Element): Rect => {
   const { left, top, width, height } = element.getBoundingClientRect();
@@ -262,6 +237,8 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
   }
 
   function onPointer(event: MouseEvent): void {
+    // A press on a lens pin is the pin's: no pick, no deselect, no end of an inline edit.
+    if (leavesPointer(event.target)) return;
     event.stopPropagation();
     if (inline.holds(event.target)) {
       // The caret and the selection work as usual; only the click itself (a link, a button)
@@ -323,7 +300,8 @@ export function createEdit({ channel, post, preview }: EditDeps): Edit {
   }
 
   function onMove(event: MouseEvent): void {
-    pointerAt = event.target;
+    // Over a lens pin no element is under the pointer: the pin covers it.
+    pointerAt = leavesPointer(event.target) ? null : event.target;
     if (hoverFrame === 0) hoverFrame = requestAnimationFrame(flushHover);
   }
 

@@ -1,7 +1,14 @@
 // The prototype frames of a draft page, the checks every message from one must pass (shared
-// contract 1), and the messages the page sends them.
+// contract 1), and the messages the page sends them. The lens's messages (plan 19) have readers of
+// their own (`lens-protocol.ts`): `lensMessage` checks one as `frameMessage` checks the others.
 
 import type { EditStudioBody } from '../channel/edit-protocol.ts';
+import {
+  type LensFrameMessage,
+  type LensStudioBody,
+  type LensStudioMessage,
+  readLensFrame,
+} from '../channel/lens-protocol.ts';
 import type { LiveStudioBody } from '../channel/live-protocol.ts';
 import {
   type FrameMessage,
@@ -50,9 +57,26 @@ export function frameMessage(
   return message ? { frame, message } : undefined;
 }
 
+/** A click on a lens pin from one of `frames`: `frameMessage`'s checks, the lens's reader. */
+export function lensMessage(
+  frames: readonly Frame[],
+  event: MessageEvent,
+): { frame: Frame; message: LensFrameMessage } | undefined {
+  if (event.origin !== 'null' || event.source === null) return undefined;
+  const frame = frames.find((item) => item.element.contentWindow === event.source);
+  if (!frame) return undefined;
+  const message = readLensFrame(event.data, frame.channel);
+  return message ? { frame, message } : undefined;
+}
+
 /** A sandboxed frame has an opaque origin, so the target is `*`; nothing secret is ever sent. */
-function post(frame: Frame, message: StudioMessage): void {
+function post(frame: Frame, message: StudioMessage | LensStudioMessage): void {
   frame.element.contentWindow?.postMessage(message, '*');
+}
+
+/** The pins of the lens that is on (client/channel/lens-protocol.ts); `[]` takes them away. */
+export function sendLens(frame: Frame, body: LensStudioBody): void {
+  post(frame, { kitvas: 1, channel: frame.channel, ...body });
 }
 
 export function sendMeasure(frame: Frame, request: number): void {

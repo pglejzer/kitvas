@@ -8,9 +8,7 @@ import {
 import { tokensFor } from '../../../../../client/studio/edit/props/steps.ts';
 import {
   allowsNegative,
-  convertLength,
   lengthPx,
-  lengthValue,
   readLength,
   unitsFor,
 } from '../../../../../client/studio/edit/props/units.ts';
@@ -27,25 +25,15 @@ const SCALE = tokensFor(
   'gap',
 );
 
-test('a raw length takes px, rem or %, and auto only for width and height', () => {
+test('a length takes px, rem or %, and auto only for width and height', () => {
   assert.deepEqual(unitsFor('padding-top'), ['px', 'rem', '%']);
   assert.deepEqual(unitsFor('width'), ['px', 'rem', '%', 'auto']);
   assert.deepEqual(unitsFor('height'), ['px', 'rem', '%', 'auto']);
-  assert.deepEqual(lengthValue('padding-top', '13', 'px'), { raw: '13px' });
-  assert.deepEqual(lengthValue('width', '50', '%'), { raw: '50%' });
-  assert.deepEqual(lengthValue('gap', '1.25', 'rem'), { raw: '1.25rem' });
-  assert.deepEqual(lengthValue('width', '', 'auto'), { raw: 'auto', mark: false });
-  assert.equal(lengthValue('padding', '', 'auto'), null);
-  assert.equal(lengthValue('padding', '4', 'em'), null);
-  assert.equal(lengthValue('padding', 'big', 'px'), null);
-  assert.equal(lengthValue('padding', '1e3', 'px'), null);
 });
 
 test('only a margin may be negative', () => {
   assert.equal(allowsNegative('margin-top'), true);
   assert.equal(allowsNegative('padding-top'), false);
-  assert.deepEqual(lengthValue('margin-left', '-8', 'px'), { raw: '-8px' });
-  assert.equal(lengthValue('padding-left', '-8', 'px'), null);
 });
 
 test('a length reads back as amount and unit, a bare zero as px', () => {
@@ -58,9 +46,6 @@ test('a length reads back as amount and unit, a bare zero as px', () => {
   }
   assert.equal(lengthPx('1rem'), 16);
   assert.equal(lengthPx('50%'), null);
-  assert.equal(convertLength(24, 'px', 'rem'), 1.5);
-  assert.equal(convertLength(0.1 + 0.2, 'rem', 'px'), 4.8);
-  assert.equal(convertLength(50, '%', 'px'), 50);
 });
 
 test('a drag steps once per 8 px, right up and left down', () => {

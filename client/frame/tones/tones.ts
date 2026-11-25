@@ -30,6 +30,25 @@ export const MARK_TONES: Record<FrameTheme, Record<'fix' | 'review' | 'good' | '
   light: { fix: '#b3331f', review: '#7d6500', good: '#1f6b3a', on: '#ffffff' },
 };
 
+/**
+ * The popover look of each theme, for the lens pins (plan 19): the surface, its ink, and the
+ * pop shadow. The light theme's ring is the line colour itself: the frame has no `--st-*`.
+ */
+export const POP_TONES: Record<FrameTheme, Record<'pop' | 'ink' | 'inkMid' | 'shadow', string>> = {
+  dark: {
+    pop: '#26292f',
+    ink: '#eef0f3',
+    inkMid: '#a6abb6',
+    shadow: '0 12px 32px rgb(0 0 0 / 0.5), 0 2px 6px rgb(0 0 0 / 0.35)',
+  },
+  light: {
+    pop: '#ffffff',
+    ink: '#1d2025',
+    inkMid: '#5f6570',
+    shadow: '0 0 0 1px #e1e4e8, 0 12px 32px rgb(29 32 37 / 0.16), 0 2px 6px rgb(29 32 37 / 0.1)',
+  },
+};
+
 /** The custom properties an overlay's sheet may read. */
 export const TONE_NAMES = [
   '--kv-select',
@@ -38,12 +57,17 @@ export const TONE_NAMES = [
   '--kv-review',
   '--kv-good',
   '--kv-on-tone',
+  '--kv-pop',
+  '--kv-ink',
+  '--kv-ink-mid',
+  '--kv-pop-shadow',
 ] as const;
 
 export type ToneName = (typeof TONE_NAMES)[number];
 
 export function toneValues({ theme, accent }: Tones): Record<ToneName, string> {
   const marks = MARK_TONES[theme];
+  const pop = POP_TONES[theme];
   return {
     '--kv-select': SELECT[accent],
     '--kv-on-select': ON_SELECT,
@@ -51,6 +75,10 @@ export function toneValues({ theme, accent }: Tones): Record<ToneName, string> {
     '--kv-review': marks.review,
     '--kv-good': marks.good,
     '--kv-on-tone': marks.on,
+    '--kv-pop': pop.pop,
+    '--kv-ink': pop.ink,
+    '--kv-ink-mid': pop.inkMid,
+    '--kv-pop-shadow': pop.shadow,
   };
 }
 

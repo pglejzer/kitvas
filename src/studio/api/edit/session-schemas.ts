@@ -14,5 +14,4 @@ export const SessionReopenRequestSchema = z.strictObject({
 /** The answer when the session is open again; anything else is `EDIT_SESSION_TAKEN` (409). */
 export const SessionReopenSchema = z.strictObject({ version: Version, reopened: z.literal(true) });
 
-export type SessionReopenRequest = Zod.infer<typeof SessionReopenRequestSchema>;
 export type SessionReopen = Zod.infer<typeof SessionReopenSchema>;

@@ -9,32 +9,15 @@ import type { StyleProperty, StyleValue, TokenOption } from '../../../../src/edi
 import { icon } from '../../ui/icon.ts';
 import { type SelectItem, studioSelect } from '../../ui/select/select.ts';
 import { text } from '../texts.ts';
+import { el, field } from './custom/dom.ts';
+import { listChoice } from './custom/memory.ts';
+import { customEditor, type EditorKind } from './custom/raw-editors.ts';
 import { segmentIcons } from './keyword-icons.ts';
 import { MAX_SEGMENTS } from './kinds.ts';
-import { parseRaw, stepToken } from './steps.ts';
+import { stepToken } from './steps.ts';
 import { tokenItems } from './token-items.ts';
-import { lengthValue, readLength } from './units.ts';
 
-export function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  content?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (content !== undefined) node.textContent = content;
-  return node;
-}
-
-/** An input drawn with `value`: the panel tells a half-typed value from it. */
-function field(className: string, control: string, label: string, value: string) {
-  const input: HTMLInputElement = el('input', className);
-  input.dataset.control = control;
-  input.setAttribute('aria-label', label);
-  input.value = value;
-  input.dataset.initial = value;
-  return input;
-}
+export { el };
 
 export type SelectOption = { value: string; label: string };
 
@@ -242,90 +225,6 @@ export function attachStepper(
   });
 }
 
-/**
- * A raw length: a number and a unit (px, rem, %, and `auto` where the property takes it). It
- * commits when either changes to something whole; an amount that is no number is marked.
- */
-function lengthEditor(options: {
-  property: StyleProperty;
-  units: readonly string[];
-  raw: string | null;
-  onPick(value: StyleValue): void;
-  onClose?(): void;
-}): { root: HTMLElement; focus(): void; hidden(on: boolean): void } {
-  const root = el('span', 'props-raw');
-  const read = options.raw === null ? null : readLength(options.raw);
-  const amountText = read === null || read === 'auto' ? '' : String(read.amount);
-  const unitNow = read === 'auto' ? 'auto' : (read?.unit ?? 'px');
-  const label = text('props.custom.label', { property: options.property });
-  const amount = field('k-field props-raw-value', 'custom', label, amountText);
-  amount.inputMode = 'decimal';
-  if (options.raw !== null && read === null) amount.placeholder = options.raw;
-  let unitValue = options.units.includes(unitNow) ? unitNow : (options.units[0] ?? 'px');
-  const commit = (): void => {
-    amount.disabled = unitValue === 'auto';
-    if (unitValue !== 'auto' && amount.value.trim() === '') return;
-    const value = lengthValue(options.property, amount.value, unitValue);
-    amount.setAttribute('aria-invalid', value === null ? 'true' : 'false');
-    problem.hidden = value !== null;
-    if (value !== null) options.onPick(value);
-  };
-  const unit = studioSelect({
-    label: text('props.unit', { property: options.property }),
-    items: options.units.map((name) => plainItem(name, name)),
-    value: unitValue,
-    placeholder: unitValue,
-    control: 'unit',
-    search: searchWords(),
-    onPick: (name) => {
-      unitValue = name;
-      commit();
-    },
-    ...(options.onClose ? { onClose: options.onClose } : {}),
-  });
-  unit.root.classList.add('props-raw-unit');
-  const problem = el('span', 'props-error', text('props.length.invalid'));
-  problem.hidden = true;
-  amount.disabled = unitValue === 'auto';
-  amount.addEventListener('change', commit);
-  root.append(amount, unit.root, problem);
-  return {
-    root,
-    focus: () => (unitValue === 'auto' ? unit.trigger : amount).focus(),
-    hidden: (on) => {
-      root.hidden = on;
-    },
-  };
-}
-
-/** A free value: a colour, a number or a weight, checked by `parseRaw`. */
-function rawEditor(options: {
-  label: string;
-  raw: string | null;
-  onPick(value: StyleValue): void;
-}): { root: HTMLElement; focus(): void; hidden(on: boolean): void } {
-  const root = el('span', 'props-raw');
-  const label = text('props.custom.label', { property: options.label });
-  const custom = field('k-field props-raw-value', 'custom', label, options.raw ?? '');
-  custom.type = 'text';
-  const problem = el('span', 'props-error', text('props.custom.invalid'));
-  problem.hidden = true;
-  custom.addEventListener('change', () => {
-    const raw = parseRaw(custom.value);
-    custom.setAttribute('aria-invalid', raw === null ? 'true' : 'false');
-    problem.hidden = raw !== null;
-    if (raw !== null) options.onPick({ raw });
-  });
-  root.append(custom, problem);
-  return {
-    root,
-    focus: () => custom.focus(),
-    hidden: (on) => {
-      root.hidden = on;
-    },
-  };
-}
-
 const RAW = '__raw';
 const CUSTOM = '__custom';
 
@@ -352,26 +251,32 @@ export function tokenPicker(options: {
   current: StyleValue | null;
   placeholder: string;
   disabled?: boolean;
-  length?: { property: StyleProperty; units: readonly string[] };
+  /** What "Custom" opens: the colour panel, a length, a weight or a plain number. */
+  editor: EditorKind;
   warn?: (token: TokenOption) => string | null;
-  colour?: boolean;
-  /** Plan 18f: the raw value's field shows from the start ("Custom" under a stepper). */
-  open?: boolean;
+  /**
+   * Plan 19 (task T5): the row's memory of an open "Custom" editor (`custom/memory.ts`). `open`
+   * is what it holds now; the list's "Custom..." and a token pick tell it through `show` and
+   * `hide`, so the redraw the list's close asks for draws the editor open.
+   */
+  custom?: { open: boolean; show(): void; hide(): void };
+  /** The editor goes into this element (the row, for the colour panel) instead of under the list. */
+  dock?: HTMLElement;
   onPick(value: StyleValue): void;
   onPreview?(value: StyleValue | null): void;
   onClose?(): void;
 }): HTMLElement {
   const root = el('span', 'props-picker');
-  const colour = options.colour === true;
+  const colour = options.editor.kind === 'colour';
   const rawNow = options.current && 'raw' in options.current ? options.current.raw : null;
   const items: SelectItem[] = [];
   if (rawNow !== null) {
     const swatch = colour ? rawNow : null;
     items.push({
       value: RAW,
-      name: rawNow,
+      name: text('props.custom.name'),
       group: null,
-      detail: text('props.raw.source'),
+      detail: rawNow,
       swatch,
       warn: null,
     });
@@ -383,27 +288,40 @@ export function tokenPicker(options: {
     options.current === null ? null : 'token' in options.current ? options.current.token : RAW;
   const known = wanted !== null && items.some((item) => item.value === wanted);
   // A raw value or a token the kit does not have shows the custom field, not a wrong token.
-  let editorShown = options.open === true || (wanted !== null && (wanted === RAW || !known));
+  let memoryOpen = options.custom?.open === true;
+  let editorShown = memoryOpen || (wanted !== null && (wanted === RAW || !known));
 
   let current = options.current
     ? 'token' in options.current
       ? options.current.token
       : options.current.raw
     : options.placeholder || null;
+  const hide = (): void => {
+    editorShown = false;
+    memoryOpen = false;
+    editor.hidden(true);
+    options.custom?.hide();
+  };
   const pick = (value: StyleValue): void => {
     current = 'token' in value ? value.token : value.raw;
+    // A token ends the editor; a typed value leaves it open for the next one.
+    if ('token' in value) hide();
     options.onPick(value);
   };
-  const editor = options.length
-    ? lengthEditor({
-        ...options.length,
-        raw: rawNow,
-        onPick: pick,
-        ...(options.onClose ? { onClose: options.onClose } : {}),
-      })
-    : rawEditor({ label: options.label, raw: rawNow, onPick: pick });
-  const toggleEditor = (): void => editor.hidden(!editorShown);
-  toggleEditor();
+  // Where a "Custom" editor starts: the raw value, else the token's own value, else the frame's.
+  const tokenNow = options.current && 'token' in options.current ? options.current.token : null;
+  const start =
+    options.tokens.find((token) => token.var === tokenNow)?.css ?? (options.placeholder || null);
+  const editor = customEditor({
+    label: options.label,
+    kind: options.editor,
+    tokens: options.tokens,
+    raw: rawNow,
+    start,
+    onPreview: (value) => options.onPreview?.(value),
+    onPick: pick,
+  });
+  editor.hidden(!editorShown);
 
   const picker = studioSelect({
     label: options.label,
@@ -416,15 +334,20 @@ export function tokenPicker(options: {
     // The stepper stays on the trigger: the arrow keys walk the scale, not the list.
     stepKeys: false,
     onPick(value) {
-      if (value === CUSTOM || value === RAW) {
+      const choice = listChoice(value, memoryOpen, { custom: CUSTOM, raw: RAW });
+      if (choice === 'hide') {
+        hide();
+      } else if (choice === 'show') {
         editorShown = true;
-        toggleEditor();
-        if (value === CUSTOM) editor.focus();
-        return;
+        editor.hidden(false);
+        if (value === CUSTOM) {
+          memoryOpen = true;
+          options.custom?.show();
+        }
+        editor.focus();
+      } else {
+        pick({ token: value });
       }
-      editorShown = false;
-      toggleEditor();
-      pick({ token: value });
     },
     onActive(value) {
       const token = value === null || value === RAW || value === CUSTOM ? null : value;
@@ -438,8 +361,6 @@ export function tokenPicker(options: {
     getCurrent: () => current,
     onStep(token) {
       picker.show(token.var);
-      editorShown = false;
-      toggleEditor();
       pick({ token: token.var });
     },
   });
@@ -447,11 +368,13 @@ export function tokenPicker(options: {
   root.addEventListener('kv-show-custom', () => {
     if (editorShown) return;
     editorShown = true;
-    toggleEditor();
+    editor.hidden(false);
     editor.focus();
   });
   const line = el('span', 'props-pick-line');
   line.append(picker.root);
-  root.append(line, editor.root);
+  root.append(line);
+  if (options.dock) options.dock.append(editor.root);
+  else root.append(editor.root);
   return root;
 }

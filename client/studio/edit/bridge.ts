@@ -53,6 +53,11 @@ export type Bridge = {
    * or a key (a variant, a suggestion, an undo, a redo), not by the person's hand on the element.
    */
   flash?(ids: readonly string[]): void;
+  /**
+   * Hears every body `send` sends (plan 19, task 4: the tools on the selection step aside while
+   * an inline text edit is open). Returns the way to stop.
+   */
+  onSend?(listener: (body: EditStudioBody) => void): () => void;
 };
 
 /** What every card gets; the frame answers these to the edit card only. */
@@ -119,6 +124,7 @@ export function heardFrom(
 export function createBridge(lead: Frame, cards: CardSource = cardsOf(lead)): Bridge {
   const listeners = new Set<FrameListener>();
   const live = new Set<LiveListener>();
+  const sent = new Set<(body: EditStudioBody) => void>();
   /** The last body of each kind every card should know, for a card that loads. */
   const sticky = new Map<string, EditStudioBody>();
   let force: LiveStudioBody | null = null;
@@ -132,7 +138,14 @@ export function createBridge(lead: Frame, cards: CardSource = cardsOf(lead)): Br
     }
     // A forced state only while editing: it never shows in Preview.
     const edit = sticky.get('edit');
-    if (force && edit?.type === 'edit' && edit.on) sendLive(frame, force);
+    const editing = edit?.type === 'edit' && edit.on;
+    if (force && editing) sendLive(frame, force);
+    // The edit card's tree again: a draft that opens in Edit asks for it at once, often before
+    // the frame listens, and that question is lost.
+    if (editing && frame === cards.edit()) {
+      requests += 1;
+      sendEdit(frame, { type: 'tree', request: requests });
+    }
   }
 
   // A card that loads knows nothing, and one that took a build in place draws over a new render.
@@ -152,6 +165,7 @@ export function createBridge(lead: Frame, cards: CardSource = cardsOf(lead)): Br
     send(body) {
       if (REPLAYED.some((type) => type === body.type)) sticky.set(body.type, body);
       for (const frame of targetsOf(body, cards, previewWidth)) sendEdit(frame, body);
+      for (const listener of [...sent]) listener(body);
     },
     on(listener) {
       listeners.add(listener);
@@ -189,6 +203,10 @@ export function createBridge(lead: Frame, cards: CardSource = cardsOf(lead)): Br
     },
     flash(ids) {
       for (const frame of cards.frames()) sendFlash(frame, ids);
+    },
+    onSend(listener) {
+      sent.add(listener);
+      return () => sent.delete(listener);
     },
   };
   return bridge;

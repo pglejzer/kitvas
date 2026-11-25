@@ -4,7 +4,6 @@ import {
   indexOnScale,
   isOffKit,
   PROPERTIES,
-  parseRaw,
   stepToken,
   styleValueOf,
   TOKEN_TYPE,
@@ -108,42 +107,6 @@ test('stepToken walks a colour palette in the kit order', () => {
   const palette = [token('c.a', '#111111', 'color'), token('c.b', '#222222', 'color')];
   assert.equal(stepToken(palette, 'var(--kit-c-a)', 1, false)?.path, 'c.b');
   assert.equal(stepToken(palette, 'var(--kit-c-b)', 1, false)?.path, 'c.b');
-});
-
-test('parseRaw accepts a length, a number, a colour and a few keywords', () => {
-  for (const good of [
-    '13px',
-    ' 1.5rem ',
-    '-4px',
-    '50%',
-    '.5em',
-    '2',
-    '#fff',
-    '#1A2B3C',
-    '#11223344',
-  ]) {
-    assert.equal(parseRaw(good), good.trim(), good);
-  }
-  assert.equal(parseRaw('rgb(10, 20, 30)'), 'rgb(10, 20, 30)');
-  assert.equal(parseRaw('hsla(10 20% 30% / 0.5)'), 'hsla(10 20% 30% / 0.5)');
-  assert.equal(parseRaw('AUTO'), 'AUTO');
-});
-
-test('parseRaw refuses text that is no length, colour or number', () => {
-  for (const bad of [
-    '',
-    '  ',
-    'big',
-    '12 px',
-    '#12',
-    '1px;',
-    'red',
-    'url(x)',
-    '1px /* x */',
-    'var(--x)',
-  ]) {
-    assert.equal(parseRaw(bad), null, bad);
-  }
 });
 
 test('isOffKit is true for anything but a var of a token the kit has', () => {

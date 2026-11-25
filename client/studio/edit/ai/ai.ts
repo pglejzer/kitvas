@@ -1,11 +1,15 @@
-// The Claude tab (spec 4d, goals 1 and 2; plan 17, task B): "What should change?", Improve, the
-// listening status, the draft's requests and their variants (preview on hover, checks, apply as
-// one gesture). Fills `store.requests` and `store.listening`: read on start, on each `requests`
-// event of this draft, after a change of its files (a request goes out of date) and, while a
-// session is seen, now and then (`status.ts`). The decisions are in the pure files beside it:
-// `requests.ts` (data and order), `variants.ts` (changes to ops), `preview.ts` (preview and
-// checks), `names.ts`, `status.ts`, `tab.ts` and `foot.ts` (what is drawn). Plan 18, task D: the
-// pane scrolls between its content and the foot, where Apply and Discard act on the chosen card.
+// The Claude tab (spec 4d, goals 1 and 2; plan 17, task B): the listening status, the draft's
+// requests and their variants (preview on hover, checks, apply as one gesture). Fills
+// `store.requests` and `store.listening`: read on start, on each `requests` event of this draft,
+// after a change of its files (a request goes out of date) and, while a session is seen, now and
+// then (`status.ts`). The decisions are in the pure files beside it: `requests.ts` (data and
+// order), `variants.ts` (changes to ops), `preview.ts` (preview and checks), `names.ts`,
+// `status.ts`, `tab.ts` and `foot.ts` (what is drawn). Plan 18, task D: the pane scrolls between
+// its content and the foot, where Apply and Discard act on the chosen card.
+//
+// Plan 19, task 4 (redesign spec, goals 10 and 11): the tab has no field of its own; the ask bar
+// under the canvas sends through the tab's control (`control.ts`, sending in `send.ts`), and the
+// variant pill on the selection shows, holds and applies the variants through it.
 
 import type {
   NewRequest,
@@ -14,6 +18,7 @@ import type {
 import type { Frame } from '../../frames.ts';
 import { sourceOf } from '../../live/job-events.ts';
 import { onStudioEvent } from '../../live/live.ts';
+import { isMac, shortcutHint } from '../../shell/shortcuts.ts';
 import { inspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { changeChips, opChips } from '../history/chips.ts';
@@ -22,6 +27,7 @@ import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 import { dropRequest, getRequests, postRequest } from './api.ts';
+import { type AiControl, setAiControl } from './control.ts';
 import { isEarlier } from './earlier.ts';
 import { chosenOf, createFoot } from './foot.ts';
 import { mountMarks } from './marks.ts';
@@ -35,20 +41,20 @@ import {
 } from './preview.ts';
 import {
   againRequest,
-  improveRequest,
   orderRequests,
   requestsSlugOf,
-  sayRequest,
   variantKey,
+  variantRefs,
   variantsOf,
 } from './requests.ts';
+import { createSender } from './send.ts';
 import { createStatus, LISTEN_RECHECK_MS, openCount, recheckLater } from './status.ts';
 import {
   type CardModel,
   type CardParts,
-  createForm,
   drawCheck,
   type RequestModel,
+  reasonWords,
   renderRequests,
   stateKeyOf,
 } from './tab.ts';
@@ -75,18 +81,19 @@ export function mountAi(ctx: EditorContext): void {
   let applying: string | null = null;
   /** The card the foot acts on: the last one clicked, or chosen with Enter or Space. */
   let chosen: string | null = null;
-  let sending = false;
-  let said = '';
   let dragging = false;
   let cards = new Map<string, Drawn>();
   let drawTimer: ReturnType<typeof setTimeout> | null = null;
+  /** The tools on the canvas that hear the control (`onChange`). */
+  const listeners = new Set<() => void>();
+  /** The key that puts the cursor in the ask bar, for the line shown with no requests. */
+  const askHint = shortcutHint('ask', isMac(navigator.platform), (key) => text(key));
 
-  // No `k-pad`: the cards are inset by their own margin (`.k-card`), the status and the form by the skin.
+  // No `k-pad`: the cards are inset by their own margin (`.k-card`), the status by the skin.
   const root = el('div', 'claude');
   const status = createStatus(slug, main);
-  const form = createForm({ send, improve });
   const list = el('div', 'claude-list');
-  root.append(status.element, form.element, list);
+  root.append(status.element, list);
   const scroll = el('div', 'k-scroll');
   scroll.append(root);
   const foot = createFoot({
@@ -162,6 +169,12 @@ export function mountAi(ctx: EditorContext): void {
       }
     });
   }
+
+  const sender = createSender({
+    state: () => store.get(),
+    post: (body) => postRequest(slug, body),
+    sent: read,
+  });
 
   // The variants' elements, read as the server has them now.
   function forget(): void {
@@ -248,6 +261,11 @@ export function mountAi(ctx: EditorContext): void {
     };
   }
 
+  /** The tools on the canvas read the control again (plan 19): something they show changed. */
+  function changed(): void {
+    for (const listener of [...listeners]) listener();
+  }
+
   /**
    * The foot and the chosen card's ring follow the store's `busy` without drawing the cards; each
    * card's state line says whether the canvas shows it now.
@@ -262,6 +280,7 @@ export function mountAi(ctx: EditorContext): void {
     }
     const some = cards.size > 0;
     foot.render({ chosen: chosenOf(chosen, cards), busy: busy || applying !== null, some });
+    changed();
   }
 
   function choose(key: string | null): void {
@@ -285,6 +304,7 @@ export function mountAi(ctx: EditorContext): void {
       selected: selected.map((request) => modelOf(request, state, nameOf)),
       others: others.map((request) => modelOf(request, state, nameOf)),
       latest: state.edit?.version ?? null,
+      hint: askHint,
     };
     const byKey = new Map<string, Omit<Drawn, 'parts'>>();
     for (const model of [...models.selected, ...models.others]) {
@@ -318,46 +338,11 @@ export function mountAi(ctx: EditorContext): void {
     preview.refresh();
   }
 
-  function renderForm(): void {
-    const state = store.get();
-    form.render({
-      selected: state.selection.length,
-      blocked: state.viewing === null ? null : 'ai.viewing',
-      sending,
-      message: said,
-    });
-  }
-
-  function submit(body: NewRequest, clears: boolean): void {
-    sending = true;
-    said = '';
-    renderForm();
-    void postRequest(slug, body).then((sent) => {
-      sending = false;
-      said = text(sent ? 'ai.sent' : 'ai.sendFailed');
-      if (sent && clears) form.clear();
-      renderForm();
-      if (sent) read();
-    });
-  }
-
-  function send(words: string): void {
-    const state = store.get();
-    const body = sayRequest(words, state.selection, state.context);
-    if (body) submit(body, true);
-  }
-
-  function improve(): void {
-    const state = store.get();
-    const body = improveRequest(state.selection, state.context);
-    if (body) submit(body, false);
-  }
-
-  async function apply(key: string): Promise<void> {
+  async function apply(key: string): Promise<boolean> {
     const drawn = cards.get(key);
-    if (!drawn || applying !== null || store.get().busy) return;
+    if (!drawn || applying !== null || store.get().busy) return false;
     const { model, request, index } = drawn;
-    if (model.built.kind !== 'ready' || model.outdated || model.blocked !== null) return;
+    if (model.built.kind !== 'ready' || model.outdated || model.blocked !== null) return false;
     applying = key;
     syncButtons();
     // The history shows the same edits while it sends them; the build then replaces them.
@@ -365,11 +350,24 @@ export function mountAi(ctx: EditorContext): void {
     const label = text('ai.variant.label', { label: model.label });
     const outcome = await history.apply({ ops: model.built.ops, label, flash: true });
     applying = null;
-    if (outcome?.outcome === 'applied') {
+    const done = outcome?.outcome === 'applied';
+    if (done) {
       applied.set(request, index);
       foot.applied();
     }
     draw();
+    return done;
+  }
+
+  /**
+   * Pointing at or focusing another card of the request the pill holds moves the hold there
+   * (goal 11): the pill follows what the canvas shows. A card of another request does not.
+   */
+  function follow(key: string | null): void {
+    const held = preview.held();
+    if (key === null || held === null || key === held) return;
+    if (cards.get(key)?.request !== cards.get(held)?.request) return;
+    if (previewableOf(key) !== null) preview.hold(key);
   }
 
   const handlers = {
@@ -381,14 +379,40 @@ export function mountAi(ctx: EditorContext): void {
       });
     },
     again: (body: NewRequest): void => {
-      void postRequest(slug, body).then((sent) => {
+      void sender.post(body).then((sent) => {
         toast(main, text(sent ? 'ai.sent' : 'ai.sendFailed'));
-        if (sent) read();
       });
     },
-    point: (key: string | null): void => preview.point(key),
-    focus: (key: string | null): void => preview.focus(key),
+    point: (key: string | null): void => {
+      preview.point(key);
+      follow(key);
+    },
+    focus: (key: string | null): void => {
+      preview.focus(key);
+      follow(key);
+    },
   };
+
+  const control: AiControl = {
+    send: (words) => sender.send(words),
+    improve: () => sender.improve(),
+    variantsFor: (selection) =>
+      variantRefs(store.get().requests, selection, applied, (key) => {
+        const drawn = cards.get(key);
+        if (!drawn) return undefined;
+        const ready = previewableOf(key) !== null;
+        return { ready, reason: ready ? null : reasonWords(drawn.model) };
+      }),
+    show: (key) => preview.hold(key),
+    apply,
+    onChange(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+  setAiControl(control);
 
   function setDragging(on: boolean): void {
     if (dragging === on) return;
@@ -423,6 +447,8 @@ export function mountAi(ctx: EditorContext): void {
     if (state.listening !== previous.listening || state.requests !== previous.requests) {
       status.render(state.listening, openCount(state.requests));
     }
+    // The pill holds a variant for one selection (goal 11): another selection lets it go.
+    if (state.selection !== previous.selection) preview.hold(null);
     const files = state.etags !== previous.etags || state.edit?.version !== previous.edit?.version;
     if (files) forget();
     // A new build in the cards has no preview in it.
@@ -444,16 +470,12 @@ export function mountAi(ctx: EditorContext): void {
       // The canvas shows another card, or none: only the state lines change.
       syncButtons();
     }
-    if (state.selection !== previous.selection || state.viewing !== previous.viewing) {
-      renderForm();
-    }
   });
 
   // Claude's mark on the canvas: what the tab looks at, and what a request is about (marks.ts).
   mountMarks(section, store, bridge);
 
   status.render(store.get().listening, openCount(store.get().requests));
-  renderForm();
   draw();
   read();
 }

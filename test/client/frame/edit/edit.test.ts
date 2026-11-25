@@ -9,9 +9,11 @@ import {
   idOf,
   type KeyLike,
   keyOf,
+  leavesPointer,
   pickOf,
   type TargetLike,
 } from '../../../../client/frame/edit/edit.ts';
+import { isLensHost, LENS_HOST } from '../../../../client/frame/lens/pins.ts';
 
 const press = (key: string, held: Partial<KeyLike> = {}): KeyLike => ({
   key,
@@ -59,7 +61,9 @@ test('every other key stays with the page', () => {
   assert.equal(keyOf(press('a')), undefined);
   assert.equal(keyOf(press('s', { ctrlKey: true })), undefined);
   assert.equal(keyOf(press('Enter')), undefined);
-  assert.equal(keyOf(press('ArrowLeft')), undefined);
+  // The plain side arrows flip a variant since plan 19; with Shift they are the page's.
+  assert.equal(keyOf(press('ArrowLeft', { shiftKey: true })), undefined);
+  assert.equal(keyOf(press('Home')), undefined);
   assert.equal(keyOf(press('Tab')), undefined);
   assert.equal(keyOf(press(' ')), undefined);
 });
@@ -135,6 +139,20 @@ test('an id the studio would refuse picks nothing', () => {
   assert.equal(idOf(inside('')), null);
   assert.equal(idOf(inside('x'.repeat(201))), null);
   assert.equal(idOf(inside('A:ul/$/li')), 'A:ul/$/li');
+});
+
+test('the pick leaves a press on a lens pin alone: the pins host is no element to pick', () => {
+  // Outside the pins' closed shadow root, a press on a pin targets the overlay's host.
+  const host = { localName: LENS_HOST, closest: () => null };
+  assert.equal(LENS_HOST, 'kitvas-lens-pins');
+  assert.ok(isLensHost(host));
+  assert.ok(leavesPointer(host), 'no pick, no deselect, no inline edit');
+  // Without that guard the press would pick nothing, which the studio takes as a deselect.
+  assert.deepEqual(pickOf(host, false, false), { id: null, add: false, double: false });
+  for (const target of [inside('A:main'), inside(null), null, { localName: 'kitvas-edit' }]) {
+    assert.equal(leavesPointer(target), false);
+  }
+  assert.equal(isLensHost('kitvas-lens-pins'), false, 'a name is no element');
 });
 
 test('every pick is a message the studio accepts', () => {

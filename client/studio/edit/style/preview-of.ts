@@ -18,10 +18,6 @@ export function previewContext(op: EditOp): StyleContext | null {
   return context;
 }
 
-/** A card of `width` px shows the preview of an op of `context`: its width reaches the card. */
-export const previewReaches = (context: StyleContext | null, width: number): boolean =>
-  context === null || context.width === null || width >= context.width;
-
 /**
  * A style value as the SCSS gets it. The same rule as `styleText` in `src/edit/domain/ops.ts`,
  * repeated here because the client may not import values from `src/`.

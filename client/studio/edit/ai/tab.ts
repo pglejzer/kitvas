@@ -1,9 +1,11 @@
-// The Claude tab's parts (spec 4d, goal 2; plan 17, task B; plan 18, task D): the form ("What
-// should change?", Send and Improve), the requests with their words, status and Drop, and a card
-// per variant with its changes as chips, its signs and its check. A card is chosen by a click (or
-// Enter or Space) and applied from the pane's foot (`foot.ts`). Built with `createElement` and
-// `textContent` only: the words are the person's and Claude's, never markup. `ai.ts` gives the
-// models and does what the handlers say.
+// The Claude tab's parts (spec 4d, goal 2; plan 17, task B; plan 18, task D): the requests with
+// their words, status and Drop, and a card per variant with its changes as chips, its signs and
+// its check. A card is chosen by a click (or Enter or Space) and applied from the pane's foot
+// (`foot.ts`). Built with `createElement` and `textContent` only: the words are the person's and
+// Claude's, never markup. `ai.ts` gives the models and does what the handlers say.
+//
+// Plan 19, task 4 (redesign spec, goal 10): the tab has no field of its own any more. There is one
+// place to type, the ask bar under the canvas; with no requests the tab says so in one line.
 
 import type {
   NewRequest,
@@ -18,7 +20,6 @@ import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
 import { isEarlier, renderEarlier } from './earlier.ts';
 import type { CheckResult } from './preview.ts';
-import { MAX_REQUEST_TEXT } from './requests.ts';
 import { type BuiltVariant, reasonKey } from './variants.ts';
 
 export type CardModel = {
@@ -86,92 +87,34 @@ function button(className: string, words: string, focus: string): HTMLButtonElem
   return node;
 }
 
-// The form.
-
-export type FormState = {
-  selected: number;
-  /** Why nothing can be asked now (a text key); `null` when it can. */
-  blocked: string | null;
-  sending: boolean;
-  message: string;
-};
-
-export type Form = { element: HTMLFormElement; render(state: FormState): void; clear(): void };
-
-/** The hint under the field: what a request is about, or why none can be made. */
-export function formHint(state: Pick<FormState, 'selected' | 'blocked'>): {
-  key: string;
-  params: Record<string, number>;
-} {
-  if (state.blocked !== null) return { key: state.blocked, params: {} };
-  if (state.selected === 0) return { key: 'ai.noSelection', params: {} };
-  if (state.selected === 1) return { key: 'ai.forOne', params: {} };
-  return { key: 'ai.forMany', params: { n: state.selected } };
+/**
+ * Why a card cannot be applied now, in the words its card shows (the variant pill's Apply says
+ * it as its title); `null` while it can.
+ */
+export function reasonWords(model: CardModel): string | null {
+  if (model.applied) return text('ai.variant.applied');
+  if (model.outdated) return text('ai.stale');
+  if (model.blocked !== null) return text(model.blocked);
+  const { built } = model;
+  if (built.kind === 'loading') return text('ai.variant.loading');
+  if (built.kind === 'same') return text('ai.variant.same');
+  if (built.kind === 'invalid') {
+    const { id, reason } = built.problem;
+    const words = text('ai.variant.problem', {
+      name: model.nameOf(id),
+      reason: text(reasonKey(reason)),
+    });
+    return `${text('ai.variant.invalid')} ${words}`;
+  }
+  return null;
 }
 
-export function createForm(handlers: { send(words: string): void; improve(): void }): Form {
-  const element = el('form', 'claude-form');
-  element.noValidate = true;
-  const label = el('label', 'claude-label', text('ai.ask.label'));
-  label.htmlFor = 'ai-words';
-  const field = el('textarea', 'k-field claude-field');
-  field.id = 'ai-words';
-  field.rows = 2;
-  field.maxLength = MAX_REQUEST_TEXT;
-  const hint = el('p', 'k-meta claude-hint');
-  hint.id = 'ai-words-hint';
-  field.setAttribute('aria-describedby', hint.id);
-  const improve = el('button', 'k-btn', text('ai.improve'));
-  improve.type = 'button';
-  improve.title = text('ai.improve.title');
-  const send = el('button', 'k-btn k-btn-line', text('ai.send'));
-  send.type = 'submit';
-  const actions = el('div', 'claude-form-actions');
-  actions.append(improve, send);
-  const said = el('p', 'k-meta claude-said');
-  said.setAttribute('role', 'status');
-  element.append(label, field, hint, actions, said);
-
-  let last: FormState = { selected: 0, blocked: null, sending: false, message: '' };
-  const sync = (): void => {
-    const off = last.selected === 0 || last.blocked !== null || last.sending;
-    send.disabled = off || field.value.trim() === '';
-    improve.disabled = off;
-  };
-
-  element.addEventListener('submit', (event) => {
-    event.preventDefault();
-    if (!send.disabled) handlers.send(field.value);
-  });
-  // Ctrl+Enter (Cmd+Enter) sends; a plain Enter is a new line of the request.
-  field.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
-      element.requestSubmit();
-    }
-  });
-  field.addEventListener('input', sync);
-  improve.addEventListener('click', () => {
-    if (!improve.disabled) handlers.improve();
-  });
-
-  return {
-    element,
-    render(state) {
-      last = state;
-      const words = formHint(state);
-      hint.textContent = text(words.key, words.params);
-      said.textContent = state.sending ? text('ai.sending') : state.message;
-      sync();
-    },
-    clear() {
-      field.value = '';
-      sync();
-    },
-  };
+/** The tab with no requests: one line that sends the person to the bar under the canvas. */
+function emptyLine(hint: string | null): HTMLElement {
+  const line = el('p', 'k-quiet claude-empty', text('ai.emptyBar'));
+  if (hint !== null && hint !== '') line.append(' ', el('kbd', 'k-kbd', hint));
+  return line;
 }
-
-// The list.
 
 /** A line of the check: a tone mark and its words. */
 function checkLine(mark: HTMLElement | SVGSVGElement, words: string): HTMLElement {
@@ -413,13 +356,15 @@ function group(
 /**
  * The requests, those about the selection first; `drawn` hears every card's changing parts. A
  * request still open, or with variants to apply, is a card; a finished one is a row under
- * "Earlier" (`earlier.ts`). `latest`: the draft's latest version, for "In Version N".
+ * "Earlier" (`earlier.ts`). `latest`: the draft's latest version, for "In Version N". `hint`: the
+ * key that puts the cursor in the ask bar (`Ctrl+K`), said in the line shown with no requests.
  */
 export function renderRequests(
   lists: {
     selected: readonly RequestModel[];
     others: readonly RequestModel[];
     latest: number | null;
+    hint: string | null;
   },
   handlers: Handlers,
   drawn: Drawn,
@@ -431,7 +376,7 @@ export function renderRequests(
   const others = lists.others.filter(open);
   const past = [...lists.selected, ...lists.others].filter((model) => !open(model));
   if (selected.length === 0 && others.length === 0 && past.length === 0) {
-    return [title, el('p', 'k-quiet', text('ai.empty'))];
+    return [title, emptyLine(lists.hint)];
   }
   const cards =
     selected.length === 0

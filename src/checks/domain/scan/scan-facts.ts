@@ -43,7 +43,6 @@ export const ROLE_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'button', 'a'
  * instruction.
  */
 const PageTextSchema = z.strictObject({ pageText: z.string().max(TEXT_MAX) });
-export type PageText = Zod.infer<typeof PageTextSchema>;
 
 const count = z.number().int().min(1);
 const counted = (max: number) =>

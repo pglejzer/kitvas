@@ -187,7 +187,7 @@ const imageNames = (names: readonly string[]): string[] =>
     .slice(0, MAX_IMAGES);
 
 /** `Card.Header` is the part `Header` of `Card`: the catalog entry is `Card`. */
-function catalogComponent(kit: LoadedKit | null, tag: string): KitComponent | null {
+export function catalogComponent(kit: LoadedKit | null, tag: string): KitComponent | null {
   const name = tag.split('.')[0] ?? tag;
   if (!/^[A-Z]/.test(name)) return null;
   return kit?.kit.components.find((component) => component.name === name) ?? null;
@@ -236,7 +236,7 @@ function tsxClasses(text: string): Set<string> {
 const splitClasses = (value: string): string[] => value.split(/\s+/).filter((name) => name !== '');
 
 /** The classes of a string `className`; none for an expression or no `className`. */
-const classesOf = (tag: TagView): string[] =>
+export const classesOf = (tag: TagView): string[] =>
   tag.className?.kind === 'string' ? splitClasses(tag.className.value) : [];
 
 /**

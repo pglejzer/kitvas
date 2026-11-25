@@ -1,7 +1,6 @@
 // The CLI's use cases for a project's studio: make sure one runs, say whether one does, stop it.
 
 import { KitvasError } from '../../shared/index.ts';
-import type { InboxItem } from '../inbox/inbox.ts';
 import { studioUrl } from '../security/host-names.ts';
 import type { StudioState } from './state-file.ts';
 
@@ -26,8 +25,6 @@ export type LifecycleDeps = {
   probe(state: StudioState): Promise<{ version: string } | undefined>;
   /** The shutdown route; true when the studio accepted. */
   shutdown(state: StudioState): Promise<boolean>;
-  /** The inbox's take route: waits up to `seconds` for notes and takes them. */
-  inbox(state: StudioState, seconds: number): Promise<InboxItem[]>;
   /** The link route: a one-time link to `path`, a studio page. */
   link(state: StudioState, path: string): Promise<StudioLink>;
   sleep(ms: number): Promise<void>;
@@ -125,13 +122,4 @@ export async function openLink(deps: LifecycleDeps, path: string): Promise<Studi
   const running = await findStudio(deps);
   if (!running) throw new KitvasError('STUDIO_START_FAILED', { log: deps.files.log });
   return deps.link(running, path);
-}
-
-export type InboxView = { running: boolean; items: InboxItem[] };
-
-/** Notes from this project's studio; waits up to `seconds` for the next one. */
-export async function readInbox(deps: LifecycleDeps, seconds: number): Promise<InboxView> {
-  const running = await findStudio(deps);
-  if (!running) return { running: false, items: [] };
-  return { running: true, items: await deps.inbox(running, seconds) };
 }

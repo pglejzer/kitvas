@@ -62,6 +62,11 @@ export const EDIT_KEYS = [
   'menu',
   // Ctrl or Cmd with A (ADR 0065): the siblings of the selected element, or the page's sections.
   'select-all',
+  // Plan 19: Ctrl or Cmd with K puts the cursor in the ask bar; the left and right arrows flip
+  // the variant on the canvas while its pill shows.
+  'ask',
+  'variant-prev',
+  'variant-next',
 ] as const;
 export type EditKey = (typeof EDIT_KEYS)[number];
 

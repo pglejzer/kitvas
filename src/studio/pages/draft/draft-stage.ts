@@ -339,3 +339,15 @@ export function pills(input: PillsInput): Html {
   const zoom = html`<div class="k-pop k-pill pill-zoom" data-dock="zoom" role="group" aria-label="${t('studio.edit.zoom.label')}"></div>`;
   return html`${row}${zoom}`;
 }
+
+/**
+ * The hosts of the tools on the canvas (plan 19), empty: the page script fills them. The lens pill
+ * at the top left, in Preview and in Edit; the ask bar at the bottom centre, hidden until Edit
+ * shows it; and the place of the action bar and the variant pill, which follows the selection.
+ */
+export function canvasTools(t: Translate): Html {
+  const lens = html`<div class="k-pop k-pill pill-lens" data-lens-pill role="toolbar" aria-label="${t('studio.edit.lens.label')}"></div>`;
+  const ask = html`<form class="k-pop ask-bar" data-ask-bar aria-label="${t('studio.edit.ask.label')}" hidden></form>`;
+  const tools = html`<div class="sel-tools" data-sel-tools role="group" aria-label="${t('studio.edit.seltools.label')}"></div>`;
+  return html`${lens}${ask}${tools}`;
+}

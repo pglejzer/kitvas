@@ -202,6 +202,86 @@ test('new files forget every check', () => {
   assert.equal(h.preview.check('a'), undefined);
 });
 
+test('a held card wins over the pointed and the focused one, and stays when the pointer leaves', () => {
+  const h = harness({
+    a: { ops: [STYLE], ids: [ID], width: null },
+    b: { ops: [TEXT], ids: [ID], width: null },
+  });
+  h.preview.focus('b');
+  h.preview.hold('a');
+  assert.deepEqual(h.shown, ['b', 'a']);
+  h.preview.point('b');
+  h.preview.point(null);
+  // Neither the pointer coming nor going takes the held card off the canvas.
+  assert.deepEqual(h.shown, ['b', 'a']);
+  assert.equal(h.preview.current(), 'a');
+  assert.equal(h.preview.held(), 'a');
+  // Let go, the focused card shows again.
+  h.preview.hold(null);
+  assert.deepEqual(h.shown, ['b', 'a', 'b']);
+  assert.equal(h.preview.held(), null);
+});
+
+test('holding the card already held changes nothing', () => {
+  const h = harness({ a: { ops: [STYLE], ids: [ID], width: null } });
+  h.preview.hold('a');
+  h.preview.hold('a');
+  assert.deepEqual(h.calls, ['show', 'measure']);
+});
+
+test('a card that cannot be shown is not held', () => {
+  const h = harness({});
+  h.preview.hold('a');
+  assert.equal(h.preview.held(), null);
+  assert.deepEqual(h.calls, []);
+});
+
+test('a drag holds a held card back; it shows again after, still held', () => {
+  const h = harness({ a: { ops: [STYLE], ids: [ID], width: null } });
+  h.preview.hold('a');
+  h.allowed.value = false;
+  h.preview.refresh();
+  assert.equal(h.preview.current(), null);
+  assert.equal(h.preview.held(), 'a');
+  h.allowed.value = true;
+  h.preview.refresh();
+  assert.equal(h.preview.current(), 'a');
+});
+
+test('a build under a held card shows it again', () => {
+  const h = harness({ a: { ops: [STYLE], ids: [ID], width: null } });
+  h.preview.hold('a');
+  h.preview.lost();
+  assert.deepEqual(h.calls, ['show', 'measure', 'show', 'measure']);
+  assert.equal(h.preview.current(), 'a');
+});
+
+test('new files under a held card end the hold once it is not ready, and it does not come back', () => {
+  const h = harness({ a: { ops: [STYLE], ids: [ID], width: null } });
+  const variant = h.known.get('a');
+  h.preview.hold('a');
+  h.preview.reset();
+  // The elements are read again: the card is not ready for a moment.
+  h.known.delete('a');
+  h.preview.refresh();
+  assert.equal(h.preview.held(), null);
+  assert.deepEqual(h.shown, ['a', null]);
+  if (variant) h.known.set('a', variant);
+  h.preview.refresh();
+  assert.equal(h.preview.current(), null);
+});
+
+test('applying the held card lets it go and leaves its preview to the history', () => {
+  const h = harness({ a: { ops: [STYLE], ids: [ID], width: null } });
+  h.preview.hold('a');
+  h.preview.handOver('a');
+  assert.equal(h.preview.held(), null);
+  assert.deepEqual(h.calls, ['show', 'measure']);
+  assert.deepEqual(h.shown, ['a', null]);
+  h.preview.refresh();
+  assert.deepEqual(h.calls, ['show', 'measure']);
+});
+
 test("a card's warnings: the fixes first, each words once, never the build's mismatch", () => {
   const mismatch: LiveFact = { id: ID, rule: 'mismatch', severity: 'review', values: {} };
   assert.deepEqual(problemsOf([TARGET, CONTRAST, CONTRAST, mismatch]), [

@@ -217,23 +217,6 @@ export function askText(subject: AskSubject, inspected: Inspect | null, max = MA
   return `${head}${wanted}. ${reason}`.slice(0, max);
 }
 
-/** The studio-wide inbox's note form (before stage 4d); Ask Claude sends `askRequestOf` now. */
-export type NoteBody = {
-  kind: 'note';
-  slug: string;
-  element: string | null;
-  text: string;
-};
-
-export function noteOf(slug: string, subject: AskSubject, inspected: Inspect | null): NoteBody {
-  return {
-    kind: 'note',
-    slug,
-    element: elementOf(subject),
-    text: askText(subject, inspected),
-  };
-}
-
 /**
  * The `ask` request of a subject (spec 4d, goal 1): the elements its ops name (the one the reason
  * is about first), the edit context it was made in, the words, and the ops themselves, so Claude

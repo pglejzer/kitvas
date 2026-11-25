@@ -81,8 +81,12 @@ export type CanvasFrameMessage = Head &
   );
 
 export type CanvasStudioMessage = Head &
+  /**
+   * Where an element is. `item` names one copy of a list item (the first without it);
+   * `scroll: false` asks for the box as it is, without bringing the element into view.
+   */
   (
-    | { type: 'locate'; request: number; id: string }
+    | { type: 'locate'; request: number; id: string; item?: number; scroll?: boolean }
     /** The canvas zoom, so the frame keeps its element labels one size on the screen. */
     | { type: 'zoom'; value: number }
     /** Scroll the page in the frame to `ratio` (0 top, 1 bottom): the other side of a compare. */
@@ -117,6 +121,10 @@ const isSize = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= MAX_CANVAS_PX;
 const isRequest = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 1e9;
+/** Which copy of a list item: a list is never longer than this on a page worth drawing. */
+const MAX_ITEM = 10_000;
+const isItem = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MAX_ITEM;
 const isRatio = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
 const isShellKey = (value: unknown): value is ShellKey =>
@@ -182,9 +190,19 @@ export function parseCanvasStudio(
       : undefined;
   }
   if (message.type !== 'locate') return undefined;
-  const { request, id } = message;
+  const { request, id, item, scroll } = message;
   if (!isRequest(request) || typeof id !== 'string' || !ELEMENT_ID.test(id)) return undefined;
-  return { kitvas: 1, channel, type: 'locate', request, id };
+  if (item !== undefined && !isItem(item)) return undefined;
+  if (scroll !== undefined && typeof scroll !== 'boolean') return undefined;
+  return {
+    kitvas: 1,
+    channel,
+    type: 'locate',
+    request,
+    id,
+    ...(item === undefined ? {} : { item }),
+    ...(scroll === undefined ? {} : { scroll }),
+  };
 }
 
 /** Whether a page message is a canvas one (the frame runtime routes it to `canvas.ts`). */

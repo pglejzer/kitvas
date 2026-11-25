@@ -3,8 +3,8 @@
 // the result as a `claude-marks` message through the bridge.
 //
 // Two reasons for a mark. Looking: while the Claude tab is shown and Edit is on, the selected
-// elements (their chosen copies, as the selection draws them) carry a still mark, as the form says
-// "About the selected element". Writing: a request that is `waiting` marks every copy of its elements
+// elements (their chosen copies, as the selection draws them) carry a still mark: what a request
+// sent now is about. Writing: a request that is `waiting` marks every copy of its elements
 // still, a `taken` one marks them moving. A request that is answered, failed or dropped marks nothing.
 
 import type { RequestStatus } from '../../../../src/studio/api/requests/request-schemas.ts';

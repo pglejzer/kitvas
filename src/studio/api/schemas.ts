@@ -3,7 +3,6 @@
 import { SLUG, StatesSchema } from '../../drafts/index.ts';
 import { z } from '../../shared/index.ts';
 import { KIT_ID } from '../frame/frame-url.ts';
-import { InboxItemSchema } from '../inbox/inbox.ts';
 import { JobSchema } from '../jobs/job.ts';
 import { PAGE_PATH } from '../security/open-links.ts';
 import { BuildEventSchema, SourceEventSchema } from './edit/edit-schemas.ts';
@@ -81,8 +80,6 @@ export const StudioEventSchema = z.discriminatedUnion('event', [
   z.strictObject({ event: z.literal('drafts'), id: z.string(), data: DraftsEventSchema }),
   z.strictObject({ event: z.literal('reset'), id: z.string(), data: z.strictObject({}) }),
 ]);
-
-export const InboxListSchema = z.strictObject({ items: z.array(InboxItemSchema) });
 
 /** How long a take waits for a note when none waits: whole seconds, 0 to 600; absent is 0. */
 export const TakeNotesSchema = z.strictObject({

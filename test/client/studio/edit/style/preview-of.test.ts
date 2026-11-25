@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { parseEditStudio } from '../../../../../client/channel/edit-protocol.ts';
-import {
-  previewContext,
-  previewOf,
-  previewReaches,
-} from '../../../../../client/studio/edit/style/preview-of.ts';
+import { previewContext, previewOf } from '../../../../../client/studio/edit/style/preview-of.ts';
 import { type EditOp, type StyleValue, styleText } from '../../../../../src/edit/index.ts';
 
 const ID = 'sections/Pricing:section/Stack/Card.2';
@@ -75,12 +71,6 @@ test('an op of a width or a state names the cards its preview is for', () => {
   assert.equal(previewContext(set({ width: null, state: null })), null);
   assert.equal(previewContext({ op: 'addClass', id: ID, className: 'card' }), null);
   assert.equal(previewContext({ op: 'setUtility', id: ID, value: 'md:p-6', before: null }), null);
-  // Mobile-first: the 768 block shows at 768 and wider, never at 390.
-  assert.equal(previewReaches(wide, 390), false);
-  assert.equal(previewReaches(wide, 768), true);
-  assert.equal(previewReaches(wide, 1280), true);
-  assert.equal(previewReaches(hover, 390), true);
-  assert.equal(previewReaches(null, 390), true);
   // The value itself previews as in the base.
   assert.deepEqual(previewOf(set(wide)), { id: ID, kind: 'style', property: 'gap', value: '13px' });
   assert.equal(previewOf({ op: 'setUtility', id: ID, value: 'md:p-6', before: null }), null);

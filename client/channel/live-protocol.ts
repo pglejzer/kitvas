@@ -19,9 +19,6 @@ export type LiveFact = {
   values: Record<string, string | number>;
 };
 
-/** A numbered live mark the page asks a frame to draw on an element (goal 5). */
-export type LiveMark = { id: string; label: string; tone: 'fix' | 'review' };
-
 /** A note's pin on an element (spec 4d, goal 3): its number in the Notes list. */
 export type NotePin = { id: string; label: string };
 
@@ -70,8 +67,6 @@ export type LiveStudioMessage = Head &
     | { type: 'measure-live'; request: number; ids: string[]; expect: Expected[] }
     /** The accessibility card of `id`; `item`: which rendered copy of it (a `.map` list item). */
     | { type: 'a11y'; request: number; id: string; item?: number }
-    /** The live marks of this frame's width; an empty list takes them all away. */
-    | { type: 'live-marks'; marks: LiveMark[] }
     /** The note pins of this frame (spec 4d); an empty list takes them all away. */
     | { type: 'pins'; pins: NotePin[] }
     /** Which properties the kit's own rules of the forced state hold on `id` (ADR 0055). */
@@ -101,14 +96,7 @@ type WithoutHead<M> = M extends unknown ? Omit<M, 'kitvas' | 'channel'> : never;
 /** A live message to a frame without its head; the bridge adds it. */
 export type LiveStudioBody = WithoutHead<LiveStudioMessage>;
 
-export const LIVE_STUDIO_TYPES = new Set([
-  'force',
-  'measure-live',
-  'a11y',
-  'live-marks',
-  'pins',
-  'state-held',
-]);
+export const LIVE_STUDIO_TYPES = new Set(['force', 'measure-live', 'a11y', 'pins', 'state-held']);
 export const LIVE_FRAME_TYPES = new Set(['live-facts', 'a11y-card', 'state-held']);
 /** Longhands one `state-held` answer may name. */
 export const MAX_LONGHANDS = 120;
@@ -162,13 +150,6 @@ function fact(value: unknown): LiveFact | undefined {
     return undefined;
   }
   return { id, rule, severity, values: held };
-}
-
-function liveMark(value: unknown): LiveMark | undefined {
-  if (!isObject(value)) return undefined;
-  const { id, label, tone } = value;
-  if (!isId(id) || !isText(label, 8) || !oneOf(['fix', 'review'], tone)) return undefined;
-  return { id, label, tone };
 }
 
 function notePin(value: unknown): NotePin | undefined {
@@ -293,13 +274,6 @@ export function parseLiveStudio(message: Loose, channel: string): LiveStudioMess
       return isRequest(request) && isId(id)
         ? { ...head, type: 'state-held', request, id }
         : undefined;
-    }
-    case 'live-marks': {
-      const { marks } = message;
-      if (!Array.isArray(marks) || marks.length > MAX_LIVE_IDS) return undefined;
-      const parsed = marks.map(liveMark);
-      if (!parsed.every((one): one is LiveMark => one !== undefined)) return undefined;
-      return { ...head, type: 'live-marks', marks: parsed };
     }
     case 'pins': {
       const { pins } = message;

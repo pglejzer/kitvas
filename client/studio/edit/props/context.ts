@@ -159,21 +159,6 @@ export function heldNote(env: Env): HTMLElement {
   return el('span', 'props-hint', text('context.kitState', { state: name }));
 }
 
-/** The notes each panel build has shown; `env` is made anew for every build of the panel. */
-const shown = new WeakMap<object, Set<string>>();
-
-/**
- * `true` the first time `key` is asked for an `env`, `false` after: a note that says the same on
- * every row shows once per panel (spec 4d, goal 8).
- */
-export function noteOnce(env: object, key: string): boolean {
-  const seen = shown.get(env) ?? new Set<string>();
-  shown.set(env, seen);
-  if (seen.has(key)) return false;
-  seen.add(key);
-  return true;
-}
-
 /**
  * Why a covered row is not written here: a prop sets it everywhere; a pick asks Claude. Plan 18f:
  * the words are every covered row's tooltip, no longer a note shown once per panel.

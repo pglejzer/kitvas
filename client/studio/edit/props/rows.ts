@@ -64,8 +64,16 @@ export type Env = {
   /** The list scope switch: all items of a list or this one; `null` outside a list. */
   scope: { mode: 'all' | 'item'; count: number } | null;
   // Plan 18f (task 2).
-  /** The rows whose typed field the person opened with "Custom" under the kit's control. */
-  custom: { has(row: string): boolean; toggle(row: string): void };
+  /**
+   * The rows whose "Custom" editor is open (plan 19, task T5: the list's foot item and the
+   * stepper's button share it). `open` and `toggle` put the cursor in the editor after the draw.
+   */
+  custom: {
+    has(row: string): boolean;
+    toggle(row: string): void;
+    open(row: string): void;
+    close(row: string): void;
+  };
 };
 
 type Row = { root: HTMLElement; label: HTMLElement; body: HTMLElement; meta: HTMLElement };

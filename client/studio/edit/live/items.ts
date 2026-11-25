@@ -229,27 +229,6 @@ export function liveGroups(
   });
 }
 
-/** One live mark, as the frame draws it. */
-export type LiveMarkItem = { id: string; label: string; tone: 'fix' | 'review' };
-
-/**
- * The marks of a card at `width`: each numbered element with a finding still open there (a
- * measurement at that width, or a code finding, which holds at every width).
- */
-export function liveMarks(groups: readonly LiveGroup[], width: number): LiveMarkItem[] {
-  const marks: LiveMarkItem[] = [];
-  for (const group of groups) {
-    if (group.id === null || group.label === null) continue;
-    const open = group.rows.filter(
-      (row) => !row.waived && (row.source === 'code' || row.widths.includes(width)),
-    );
-    if (open.length === 0) continue;
-    const tone = open.some((row) => row.severity === 'fix') ? 'fix' : 'review';
-    marks.push({ id: group.id, label: group.label, tone });
-  }
-  return marks;
-}
-
 /**
  * Elements whose build shows another value than the editor did: the change list puts a warning
  * sign on their entries (spec 4c, goal 8).

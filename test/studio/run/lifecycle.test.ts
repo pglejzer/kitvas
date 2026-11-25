@@ -1,13 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { KitvasError } from '../../../src/shared/index.ts';
-import {
-  ensureStudio,
-  openLink,
-  readInbox,
-  stopStudio,
-  studioStatus,
-} from '../../../src/studio/index.ts';
+import { ensureStudio, openLink, stopStudio, studioStatus } from '../../../src/studio/index.ts';
 import { fakeLifecycle } from '../../helpers/fake-lifecycle.ts';
 import { SAMPLE_STATE } from '../../helpers/studio-state.ts';
 
@@ -87,23 +81,6 @@ test('a browser that went with its studio is left alone', async () => {
   const fake = fakeLifecycle({ running: { ...SAMPLE_STATE, browserPid: 9001 } });
   await stopStudio(fake.deps);
   assert.deepEqual(fake.calls, [`shutdown ${PID}`, `remove ${PID}`]);
-});
-
-test('the inbox is read from the studio that answers; without one there is nothing', async () => {
-  const notes = [
-    {
-      id: '00000000-0000-4000-8000-000000000001',
-      at: '2026-11-22T10:00:00.000Z',
-      kind: 'note' as const,
-      slug: 'shop',
-      element: null,
-      text: 'Bigger title',
-    },
-  ];
-  const fake = fakeLifecycle({ running: SAMPLE_STATE, notes });
-  assert.deepEqual(await readInbox(fake.deps, 7), { running: true, items: notes });
-  assert.deepEqual(fake.calls, [`inbox ${PID} 7`]);
-  assert.deepEqual(await readInbox(fakeLifecycle().deps, 7), { running: false, items: [] });
 });
 
 test('a link comes from the studio that answers; without one it is an error', async () => {

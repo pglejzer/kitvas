@@ -102,6 +102,3 @@ function changeChip(change: VariantChange): ChangeChip {
 export function changeChips(changes: readonly VariantChange[]): ChangeChip[] {
   return joined(changes.map(changeChip));
 }
-
-/** The chips a change list line carries; none for a line `history.ts` did not write. */
-export const chipsOf = (entry: StepEntry): readonly ChangeChip[] => entry.chips ?? [];

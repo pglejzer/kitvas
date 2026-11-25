@@ -88,10 +88,6 @@ export const TOKEN_TYPE: Readonly<Partial<Record<StyleProperty, TokenType>>> = {
 const SPACE = ['space', 'spacing'];
 
 const NUMBER = /^-?(?:\d+\.?\d*|\.\d+)$/;
-const LENGTH = /^-?(?:\d+\.?\d*|\.\d+)(?:px|rem|em|%|vh|vw|ch|pt)$/i;
-const HEX = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
-const COLOR_FUNCTION = /^(?:rgb|rgba|hsl|hsla)\(\s*\d[0-9.,%\s/-]{2,60}\)$/i;
-const KEYWORDS = new Set(['auto', 'transparent', 'currentcolor']);
 const VAR = /^var\(\s*(--[A-Za-z0-9_-]+)\s*\)$/;
 
 /** A length in px; `rem` and `em` count 16 px. `null` when it is not a plain length. */
@@ -235,19 +231,6 @@ export function stepToken(
     if (size < value) before = index;
   });
   return before < 0 ? null : (tokens[clamp(before - step + 1)] ?? null);
-}
-
-/** A CSS length, colour or number the person typed, trimmed; `null` when it is none of them. */
-export function parseRaw(input: string): string | null {
-  const text = input.trim();
-  if (text === '' || text.length > 200) return null;
-  const ok =
-    NUMBER.test(text) ||
-    LENGTH.test(text) ||
-    HEX.test(text) ||
-    COLOR_FUNCTION.test(text) ||
-    KEYWORDS.has(text.toLowerCase());
-  return ok ? text : null;
 }
 
 /** Whether a style value is outside the kit: anything but `var(--…)` of a token the kit has. */

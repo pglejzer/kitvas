@@ -3,7 +3,8 @@
 // stepper over its scale or its colours as swatches, with today's typed field behind "Custom" (a
 // colour keeps the field under its swatches). Where the kit has no tokens of the type, or the
 // scale is too long to label, the typed field alone, as before (`stepper.ts`). Every control
-// writes through `style.set`, so a Tailwind draft still writes its utilities.
+// writes through `style.set`, so a Tailwind draft still writes its utilities. Plan 19 (task T5):
+// every "Custom" goes through `env.custom`, so a redraw draws its editor open.
 
 import type { StyleProperty, StyleValue } from '../../../../src/edit/index.ts';
 import { opsForProp } from '../style/ops.ts';
@@ -16,6 +17,7 @@ import {
   selectControl,
   tokenPicker,
 } from './controls.ts';
+import type { EditorKind } from './custom/raw-editors.ts';
 import {
   imageOfUrl,
   imageUrl,
@@ -193,15 +195,29 @@ export function tokenRow(style: Style, parts: RowParts): HTMLElement {
   }
   const card = style.single ? env.state.a11y : null;
   const warn = (css: string): string | null => optionWarning(property, css, card, resolveCss);
+  // What "Custom" opens: the colour panel, a number with units, a weight or a plain number.
+  const editor: EditorKind = colour
+    ? { kind: 'colour', warn }
+    : length
+      ? { kind: 'length', property, units: unitsFor(property) }
+      : KIND[property] === 'fontWeight'
+        ? { kind: 'weight' }
+        : { kind: 'number' };
   const field = (open: boolean): HTMLElement =>
     tokenPicker({
       label: property,
       tokens,
       current,
       placeholder: style.hint,
-      ...(length ? { length: { property, units: unitsFor(property) } } : {}),
-      colour,
-      open,
+      editor,
+      // One memory for the list's "Custom..." and the stepper's button (plan 19, task T5).
+      custom: {
+        open: open || env.custom.has(style.key),
+        show: () => env.custom.open(style.key),
+        hide: () => env.custom.close(style.key),
+      },
+      // The colour panel is as wide as the whole row.
+      ...(colour ? { dock: parts.root } : {}),
       warn: (token) => warn(token.css),
       onPick: (value) => style.set(value),
       onPreview: (value) => style.preview(value),

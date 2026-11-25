@@ -3,11 +3,11 @@
 // tokens only (`--st-*`); shared classes are `../` (`k-`): `.k-card` for every card (with the
 // accent ring `data-on` for the chosen variant), `.k-card-meta`, `.k-change`.
 //
-// The status line with the open count, the request field kept compact at the top (until the ask
-// bar of part 2 takes its place), then each open request as a card with its variants as cards of
-// their own under it, never inside it, then "Earlier": one compact row per finished request with
-// its end at the right. Discard and Apply stay in view in the foot. No avatar, no sparkle: the
-// words say who did what. The bar's listening status is here too.
+// The status line with the open count, then each open request as a card with its variants as
+// cards of their own under it, never inside it, then "Earlier": one compact row per finished
+// request with its end at the right. Discard and Apply stay in view in the foot. No avatar, no
+// sparkle: the words say who did what. The bar's listening status is here too. Plan 19, task 4:
+// the tab has no field; with no requests one quiet line sends the person to the ask bar.
 
 export const SKIN_EDITOR_CLAUDE = `
 .claude {
@@ -16,7 +16,7 @@ export const SKIN_EDITOR_CLAUDE = `
   align-content: start;
   padding: var(--st-space-12) 0 var(--st-space-14);
 }
-.claude-status, .claude-form { padding: 0 var(--st-space-14); }
+.claude-status, .claude-empty { padding: 0 var(--st-space-14); }
 .claude-status { display: grid; gap: var(--st-space-8); }
 .claude-status-line {
   display: flex;
@@ -31,11 +31,7 @@ export const SKIN_EDITOR_CLAUDE = `
   margin-right: var(--st-space-6);
 }
 .claude-start { display: grid; gap: var(--st-space-4); }
-.claude-form { display: grid; gap: var(--st-space-6); }
-.claude-label { font-weight: var(--st-font-weight-medium); }
-.claude-field { min-height: var(--st-size-row); }
-.claude-form-actions { display: flex; justify-content: flex-end; gap: var(--st-space-6); }
-.claude-said:empty { display: none; }
+.claude-empty { margin: 0; }
 .claude-list { display: grid; gap: var(--st-space-12); align-content: start; }
 .claude-group { margin: var(--st-space-4) var(--st-space-14) 0; }
 .claude-requests { display: grid; gap: var(--st-space-12); margin: 0; padding: 0; list-style: none; }

@@ -153,3 +153,34 @@ test('without cards the bridge is the one frame, as before', () => {
   assert.deepEqual(types(alone.posted), ['select', 'inspect']);
   assert.deepEqual(bridge.frames(), [alone.frame]);
 });
+
+test('the edit card that loads while Edit is on is asked for its tree again', () => {
+  // The page's window, as far as the bridge listens on it: a card's `ready` reaches it here.
+  const listeners: Array<(event: MessageEvent) => void> = [];
+  const listen = (_type: string, listener: (event: MessageEvent) => void) =>
+    listeners.push(listener);
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: { addEventListener: listen },
+  });
+  try {
+    const { phone, tablet, bridge } = setup();
+    const ready = (one: { frame: Frame }): void => {
+      const data = { kitvas: 1, channel: one.frame.channel, type: 'ready', state: 'filled' };
+      const event = { origin: 'null', source: one.frame.element.contentWindow, data };
+      for (const listener of listeners) listener(event as unknown as MessageEvent);
+    };
+    ready(phone);
+    assert.ok(!types(phone.posted).includes('tree'), 'in Preview the frame is asked nothing');
+    bridge.send({ type: 'edit', on: true });
+    phone.posted.length = 0;
+    tablet.posted.length = 0;
+    // A draft opened in Edit asked before the frame listened: its `ready` asks again.
+    ready(phone);
+    assert.deepEqual(types(phone.posted), ['edit', 'tree']);
+    ready(tablet);
+    assert.deepEqual(types(tablet.posted), ['edit'], 'only the edit card answers a tree');
+  } finally {
+    Reflect.deleteProperty(globalThis, 'window');
+  }
+});

@@ -2,8 +2,9 @@
 // page hands them to the script in one JSON block (`edit-panel.ts`); the script never writes text
 // of its own. A key a panel uses goes into this list and into the locale file. The panels of the
 // editor with Claude (stage 4d) keep theirs in `edit-texts-claude.ts`, the redesign's (plan 18) are
-// in `edit-texts-look.ts`.
+// in `edit-texts-look.ts`, and those of the tools on the canvas (plan 19) in `edit-texts-canvas.ts`.
 
+import { CANVAS_TEXT_KEYS } from './edit-texts-canvas.ts';
 import { CLAUDE_TEXT_KEYS } from './edit-texts-claude.ts';
 import { FIDELITY_TEXT_KEYS } from './edit-texts-fidelity.ts';
 import { LOOK_TEXT_KEYS } from './edit-texts-look.ts';
@@ -25,11 +26,9 @@ const PANEL_TEXT_KEYS = [
   'props.choose',
   'props.custom',
   'props.custom.label',
-  'props.custom.invalid',
   'props.mapped',
   'props.select.search',
   'props.select.none',
-  'props.raw.source',
   'props.scope.label',
   'props.scope.all',
   'props.scope.item',
@@ -190,6 +189,7 @@ const PANEL_TEXT_KEYS = [
   'shortcuts.group.selection',
   'shortcuts.group.history',
   'shortcuts.group.structure',
+  'shortcuts.group.claude',
   'shortcuts.fold-left',
   'shortcuts.fold-right',
   'shortcuts.fold-both',
@@ -216,6 +216,9 @@ const PANEL_TEXT_KEYS = [
   'shortcuts.wrap',
   'shortcuts.unwrap',
   'shortcuts.menu',
+  'shortcuts.ask',
+  'shortcuts.variant-prev',
+  'shortcuts.variant-next',
   'shortcuts.key.wheel',
   'shortcuts.key.pinch',
   'shortcuts.key.drag',
@@ -255,7 +258,6 @@ const PANEL_TEXT_KEYS = [
   'props.keyword.other',
   'props.image.none',
   'props.unit',
-  'props.length.invalid',
   'session.change',
   'session.changes',
   'session.offKit',
@@ -483,4 +485,5 @@ export const EDIT_TEXT_KEYS: readonly string[] = [
   ...CLAUDE_TEXT_KEYS,
   ...LOOK_TEXT_KEYS,
   ...FIDELITY_TEXT_KEYS,
+  ...CANVAS_TEXT_KEYS,
 ];

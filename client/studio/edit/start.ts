@@ -8,6 +8,7 @@ import type { LiveFrameMessage } from '../../channel/live-protocol.ts';
 import type { Frame } from '../frames.ts';
 import { mountAi } from './ai/ai.ts';
 import { getEditState } from './api.ts';
+import { mountAskBar } from './ask/bar.ts';
 import { createBridge } from './bridge.ts';
 import type { EditorContext } from './context.ts';
 import { mountAsk } from './history/ask.ts';
@@ -30,6 +31,7 @@ import { mountMode } from './select/mode.ts';
 import { modeStorage, opensInEdit, readMode } from './select/mode-memory.ts';
 import { mountRect } from './select/rect.ts';
 import { mountRelease } from './select/release.ts';
+import { mountSelTools } from './seltools/seltools.ts';
 import { createStore, type Store } from './store.ts';
 import { mountGestureNote } from './structure/gesture-note.ts';
 import { mountLists } from './structure/lists.ts';
@@ -94,6 +96,10 @@ export function startEditor(main: HTMLElement, frame: Frame): Editor | undefined
   mountStateHeld(ctx);
   // Stage 4d (plan 17).
   mountAi(ctx);
+  // The tools on the canvas (plan 19): the ask bar under it, the action bar and the variant pill
+  // on the selection.
+  mountAskBar(ctx);
+  mountSelTools(ctx);
   mountNotes(ctx);
   mountView(ctx);
   mountTimeline(ctx);

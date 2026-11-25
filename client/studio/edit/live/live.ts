@@ -2,8 +2,9 @@
 // edit, undo or redo, once the cards show its build, every card measures the changed elements and
 // the ones with findings already (`live-loop.ts` says when: debounced, never during a drag or
 // typing); the edit card also holds the build against what the editor showed. The answers and
-// the server's code findings of the changed files become `store.live`; each card gets its
-// numbered marks, the screen its Live section and the selected element's card (`live-view.ts`).
+// the server's code findings of the changed files become `store.live`; the screen gets its Live
+// section and the selected element's card (`live-view.ts`). On the cards they are the Checks
+// lens's pins (plan 19, `client/studio/lens/`), so no numbered live tag is sent any more.
 // "Save version" starts the full check, whose result replaces the Checks pane (`live-check.ts`).
 
 import {
@@ -11,7 +12,6 @@ import {
   type LiveFrameMessage,
   MAX_LIVE_IDS,
 } from '../../../channel/live-protocol.ts';
-import type { Frame } from '../../frames.ts';
 import { onStudioEvent } from '../../live/live.ts';
 import { mountCheckCards } from '../checks/cards.ts';
 import type { EditorContext } from '../context.ts';
@@ -28,9 +28,7 @@ import {
   coveredIds,
   expectations,
   joinExpectations,
-  type LiveGroup,
   liveGroups,
-  liveMarks,
   sentOps,
   topsOf,
   withCodeAnswer,
@@ -65,8 +63,6 @@ export function mountLive(ctx: EditorContext): void {
   let expect: Expected[] = [];
   let round: { request: number; named: string[] } | null = null;
   let cardRequest = -1;
-  /** Each card's width, by its channel, as its last answer said. */
-  const widths = new Map<string, number>();
   let status: FullCheckStatus = 'idle';
   /** The applied count when "Save version" asked for the full check. */
   let savedAt = -1;
@@ -75,18 +71,9 @@ export function mountLive(ctx: EditorContext): void {
     store.set({ live: [...frameItems, ...[...code.values()].flat()] });
   };
 
-  function sendMarks(groups: readonly LiveGroup[], on: boolean): void {
-    for (const frame of bridge.frames()) {
-      const width = widths.get(frame.channel);
-      if (width === undefined) continue;
-      bridge.sendLive({ type: 'live-marks', marks: on ? liveMarks(groups, width) : [] }, frame);
-    }
-  }
-
-  function refresh(marks: boolean): void {
+  function refresh(): void {
     const state = store.get();
     const groups = liveGroups(state.live, state.waivers);
-    if (marks) sendMarks(groups, state.on);
     view.render({
       on: state.on,
       groups,
@@ -115,8 +102,7 @@ export function mountLive(ctx: EditorContext): void {
 
   const loop = createLiveLoop(clock, { measure, worth: () => frameItems.length > 0 });
 
-  function hearFacts(frame: Frame, message: Facts): void {
-    widths.set(frame.channel, message.width);
+  function hearFacts(message: Facts): void {
     if (round === null || message.request !== round.request) return;
     const covered = coveredIds(round.named, store.get().tree, message.facts);
     frameItems = withFrameAnswer(frameItems, message, covered);
@@ -194,18 +180,17 @@ export function mountLive(ctx: EditorContext): void {
       // Another copy of the same element: its card is read again.
       askCard();
     }
-    // A card that loaded a build has lost its marks: they are sent again.
-    const marks =
+    const shown =
       state.live !== previous.live ||
       state.waivers !== previous.waivers ||
       state.on !== previous.on ||
-      state.builds !== previous.builds;
-    if (marks) refresh(true);
-    else if (state.selection !== previous.selection || state.a11y !== previous.a11y) refresh(false);
+      state.selection !== previous.selection ||
+      state.a11y !== previous.a11y;
+    if (shown) refresh();
   });
 
-  bridge.onLive((frame, message) => {
-    if (message.type === 'live-facts') hearFacts(frame, message);
+  bridge.onLive((_frame, message) => {
+    if (message.type === 'live-facts') hearFacts(message);
     else if (message.type === 'a11y-card') hearCard(message);
   });
 
@@ -233,7 +218,7 @@ export function mountLive(ctx: EditorContext): void {
         code = new Map();
         publish();
       }
-      refresh(false);
+      refresh();
     },
   );
   main.addEventListener(FULL_CHECK_EVENT, () => {
@@ -244,5 +229,5 @@ export function mountLive(ctx: EditorContext): void {
   // The Checks pane's cards (evidence, Use <token>, Ask Claude) and its Run buttons.
   mountCheckCards(ctx);
 
-  refresh(false);
+  refresh();
 }

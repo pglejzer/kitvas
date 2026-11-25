@@ -8,12 +8,15 @@
 // (ADR 0058): that build's bundle runs as one more script of the same document, finds this
 // runtime and only hands itself over (`page/swap.ts`), and its render takes the place of the one
 // shown. The listeners, the overlays and the page's scroll stay as they are.
+//
+// The lens pins (plan 19, `lens/pins.ts`) have a reader of their own (`lens-protocol.ts`), asked
+// before the others; their overlay is made first, so its listeners on the window run first.
 
 import { isCanvasStudio } from '../channel/canvas-protocol.ts';
+import { type LensPin, readLensStudio } from '../channel/lens-protocol.ts';
 import {
   type ForceState,
   isLiveStudio,
-  type LiveMark,
   MAX_LONGHANDS,
   type NotePin,
 } from '../channel/live-protocol.ts';
@@ -23,6 +26,7 @@ import { createEdit } from './edit/edit.ts';
 import { createPreview } from './edit/preview.ts';
 import { createStructure } from './edit/structure.ts';
 import { createFlash } from './flash/flash.ts';
+import { createLensPins } from './lens/pins.ts';
 import { createForce } from './live/force.ts';
 import { createLive } from './live/live.ts';
 import { createPins } from './live/pins.ts';
@@ -71,6 +75,10 @@ export function startFrame(input: FrameInput): void {
   const post = (message: FrameMessage): void => {
     studio.postMessage(message, studioOrigin);
   };
+  // First of all: a press on a lens pin is stopped before the editor and the gestures hear it.
+  const lensPins = createLensPins({
+    report: (key) => studio.postMessage({ kitvas: 1, channel, type: 'pin', key }, studioOrigin),
+  });
   const marks = createMarks();
   const motion = createMotion();
   const preview = createPreview();
@@ -82,10 +90,7 @@ export function startFrame(input: FrameInput): void {
   // What the studio has the frame draw leaves the page while a drag runs (ADR 0066).
   const shownMarks = hushed<Mark[]>((value) => marks.draw(value), []);
   const shownPins = hushed<NotePin[]>((value) => pins.set(value), []);
-  const shownLive = hushed<LiveMark[]>(
-    (value) => live.handle({ kitvas: 1, channel, type: 'live-marks', marks: value }),
-    [],
-  );
+  const shownLens = hushed<LensPin[]>((value) => lensPins.set(value), []);
   // Made before the canvas: its listeners on the window run before the canvas's keys.
   const structure = createStructure({
     channel,
@@ -94,7 +99,7 @@ export function startFrame(input: FrameInput): void {
       edit.quiet(on);
       shownMarks.hush(on);
       shownPins.hush(on);
-      shownLive.hush(on);
+      shownLens.hush(on);
     },
     // A gesture that was lost (`drag/gesture-log.ts`): its last steps, for whoever reads them.
     report: (message) => studio.postMessage(message, studioOrigin),
@@ -118,6 +123,7 @@ export function startFrame(input: FrameInput): void {
       document.documentElement.dataset.state = state;
       marks.follow(moved);
       edit.follow(moved);
+      lensPins.follow(moved);
     }
     // Also when the state did not change, so the studio is never left waiting.
     post({ kitvas: 1, channel, type: 'shown', state });
@@ -151,6 +157,8 @@ export function startFrame(input: FrameInput): void {
       if (forced) force.set(forced.ids, forced.state);
       // A press that has not become a drag yet does not hold the page: its log hears of the build.
       structure.swapped();
+      // The pins find their elements in the new render.
+      lensPins.swapped();
     },
     scroll: () => ({ x: window.scrollX, y: window.scrollY }),
     answer(build, step, scroll) {
@@ -169,6 +177,13 @@ export function startFrame(input: FrameInput): void {
 
   window.addEventListener('message', (event) => {
     if (event.source !== studio || event.origin !== studioOrigin) return;
+    // The lens's pins, in Preview as in Edit (plan 19).
+    const lens = readLensStudio(event.data, channel);
+    if (lens) {
+      heard = true;
+      shownLens.set(lens.pins);
+      return;
+    }
     const message = parseStudioMessage(event.data, channel);
     if (!message) return;
     heard = true;
@@ -184,7 +199,6 @@ export function startFrame(input: FrameInput): void {
         forced = state === null || ids.length === 0 ? null : { ids, state };
         force.set(ids, state);
       } else if (message.type === 'pins') shownPins.set(message.pins);
-      else if (message.type === 'live-marks') shownLive.set(message.marks);
       else if (message.type === 'state-held') {
         const { request, id } = message;
         const longhands = force.held(id).slice(0, MAX_LONGHANDS);

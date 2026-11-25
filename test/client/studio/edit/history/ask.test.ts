@@ -6,7 +6,6 @@ import {
   elementOf,
   hintKey,
   MAX_NOTE,
-  noteOf,
   subjectOf,
 } from '../../../../../client/studio/edit/history/ask.ts';
 import type { EditOp, Refusal } from '../../../../../src/edit/index.ts';
@@ -180,10 +179,6 @@ test('the note points at the element of the refused op', () => {
     reason: 'invalid',
   };
   assert.equal(elementOf(picked), 'sections/Hero:section/Text');
-  const note = noteOf('shop', picked, null);
-  assert.equal(note.kind, 'note');
-  assert.equal(note.slug, 'shop');
-  assert.equal(note.element, 'sections/Hero:section/Text');
 });
 
 test('only a refusal or a conflict with a gone place is asked about', () => {

@@ -4,6 +4,11 @@
 // checks of 4c); the card shows the check sign or the warnings. Leaving it takes the preview back.
 // Never during a drag, while an edit is on its way or while Edit is off (`allowed`). The rules
 // are here over injected ports, so they are tested without a browser; `ai.ts` wires them.
+//
+// Plan 19, task 4 (redesign spec, goal 11): the variant pill on the canvas holds a variant. A held
+// variant wins over a pointed or a focused card and stays when the pointer leaves the card; it
+// ends on `hold(null)`, on an apply, and once it can no longer be shown (out of date, applied, not
+// built). A drag or an edit on its way holds it back, as it does every preview; it shows after.
 
 import type { EditOp } from '../../../../src/edit/index.ts';
 import { MAX_PREVIEW, type PreviewChange } from '../../../channel/edit-protocol.ts';
@@ -47,6 +52,10 @@ export type VariantPreview = {
   point(key: string | null): void;
   /** Focus is in a card (`null`: in none). */
   focus(key: string | null): void;
+  /** The variant pill holds a card on the canvas (`null`: lets it go); it wins over the rest. */
+  hold(key: string | null): void;
+  /** The card held now; `null` with none. */
+  held(): string | null;
   /** A `live-facts` answer of any card. */
   facts(request: number, facts: readonly LiveFact[]): void;
   /**
@@ -106,6 +115,7 @@ export function measuringFrame(
 export function createVariantPreview(ports: PreviewPorts): VariantPreview {
   let pointer: string | null = null;
   let focused: string | null = null;
+  let held: string | null = null;
   let current: string | null = null;
   /** The measurement on its way, and the card it is for. */
   let pending: { request: number; key: string } | null = null;
@@ -135,9 +145,11 @@ export function createVariantPreview(ports: PreviewPorts): VariantPreview {
     ports.checked(key);
   }
 
-  /** Previews the wanted card (the pointer's before the focus's), or none. */
+  /** Previews the wanted card (the held one, then the pointer's, then the focus's), or none. */
   function update(): void {
-    const wanted = pointer ?? focused;
+    // A held card that can no longer be shown is let go; one held back by `allowed` is kept.
+    if (held !== null && ports.find(held) === null) held = null;
+    const wanted = held ?? pointer ?? focused;
     const variant = wanted !== null && ports.allowed() ? ports.find(wanted) : null;
     const next = variant ? wanted : null;
     if (next === current) return;
@@ -157,6 +169,12 @@ export function createVariantPreview(ports: PreviewPorts): VariantPreview {
       focused = key;
       update();
     },
+    hold(key) {
+      if (key === held) return;
+      held = key;
+      update();
+    },
+    held: () => held,
     facts(request, facts) {
       if (pending === null || pending.request !== request) return;
       const { key } = pending;
@@ -165,6 +183,8 @@ export function createVariantPreview(ports: PreviewPorts): VariantPreview {
       ports.checked(key);
     },
     handOver(key) {
+      // The applied card is held no more, wherever it showed.
+      if (held === key) held = null;
       if (current !== key) return;
       dropPending();
       current = null;

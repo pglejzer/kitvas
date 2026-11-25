@@ -65,25 +65,6 @@ export function iconSheet(icons: {
   };
 }
 
-/** Where cell `index` starts on the sheet, in CSS pixels. */
-export function cellAt(
-  sheet: Pick<IconSheet, 'cell' | 'columns'>,
-  index: number,
-): { x: number; y: number } {
-  return {
-    x: (index % sheet.columns) * sheet.cell,
-    y: Math.floor(index / sheet.columns) * sheet.cell,
-  };
-}
-
-/** The sheet's size in CSS pixels: whole rows, the last one possibly not full. */
-export function sheetSize(sheet: IconSheet): { width: number; height: number } {
-  return {
-    width: sheet.columns * sheet.cell,
-    height: Math.ceil(sheet.names.length / sheet.columns) * sheet.cell,
-  };
-}
-
 /**
  * The sheet as lines of the catalog entry: the icon component taken from the kit by its name, the
  * names, and `KitvasIconSheet`, a grid of fixed cells with each icon centred in its cell with its

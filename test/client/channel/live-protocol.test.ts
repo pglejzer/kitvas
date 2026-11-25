@@ -37,10 +37,9 @@ test('the page forces a state, asks for measurements, the card and the held prop
   );
   assert.ok(parseLiveStudio({ type: 'state-held', request: 3, id: ID }, CHANNEL));
   assert.equal(parseLiveStudio({ type: 'state-held', request: -1, id: ID }, CHANNEL), undefined);
+  // The live marks went with plan 19: the Checks lens draws a pin per finding.
   const marks = [{ id: ID, label: 'L1', tone: 'fix' }];
-  assert.ok(parseLiveStudio({ type: 'live-marks', marks }, CHANNEL));
-  const long = [{ id: ID, label: 'L123456789', tone: 'fix' }];
-  assert.equal(parseLiveStudio({ type: 'live-marks', marks: long }, CHANNEL), undefined);
+  assert.equal(parseLiveStudio({ type: 'live-marks', marks }, CHANNEL), undefined);
 });
 
 test('a frame answers the held longhands of the state it forces, within the limits', () => {

@@ -325,6 +325,7 @@ test('status and the generated OpenAPI document', async () => {
       '/api/v1/drafts/{slug}/images',
       '/api/v1/drafts/{slug}/images/{file}',
       '/api/v1/drafts/{slug}/inspect',
+      '/api/v1/drafts/{slug}/kit-lens',
       '/api/v1/drafts/{slug}/notes',
       '/api/v1/drafts/{slug}/notes/{id}',
       '/api/v1/drafts/{slug}/notes/{id}/delete',

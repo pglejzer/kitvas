@@ -14,7 +14,6 @@ export const INVENTORY_KINDS = [
   'price',
   'brand',
 ] as const;
-export type InventoryKind = (typeof INVENTORY_KINDS)[number];
 
 export const InventoryItemSchema = z.strictObject({
   kind: z.enum(INVENTORY_KINDS),

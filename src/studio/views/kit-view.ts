@@ -1,4 +1,4 @@
-// The kit catalog as data: tokens grouped by type, components grouped by category.
+// The kit catalog as data: colour swatch rules, components grouped by category.
 
 import {
   CATEGORIES,
@@ -6,20 +6,7 @@ import {
   type FlatToken,
   formatTokenValue,
   type KitComponent,
-  type TokenType,
 } from '../../kit/index.ts';
-
-export const TOKEN_ORDER: readonly TokenType[] = [
-  'color',
-  'dimension',
-  'fontFamily',
-  'fontWeight',
-  'number',
-  'duration',
-];
-
-export type TokenRow = { name: string; value: string; swatch: boolean };
-export type TokenGroup = { type: TokenType; rows: TokenRow[] };
 
 export type PropRow = {
   name: string;
@@ -40,20 +27,6 @@ export type ComponentRow = {
 };
 
 export type CategoryGroup = { category: string; components: ComponentRow[] };
-
-/** Tokens by type in the catalog's order; a type with no tokens is left out. */
-export function groupTokens(tokens: FlatToken[]): TokenGroup[] {
-  return TOKEN_ORDER.map((type) => ({
-    type,
-    rows: tokens
-      .filter((token) => token.type === type)
-      .map((token) => ({
-        name: cssVarName(token.path),
-        value: formatTokenValue(token),
-        swatch: token.type === 'color',
-      })),
-  })).filter((group) => group.rows.length > 0);
-}
 
 /** One rule per colour token, for the page's own `<style nonce>` block (no inline styles). */
 export function swatchRules(tokens: FlatToken[]): string {

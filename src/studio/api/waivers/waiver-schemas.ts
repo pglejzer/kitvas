@@ -44,5 +44,3 @@ export const WaiverWithdrawSchema = z.strictObject({
 });
 
 export type Waiver = Zod.infer<typeof WaiverSchema>;
-export type WaiversFile = Zod.infer<typeof WaiversFileSchema>;
-export type WaiverRequest = Zod.infer<typeof WaiverRequestSchema>;
