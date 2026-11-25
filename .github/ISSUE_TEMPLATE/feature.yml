@@ -1,0 +1,70 @@
+name: Feature
+description: Propose a change or something new in kitvas.
+title: "[feature] "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem first: what you are trying to do and what stops you now. A proposal that starts from
+        the problem is easier to weigh than one that starts from a solution.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Part of kitvas
+      description: Where the change would be. Pick the closest one.
+      options:
+        - Install or update (the session hook, npm ci)
+        - /kitvas (status, init, language)
+        - /kitvas:kit (components, props, tokens)
+        - /kitvas:compose (drafts and versions)
+        - /kitvas:learn (project kits)
+        - /kitvas:craft (sketches of a component, icon or logo)
+        - /kitvas:rework (rework of a page or a screenshot)
+        - /kitvas:edit (requests from the editor)
+        - The studio's pages
+        - The studio's editor
+        - Checks (kitvas check, kitvas kit verify)
+        - The command line (kitvas <command>)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you want to do, and what kitvas does now.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What kitvas should do. Name the commands, skill steps or studio parts it touches, if you know them.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other ways you considered or use today, and why they fall short.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Examples and context
+      description: >-
+        Links, screenshots of your own product, or how another tool behaves. kitvas takes an idea or a style from
+        an example, never a copy of another tool's look or code.
+
+  - type: checkboxes
+    id: before
+    attributes:
+      label: Before you send
+      options:
+        - label: I searched the open and closed issues, and this proposal is not there yet.
+          required: true

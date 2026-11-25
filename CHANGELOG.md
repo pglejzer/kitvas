@@ -10,7 +10,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - `kitvas status` and `kitvas init`, each with `--json`.
 - Kit contract (`kit.json`), DTCG 2025.10 tokens turned into `--kit-*` custom properties, and `kitvas kit list | show | check | component | css`.
 - The built-in kit "Base": tokens, 12 components and 8 icons; the `/kitvas:kit` skill.
-- Dependency install into the plugin data folder, from a session hook and from the CLI.
+- Dependency install into the plugin data folder, from a session hook and from the CLI. The hook's command names only `${CLAUDE_PLUGIN_ROOT}` and reads the data folder from the environment Claude Code gives it (ADR 0011, 0071).
 - Drafts with versions in `.kitvas/drafts/`, `layout.md` checked against the kit, generated entry files, and `kitvas draft new | list | show | version`, `kitvas layout`, `kitvas context`.
 - `kitvas build`: a draft as a page with the kit's styles, and a stable id on every element written in the draft (`build/json/ids.json`).
 - `kitvas check`: build, types and kit rules of a draft as one list of findings with place, element id, message and hint (`build/json/checks.json`).
@@ -36,6 +36,19 @@ All notable changes to this project are documented here. The format follows [Kee
 - `kitvas map [slug]`: the workspace for agents in one answer, drafts or one draft's sections, files and element ids.
 - The `/kitvas:compose` skill with the `maker` and `patcher` agents: a draft from a brief, section by section, fixed until its checks pass.
 - Quality gate: lint, types, tests with coverage, audit, and architecture, size, legacy and docs guards.
+- Written kits from a Figma file, a website or screenshots: the `tailor` agent writes the components into the kit folder, `kitvas kit scan` reads a website and `kitvas kit crop` cuts the references. `kit verify` gains a sixth step, `look`, that scores each example against its reference. Figma is read only through the person's own MCP server (ADR 0035 to 0038).
+- Guidelines with ids and sources, and `kitvas guidelines` for the checklist a skill answers from the screenshots; facts read from the rendered page for the checks (ADR 0043, 0044, 0047).
+- `/kitvas:rework` and `/kitvas:craft`: a draft that reworks an existing page or screenshot, and one that sketches a missing component, icon or logo with the `sketcher` agent. `kitvas craft pick | add | export` keep a sketch, put it into the project's additions layer for the kit or write it to a folder; `kitvas kit detect` lists the project's kits and the signs of a design system not learned yet (ADR 0045, 0046).
+- A studio address that can be kept, `http://kitvas.localhost:<port>/`, open for 30 days after the first visit, and a studio that stops when nobody uses it (ADR 0040, 0042).
+- The editor in the studio: a change made on the canvas is written into the draft's own TSX and SCSS; moving, inserting, deleting and wrapping elements, with element ids kept across edits; canvas tools, press and drag, handles and zoom; every width and state with live checks, waivers, lists and uploads; an undo history kept across a reload (ADR 0048 to 0055, 0058 to 0061, 0065 to 0067, 0069, 0070).
+- `/kitvas:edit`: the editor with Claude, through requests, variants, notes, locks, a timeline, suggestions and the reasons for each section (ADR 0056).
+- The studio's own look, in light and dark, with Cards and Flush layouts and accents (ADR 0057); a start page with the moving logo, Claude's status in every bar, and Guide, Shortcuts and Doctor pages (ADR 0068).
+- `kitvas:scout`, an agent that looks facts up on the web for the compose and craft skills and writes one research note (ADR 0062).
+- `kitvas doctor`: a report of the setup that holds nothing private, also as a studio page (ADR 0063).
+- `kitvas draft delete | restore | purge`, with a trash in `.kitvas/trash/` and a page for a draft in it (ADR 0064).
+- A kit page for an id that is not there: a 404 that says so and gives `kitvas kit list`.
+- Skill evals for `claude plugin eval` in `evals/`, for the `kitvas`, `kit`, `compose`, `learn`, `craft` and `rework` skills.
+- `.claude-plugin/marketplace.json`, so the plugin installs with `claude plugin marketplace add pglejzer/kitvas` and `claude plugin install kitvas@kitvas`.
 
 ### Security
 

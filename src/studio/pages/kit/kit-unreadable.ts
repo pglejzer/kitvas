@@ -1,5 +1,6 @@
-// `/kit/<id>` for a kit that cannot be read (`KIT_INVALID`): the kit pages' frame with the reason
-// and the command that says what is wrong. A kit is in this state while it is being written.
+// `/kit/<id>` for a kit that cannot be read (`KIT_INVALID`) or is not there (`KIT_NOT_FOUND`): the kit pages'
+// frame with the reason and the command that helps. A kit is unreadable while it is being written; an id that is
+// not there comes from an old link or a typed address.
 
 import type { KitvasError } from '../../../shared/index.ts';
 import { html } from '../html.ts';
@@ -15,12 +16,16 @@ export function kitUnreadablePage(
   error: KitvasError,
 ): string {
   const { t } = deps;
+  const missing = error.code === 'KIT_NOT_FOUND';
+  const mark = missing ? 'data-kit-missing' : 'data-kit-unreadable';
   const block = infoBlock(t, {
     title: id,
-    lead: html`<span class="kit-lead-line" data-kit-unreadable>${t(`error.${error.code}`, error.params)}</span>`,
+    lead: html`<span class="kit-lead-line" ${mark}>${t(`error.${error.code}`, error.params)}</span>`,
     back: { href: '/kit', label: t('studio.kit.back') },
   });
-  const card = html`<ul class="info-cards kit-add-cards"><li class="info-card"><p>${t('studio.kit.unreadableBody')}</p>${commandBox(t, `${BY_HAND} kit check ${id}`, { copy: true })}</li></ul>`;
+  const body = missing ? t('studio.kit.missingBody') : t('studio.kit.unreadableBody');
+  const command = missing ? `${BY_HAND} kit list` : `${BY_HAND} kit check ${id}`;
+  const card = html`<ul class="info-cards kit-add-cards"><li class="info-card"><p>${body}</p>${commandBox(t, command, { copy: true })}</li></ul>`;
   const group = infoGroup(t('studio.kit.unreadableTitle'), card, 'kit-unreadable');
   return page({
     title: id,

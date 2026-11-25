@@ -154,10 +154,47 @@ test('the list shows each kit with its component count and its state', async () 
   assert.ok(withProblems.includes('<span class="k-fix">Problems: 1</span>'));
 });
 
-test('an unknown kit is KIT_NOT_FOUND', async () => {
+test('an unknown kit has a 404 page that says so and links to the kits', async () => {
+  const routes = pageRoutes({
+    drafts: tempDrafts().store,
+    kits: builtinKits(),
+    t,
+    skin: '/* skin */',
+    frame: { port: 5001, key: 'k3y' },
+    version: '1.0.0',
+    projectKit: () => 'base',
+  });
+  const route = routes.find((candidate) => candidate.id === 'kit');
+  assert.ok(route);
+  const answer = await route.handle({
+    params: { id: 'nope' },
+    headers: {},
+    query: new URLSearchParams(),
+    host: '127.0.0.1:5000',
+    nonce: 'N0nce',
+  });
+  assert.ok(typeof answer === 'object' && answer !== null && 'status' in answer);
+  assert.equal(answer.status, 404);
+  const text = String(answer.body);
+  assert.ok(text.includes('<main class="k-page start kit-page">'));
+  assert.ok(text.includes('<a class="info-back" href="/kit">'));
+  assert.ok(text.includes('<h1>nope</h1>'));
+  assert.ok(text.includes('data-kit-missing>Kit &quot;nope&quot; was not found.'));
+  assert.ok(text.includes('kit list</code>'));
+  assert.ok(!text.includes('kit check nope'), 'no check command for a kit that is not there');
+  assert.ok(text.includes('<footer class="start-foot">'));
+});
+
+test('a kit store error other than not found or invalid still reaches the server', async () => {
+  const failing: KitStore = {
+    ...builtinKits(),
+    read: () => {
+      throw new KitvasError('INTERNAL', { detail: 'disk' });
+    },
+  };
   await assert.rejects(
-    async () => pages(builtinKits())('kit', { id: 'nope' }),
-    (error: unknown) => error instanceof KitvasError && error.code === 'KIT_NOT_FOUND',
+    async () => pages(failing)('kit', { id: 'base' }),
+    (error: unknown) => error instanceof KitvasError && error.code === 'INTERNAL',
   );
 });
 

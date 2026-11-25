@@ -75,8 +75,9 @@ export function pageRoutes(deps: PageDeps): PageRoute[] {
         try {
           return kitPage(deps, params.id, { host, nonce });
         } catch (error) {
-          // A kit that cannot be read gets a page that says why, not a bare error.
-          if (!(error instanceof KitvasError && error.code === 'KIT_INVALID')) throw error;
+          // A kit that cannot be read or is not there gets a page that says why, not a bare error.
+          if (!(error instanceof KitvasError)) throw error;
+          if (error.code !== 'KIT_INVALID' && error.code !== 'KIT_NOT_FOUND') throw error;
           const body = kitUnreadablePage(deps, params.id, { host, nonce }, error);
           return { status: httpStatusOf(error.code), body };
         }
