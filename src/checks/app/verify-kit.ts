@@ -71,7 +71,7 @@ type PageInput = {
   reported: ReadonlySet<string>;
 };
 
-/** `render` and `tokens`: one catalog build and one browser for both, closed whatever happens. */
+/** `render`, `tokens` and `look`: one catalog build and one browser for both, closed whatever happens. */
 async function pageSteps(deps: VerifyDeps, input: PageInput): Promise<PageSteps> {
   const { loaded, kitId, dir, examples, reported } = input;
   if (!deps.browser) return NO_BROWSER;
@@ -95,10 +95,23 @@ async function pageSteps(deps: VerifyDeps, input: PageInput): Promise<PageSteps>
     const { bundler } = deps.render;
     const render = await renderStep({ build, dir, examples, reported, inspect, bundler });
     const tokens = await tokensStep({ loaded, build, inspect });
-    if (!isWritten(loaded)) return { render, tokens, look: SKIPPED, notes: [] };
+    // Each skipped step names its reason once.
+    const notes: string[] = [];
+    if (tokens.state === 'skipped') {
+      notes.push(
+        loaded.kit.tokens.cssVars === undefined || mappedVariables(loaded).length === 0
+          ? 'kits.verify.noTokenMap'
+          : 'kits.verify.noPage',
+      );
+    }
+    if (!isWritten(loaded)) {
+      return { render, tokens, look: SKIPPED, notes: [...notes, 'kits.verify.notWritten'] };
+    }
     // A written kit is held to its references; a browser that cannot capture says so.
     const { capture } = session;
-    if (!capture) return { render, tokens, look: SKIPPED, notes: ['kits.verify.noBrowser'] };
+    if (!capture) {
+      return { render, tokens, look: SKIPPED, notes: [...notes, 'kits.verify.noBrowser'] };
+    }
     // The adapter writes the screenshots here; the folder has to exist.
     deps.render.fs.writeText(join(dir, 'look', '.gitkeep'), '');
     const look = await lookStep({
@@ -108,7 +121,7 @@ async function pageSteps(deps: VerifyDeps, input: PageInput): Promise<PageSteps>
       examples,
       capture: (input) => capture.call(session, input),
     });
-    return { render, tokens, look, notes: [] };
+    return { render, tokens, look, notes };
   } finally {
     await session.close();
   }
@@ -146,7 +159,13 @@ export async function verifyKit(
   const dir = catalogDir(project, kitId);
   let imports = SKIPPED;
   let types = SKIPPED;
-  let page: PageSteps = { render: SKIPPED, tokens: SKIPPED, look: SKIPPED, notes: [] };
+  // The steps after `schema` are not run for a kit that failed it; the issues say why.
+  let page: PageSteps = {
+    render: SKIPPED,
+    tokens: SKIPPED,
+    look: SKIPPED,
+    notes: ['kits.verify.afterSchema'],
+  };
 
   const { loaded } = schema;
   if (loaded && schema.state === 'passed') {

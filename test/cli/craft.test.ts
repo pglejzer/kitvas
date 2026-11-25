@@ -9,7 +9,13 @@ import { createFsDraftStore } from '../../src/drafts/adapters/fs-draft-store.ts'
 import { createDraft } from '../../src/drafts/index.ts';
 import { createFolderKitStore } from '../../src/kit/adapters/folder-store.ts';
 import type { KitComponent, KitWriter } from '../../src/kit/index.ts';
-import { categoryOf, craftEntry, renameExport, requireKit } from '../../src/kit/index.ts';
+import {
+  categoryOf,
+  craftEntry,
+  describeFile,
+  renameExport,
+  requireKit,
+} from '../../src/kit/index.ts';
 import { initWorkspace, KitvasError, PLUGIN_ROOT, workspaceDir } from '../../src/shared/index.ts';
 import { page } from '../checks/rules/facts.ts';
 import { FIXTURE_KITS } from '../helpers/kits.ts';
@@ -416,6 +422,37 @@ test('renameExport renames the export and refuses a file without one', () => {
     'export const Cart = () => null;\n',
   );
   assert.throws(() => renameExport('const x = 1;\n', 'Cart'), { code: 'ADDITION_INVALID' });
+});
+
+test('renameExport renames the props type and leaves a name that only holds the old one', () => {
+  const text = [
+    'type KitvasLogoAProps = { size?: number };',
+    'const MyKitvasLogoA = 1;',
+    'export function KitvasLogoA(props: KitvasLogoAProps) { return null; }',
+    '',
+  ].join('\n');
+  assert.equal(
+    renameExport(text, 'KitvasLogo'),
+    [
+      'type KitvasLogoProps = { size?: number };',
+      'const MyKitvasLogoA = 1;',
+      'export function KitvasLogo(props: KitvasLogoProps) { return null; }',
+      '',
+    ].join('\n'),
+  );
+});
+
+test('describeFile replaces a first comment about a sketch and nothing else', () => {
+  assert.equal(
+    describeFile('// Sketch A of the logo.\n// More.\nexport function X() {}\n', 'A cart  mark'),
+    '// A cart mark\nexport function X() {}\n',
+  );
+  assert.equal(
+    describeFile('/* Sketch B */\nexport function X() {}\n', 'A cart'),
+    '// A cart\nexport function X() {}\n',
+  );
+  const plain = '// Draws the cart.\nexport function X() {}\n// sketch later\n';
+  assert.equal(describeFile(plain, 'A cart'), plain);
 });
 
 test('--category picks the category of a crafted component; an unknown one is a usage error', () => {

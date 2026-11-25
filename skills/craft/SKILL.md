@@ -97,7 +97,7 @@ When the person is happy, run `KITVAS craft add <slug> --json`. The answer holds
 - `ADDITION_EXISTS`: the name is already in the kit or in the additions. Ask whether to replace it; only after a yes, run it again with `--replace`. Or offer another name.
 - `ADDITION_INVALID`: show the message, fix the sketch with the patcher, and try again.
 
-Run `KITVAS kit verify <kit-id> --json` and report its result honestly (steps skipped without a browser are skipped, not passed). Then offer the export, and run it only on a yes: `KITVAS craft export <slug> --to <folder> --json` writes the SVG, TSX and styles to the folder the person names, with a short README on how to import them. The answer lists `data.files`.
+Run `KITVAS kit verify <kit-id> --json` and report its result honestly (steps skipped without a browser are skipped, not passed). Then offer the export, and run it only on a yes: `KITVAS craft export <slug> --to <folder> --json` writes the component's TSX file (named for the final, with no trace of the sketch) and a short README to the folder the person names. It writes no SVG file and no styles file: a sketch is one TSX file. The file follows no project's format, so tell the person to run their formatter on it. The answer lists `data.files`.
 
 ## 9. Report
 

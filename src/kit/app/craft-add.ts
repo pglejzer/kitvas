@@ -36,12 +36,31 @@ const invalid = (name: string): KitvasError =>
 /** The first exported component of a sketch file. */
 const EXPORTED = /export\s+(?:default\s+)?(?:function|const)\s+([A-Z][A-Za-z0-9]*)/;
 
-/** The sketch with its component renamed to `name`, as a named export. */
+/**
+ * The sketch with its component renamed to `name`, as a named export. Every identifier that is
+ * the old name, or the old name followed by a capital letter (`<Old>Props`), takes the new name;
+ * a name that holds the old one in its middle is left alone.
+ */
 export function renameExport(text: string, name: string): string {
   const old = EXPORTED.exec(text)?.[1];
   if (old === undefined) throw invalid(name);
-  const renamed = old === name ? text : text.replace(new RegExp(`\\b${old}\\b`, 'g'), name);
+  const renamed =
+    old === name ? text : text.replace(new RegExp(`\\b${old}(?![a-z0-9_$])`, 'g'), () => name);
   return renamed.replace(/export\s+default\s+(function|const)\s/, 'export $1 ');
+}
+
+/** The first comment of a file that starts a line: a run of `//` lines, or one block comment. */
+const FIRST_COMMENT = /^[ \t]*(?:\/\/[^\n]*(?:\n|$))+|^[ \t]*\/\*[\s\S]*?\*\/[ \t]*(?:\n|$)/m;
+
+/**
+ * The file's first comment, when it speaks of a sketch, replaced by one line with the final's
+ * description. Any other first comment, and every other comment, stays as it is.
+ */
+export function describeFile(text: string, description: string): string {
+  const comment = FIRST_COMMENT.exec(text)?.[0];
+  if (comment === undefined || !/\bsketch/i.test(comment)) return text;
+  const summary = description.replace(/\s+/g, ' ').trim();
+  return text.replace(comment, () => (summary === '' ? '' : `// ${summary}\n`));
 }
 
 function propType(type: string): Pick<Prop, 'type' | 'values'> {
@@ -132,7 +151,7 @@ export function craftEntry(final: CraftPicked, chosen: KitCategory = 'display'):
 /** The final's component file, named by the craft draft. */
 const componentFile = (final: CraftPicked): { path: string; text: string } => ({
   path: `components/${final.name}.tsx`,
-  text: renameExport(final.text, final.name),
+  text: describeFile(renameExport(final.text, final.name), final.description),
 });
 
 /**
@@ -151,7 +170,11 @@ export function addCraft(
   return { kit: final.kit, name: final.name, files: [file.path] };
 }
 
-/** Writes the final's component file and a short README into `dir`. */
+/**
+ * Writes the final's component file and a short README into `dir`. A sketch is one TSX file and
+ * nothing else, so there are no styles to carry; no SVG is written, because nothing in the code
+ * renders a component to markup without a browser.
+ */
 export function exportCraft(deps: CraftDeps, slug: string, dir: string): { files: string[] } {
   const final = deps.picked(slug);
   const component = componentFile(final);
