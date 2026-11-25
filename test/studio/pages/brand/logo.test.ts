@@ -7,7 +7,14 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { PLUGIN_ROOT } from '../../../../src/shared/index.ts';
-import { LOGO_SEEN_KEY, logo, logoEntrance } from '../../../../src/studio/pages/brand/logo.ts';
+import {
+  FAVICON,
+  LOGO_SEEN_KEY,
+  logo,
+  logoEntrance,
+} from '../../../../src/studio/pages/brand/logo.ts';
+import { html } from '../../../../src/studio/pages/html.ts';
+import { page } from '../../../../src/studio/pages/shell.ts';
 
 const BRAND = readFileSync(join(PLUGIN_ROOT, 'docs', 'brand', 'kitvas-logo.svg'), 'utf8');
 const MARK = readFileSync(join(PLUGIN_ROOT, 'docs', 'brand', 'kitvas-mark.svg'), 'utf8');
@@ -34,6 +41,21 @@ test('the mark is the block and the pointer, as the brand file of the mark', () 
   assert.deepEqual(pathsOf(text), pathsOf(MARK));
   assert.deepEqual(placesOf(text), placesOf(MARK));
   assert.ok(!text.includes('k-logo-letter'));
+});
+
+test('the tab icon is the mark, dark on a light tab bar and light on a dark one', () => {
+  const prefix = 'data:image/svg+xml,';
+  assert.ok(FAVICON.startsWith(prefix));
+  const svg = decodeURIComponent(FAVICON.slice(prefix.length));
+  assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'));
+  assert.deepEqual(pathsOf(svg), pathsOf(MARK));
+  assert.ok(
+    svg.includes(
+      '<style>path{fill:#1d2025}@media (prefers-color-scheme:dark){path{fill:#eef0f3}}</style>',
+    ),
+  );
+  const shown = page({ title: 'Shop', nonce: 'n', body: html``, skin: '', nav: null });
+  assert.ok(shown.includes(`<link rel="icon" type="image/svg+xml" href="${FAVICON}">`));
 });
 
 test('each part has its class: the block, the pointer and six letters', () => {

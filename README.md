@@ -5,9 +5,11 @@
   </picture>
 </p>
 
+<p align="center"><strong>Build with your design system. Validate automatically. Edit visually.</strong></p>
+
 kitvas is a Claude Code plugin that builds UI prototypes from your project's own design system, checks them, and shows them in a local studio where you can edit them.
 
-It is for a developer who has to ship a screen with no designer at hand. You go from an idea to a checked prototype on your own machine.
+It is for anyone who builds screens on a design system: a developer with no designer at hand, a product team that has designers, the maintainers of a design system, or someone making their own product. You go from an idea to a checked prototype on your own machine.
 
 ![A screen asked for in Claude Code, the built and checked draft in the local studio, and a change made in the editor](docs/readme/demo.gif)
 
@@ -36,6 +38,7 @@ The rest is in [docs/security.md](docs/security.md).
 - Node 24.22.3 or later in the 24 line, or 26.13.1 or later.
 - Access to the npm registry during the first session.
 - Chrome, Edge or Chromium for the browser checks. `kitvas browser` says which one is used; `kitvas browser install` downloads Chromium when none is found.
+- No MCP server is needed. Two are optional, and both are your own: a Figma MCP to learn a kit from a Figma file, and a browser MCP (Chrome DevTools or Playwright) only to read a page behind a login.
 
 There is no global `kitvas` command. In these docs `kitvas <command>` means `node <plugin folder>/bin/kitvas.ts <command>`; [Commands](docs/commands.md) says where the plugin folder is.
 
