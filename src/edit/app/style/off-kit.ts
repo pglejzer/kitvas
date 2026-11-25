@@ -10,7 +10,7 @@ import {
 } from '../../../drafts/index.ts';
 import { cssVarName, formatTokenValue, type KitStore, loadKit } from '../../../kit/index.ts';
 import { KitvasError } from '../../../shared/index.ts';
-import { listRules } from '../../domain/style/apply-scss.ts';
+import { readRules } from '../../domain/style/scss-rules.ts';
 import { nearestToken } from '../../domain/tsx/nearest.ts';
 import { kindOf, type TokenOption, tokenTypeOf } from '../../domain/types.ts';
 
@@ -63,7 +63,8 @@ export function offKitValues(deps: OffKitDeps, slug: string): OffKit {
       const file = `src/scss/sections/${name}`;
       const text = deps.drafts.readText(slug, `${base}/${file}`);
       if (text === undefined) continue;
-      for (const rule of listRules(text)) {
+      // Every class rule, the ones nested as `&__part` too.
+      for (const { view: rule } of readRules(text)) {
         for (const declaration of rule.declarations) {
           if (!declaration.offKit || neverOffKit(declaration.property)) continue;
           const type = tokenTypeOf(declaration.property);

@@ -203,6 +203,22 @@ test('one side of padding and margin offers the spacing scale too (plan 15)', ()
   );
 });
 
+test('a minimum size offers the size scale of width and height (ADR 0067)', () => {
+  const kit = [
+    ...SPACE,
+    token('radius.md', '10px'),
+    token('size.controlSm', '32px'),
+    token('size.control', '40px'),
+  ];
+  for (const property of ['min-width', 'min-height', 'height'] as const) {
+    assert.deepEqual(
+      tokensFor(kit, property).map((one) => one.path),
+      ['size.controlSm', 'size.control'],
+      property,
+    );
+  }
+});
+
 test('a keyword or an image row takes no token at all', () => {
   const kit = [...SPACE, token('color.ink', '#111', 'color')];
   for (const property of ['display', 'justify-content', 'background-image'] as const) {

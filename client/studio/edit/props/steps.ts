@@ -49,6 +49,8 @@ export const PROPERTIES: readonly StyleProperty[] = [
   'outline-style',
   'background-image',
   'background-size',
+  'min-width',
+  'min-height',
 ];
 
 export const TOKEN_TYPE: Readonly<Partial<Record<StyleProperty, TokenType>>> = {
@@ -79,6 +81,8 @@ export const TOKEN_TYPE: Readonly<Partial<Record<StyleProperty, TokenType>>> = {
   'margin-left': 'dimension',
   'outline-color': 'color',
   'outline-width': 'dimension',
+  'min-width': 'dimension',
+  'min-height': 'dimension',
 };
 
 const SPACE = ['space', 'spacing'];
@@ -136,6 +140,9 @@ const GROUPS: Partial<Record<StyleProperty, readonly string[]>> = {
   'outline-width': ['outline-width', 'outline', 'border-width', 'border', 'stroke'],
   width: ['size', 'sizes', 'width'],
   height: ['size', 'sizes', 'height'],
+  // The size scale of width and height, and a group of minimums when the kit has one.
+  'min-width': ['size', 'sizes', 'width', 'min-width'],
+  'min-height': ['size', 'sizes', 'height', 'min-height'],
   'line-height': ['line-height', 'leading'],
 };
 

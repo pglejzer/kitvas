@@ -133,7 +133,10 @@ export type Declaration = {
   span: Span;
 };
 
-/** The top-level rule `.<className>` of a section SCSS file (B: `readRule`). */
+/**
+ * A class rule `.<className>` of a section SCSS file (`listRules`), or all the rules of a class
+ * read together, top-level and nested as `&__part` (`readRule`, ADR 0067).
+ */
 export type RuleView = {
   className: string;
   /** From the selector to the closing `}`. */
@@ -153,7 +156,8 @@ export type StyleSource =
 /**
  * The style properties the panel shows for any element (R9). The first seventeen are stage 4a's,
  * in their order; plan 15 adds each side of padding and margin, the layout keywords, the outline
- * and the background image. `client/frame/edit/tree.ts` keeps a copy in the same order.
+ * and the background image; ADR 0067 the minimum width and height, the size a "target too small"
+ * fix writes. `client/frame/edit/tree.ts` keeps a copy in the same order.
  */
 export const STYLE_PROPERTIES = [
   'padding',
@@ -194,6 +198,8 @@ export const STYLE_PROPERTIES = [
   'outline-style',
   'background-image',
   'background-size',
+  'min-width',
+  'min-height',
 ] as const;
 export type StyleProperty = (typeof STYLE_PROPERTIES)[number];
 
@@ -234,6 +240,8 @@ export const PROPERTY_TOKEN_TYPE = {
   'margin-left': 'dimension',
   'outline-color': 'color',
   'outline-width': 'dimension',
+  'min-width': 'dimension',
+  'min-height': 'dimension',
 } as const satisfies Partial<Record<StyleProperty, StyleTokenType>>;
 export type TokenProperty = keyof typeof PROPERTY_TOKEN_TYPE;
 

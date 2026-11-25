@@ -228,16 +228,17 @@ const override = (
   utility: string | null = null,
 ): Override => ({ context, property, value, offKit: !value.startsWith('var('), utility });
 
-test('the first value of a width makes its block, a later one goes into it', () => {
+test('a new value of a width may make its block, a changed one goes where it is', () => {
   const view = ruled(ID, 'plans', [{ property: 'gap', value: '1px', offKit: true }]);
   const at = { id: ID, className: 'plans', property: 'gap', context: AT_768 };
   assert.deepEqual(opsForStyle(view, 'gap', MD, { context: AT_768 }), [
     { op: 'setStyle', ...at, value: MD, before: null, newRule: false, newBlock: true },
   ]);
-  // Another property is there already: the block is not new, and not this one's to make.
+  // Another property is there already, maybe in an earlier rule of the class: the server makes the
+  // block in the last rule when it has none, and only adds when it has one.
   const padded = { ...view, overrides: [override(AT_768, 'padding', '2px')] };
   assert.deepEqual(opsForStyle(padded, 'gap', MD, { context: AT_768 }), [
-    { op: 'setStyle', ...at, value: MD, before: null, newRule: false, newBlock: false },
+    { op: 'setStyle', ...at, value: MD, before: null, newRule: false, newBlock: true },
   ]);
   // The hover block of the same width is another block.
   const [hover] = opsForStyle(padded, 'gap', MD, { context: HOVER_768 });

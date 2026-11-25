@@ -56,7 +56,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0047](0047-facts-on-live-pages.md) | Facts on live pages | 2026-11-23 | accepted |
 | [0048](0048-edit-operations.md) | Edit operations | 2026-11-23 | accepted |
 | [0049](0049-editing-session-version.md) | Editing session and version | 2026-11-23 | accepted, changed in part by ADR 0058 |
-| [0050](0050-styles-in-section-scss.md) | Styles in section SCSS | 2026-11-23 | accepted |
+| [0050](0050-styles-in-section-scss.md) | Styles in section SCSS | 2026-11-23 | accepted, changed in part by ADR 0067 |
 | [0051](0051-structural-edits.md) | Structural edits | 2026-11-23 | accepted |
 | [0052](0052-element-identity.md) | Element identity | 2026-11-23 | accepted |
 | [0053](0053-canvas-tools.md) | Canvas tools | 2026-11-23 | accepted, changed in part by ADR 0059 |
@@ -71,3 +71,4 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0062](0062-scout.md) | Scout, the agent that reads the web | 2026-11-24 | accepted |
 | [0063](0063-doctor.md) | Doctor | 2026-11-24 | accepted |
 | [0064](0064-delete-draft.md) | Delete a draft, with a way back | 2026-11-24 | accepted |
+| [0067](0067-nested-class-rules.md) | Nested class rules, and class names after the section | 2026-11-24 | accepted |

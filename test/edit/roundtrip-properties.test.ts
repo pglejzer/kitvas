@@ -1,6 +1,7 @@
-// Every property plan 15 adds, written at each of its places and then undone, gives the file back
-// byte for byte (src/edit/AGENTS.md): a new declaration, a new value in one, a new rule, and the
-// kit prop that covers it (Base's Stack `direction`, `align`, `justify` and `wrap`).
+// Every property added after stage 4a (plan 15, ADR 0067), written at each of its places and then
+// undone, gives the file back byte for byte (src/edit/AGENTS.md): a new declaration, a new value
+// in one, a new rule, and the kit prop that covers it (Base's Stack `direction`, `align`,
+// `justify` and `wrap`).
 
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
@@ -34,7 +35,7 @@ import { PLUGIN_ROOT } from '../../src/shared/index.ts';
 const ID = 'sections/Hero:section/div';
 const OPTIONS: ScssOptions = { force: false, hasImage: (file) => file === 'hero.png' };
 const KEEP = { force: false };
-/** The properties plan 15 adds, after stage 4a's seventeen. */
+/** The properties after stage 4a's seventeen: plan 15's, then the minimum sizes (ADR 0067). */
 const ADDED = STYLE_PROPERTIES.slice(17);
 
 type SetStyle = Extract<ScssOp, { op: 'setStyle' }>;
@@ -84,7 +85,7 @@ function spelled(value: StyleValue): [string, boolean] {
 }
 
 test('every added property has values to try; a keyword or an image never has the marker', () => {
-  assert.equal(ADDED.length, 21);
+  assert.equal(ADDED.length, 23);
   for (const property of ADDED) {
     const values = valuesOf(property);
     assert.ok(values.length > 0, property);

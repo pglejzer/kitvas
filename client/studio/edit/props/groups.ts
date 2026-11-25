@@ -50,7 +50,7 @@ export const STYLE_GROUPS: Record<StyleGroup, readonly StyleProperty[]> = {
     'padding-left',
     'gap',
   ],
-  size: ['width', 'height'],
+  size: ['width', 'height', 'min-width', 'min-height'],
   typography: ['font-size', 'font-weight', 'line-height', 'color'],
   background: ['background-color', 'background-image', 'background-size'],
   border: [

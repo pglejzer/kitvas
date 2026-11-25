@@ -1,7 +1,8 @@
 // The cuts and pastes of the SCSS editor, shared by the base writer (`apply-scss.ts`) and the
 // context writer (`scss-context.ts`, spec 4c). Each one touches only the span it names and is made
 // so that its opposite takes away exactly what it put in: a new line with its line ending, or a
-// piece of a line with one space after it.
+// piece of a line with one space after it. A class with no rule gets one nested as `&__part` in
+// the rule of its block when it has one (ADR 0067), else a top-level one at the end of the file.
 
 import { type EditOp, OFF_KIT_MARKER, type StyleValue, styleText } from '../ops.ts';
 import type { ApplyOptions, ApplyResult, Span } from '../types.ts';
@@ -13,10 +14,9 @@ import {
   eolBefore,
   lineAfter,
   lineStart,
-  type Nest,
   type Own,
-  readRules,
 } from './scss-reader.ts';
+import { classRules, type Found, readRules } from './scss-rules.ts';
 
 export type ScssOp = Extract<EditOp, { op: 'setStyle' | 'removeStyle' }>;
 /**
@@ -36,12 +36,6 @@ export const eolOf = (text: string): string => (text.includes('\r\n') ? '\r\n' :
 
 /** The first indent any line of the file has, else two spaces. */
 export const fileIndent = (text: string): string => /^([ \t]+)\S/m.exec(text)?.[1] ?? '  ';
-
-/** The indent of the line `at` starts, or none when something stands before it on that line. */
-export function indentAt(text: string, at: number): string {
-  const lead = text.slice(lineStart(text, at), at);
-  return blank(lead) ? lead : '';
-}
 
 /**
  * The indent of the body's lines: the first statement that starts its own line, else one step
@@ -69,6 +63,26 @@ export function holds(found: Own | undefined, before: StyleValue | null): boolea
   if (found === undefined) return false;
   const seen = styleText(before);
   return seen.value === found.view.value && seen.offKit === found.view.offKit;
+}
+
+/**
+ * The last declaration of `property` in `bodies` (in file order), the one the browser applies:
+ * a write of the property goes there. `'ambiguous'` when the body that holds it declares the
+ * property twice, as a fallback pair may.
+ */
+export function lastDeclaration(
+  bodies: readonly Body[],
+  property: string,
+): Own | undefined | 'ambiguous' {
+  let found: { body: Body; own: Own } | undefined;
+  for (const body of bodies) {
+    for (const own of body.own) {
+      if (own.view.property === property) found = { body, own };
+    }
+  }
+  if (found === undefined) return undefined;
+  const twice = found.body.own.filter((own) => own.view.property === property).length > 1;
+  return twice ? 'ambiguous' : found.own;
 }
 
 /**
@@ -114,12 +128,19 @@ const inserted = (text: string, at: number, insert: string): ApplyResult => ({
   changed: [{ start: at, end: at + insert.length }],
 });
 
+/** The start of the body's first context block or joined rule, whichever comes first. */
+function firstNested(body: Body): number | undefined {
+  const starts = [body.blocks[0]?.span.start, body.joins[0]?.span.start];
+  const known = starts.filter((start): start is number => start !== undefined);
+  return known.length === 0 ? undefined : Math.min(...known);
+}
+
 /**
- * A new declaration in a body. Without context blocks it goes to the end: a new line above a
- * closing brace that has a line of its own, else right before the brace with one space after it.
- * With context blocks it goes above the first of them: Sass keeps a declaration written after a
- * nested rule after it in the CSS, where it would win over the block's value.
- * `declarationCut` takes away exactly what either put in.
+ * A new declaration in a body. Without context blocks or joined rules it goes to the end: a new
+ * line above a closing brace that has a line of its own, else right before the brace with one
+ * space after it. With them it goes above the first: Sass keeps a declaration written after a
+ * nested rule after it in the CSS, where it would win over the block's value or a modifier's
+ * (`&--row`). `declarationCut` takes away exactly what either put in.
  */
 export function addDeclaration(
   text: string,
@@ -128,9 +149,9 @@ export function addDeclaration(
   declaration: string,
 ): ApplyResult {
   const indent = bodyIndent(text, body, outer);
-  const first = body.blocks[0];
+  const first = firstNested(body);
   if (first !== undefined) {
-    const slot = slotBefore(text, body, first.span.start);
+    const slot = slotBefore(text, body, first);
     const insert = slot.lines ? `${indent}${declaration}${eolOf(text)}` : `${declaration} `;
     return inserted(text, slot.at, insert);
   }
@@ -174,10 +195,39 @@ export function blockText(
 }
 
 /**
+ * New blocks in `parent` right before `next` (the start of one of its statements, or its closing
+ * brace), `preludes[0]` outermost, with the declaration inside. On lines of their own they get the
+ * body's indent (`outer`: the indent of the body's own first line) after one blank line when a
+ * statement stands before them; else they go inside the line. `blockCut` takes them away again.
+ */
+export function insertNested(
+  text: string,
+  parent: Body,
+  outer: string,
+  next: number,
+  preludes: readonly string[],
+  declaration: string,
+): ApplyResult {
+  // After a last declaration without its `;` a block would not parse.
+  if (next === parent.close && parent.dangling) return { refused: 'invalid' };
+  const slot = slotBefore(text, parent, next);
+  const eol = eolOf(text);
+  const insert = slot.lines
+    ? (slot.lead ? eol : '') +
+      blockText(preludes, declaration, {
+        indent: bodyIndent(text, parent, outer),
+        eol,
+        unit: fileIndent(text),
+      })
+    : blockText(preludes, declaration, null);
+  return inserted(text, slot.at, insert);
+}
+
+/**
  * A block's own lines, with the one blank line above it when a statement of `parent` stands
  * before it (what a new block gets); a block inside a line goes with one space after it.
  */
-export function blockCut(text: string, parent: Body, nest: Nest): Span {
+export function blockCut(text: string, parent: Body, nest: { span: Span }): Span {
   const { start, end } = nest.span;
   const line = lineStart(text, start);
   const lineEnd = endOfLine(text, end);
@@ -215,12 +265,16 @@ function ruleCut(text: string, span: Span): Span {
   return { start, end };
 }
 
-/** The text without the rule `.className` when its body is empty; `null` when the rule stays. */
+/**
+ * The text without the rule `.className` when it is the class's only rule and its body is empty;
+ * `null` when the rule stays. A rule nested in another goes as a block of that rule does.
+ */
 export function dropEmptyRule(text: string, className: string): ApplyResult | null {
-  const rules = readRules(text).filter((rule) => rule.view.className === className);
+  const rules = classRules(text, className);
   const rule = rules[0];
   if (rules.length !== 1 || rule === undefined || !emptyBody(text, rule)) return null;
-  const whole = ruleCut(text, rule.view.span);
+  const whole =
+    rule.parent === null ? ruleCut(text, rule.view.span) : blockCut(text, rule.parent, rule.view);
   return {
     text: splice(text, whole.start, whole.end, ''),
     changed: [{ start: whole.start, end: whole.start }],
@@ -246,4 +300,45 @@ export function createRule(
     text: text + lead + rule + (ended ? eol : ''),
     changed: [{ start, end: start + rule.length }],
   };
+}
+
+/**
+ * The top-level rule a new class nests in: of the classes whose name, followed by `__` or `--`,
+ * starts `className`, the longest; of its rules, the last. `undefined` when there is none.
+ */
+function hostOf(text: string, className: string): Found | undefined {
+  let host: Found | undefined;
+  for (const rule of readRules(text)) {
+    const name = rule.view.className;
+    if (rule.parent !== null || className.length <= name.length + 2) continue;
+    if (!className.startsWith(`${name}__`) && !className.startsWith(`${name}--`)) continue;
+    if (host === undefined || name.length >= host.view.className.length) host = rule;
+  }
+  return host;
+}
+
+/**
+ * The rule of a class that has none yet, with the declaration inside `preludes` (the blocks of a
+ * width or a state; none for the base). `plans__switch` in a file with a top-level `.plans` is
+ * written at the end of that rule's body as `&__switch { … }`, in its indent and line endings;
+ * any other name, or a host rule that cannot take a block, gets a top-level rule at the end of
+ * the file. `dropEmptyRule` takes either away again.
+ */
+export function newRule(
+  text: string,
+  className: string,
+  preludes: readonly string[],
+  declaration: string,
+): ApplyResult {
+  const host = hostOf(text, className);
+  if (host?.closed === true) {
+    const inside = [`&${className.slice(host.view.className.length)}`, ...preludes];
+    const nested = insertNested(text, host, host.outer, host.close, inside, declaration);
+    if ('text' in nested) return nested;
+  }
+  return createRule(text, className, (indent, eol) =>
+    preludes.length === 0
+      ? `${indent}${declaration}${eol}`
+      : blockText(preludes, declaration, { indent, eol, unit: indent }),
+  );
 }

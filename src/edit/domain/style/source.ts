@@ -87,6 +87,8 @@ export const PROP_FOR: Record<StyleProperty, readonly string[]> = {
   'outline-style': ['outlineStyle'],
   'background-image': ['backgroundImage'],
   'background-size': ['backgroundSize'],
+  'min-width': ['minWidth'],
+  'min-height': ['minHeight'],
 };
 
 /** Whole Tailwind classes from words: `('flex-', 'row col')` is `['flex-row', 'flex-col']`. */
@@ -138,6 +140,8 @@ export const UTILITY_PREFIXES: Record<StyleProperty, readonly string[]> = {
   'outline-style': whole('outline-', 'solid dashed dotted double hidden none'),
   'background-image': ['bg-'],
   'background-size': [...whole('bg-', 'auto cover contain'), 'bg-size-'],
+  'min-width': ['min-w-'],
+  'min-height': ['min-h-'],
 };
 
 /** Where the value of `input.property` comes from, in the order of spec decision 9. */
@@ -252,9 +256,10 @@ function propFor(input: SourceInput): string | null {
 // Step 2: the class rule.
 
 /**
- * The declaration of the property in the rule's own body: the last one, which the browser
- * applies (two of them make a write `ambiguous`). One only in a nested block or a media query is
- * in `rule.nested`, never here.
+ * The declaration of the property in the rule's own body (or, for a class with several rules,
+ * in any of their bodies): the last one, which the browser applies (two of them in one rule make
+ * a write `ambiguous`). One only in a nested block or a media query is in `rule.nested`, never
+ * here.
  */
 function declarationOf(rule: RuleView, property: StyleProperty): Declaration | undefined {
   return rule.declarations

@@ -149,9 +149,11 @@ function coveringValue(
 }
 
 /**
- * The ops of a style in the class rule's block for a width or a state (spec 4c, goal 2). The
- * first value of a context makes its block (`newBlock`); a removed one takes the block along when
- * it was the last (`dropBlock`), so the file returns to what it was.
+ * The ops of a style in the class rule's block for a width or a state (spec 4c, goal 2). A new
+ * value may make its block (`newBlock`): the server writes it into the block of the class's last
+ * rule, which an earlier rule's block of the same context does not stand for (ADR 0067). A
+ * removed one takes the block along when it was the last (`dropBlock`), so the file returns to
+ * what it was.
  */
 function opsInContext(
   inspected: Inspect,
@@ -176,7 +178,7 @@ function opsInContext(
   }
   if (before && JSON.stringify(before) === JSON.stringify(value)) return [];
   const ops: EditOp[] = styleClass.exists ? [] : [{ op: 'addClass', id, className }];
-  const newBlock = there.length === 0;
+  const newBlock = before === null;
   ops.push({ op: 'setStyle', ...at, value, before, newRule: !scss.rule, newBlock });
   return ops;
 }

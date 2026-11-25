@@ -117,6 +117,8 @@ export const OWN_PREFIXES: Readonly<Partial<Record<StyleProperty, readonly strin
   'outline-color': ['outline-'],
   'outline-width': ['outline-', 'outline'],
   'background-image': ['bg-'],
+  'min-width': ['min-w-'],
+  'min-height': ['min-h-'],
 };
 
 /** How an arbitrary value says its type where a prefix has two meanings (`text-[color:…]`). */

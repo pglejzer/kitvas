@@ -52,6 +52,8 @@ export const KIND: Record<StyleProperty, StyleKind> = {
   'outline-style': 'keyword',
   'background-image': 'image',
   'background-size': 'keyword',
+  'min-width': 'dimension',
+  'min-height': 'dimension',
 };
 
 export const KEYWORDS: Readonly<Partial<Record<StyleProperty, readonly string[]>>> = {
