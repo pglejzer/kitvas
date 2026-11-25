@@ -5,6 +5,7 @@ import {
   allowedSpots,
   gapSpots,
   hitOf,
+  SMALL,
   type Spot,
   showsGap,
   spotAt,
@@ -111,6 +112,67 @@ test('a padding handle sits in the middle of its padding, never on the edge', ()
 test('a small element keeps its size handles and gets no padding handles', () => {
   const spots = plain(box(0, 0, 40, 20));
   assert.deepEqual(kinds(spots), ['size', 'width', 'height']);
+});
+
+// A small element (ADR 0066).
+
+test('under 40 px high the height handle and the corner stand below the element', () => {
+  assert.equal(SMALL, 40);
+  // A badge, 120 by 24.
+  const spots = plain(box(100, 100, 120, 24));
+  // Wide enough: the width handle stays on the right edge.
+  assert.deepEqual(named(spots, 'width')?.box, box(218, 103, 4, 18));
+  // The zone of the height handle begins at the bottom edge, with the bar in its middle.
+  assert.deepEqual(named(spots, 'height')?.box, box(151, 128, 18, 4));
+  assert.deepEqual(named(spots, 'height')?.hit, box(148, 124, 24, 12));
+  assert.deepEqual(named(spots, 'size')?.box, box(216, 127, 8, 8));
+  assert.deepEqual(named(spots, 'size')?.hit, box(213, 124, 14, 14));
+  // A press on the lower part of the element is a press on the element.
+  assert.equal(spotAt({ x: 160, y: 120 }, spots), undefined);
+  assert.equal(spotAt({ x: 160, y: 130 }, spots)?.kind, 'height');
+});
+
+test('under 40 px wide the width handle and the corner stand right of the element', () => {
+  const spots = plain(box(100, 100, 24, 120));
+  assert.deepEqual(named(spots, 'width')?.box, box(128, 151, 4, 18));
+  assert.deepEqual(named(spots, 'width')?.hit, box(124, 148, 12, 24));
+  // High enough: the height handle stays on the bottom edge.
+  assert.deepEqual(named(spots, 'height')?.box, box(103, 218, 18, 4));
+  assert.deepEqual(named(spots, 'size')?.box, box(127, 216, 8, 8));
+  // At 40 px each way the handles are on the edges.
+  const enough = plain(box(100, 100, 40, 40));
+  assert.deepEqual(named(enough, 'width')?.box, box(138, 111, 4, 18));
+  assert.deepEqual(named(enough, 'height')?.box, box(111, 138, 18, 4));
+  assert.deepEqual(named(enough, 'size')?.box, box(136, 136, 8, 8));
+});
+
+test('an element small both ways keeps its whole box free of size handles', () => {
+  // An icon, 16 by 16.
+  const spots = plain(box(100, 100, 16, 16));
+  assert.deepEqual(kinds(spots), ['size', 'width', 'height']);
+  assert.deepEqual(named(spots, 'width')?.hit, box(116, 97, 12, 22));
+  assert.deepEqual(named(spots, 'height')?.hit, box(97, 116, 22, 12));
+  assert.deepEqual(named(spots, 'size')?.hit, box(116, 116, 14, 14));
+  for (let x = 101; x < 116; x += 2) {
+    for (let y = 101; y < 116; y += 2) {
+      assert.equal(spotAt({ x, y }, spots), undefined, `${x}, ${y}`);
+    }
+  }
+  // Each handle is there to take right outside its edge.
+  assert.equal(spotAt({ x: 122, y: 108 }, spots)?.kind, 'width');
+  assert.equal(spotAt({ x: 108, y: 122 }, spots)?.kind, 'height');
+  assert.equal(spotAt({ x: 123, y: 123 }, spots)?.kind, 'size');
+});
+
+test('small is measured on the screen: the canvas zoom moves the limit with it', () => {
+  // 60 frame pixels are 30 on the screen at 50 %: the handles go out, twice as far in the frame.
+  const half = plain(box(0, 0, 60, 60), even, 2);
+  assert.deepEqual(named(half, 'width')?.box, box(68, 12, 8, 36));
+  assert.equal(named(half, 'width')?.hit.left, 60);
+  assert.equal(named(half, 'height')?.hit.top, 60);
+  // At 200 % the same element is 120 px on the screen: its handles are on its edges.
+  const twice = plain(box(0, 0, 60, 60), even, 0.5);
+  assert.deepEqual(named(twice, 'width')?.box, box(59, 25.5, 2, 9));
 });
 
 test('a handle keeps its size on the screen at any canvas zoom', () => {

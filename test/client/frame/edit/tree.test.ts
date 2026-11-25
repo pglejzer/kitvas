@@ -177,6 +177,9 @@ test('styles carry every listed property, trimmed and cut to the limit', () => {
   assert.deepEqual(Object.keys(styles), [...STYLE_PROPERTIES]);
   assert.equal(styles.gap, '16px');
   assert.equal(styles.color?.length, MAX_STYLE_VALUE);
+  // The list is as long as one message of styles may be (`MAX_STYLES`): one more property and the
+  // studio refuses every `inspected`.
+  assert.equal(Object.keys(styles).length, 40);
   const message = { type: 'inspected', request: 2, id: 'A:main', found: true, styles };
   assert.ok(parseEditFrame(message, 'probe'));
 });

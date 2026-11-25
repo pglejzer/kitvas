@@ -1,42 +1,85 @@
+// The frame's selection rectangle on the page (ADR 0059, ADR 0065): its `rect` message becomes
+// the selection with the copies it took. The rule itself is `rectSelection` (`copies.test.ts`).
+
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MAX_SELECTED } from '../../../../../client/channel/edit-protocol.ts';
-import { rectSelection } from '../../../../../client/studio/edit/select/rect.ts';
+import type { CopyRef, EditFrameMessage } from '../../../../../client/channel/edit-protocol.ts';
+import type { FrameListener } from '../../../../../client/studio/edit/bridge.ts';
+import type { EditorContext } from '../../../../../client/studio/edit/context.ts';
+import { mountRect } from '../../../../../client/studio/edit/select/rect.ts';
+import { createStore, type Store } from '../../../../../client/studio/edit/store.ts';
 
 const CARD = 'sections/Plans:section/Card';
-const ASIDE = 'sections/Plans:section/aside';
+const ROW = `${CARD}/ul/li`;
 const TITLE = 'sections/Plans:section/h2';
 
-test('a rectangle selects what it took, in the order the frame gave', () => {
-  assert.deepEqual(rectSelection([], [CARD, ASIDE], false), [CARD, ASIDE]);
-  // What was selected before goes.
-  assert.deepEqual(rectSelection([TITLE], [CARD, ASIDE], false), [CARD, ASIDE]);
-  assert.deepEqual(rectSelection([CARD, TITLE], [ASIDE, CARD], false), [ASIDE, CARD]);
+const row = (item: number, path: number[]): CopyRef => ({ id: ROW, item, path });
+
+const rect = (picks: CopyRef[], add = false): EditFrameMessage => ({
+  kitvas: 1,
+  channel: 'c1',
+  type: 'rect',
+  picks,
+  add,
 });
 
-test('a rectangle that took nothing clears the selection', () => {
-  assert.deepEqual(rectSelection([CARD, ASIDE], [], false), []);
-  assert.deepEqual(rectSelection([], [], false), []);
+/** The page's side with a store and a bridge that hands `frame` messages to its listeners. */
+function mounted(): { store: Store; frame(message: EditFrameMessage): void } {
+  const store = createStore('demo');
+  const listeners: FrameListener[] = [];
+  const bridge = {
+    on(listener: FrameListener) {
+      listeners.push(listener);
+      return () => undefined;
+    },
+  };
+  mountRect({ store, bridge } as unknown as EditorContext);
+  return {
+    store,
+    frame(message) {
+      for (const listener of listeners) listener(message);
+    },
+  };
+}
+
+test('a rectangle over three rows of one plan selects those three copies', () => {
+  const { store, frame } = mounted();
+  const starter = [row(0, [0, 0]), row(1, [0, 1]), row(2, [0, 2])];
+  // Only in edit mode.
+  frame(rect(starter));
+  assert.deepEqual(store.get().selection, []);
+  store.set({ on: true });
+  frame(rect(starter));
+  assert.deepEqual(store.get().selection, [ROW]);
+  assert.deepEqual(store.get().copies, starter);
+  // Three copies are no one item.
+  assert.equal(store.get().item, null);
 });
 
-test('with Shift, Ctrl or Cmd held the rectangle adds to the selection', () => {
-  assert.deepEqual(rectSelection([TITLE], [CARD, ASIDE], true), [TITLE, CARD, ASIDE]);
-  // One that is selected already keeps its place and is there once.
-  assert.deepEqual(rectSelection([CARD, TITLE], [ASIDE, CARD], true), [CARD, TITLE, ASIDE]);
-  // Nothing taken: the selection stays as it is.
-  assert.deepEqual(rectSelection([CARD, TITLE], [], true), [CARD, TITLE]);
+test('with the add key the rectangle adds to the selection; an empty one clears it', () => {
+  const { store, frame } = mounted();
+  store.set({ on: true, selection: [ROW], copies: [row(4, [1, 1])] });
+  frame(rect([{ id: TITLE }, row(5, [1, 2])], true));
+  assert.deepEqual(store.get().selection, [ROW, TITLE]);
+  assert.deepEqual(store.get().copies, [row(4, [1, 1]), row(5, [1, 2])]);
+  frame(rect([], true));
+  assert.deepEqual(store.get().selection, [ROW, TITLE]);
+  frame(rect([]));
+  assert.deepEqual(store.get().selection, []);
+  assert.deepEqual(store.get().copies, []);
 });
 
-test('an id the frame names twice is selected once', () => {
-  assert.deepEqual(rectSelection([], [CARD, CARD, ASIDE], false), [CARD, ASIDE]);
-});
-
-test('the selection never grows past what a select message carries', () => {
-  const many = Array.from({ length: MAX_SELECTED }, (_, index) => `${CARD}.${index + 2}`);
-  assert.equal(rectSelection([], many, false).length, MAX_SELECTED);
-  const more = rectSelection([TITLE, ASIDE], many, true);
-  assert.equal(more.length, MAX_SELECTED);
-  // The ones already selected stay; the last ones taken do not fit.
-  assert.deepEqual(more.slice(0, 3), [TITLE, ASIDE, `${CARD}.2`]);
-  assert.equal(more.includes(`${CARD}.${MAX_SELECTED + 1}`), false);
+test('a rectangle that takes what is selected already changes nothing', () => {
+  const { store, frame } = mounted();
+  store.set({ on: true, selection: [ROW], copies: [row(4, [1, 1])] });
+  let heard = 0;
+  store.subscribe(() => {
+    heard += 1;
+  });
+  frame(rect([row(4, [1, 1])]));
+  frame(rect([row(4, [1, 1])], true));
+  assert.equal(heard, 0);
+  // Another message of the frame is not a rectangle.
+  frame({ kitvas: 1, channel: 'c1', type: 'hovered', id: TITLE });
+  assert.equal(heard, 0);
 });

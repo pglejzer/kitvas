@@ -55,7 +55,10 @@ const context = shaped({
   state: orNull(oneOf('hover', 'focus-visible', 'active')),
 });
 const place = oneOf('before', 'after', 'first', 'last');
-/** The copies a text's path names: at most `MAX_LIST_DEPTH` of the edit ops (ADR 0060). */
+/**
+ * A copy's place in each list around it: at most `MAX_LIST_DEPTH` of the edit ops (ADR 0060 for
+ * a text, ADR 0065 for an item).
+ */
 const path: Check = (value) => Array.isArray(value) && value.length <= 8 && value.every(index);
 const hunks: Check = (value) =>
   Array.isArray(value) && value.length > 0 && value.every(shaped({ find: text, replace: text }));
@@ -96,9 +99,9 @@ export const OP_FIELDS: Readonly<Record<string, Fields>> = {
   moveSection: { section: text, after: orNull(text) },
   insertSection: { from: shaped({ slug: text, section: text }), after: orNull(text) },
   removeSection: { section: text },
-  moveItem: { id, item: index, to: index },
-  duplicateItem: { id, item: index },
-  removeItem: { id, item: index },
+  moveItem: { id, item: index, to: index, path: optional(path), toPath: optional(path) },
+  duplicateItem: { id, item: index, path: optional(path) },
+  removeItem: { id, item: index, path: optional(path) },
   setItemText: { id, item: index, value: text, before: text, path: optional(path) },
   patch: { file: text, hunks },
   file: { file: text, text: orNull(text), before: orNull(text) },

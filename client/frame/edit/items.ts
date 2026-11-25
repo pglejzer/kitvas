@@ -1,14 +1,17 @@
-// Data list items in the frame (spec 4c, goal 9; plan 16, task D). Every copy a `.map` renders
-// carries the same element id, so a pick also says which copy it was (its place among them in
-// document order), and a `select` with an `item` outlines only that copy, and the inline text
-// edit takes it. ADR 0060 adds the copy's path through nested lists, by the copies of each list's
-// root element. The rules are pure over plain values; the readers of the page come last.
+// Rendered copies in the frame (spec 4c, goal 9; plan 16, task D; ADR 0066). Every copy a `.map`
+// renders carries the same element id, so a pick also says which copy it was (its place among
+// them in document order, and its path through the lists around it, ADR 0060), a `select` names
+// the copies it outlines, and the inline text edit takes one of them. The rules are pure over
+// plain values; the readers of the page come last.
 
-import { MAX_INLINE_TEXT } from '../../channel/edit-protocol.ts';
+import { MAX_INLINE_TEXT, MAX_LIST_DEPTH } from '../../channel/edit-protocol.ts';
 import { elementsWith } from './tree.ts';
 
-/** The copy the page chose: copy `item` (from 0, document order) of the elements carrying `id`. */
-export type ItemChoice = { id: string; item: number } | null;
+/** The largest place the protocol carries (its `isItem`). */
+const MAX_PLACE = 10_000;
+
+/** The copies the page chose (`select`'s `copies`): for each id, the places of its chosen ones. */
+export type Chosen = ReadonlyMap<string, readonly number[]>;
 
 /** `element`'s place among `copies`; `undefined` when it is the only copy or not among them. */
 export function placeAmong<T>(element: T, copies: readonly T[]): number | undefined {
@@ -17,31 +20,73 @@ export function placeAmong<T>(element: T, copies: readonly T[]): number | undefi
   return at < 0 ? undefined : at;
 }
 
-/** The choice a `select` makes: its `item` applies to its first id. */
-export function choiceOf(ids: readonly string[], item: number | undefined): ItemChoice {
-  const id = ids[0];
-  return id === undefined || item === undefined ? null : { id, item };
+/** The choice a `select` makes: the places it names, by id, each once. */
+export function chosenOf(copies: readonly { id: string; item: number }[] | undefined): Chosen {
+  const chosen = new Map<string, number[]>();
+  for (const { id, item } of copies ?? []) {
+    const places = chosen.get(id);
+    if (places === undefined) chosen.set(id, [item]);
+    else if (!places.includes(item)) places.push(item);
+  }
+  return chosen;
 }
 
 /**
- * The elements outlined for a selection: all of them, but only the chosen copy of the chosen id.
- * A choice past the last copy (the page has not heard of a new build yet) keeps every copy.
+ * The elements outlined for a selection: of an id with chosen copies only those copies, of any
+ * other id every copy. A chosen copy the page does not have (it has not heard of a new build yet)
+ * keeps every copy of its id.
  */
 export function onlyChosen<T>(
   elements: readonly T[],
   idOf: (element: T) => string | null,
-  choice: ItemChoice,
+  chosen: Chosen,
 ): T[] {
-  if (choice === null) return [...elements];
-  const kept = elements.filter((element) => idOf(element) === choice.id)[choice.item];
-  if (kept === undefined) return [...elements];
-  return elements.filter((element) => idOf(element) !== choice.id || element === kept);
+  if (chosen.size === 0) return [...elements];
+  const byId = new Map<string, T[]>();
+  for (const element of elements) {
+    const id = idOf(element);
+    if (id === null || !chosen.has(id)) continue;
+    const copies = byId.get(id);
+    if (copies) copies.push(element);
+    else byId.set(id, [element]);
+  }
+  const kept = new Set<T>();
+  /** The ids that keep every copy. */
+  const whole = new Set<string>();
+  for (const [id, places] of chosen) {
+    const copies = byId.get(id) ?? [];
+    const found = places.map((place) => copies[place]);
+    if (found.includes(undefined)) whole.add(id);
+    for (const copy of found) if (copy !== undefined) kept.add(copy);
+  }
+  return elements.filter((element) => {
+    const id = idOf(element);
+    return id === null || !chosen.has(id) || whole.has(id) || kept.has(element);
+  });
 }
 
-/** The copy an inline text edit of `id` takes: the chosen one for that id, else the first. */
-export function copyFor<T>(copies: readonly T[], id: string, choice: ItemChoice): T | undefined {
-  const chosen = choice?.id === id ? copies[choice.item] : undefined;
-  return chosen ?? copies[0];
+/** The copy an inline text edit of `id` takes: the first chosen one of that id, else the first. */
+export function copyFor<T>(copies: readonly T[], id: string, chosen: Chosen): T | undefined {
+  const place = chosen.get(id)?.[0];
+  const copy = place === undefined ? undefined : copies[place];
+  return copy ?? copies[0];
+}
+
+/** One copy: its id, and its place when the page named one. */
+export type OneCopy = { id: string; item?: number };
+
+/**
+ * The one copy the handles stay on: a selection of one id with at most one chosen copy. Without
+ * a chosen copy the element must be the only one that carries the id (`soleElement` reads that).
+ * `null` for no selection, several ids or several chosen copies.
+ */
+export function soleCopy(ids: readonly string[], chosen: Chosen): OneCopy | null {
+  const id = ids[0];
+  if (id === undefined || ids.length !== 1) return null;
+  const places = chosen.get(id) ?? [];
+  if (places.length > 1) return null;
+  const item = places[0];
+  return item === undefined ? { id } : { id, item };
 }
 
 /** How the path of a copy reads the page; plain values stand in for elements in the tests. */
@@ -76,11 +121,35 @@ export function copyPath<T>(
   return path;
 }
 
+/** A path the protocol carries: no deeper than its lists go, every place within its bound. */
+export const carried = (path: readonly number[]): boolean =>
+  path.length <= MAX_LIST_DEPTH && path.every((place) => place <= MAX_PLACE);
+
+/**
+ * What a message says of the copy `element`, one of `copies` (the elements that carry its id):
+ * `item` when there are several, and `path` when `lists` (the structure's `FrameEntry.lists` of
+ * the id) names lists around it and `read` can count the copy in each. A place or a path the
+ * protocol does not carry is left out: the studio would refuse the whole message for it.
+ */
+export function copyOf<T>(
+  element: T,
+  copies: readonly T[],
+  lists: readonly string[] | null | undefined,
+  read: PathReader<T>,
+): { item?: number; path?: number[] } {
+  const item = placeAmong(element, copies);
+  const path = lists && lists.length > 0 ? copyPath(element, lists, read) : null;
+  return {
+    ...(item === undefined || item > MAX_PLACE ? {} : { item }),
+    ...(path !== null && carried(path) ? { path } : {}),
+  };
+}
+
 // The page's side: thin readers for the rules above.
 
 const idOf = (element: Element): string | null => element.getAttribute('data-ks');
 
-const PAGE: PathReader<Element> = {
+export const PAGE: PathReader<Element> = {
   closest(node, id) {
     for (let at: Element | null = node; at !== null; at = at.parentElement) {
       if (idOf(at) === id) return at;
@@ -109,21 +178,24 @@ export function locateCopy(
   return { path: copyPath(element, roots, PAGE), text };
 }
 
-/** `{ item }` for a pick of `element` (its id is `id`) when several elements carry that id. */
-export function itemOfPick(element: Element | null, id: string | null): { item?: number } {
+/** What a pick says of the copy `element` (its id is `id`), read from the page (`copyOf`). */
+export function copyOfPick(
+  element: Element | null,
+  id: string | null,
+  lists: readonly string[] | null | undefined,
+): { item?: number; path?: number[] } {
   if (element === null || id === null) return {};
-  const item = placeAmong(element, elementsWith(new Set([id])));
-  return item === undefined ? {} : { item };
+  return copyOf(element, elementsWith(new Set([id])), lists, PAGE);
 }
 
-/** The selected elements the outlines go around: of a list item, only the chosen copy. */
-export function chosenElements(ids: ReadonlySet<string>, choice: ItemChoice): Element[] {
-  return onlyChosen(elementsWith(ids), idOf, choice);
+/** The selected elements the outlines go around: of an id with chosen copies, only those. */
+export function chosenElements(ids: ReadonlySet<string>, chosen: Chosen): Element[] {
+  return onlyChosen(elementsWith(ids), idOf, chosen);
 }
 
 /** The element the inline text edit of `id` takes. */
-export function textElement(id: string, choice: ItemChoice): Element | undefined {
-  return copyFor(elementsWith(new Set([id])), id, choice);
+export function textElement(id: string, chosen: Chosen): Element | undefined {
+  return copyFor(elementsWith(new Set([id])), id, chosen);
 }
 
 /**
@@ -132,4 +204,14 @@ export function textElement(id: string, choice: ItemChoice): Element | undefined
  */
 export function copyAt(id: string, item: number | undefined): Element | undefined {
   return elementsWith(new Set([id]))[item ?? 0];
+}
+
+/**
+ * The element of one copy (`soleCopy`): copy `item` exactly, or without one the only element that
+ * carries `id`. `undefined` when that copy is not there, or when several carry the id.
+ */
+export function soleElement(id: string, item: number | undefined): Element | undefined {
+  const copies = elementsWith(new Set([id]));
+  if (item !== undefined) return copies[item];
+  return copies.length === 1 ? copies[0] : undefined;
 }

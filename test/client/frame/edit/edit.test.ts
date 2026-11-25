@@ -56,7 +56,8 @@ test('Cmd+Y is not redo', () => {
 test('every other key stays with the page', () => {
   assert.equal(keyOf(press('z')), undefined);
   assert.equal(keyOf(press('y')), undefined);
-  assert.equal(keyOf(press('a', { ctrlKey: true })), undefined);
+  assert.equal(keyOf(press('a')), undefined);
+  assert.equal(keyOf(press('s', { ctrlKey: true })), undefined);
   assert.equal(keyOf(press('Enter')), undefined);
   assert.equal(keyOf(press('ArrowLeft')), undefined);
   assert.equal(keyOf(press('Tab')), undefined);

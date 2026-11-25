@@ -16,8 +16,8 @@ import {
 import type { KitComponent, KitStore, LoadedKit } from '../../../kit/index.ts';
 import { elementIds, readSites } from '../../../render/index.ts';
 import { KitvasError } from '../../../shared/index.ts';
-import { findList } from '../../domain/list/find.ts';
-import { ELEMENT_ID, fileOfId, hashOf } from '../../domain/ops.ts';
+import { aroundOf, innerArrayAt } from '../../domain/list/nest.ts';
+import { ELEMENT_ID, fileOfId, hashOf, MAX_LIST_DEPTH } from '../../domain/ops.ts';
 import { contextOf, elementSpan, isMixed, parentOf } from '../../domain/structure/subtree.ts';
 import { offsetOf, openAt, plainText } from '../../domain/tsx/tsx-reader.ts';
 import type { Refusal } from '../../domain/types.ts';
@@ -47,6 +47,7 @@ export type StructureEntryView = {
   props: string[];
   component: string | null;
   movable: Refusal | null;
+  lists: string[] | null;
   item: boolean;
   accepts: boolean;
   mixed: boolean;
@@ -100,8 +101,11 @@ type FileContext = {
   kit: LoadedKit | null;
   /** Whether the element at an offset is inside a `{…}` child, kept for the whole file. */
   memo: Map<number, boolean>;
+  /** The id of the element whose `<` is at an offset: how a list's root is named. */
+  ids: ReadonlyMap<number, string>;
 };
 type Standing = { movable: Refusal | null; root: 'section' | 'slot' | null };
+type Listed = { lists: string[] | null; item: boolean };
 
 const validId = (id: string): boolean => id.length <= MAX_ID && ELEMENT_ID.test(id);
 
@@ -138,8 +142,8 @@ function isInteractive(tag: string, component: KitComponent | null): boolean {
 
 /**
  * Whether the element at `at`, or any element around it, is written inside a `{…}` child (a
- * `.map`, a condition, a ternary). The element itself may read as `plain` inside a mapped item,
- * yet moving it would change the list's template (spec 4b, non-goal B7): the whole chain counts.
+ * `.map`, a condition, a ternary). Only such an element can stand in a list: the rest of the
+ * file is never read for one.
  */
 function inExpression(text: string, at: number, memo: Map<number, boolean>): boolean {
   const chain: number[] = [];
@@ -172,30 +176,47 @@ function isSlotRoot(text: string, at: number, parent: number): boolean {
 
 /**
  * Where the element stands, and so why it cannot be moved, deleted or duplicated as an element
- * (the target rules of `applyStructure`): inside an expression, the root a function returns, or
- * the root of a slot. An element inside a slot moves within it like any other.
+ * (the target rules of `applyStructure`): written as an expression's own JSX, the root a function
+ * returns, or the root of a slot. Only its own place counts (ADR 0065): a plain child inside a
+ * list item's template moves like any other, and so does an element inside a slot.
  */
-function standingOf(text: string, at: number, memo: Map<number, boolean>): Standing {
+function standingOf(text: string, at: number): Standing {
   const parent = parentOf(text, at);
   const root = parent === null ? 'section' : isSlotRoot(text, at, parent) ? 'slot' : null;
-  if (inExpression(text, at, memo)) return { movable: 'in-expression', root };
+  if (contextOf(text, at) === 'expression') return { movable: 'in-expression', root };
   const movable = root === 'section' ? 'section-root' : root === 'slot' ? 'slot-root' : null;
   return { movable, root };
 }
 
 /** Why the element whose `<` is at `at` cannot be moved or deleted; `null` when it can. */
-export const movableAt = (text: string, at: number): Refusal | null =>
-  standingOf(text, at, new Map<number, boolean>()).movable;
+export const movableAt = (text: string, at: number): Refusal | null => standingOf(text, at).movable;
 
 /**
- * The element is what a `.map` over a literal array of the file returns: the page renders one
- * copy of it per item, so dragging a copy reorders the items of the data (ADR 0059). An element
- * deeper in the callback is in the same list as its parent and is no item itself.
+ * The `.map` lists around the element (ADR 0065): the ids of their callbacks' root elements,
+ * outer first, the element's own id last when it is such a root. `null` when the copies of one
+ * cannot be counted, or a root has no id an op could name. `item`: the element is the root of
+ * its innermost list and the array of that list's first copy is a literal of the file, so the
+ * page renders one copy per item and a drag of a copy reorders the data (ADR 0059).
  */
-function isListItem(text: string, at: number): boolean {
-  if (findList(text, at)?.kind !== 'literal') return false;
-  const parent = parentOf(text, at);
-  return parent === null || findList(text, parent) === null;
+function listedAt(context: FileContext, at: number): Listed {
+  const { text, memo, ids } = context;
+  if (!inExpression(text, at, memo)) return { lists: [], item: false };
+  const levels = aroundOf(text, at)?.levels;
+  if (levels === undefined) return { lists: [], item: false };
+  if (levels === null || levels.length > MAX_LIST_DEPTH) return { lists: null, item: false };
+  const lists: string[] = [];
+  for (const level of levels) {
+    const id = ids.get(level.root);
+    if (id === undefined || !validId(id)) return { lists: null, item: false };
+    lists.push(id);
+  }
+  const inner = levels[levels.length - 1];
+  if (inner === undefined || inner.root !== at) return { lists, item: false };
+  const first = innerArrayAt(
+    levels,
+    levels.slice(1).map(() => 0),
+  );
+  return { lists, item: typeof first !== 'string' };
 }
 
 /** The build's ids of a file's elements and their `<`; none when the file does not compile. */
@@ -214,12 +235,13 @@ async function sitesOf(compiler: EditCompiler, text: string, file: string): Prom
 
 /** One element as the structure lists it; `null` when the reader finds no element there. */
 function entryOf(context: FileContext, site: Site): StructureEntryView | null {
-  const { text, file, kit, memo } = context;
+  const { text, file, kit } = context;
   const span = elementSpan(text, site.at);
   const open = openAt(text, site.at);
   if (span === null || open === null || !validId(site.id)) return null;
   const component = kitComponentOf(kit, site.tag);
-  const { movable, root } = standingOf(text, site.at, memo);
+  const { movable, root } = standingOf(text, site.at);
+  const { lists, item } = listedAt(context, site.at);
   return {
     id: site.id,
     file,
@@ -233,8 +255,8 @@ function entryOf(context: FileContext, site: Site): StructureEntryView | null {
     props: open.attrs.map((attr) => attr.name),
     component: component?.name ?? null,
     movable,
-    // Read only for an element that cannot move as one: a mapped element is in an expression.
-    item: movable !== null && isListItem(text, site.at),
+    lists,
+    item,
     accepts: acceptsChildren(site.tag, component),
     mixed: isMixed(text, site.at),
     interactive: isInteractive(site.tag, component),
@@ -305,8 +327,15 @@ export async function readStructure(deps: StructureDeps, slug: string): Promise<
   const elements: StructureEntryView[] = [];
   for (const file of inPageOrder([...texts.keys()], sections)) {
     const text = texts.get(file) ?? '';
-    const context: FileContext = { text, file, kit, memo: new Map<number, boolean>() };
-    for (const site of await sitesOf(deps.compiler, text, file)) {
+    const sites = await sitesOf(deps.compiler, text, file);
+    const context: FileContext = {
+      text,
+      file,
+      kit,
+      memo: new Map<number, boolean>(),
+      ids: new Map(sites.map((site) => [site.at, site.id])),
+    };
+    for (const site of sites) {
       const entry = entryOf(context, site);
       if (entry !== null) elements.push(entry);
     }

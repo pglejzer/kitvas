@@ -54,6 +54,8 @@ export const STYLE_PROPERTIES = [
   'outline-style',
   'background-image',
   'background-size',
+  'min-width',
+  'min-height',
 ] as const;
 
 const ATTRIBUTE = 'data-ks';

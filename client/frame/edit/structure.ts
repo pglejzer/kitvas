@@ -10,11 +10,19 @@
 // when a drag first shows a slot, so a prototype nobody edits never gets one.
 
 import type { EditFrameMessage, EditStudioMessage } from '../../channel/edit-protocol.ts';
-import type { FrameEntry, ScaleStep } from '../../channel/structure-protocol.ts';
+import type { FrameEntry, MenuBox, ScaleStep } from '../../channel/structure-protocol.ts';
 import { createDrag, type Drag } from '../drag/drag.ts';
+import {
+  createGestureLog,
+  type GestureLog,
+  type GestureLogMessage,
+  type GestureTool,
+} from '../drag/gesture-log.ts';
 import { createHandles, type Handles } from '../drag/handles.ts';
-import { createIndicator, type Indicator, slotAt } from '../drag/slots.ts';
+import { slotAt } from '../drag/slot-read.ts';
+import { createIndicator, type Indicator } from '../drag/slots.ts';
 import { createHide, type Hide } from './hide.ts';
+import { type Chosen, chosenOf, copyOfPick, soleCopy } from './items.ts';
 
 /** What the frame needs of a `contextmenu` event. */
 export type MenuEvent = {
@@ -30,11 +38,15 @@ export type StructureParts = {
     entries(): ReadonlyMap<string, FrameEntry>;
     selection(): readonly string[];
     locked(): readonly string[];
+    /** A drag began (`true`) or ended. */
+    quiet(on: boolean): void;
   }): Drag;
   handles(scales: () => { space: readonly ScaleStep[]; size: readonly ScaleStep[] }): Handles;
   hide: Hide;
   /** The element id around a context menu's target, or `null` outside any marked element. */
   idOf(target: unknown): string | null;
+  /** The copy and the box of the marked element around a context menu's target. */
+  under(target: unknown): { item?: number; path?: number[]; box?: MenuBox };
 };
 
 export type StructureDeps = {
@@ -47,6 +59,13 @@ export type StructureDeps = {
     remove(handler: (event: MenuEvent) => void): void;
   };
   parts?: StructureParts;
+  /**
+   * A drag began (`true`) or ended (ADR 0066): what else the frame draws (outlines, labels,
+   * marks) leaves the page meanwhile. The handles leave with it here.
+   */
+  quiet?(on: boolean): void;
+  /** Sends the log of a gesture that was lost (`gesture-log.ts`); without it no log is kept. */
+  report?(message: GestureLogMessage): void;
 };
 
 export type FrameStructure = {
@@ -56,6 +75,8 @@ export type FrameStructure = {
    * drag's threshold, the indicator and the handles keep their size on the screen with it.
    */
   scale(value: number): void;
+  /** A build was taken in place (`page/swap.ts`). */
+  swapped(): void;
 };
 
 const MARKED = '[data-ks]';
@@ -68,17 +89,20 @@ function windowListener(): NonNullable<StructureDeps['listener']> {
   };
 }
 
-function realParts(deps: StructureDeps): StructureParts {
+function realParts(
+  deps: StructureDeps,
+  entries: () => ReadonlyMap<string, FrameEntry>,
+): StructureParts {
   let real: Indicator | undefined;
   let zoom = 1;
   const indicator: Indicator = {
-    show: (slot) => {
-      if (slot === null && real === undefined) return;
+    show: (slot, lists = []) => {
+      if (slot === null && lists.length === 0 && real === undefined) return;
       if (!real) {
         real = createIndicator(document);
         real.scale(zoom);
       }
-      real.show(slot);
+      real.show(slot, lists);
     },
     scale: (value) => {
       zoom = value;
@@ -86,42 +110,80 @@ function realParts(deps: StructureDeps): StructureParts {
     },
     dispose: () => real?.dispose(),
   };
+  const { report, channel, post } = deps;
+  /** The log of one tool, when there is somebody to send it to. */
+  const logOf = (tool: GestureTool): { log?: GestureLog } =>
+    report
+      ? { log: createGestureLog({ tool, channel, now: () => performance.now(), post: report }) }
+      : {};
   return {
-    drag: ({ entries, selection, locked }) =>
+    drag: ({ entries, selection, locked, quiet }) =>
       createDrag({
-        post: deps.post,
-        channel: deps.channel,
+        post,
+        channel,
         entries,
         selection,
         locked,
         slots: slotAt,
         indicator,
+        quiet,
+        ...logOf('drag'),
       }),
-    handles: (scales) => createHandles({ post: deps.post, channel: deps.channel, scales }),
+    handles: (scales) => createHandles({ post, channel, scales, ...logOf('handle') }),
     hide: createHide(document),
     idOf: (target) =>
       target instanceof Element ? (target.closest(MARKED)?.getAttribute('data-ks') ?? null) : null,
+    under: (target) => {
+      const element = target instanceof Element ? target.closest(MARKED) : null;
+      const id = element?.getAttribute('data-ks') ?? null;
+      if (element === null || id === null) return {};
+      const { left, top, width, height } = element.getBoundingClientRect();
+      const lists = entries().get(id)?.lists;
+      return { ...copyOfPick(element, id, lists), box: { x: left, y: top, width, height } };
+    },
   };
 }
 
 export function createStructure(deps: StructureDeps): FrameStructure {
   const head = { kitvas: 1 as const, channel: deps.channel };
   const listener = deps.listener ?? windowListener();
-  const parts = deps.parts ?? realParts(deps);
+  // Read when a menu is asked for, long after `entries` below is set up.
+  const parts = deps.parts ?? realParts(deps, () => entries);
   let entries: ReadonlyMap<string, FrameEntry> = new Map();
   let space: readonly ScaleStep[] = [];
   let size: readonly ScaleStep[] = [];
   let selection: readonly string[] = [];
+  /** The copies the page chose (`select`'s `copies`). */
+  let chosen: Chosen = chosenOf(undefined);
   let editing = false;
   /** Locked while editing; Preview takes the pointer as the page would. */
   let locked: string[] = [];
   let handlesOn = false;
+  /** A drag runs: the handles are off the page until it ends. */
+  let dragging = false;
+  // The drag before the handles: their listeners on the window run in the order they were made.
   const drag: Drag = parts.drag({
     entries: () => entries,
     selection: () => selection,
     locked: () => locked,
+    quiet(on) {
+      dragging = on;
+      if (editing) placeHandles();
+      deps.quiet?.(on);
+    },
   });
   const handles: Handles = parts.handles(() => ({ space, size }));
+
+  /**
+   * Handles sit on the one selected copy (`soleCopy`) while edit mode and the page both want them
+   * and no drag runs.
+   */
+  function placeHandles(): void {
+    const wanted = editing && handlesOn;
+    handles.enable(wanted);
+    const copy = wanted && !dragging ? soleCopy(selection, chosen) : null;
+    handles.show(copy?.id ?? null, copy?.item);
+  }
 
   const onMenu = (event: MenuEvent): void => {
     event.preventDefault();
@@ -131,13 +193,8 @@ export function createStructure(deps: StructureDeps): FrameStructure {
       id: parts.idOf(event.target),
       x: event.clientX,
       y: event.clientY,
+      ...parts.under(event.target),
     });
-  };
-
-  /** Handles sit on a single selected element while edit mode and the page both want them. */
-  const placeHandles = (): void => {
-    handles.enable(editing && handlesOn);
-    handles.show(editing && handlesOn && selection.length === 1 ? (selection[0] ?? null) : null);
   };
 
   function turnOn(): void {
@@ -157,6 +214,7 @@ export function createStructure(deps: StructureDeps): FrameStructure {
     listener.remove(onMenu);
     // `edit.ts` forgets the selection with edit mode; the page sends it again on the next `edit`.
     selection = [];
+    chosen = chosenOf(undefined);
     placeHandles();
   }
 
@@ -169,6 +227,7 @@ export function createStructure(deps: StructureDeps): FrameStructure {
           break;
         case 'select':
           selection = message.ids;
+          chosen = chosenOf(message.copies);
           if (editing) placeHandles();
           break;
         case 'structure':
@@ -195,6 +254,13 @@ export function createStructure(deps: StructureDeps): FrameStructure {
           // A drag the page forwards needs the pointer tools, which exist in edit mode only.
           if (editing) drag.forward(message);
           break;
+        case 'release':
+          // The page heard a release the frame did not: whichever tool still holds a press ends
+          // it. A press on a handle is never a press of the drag, so at most one of them acts.
+          if (!editing) break;
+          handles.released({ x: message.x, y: message.y }, message.shift, message.alt);
+          drag.released({ x: message.x, y: message.y });
+          break;
       }
     },
 
@@ -202,6 +268,10 @@ export function createStructure(deps: StructureDeps): FrameStructure {
       const zoom = value > 0 && Number.isFinite(value) ? value : 1;
       drag.scale(zoom);
       handles.scale(zoom);
+    },
+
+    swapped() {
+      drag.swapped();
     },
   };
 }

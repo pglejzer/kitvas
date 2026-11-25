@@ -35,10 +35,14 @@ test('every style property has one kind: a token type, keyword or image', () => 
   assert.equal(Object.keys(PROPERTY_TOKEN_TYPE).length + 11, STYLE_PROPERTIES.length);
 });
 
-test('the stage 4a properties keep their order and plan 15 adds the new ones after them', () => {
+test('the stage 4a properties keep their order and later ones come after them', () => {
   assert.deepEqual(STYLE_PROPERTIES.slice(0, 3), ['padding', 'padding-block', 'padding-inline']);
   assert.equal(STYLE_PROPERTIES[16], 'height');
-  assert.equal(STYLE_PROPERTIES.length, 38);
+  assert.equal(STYLE_PROPERTIES.length, 40);
+  // The minimum sizes (ADR 0067) take the tokens and the off-kit rule of `height`.
+  assert.deepEqual(STYLE_PROPERTIES.slice(-2), ['min-width', 'min-height']);
+  assert.equal(PROPERTY_TOKEN_TYPE['min-width'], PROPERTY_TOKEN_TYPE.height);
+  assert.equal(PROPERTY_TOKEN_TYPE['min-height'], 'dimension');
   for (const side of ['top', 'right', 'bottom', 'left'] as const) {
     assert.equal(PROPERTY_TOKEN_TYPE[`padding-${side}` as const], 'dimension');
     assert.equal(PROPERTY_TOKEN_TYPE[`margin-${side}` as const], 'dimension');

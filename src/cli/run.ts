@@ -46,8 +46,13 @@ export async function runCli(argv: string[], commands: Command[], io: Io): Promi
     if (!command) {
       throw new KitvasError('USAGE', { detail: t('cli.unknownCommand', { name: args.command }) });
     }
-    const settings = loadSettings({ home: io.home, cwd: io.cwd });
-    t = createTranslator(loadMessages(io.localesDir, settings.language));
+    try {
+      const settings = loadSettings({ home: io.home, cwd: io.cwd });
+      t = createTranslator(loadMessages(io.localesDir, settings.language));
+    } catch (cause) {
+      // A command that reports a broken settings file itself keeps the default language.
+      if (command.runsWithoutSettings !== true) throw cause;
+    }
     const data = await command.run({
       cwd: io.cwd,
       home: io.home,

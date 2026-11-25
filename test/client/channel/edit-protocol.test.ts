@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   addsToSelection,
+  MAX_COPIES,
   MAX_NODES,
   MAX_SELECTED,
   textEditOf,
 } from '../../../client/channel/edit-protocol.ts';
 import { parseFrameMessage, parseStudioMessage } from '../../../client/channel/protocol.ts';
+import { MAX_PICKS } from '../../../client/channel/structure-protocol.ts';
 
 const CHANNEL = 'abcdefghijklmnop';
 const sent = (fields: Record<string, unknown>) => ({ kitvas: 1, channel: CHANNEL, ...fields });
@@ -17,8 +19,12 @@ test('the frame may report picks, hovers, keys, trees, styles and inline text', 
   const good = [
     { type: 'pick', id, add: true, double: false },
     { type: 'pick', id: null, add: false, double: false },
+    { type: 'pick', id, add: false, double: false, item: 4 },
+    { type: 'pick', id, add: true, double: false, item: 4, path: [1, 2] },
+    { type: 'pick', id, add: false, double: true, path: [0] },
     { type: 'hovered', id: null },
     { type: 'key', key: 'parent' },
+    { type: 'key', key: 'select-all' },
     { type: 'tree', request: 2, nodes: [{ id, parent: null, name: 'Buy', count: 3 }] },
     {
       type: 'inspected',
@@ -70,6 +76,10 @@ test('the frame cannot send a bad edit message', () => {
   const bad = [
     { type: 'pick', id: '<b>', add: true, double: false },
     { type: 'pick', id, add: 'yes', double: false },
+    { type: 'pick', id, add: true, double: false, item: -1 },
+    { type: 'pick', id, add: true, double: false, path: [0.5] },
+    { type: 'pick', id, add: true, double: false, path: '0,1' },
+    { type: 'pick', id, add: true, double: false, path: Array.from({ length: 9 }, () => 0) },
     { type: 'key', key: 'explode' },
     { type: 'tree', request: 1, nodes: Array.from({ length: MAX_NODES + 1 }, () => node('')) },
     { type: 'tree', request: 1, nodes: [node('x'.repeat(81))] },
@@ -85,6 +95,15 @@ test('the page may tell the frame to edit, select, hover, read and preview', () 
   const good = [
     { type: 'edit', on: true },
     { type: 'select', ids: [id] },
+    { type: 'select', ids: [id], copies: [] },
+    {
+      type: 'select',
+      ids: [id, 'sections/Hero:section'],
+      copies: [
+        { id, item: 0 },
+        { id, item: 3 },
+      ],
+    },
     { type: 'hover', id },
     { type: 'tree', request: 1 },
     { type: 'inspect', request: 2, id },
@@ -112,6 +131,15 @@ test('the page cannot send a bad edit message', () => {
   const bad = [
     { type: 'edit', on: 1 },
     { type: 'select', ids: Array.from({ length: MAX_SELECTED + 1 }, () => id) },
+    { type: 'select', ids: [id], copies: 'all' },
+    { type: 'select', ids: [id], copies: [{ id }] },
+    { type: 'select', ids: [id], copies: [{ id, item: -1 }] },
+    { type: 'select', ids: [id], copies: [{ id: '<b>', item: 0 }] },
+    {
+      type: 'select',
+      ids: [id],
+      copies: Array.from({ length: MAX_COPIES + 1 }, (_, item) => ({ id, item })),
+    },
     {
       type: 'preview',
       changes: [{ id, kind: 'style', property: 'gap', value: '1px; background: url(x)' }],
@@ -128,6 +156,29 @@ test('the page cannot send a bad edit message', () => {
   for (const fields of bad) {
     assert.equal(parseStudioMessage(sent(fields), CHANNEL), undefined, String(fields.type));
   }
+});
+
+test('a select names copies, never one item for the whole selection', () => {
+  // The field of the message before ADR 0065 is not in its shape: it does not go through.
+  assert.deepEqual(
+    parseStudioMessage(sent({ type: 'select', ids: [id], item: 2 }), CHANNEL),
+    sent({ type: 'select', ids: [id] }),
+  );
+  // A copy carries its id and its place, nothing else.
+  assert.deepEqual(
+    parseStudioMessage(
+      sent({ type: 'select', ids: [id], copies: [{ id, item: 1, path: [0, 1] }] }),
+      CHANNEL,
+    ),
+    sent({ type: 'select', ids: [id], copies: [{ id, item: 1 }] }),
+  );
+  const full = Array.from({ length: MAX_COPIES }, (_, item) => ({ id, item }));
+  assert.deepEqual(
+    parseStudioMessage(sent({ type: 'select', ids: [id], copies: full }), CHANNEL),
+    sent({ type: 'select', ids: [id], copies: full }),
+  );
+  // A rectangle names as many copies as a select does.
+  assert.equal(MAX_PICKS, MAX_COPIES);
 });
 
 test('an edit message on another channel is not ours', () => {

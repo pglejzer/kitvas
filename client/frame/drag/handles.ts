@@ -16,10 +16,12 @@ import type {
   ScaleStep,
   StructureFrameMessage,
 } from '../../channel/structure-protocol.ts';
+import { soleElement } from '../edit/items.ts';
 import { createPreview } from '../edit/preview.ts';
-import { elementsWith } from '../edit/tree.ts';
 import { hold } from '../page/busy.ts';
+import type { GestureEnd, GestureLog } from './gesture-log.ts';
 import { createGuides, createOverlay, type Overlay } from './guides.ts';
+import { HANDLES_SHEET } from './handles-sheet.ts';
 import {
   type Candidate,
   candidatesFor,
@@ -35,19 +37,24 @@ import {
 import { aroundOf, px, readSpots } from './measure.ts';
 import { boxOf } from './preview.ts';
 import type { Box, Point } from './slots.ts';
-import { allowedSpots, MAX_GAPS, type Spot, spotAt } from './spots.ts';
+import { allowedSpots, type Spot, spotAt } from './spots.ts';
 
 export type HandlesDeps = {
   post(message: StructureFrameMessage): void;
   channel: string;
   scales(): Scales;
+  /** Hears every change of a handle's state, and why it ended (`gesture-log.ts`). */
+  log?: GestureLog;
 };
 
 export type Handles = {
   /** On only in edit mode with nothing else dragging; off removes every handle. */
   enable(on: boolean): void;
-  /** The element the handles sit on; `null` or several selected: none. */
-  show(id: string | null): void;
+  /**
+   * The one copy the handles sit on: copy `item` of `id`, or without `item` the only element that
+   * carries `id` (none while several do). `null`, or several selected: none.
+   */
+  show(id: string | null, item?: number): void;
   /** Frame pixels per pixel on the screen: the inverse of the canvas zoom. */
   scale(value: number): void;
   /**
@@ -55,6 +62,8 @@ export type Handles = {
    * `stepped` one (a kit prop covers it) goes from step to step.
    */
   limit(blocked: readonly string[], stepped: readonly string[]): void;
+  /** The page heard the release the frame did not hear: a held handle writes at `point`. */
+  released(point: Point, shift: boolean, alt: boolean): void;
 };
 
 /** The overlay's host element: a pointer event whose target it is belongs to a handle. */
@@ -64,40 +73,6 @@ export const HANDLES_HOST = 'kitvas-handles';
 const THRESHOLD = 3;
 /** How far from the pointer the value label sits, in pixels on the screen. */
 const LABEL_OFFSET = 14;
-/** The shield and the label lie over every handle, however many there are. */
-const ABOVE = MAX_GAPS + 16;
-
-// Tones come from `toned` (`guides.ts`); system colours stand in before the studio's.
-const FOCUS = 'var(--kv-select, Highlight)';
-const SHEET = `
-.handle, .bar, .value { position: absolute; left: 0; top: 0; box-sizing: border-box; }
-.handle { pointer-events: auto; touch-action: none; }
-.bar {
-  pointer-events: none; border-style: solid; border-color: ${FOCUS};
-  background: var(--kv-on-select, Canvas);
-}
-.handle[data-kind^="padding"] .bar, .handle[data-kind="gap"] .bar {
-  background: ${FOCUS}; border-color: var(--kv-on-select, Canvas);
-}
-.shield {
-  position: fixed; inset: 0; z-index: ${ABOVE}; pointer-events: auto; touch-action: none;
-}
-[data-axis="x"] { cursor: ew-resize; }
-[data-axis="y"] { cursor: ns-resize; }
-[data-axis="both"] { cursor: nwse-resize; }
-.value {
-  z-index: ${ABOVE + 1}; transform-origin: 0 0;
-  pointer-events: none; padding: 2px 5px; border-radius: 3px; white-space: nowrap;
-  font: 600 11px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-variant-numeric: tabular-nums; letter-spacing: 0;
-  background: var(--kv-select, CanvasText); color: var(--kv-on-select, Canvas);
-}
-.off { display: none; }
-@media (forced-colors: active) {
-  .bar { background: Canvas; border-color: Highlight; }
-  .value { background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
-}
-`;
 const Z_INDEX = 2147483647;
 const WIDTH_EXTRAS = [
   ['auto', 'auto'],
@@ -119,6 +94,8 @@ type Drag = {
   tracks: Live[];
   sent: Sent[];
   moved: boolean;
+  /** A move with no button down was heard under it: the log has it, once. */
+  loose: boolean;
   space: readonly ScaleStep[];
   /** Ends the hold on the page's swaps (`busy.ts`). */
   free(): void;
@@ -140,6 +117,8 @@ export function createHandles(deps: HandlesDeps): Handles {
   const guides = createGuides();
   let on = false;
   let id: string | null = null;
+  /** The copy of `id` the handles sit on, when the page named one. */
+  let item: number | undefined;
   let zoom = 1;
   let blocked: ReadonlySet<string> = new Set();
   let stepped: ReadonlySet<string> = new Set();
@@ -152,12 +131,12 @@ export function createHandles(deps: HandlesDeps): Handles {
   let frame = 0;
   let observers: { disconnect(): void }[] = [];
   const current = (): Element | undefined =>
-    on && id !== null ? elementsWith(new Set([id]))[0] : undefined;
+    on && id !== null ? soleElement(id, item) : undefined;
   /** The handles the element shows now: none for a property it cannot take. */
   const spotsOf = (element: Element): Spot[] => allowedSpots(readSpots(element, zoom), blocked);
 
   function createLayer(): Layer {
-    const overlay = createOverlay(HANDLES_HOST, SHEET, Z_INDEX);
+    const overlay = createOverlay(HANDLES_HOST, HANDLES_SHEET, Z_INDEX);
     // Every element of the overlay is a `kitvas-` one, so the drag never takes it for the page's.
     const shield = document.createElement('kitvas-shield');
     shield.className = 'shield off';
@@ -238,7 +217,10 @@ export function createHandles(deps: HandlesDeps): Handles {
     if (!moving || !layer) return;
     moving.at = point;
     const far = Math.hypot(point.x - moving.from.x, point.y - moving.from.y);
-    moving.moved ||= far >= THRESHOLD * zoom;
+    if (!moving.moved && far >= THRESHOLD * zoom) {
+      moving.moved = true;
+      deps.log?.step('moving');
+    }
     if (!moving.moved) return;
     const changes: PreviewChange[] = [];
     const next: Sent[] = [];
@@ -274,10 +256,17 @@ export function createHandles(deps: HandlesDeps): Handles {
     draw();
   }
 
-  /** Ends the drag: the preview goes first, so the page's write starts from the real element. */
-  function finish(commit: boolean): void {
+  /**
+   * Ends the drag: the preview goes first, so the page's write starts from the real element. Only
+   * a release (`released`) writes, and only when the handle moved.
+   */
+  function finish(why: GestureEnd): void {
     const ending = drag;
     if (!ending) return;
+    const commit = why === 'released';
+    // A handle let go where it was pressed is a click on it: nothing is lost by that.
+    if (commit) deps.log?.end(ending.moved ? 'released' : 'not-moved', true);
+    else deps.log?.end(why, false);
     drag = undefined;
     swallow = true;
     preview.clear();
@@ -304,14 +293,26 @@ export function createHandles(deps: HandlesDeps): Handles {
 
   function onDown(event: PointerEvent): void {
     swallow = false;
-    if (!layer || drag || event.target !== layer.overlay.host) return;
+    if (!layer || event.target !== layer.overlay.host) return;
+    if (drag) {
+      // A press under a handle that is still held: its release was never heard.
+      deps.log?.step(drag.moved ? 'moving' : 'held', 'busy');
+      return;
+    }
     // The page and the other tools never see a press on a handle.
     stop(event);
     const element = current();
     const elementId = id;
     const from = pointOf(event);
     const spot = element ? spotAt(from, spotsOf(element)) : undefined;
-    if (!element || !spot || elementId === null || event.button !== 0) return;
+    if (event.button !== 0) return;
+    if (!element || !spot || elementId === null) {
+      // The overlay took the press, but no handle is under the pointer as the element stands
+      // now: the handles were drawn for where it stood before.
+      deps.log?.end('no-spot', false);
+      return;
+    }
+    deps.log?.step('held');
     const scales = deps.scales();
     const tracks = tracksOf(spot).map((track) => begin(element, track, scales, elementId));
     const pointer = event.pointerId;
@@ -323,6 +324,7 @@ export function createHandles(deps: HandlesDeps): Handles {
       tracks,
       sent: [],
       moved: false,
+      loose: false,
       space: scales.space,
       // From the press to the release: the page is not swapped under a handle that is held.
       free: hold(),
@@ -338,7 +340,13 @@ export function createHandles(deps: HandlesDeps): Handles {
 
   function onMove(event: PointerEvent): void {
     if (drag) {
-      if (event.pointerId === drag.pointer) update(pointOf(event), event.shiftKey, event.altKey);
+      if (event.pointerId !== drag.pointer) return;
+      // Only written down: the handle still follows the pointer, as it always did.
+      if (event.buttons === 0 && !drag.loose) {
+        drag.loose = true;
+        deps.log?.step(drag.moved ? 'moving' : 'held', 'no-buttons');
+      }
+      update(pointOf(event), event.shiftKey, event.altKey);
       return;
     }
     if (!on || id === null) return;
@@ -357,7 +365,7 @@ export function createHandles(deps: HandlesDeps): Handles {
     stop(event);
     const kept = event.type === 'pointerup';
     if (kept) update(pointOf(event), event.shiftKey, event.altKey);
-    finish(kept);
+    finish(kept ? 'released' : 'cancelled');
   }
 
   function onGuarded(event: Event): void {
@@ -370,7 +378,7 @@ export function createHandles(deps: HandlesDeps): Handles {
     if (drag) {
       if (event.key === 'Escape' && event.type === 'keydown') {
         stop(event);
-        finish(false);
+        finish('escape');
       } else if (event.key === 'Shift' || event.key === 'Alt') {
         // Alt alone would open the browser's menu on some systems.
         if (event.key === 'Alt') event.preventDefault();
@@ -393,6 +401,8 @@ export function createHandles(deps: HandlesDeps): Handles {
     window.addEventListener('pointermove', onMove, { capture: true, passive: true });
     window.addEventListener('pointerup', onUp, capture);
     window.addEventListener('pointercancel', onUp, capture);
+    // The page is left under a held handle: its log is posted now, there is no later.
+    window.addEventListener('pagehide', () => finish('unloaded'), capture);
     window.addEventListener('keydown', onKey, capture);
     window.addEventListener('keyup', onKey, capture);
     for (const type of GUARDED) window.addEventListener(type, onGuarded, capture);
@@ -425,7 +435,7 @@ export function createHandles(deps: HandlesDeps): Handles {
   return {
     enable(next) {
       if (next === on) return;
-      if (!next) finish(false);
+      if (!next) finish('off');
       on = next;
       if (on) {
         watch();
@@ -444,10 +454,11 @@ export function createHandles(deps: HandlesDeps): Handles {
       swallow = false;
     },
 
-    show(next) {
-      if (next === id) return;
-      finish(false);
+    show(next, copy) {
+      if (next === id && copy === item) return;
+      finish('selection-changed');
       id = next;
+      item = copy;
       guiding = false;
       guides.hide();
       if (on) draw();
@@ -463,6 +474,12 @@ export function createHandles(deps: HandlesDeps): Handles {
       blocked = new Set(nextBlocked);
       stepped = new Set(nextStepped);
       if (on) draw();
+    },
+
+    released(point, shift, alt) {
+      if (!drag) return;
+      update(point, shift, alt);
+      finish('released');
     },
   };
 }

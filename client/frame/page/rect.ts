@@ -1,5 +1,5 @@
-// The selection rectangle's geometry (ADR 0059). No DOM here: boxes come in, what the rectangle
-// takes goes out. `drag.ts` measures and draws.
+// The selection rectangle's geometry (ADRs 0059 and 0066). No DOM here: boxes come in, what the
+// rectangle takes goes out. `drag.ts` measures and draws.
 
 import type { Box, Point } from '../drag/slots.ts';
 
@@ -13,9 +13,12 @@ export function rectOf(a: Point, b: Point): Box {
   };
 }
 
+/** The box has a size: a hidden element has neither a width nor a height. */
+const sized = (box: Box): boolean => box.width > 0 || box.height > 0;
+
 /** `box` lies fully inside `rect`. A box without a size (a hidden element) is inside nothing. */
 export function contains(rect: Box, box: Box): boolean {
-  if (box.width <= 0 && box.height <= 0) return false;
+  if (!sized(box)) return false;
   return (
     box.left >= rect.left &&
     box.top >= rect.top &&
@@ -29,7 +32,7 @@ export function contains(rect: Box, box: Box): boolean {
  * (a hidden element) is touched by nothing; a rectangle drawn as a straight line still touches.
  */
 export function touches(rect: Box, box: Box): boolean {
-  if (box.width <= 0 && box.height <= 0) return false;
+  if (!sized(box)) return false;
   return (
     rect.left < box.left + box.width &&
     box.left < rect.left + rect.width &&
@@ -47,30 +50,41 @@ export type RectItem = {
   parent: number;
 };
 
-/** What a rectangle takes: the ids, and the box of every taken element for the outline. */
-export type Taken = { ids: string[]; boxes: Box[] };
+/**
+ * What a rectangle takes: the place in `items` of every element taken, in document order, and
+ * its box for the outline. Every rendered copy is an element of its own here.
+ */
+export type Taken = { taken: number[]; boxes: Box[] };
 
 /**
- * What a rectangle takes: the elements it touches that do not hold it whole, the outermost of
- * those, in document order. So a rectangle across two cards takes the two cards, one inside a
- * card across three rows takes the rows, and a container the rectangle lies inside is never taken
- * for it. An element inside a taken one is left out, since that one already stands for it. Each
- * id once (the items of a mapped list share one), at most `limit` ids.
+ * What a rectangle takes (ADR 0066), from the outermost elements inwards:
+ * - an element that lies fully inside it is taken whole, and nothing inside that one;
+ * - an element it covers only in part is not taken, and each of its children gets the same test;
+ * - an element it covers only in part that has no element children is taken.
+ * So a rectangle around two cards takes the two cards, one across three rows of a card takes the
+ * rows, and a container that holds the whole rectangle is never taken for it, however far outside
+ * the content the rectangle starts. At most `limit` elements.
  */
 export function takenBy(items: readonly RectItem[], rect: Box, limit: number): Taken {
+  /** How many children with a size each item has. */
+  const children: number[] = items.map(() => 0);
+  for (const item of items) {
+    if (item.parent < 0 || !sized(item.box)) continue;
+    children[item.parent] = (children[item.parent] ?? 0) + 1;
+  }
   /** The item, or one it sits in, is taken. */
   const under: boolean[] = [];
-  const ids = new Set<string>();
+  const taken: number[] = [];
   const boxes: Box[] = [];
   for (const [index, item] of items.entries()) {
     const covered = under[item.parent] === true;
-    const { id } = item;
-    const own =
-      !covered && id !== null && touches(rect, item.box) && !contains(item.box, rect) ? id : null;
-    under[index] = covered || own !== null;
-    if (own === null || (!ids.has(own) && ids.size >= limit)) continue;
-    ids.add(own);
+    const whole = contains(rect, item.box);
+    const leaf = children[index] === 0 && touches(rect, item.box);
+    const own = !covered && item.id !== null && (whole || leaf);
+    under[index] = covered || own;
+    if (!own || taken.length >= limit) continue;
+    taken.push(index);
     boxes.push(item.box);
   }
-  return { ids: [...ids], boxes };
+  return { taken, boxes };
 }

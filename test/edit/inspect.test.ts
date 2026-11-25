@@ -150,16 +150,23 @@ test('a plain element is no kit component, and its plain text can be edited', as
   assert.deepEqual(note.styles.padding, { kind: 'kit' });
 });
 
-test('an element without a class gets a new class name that neither file uses', async () => {
+test('an element without a class gets a new class named after its section', async () => {
   const drafts = draftWith(PRICING);
-  // `.button` has a rule in the SCSS and `button-2` is a class in the TSX.
+  // The section's root has the class `pricing`: the block of every new class under it. The bare
+  // `.button` of the SCSS and the `button-2` of the TSX are other names.
   const button = await inspectIn(drafts, 'sections/Pricing:section/Stack/Button');
-  assert.deepEqual(button.styleClass, { className: 'button-3', exists: false });
+  assert.deepEqual(button.styleClass, { className: 'pricing__button', exists: false });
   assert.equal(button.scss?.file, 'src/scss/sections/pricing.scss');
   assert.equal(button.scss?.rule, false);
   assert.deepEqual(button.scss?.declarations, []);
   const stack = await inspectIn(drafts, 'sections/Pricing:section/Stack');
-  assert.deepEqual(stack.styleClass, { className: 'stack', exists: false });
+  assert.deepEqual(stack.styleClass, { className: 'pricing__stack', exists: false });
+  // A name either file uses already takes the next number.
+  const used = PRICING_TSX.replace('className="button-2"', 'className="pricing__button"');
+  assert.notEqual(used, PRICING_TSX);
+  const taken = draftWith({ ...PRICING, 'src/tsx/sections/Pricing.tsx': used });
+  const second = await inspectIn(taken, 'sections/Pricing:section/Stack/Button');
+  assert.deepEqual(second.styleClass, { className: 'pricing__button-2', exists: false });
 });
 
 test('a class with a rule is the style class, and its declaration is the source', async () => {
@@ -279,7 +286,7 @@ test('the answer gives the line of the tag, and every style property of the pane
   const drafts = draftWith(PRICING);
   const stack = await inspectIn(drafts, 'sections/Pricing:section/Stack');
   assert.equal(stack.line, 9);
-  assert.equal(Object.keys(stack.styles).length, 38);
+  assert.equal(Object.keys(stack.styles).length, 40);
   // Base's Stack sets the flex keywords by its own props (plan 15).
   assert.deepEqual(stack.styles['flex-direction'], { kind: 'prop', prop: 'direction' });
   assert.deepEqual(stack.styles['align-items'], { kind: 'prop', prop: 'align' });

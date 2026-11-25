@@ -118,6 +118,37 @@ test('a text written through its source says which copy of which lists it is', (
   assert.match(old, /change the text of item 1 of the list to "Go"/);
 });
 
+test('a list op names its item, and every place of it inside another list', () => {
+  const words = (op: EditOp) => askText(subject(op, 'list-not-literal'), null);
+  // A list inside no other: the place in it says it all, with a path or without.
+  const plain: EditOp = { op: 'moveItem', id: ID, item: 1, to: 2 };
+  assert.match(words(plain), /move item 2 of the list to place 3\./);
+  const flat: EditOp = { op: 'moveItem', id: ID, item: 1, to: 0, path: [1], toPath: [0] };
+  assert.match(words(flat), /move item 2 of the list to place 1\./);
+  const twin: EditOp = { op: 'duplicateItem', id: ID, item: 0 };
+  assert.match(words(twin), /duplicate item 1 of the list\./);
+  const last: EditOp = { op: 'removeItem', id: ID, item: 2, path: [2] };
+  assert.match(words(last), /delete item 3 of the list\./);
+  // Inside another list the outer item is named first.
+  const own: EditOp = { op: 'moveItem', id: ID, item: 2, to: 0, path: [0, 2], toPath: [0, 0] };
+  assert.match(words(own), /move item 1 > 3 of the nested lists to place 1 of its list\./);
+  const across: EditOp = { op: 'moveItem', id: ID, item: 0, to: 1, path: [2, 0], toPath: [0, 1] };
+  assert.match(words(across), /move item 3 > 1 of the nested lists to place 1 > 2\./);
+  const copy: EditOp = { op: 'duplicateItem', id: ID, item: 1, path: [1, 1] };
+  assert.match(words(copy), /duplicate item 2 > 2 of the nested lists\./);
+  const gone: EditOp = { op: 'removeItem', id: ID, item: 0, path: [1, 0] };
+  assert.match(words(gone), /delete item 2 > 1 of the nested lists\./);
+  // A move by a path with no place to go to named reads as a move in its own list.
+  const bare: EditOp = { op: 'moveItem', id: ID, item: 1, to: 2, path: [1, 1] };
+  assert.match(words(bare), /move item 2 > 2 of the nested lists to place 3\./);
+});
+
+test('a list op on a part of an item is told as that', () => {
+  const op: EditOp = { op: 'removeItem', id: ID, item: 0 };
+  const words = askText(subject(op, 'not-list-item'), null);
+  assert.match(words, /because the element is a part of a list item, not the root element/);
+});
+
 test('a text that cannot be typed in place is told why, other refusals keep the hint', () => {
   const text: EditOp = { op: 'setItemText', id: ID, item: 0, path: [0], value: 'a', before: 'a' };
   assert.equal(hintKey(subject(text, 'computed')), 'ask.text.computed');

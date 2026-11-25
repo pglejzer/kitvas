@@ -61,13 +61,21 @@ export function listKindOf(
   return entry?.list ?? known.get(id) ?? null;
 }
 
-/** The badge of a row: "× 3", or "× 3 data" with what kind of list it is; `null` for none. */
-export function badgeOf(facts: RowFacts): { label: string; title: string | null } | null {
+/**
+ * The badge of a row: the count alone ("×3") so the name keeps its room, and in `title` (also the
+ * accessible name) the words "× 3", or "× 3 data" with the kind's own title after them; `null`
+ * for none.
+ */
+export function badgeOf(facts: RowFacts): { label: string; title: string } | null {
   const { count, kind } = facts;
   if (count === null) return null;
-  if (kind === null) return { label: text('layers.count', { count }), title: null };
-  const label = text('layers.countKind', { count, kind: text(`layers.kind.${kind}`) });
-  return { label, title: text(`layers.kindTitle.${kind}`) };
+  const label = text('layers.countShort', { count });
+  if (kind === null) return { label, title: text('layers.count', { count }) };
+  const words = text('layers.countKind', { count, kind: text(`layers.kind.${kind}`) });
+  return {
+    label,
+    title: text('layers.badgeTitle', { words, kind: text(`layers.kindTitle.${kind}`) }),
+  };
 }
 
 /** Nests a flat tree in document order; a node whose parent is not in the list is a root. */

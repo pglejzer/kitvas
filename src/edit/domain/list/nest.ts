@@ -130,3 +130,59 @@ export function itemsAt(levels: readonly Level[], path: readonly number[]): Item
   }
   return out;
 }
+
+/**
+ * The array the innermost list maps over in the copy whose outer lists stand at `parents` (one
+ * place per level but the last); it may hold no item. The refusals are `itemsAt`'s.
+ */
+export function innerArrayAt(
+  levels: readonly Level[],
+  parents: readonly number[],
+): ArrayView | Refusal {
+  const inner = levels[levels.length - 1];
+  if (inner === undefined || parents.length !== levels.length - 1) return 'not-found';
+  const outer = itemsAt(levels.slice(0, -1), parents);
+  if (typeof outer === 'string') return outer;
+  return arrayOf(inner, outer) ?? 'list-not-literal';
+}
+
+/** The most items `copyPlace` reads on its way: a list this long is not counted. */
+const MAX_COUNTED = 10_000;
+
+/**
+ * Among all the copies the innermost list renders (every outer item's array after the one
+ * before it, as the page shows them), the place of the copy at `path` and how many there are.
+ * `null` when a list on the way is no array literal, or `path` names no copy. It counts what
+ * the arrays hold: a list drawn only for some outer items has fewer copies on the page.
+ */
+export function copyPlace(
+  levels: readonly Level[],
+  path: readonly number[],
+): { copy: number; copies: number } | null {
+  if (levels.length === 0 || path.length !== levels.length) return null;
+  // `copy` stays -1 until the walk reaches the copy `path` names.
+  const count = { copy: -1, copies: 0, read: 0 };
+  const walk = (depth: number, outer: readonly ItemAt[], onPath: boolean): boolean => {
+    const level = levels[depth];
+    if (level === undefined) return false;
+    const region = level.regions[level.regions.length - 1];
+    const array = arrayOf(level, outer);
+    if (region === undefined || array === null) return false;
+    const place = path[depth] ?? -1;
+    if (depth === levels.length - 1) {
+      if (onPath && place >= 0 && place < array.items.length) count.copy = count.copies + place;
+      count.copies += array.items.length;
+      return true;
+    }
+    const param = paramOf(region, level.callback);
+    for (const [index, item] of array.items.entries()) {
+      count.read += 1;
+      if (count.read > MAX_COUNTED) return false;
+      const here = [...outer, { array, param, item }];
+      if (!walk(depth + 1, here, onPath && index === place)) return false;
+    }
+    return true;
+  };
+  if (!walk(0, [], true) || count.copy < 0) return null;
+  return { copy: count.copy, copies: count.copies };
+}

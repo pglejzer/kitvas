@@ -133,6 +133,17 @@ test('inspect answers one element as written; an id that names no element is ref
     const gone = await get(`/api/v1/drafts/shop/inspect?id=${encodeURIComponent(`${STACK}/Grid`)}`);
     assert.equal(gone.status, 404);
     assert.equal(json<Problem>(gone.text).code, 'EDIT_ELEMENT_NOT_FOUND');
+    // A copy's path is numbers with commas (ADR 0065); an element in no list answers no list.
+    const one = `/api/v1/drafts/shop/inspect?id=${encodeURIComponent(STACK)}`;
+    for (const path of ['', '0', '0,2']) {
+      const copy = await get(`${one}&path=${path}`);
+      assert.equal(copy.status, 200, path);
+      assert.equal(json<Inspect>(copy.text).list ?? null, null, path);
+    }
+    for (const path of ['a', '0,', '-1', '0;1', '0,1,2,3,4,5,6,7,8']) {
+      const bad = await get(`${one}&path=${encodeURIComponent(path)}`);
+      assert.equal(bad.status, 400, path);
+    }
   } finally {
     await studio.close();
   }

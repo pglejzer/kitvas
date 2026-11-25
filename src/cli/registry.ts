@@ -19,6 +19,11 @@ export type Command = {
   render(data: unknown, t: Translate): string;
   /** An error for the exit code when the answer says something failed; the answer is still printed. */
   failure?(data: unknown): KitvasError | undefined;
+  /**
+   * The command runs when the settings files cannot be read: its messages come in the default
+   * language and the command reports the broken file itself. Others end with `CONFIG_INVALID`.
+   */
+  runsWithoutSettings?: boolean;
 };
 
 type TypedCommand<T> = {
@@ -27,6 +32,7 @@ type TypedCommand<T> = {
   run(ctx: CommandContext): Promise<T> | T;
   render(data: T, t: Translate): string;
   failure?(data: T): KitvasError | undefined;
+  runsWithoutSettings?: boolean;
 };
 
 export function defineCommand<T>(command: TypedCommand<T>): Command {

@@ -211,7 +211,8 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
     }),
     apiRoute({
       id: 'inspectElement',
-      summary: 'One element of the latest version as its source writes it. Query: `id`.',
+      summary:
+        'One element of the latest version as its source writes it. Query: `id`, and `path` for the copy its list is read for.',
       method: 'GET',
       path: '/api/v1/drafts/{slug}/inspect',
       policy: 'read',
@@ -219,7 +220,12 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
       request: null,
       response: { status: 200, schema: InspectSchema },
       handle: async ({ params, query }) => {
-        const parsed = InspectQuerySchema.safeParse({ id: query.get('id') });
+        // `path` left out reads the list for no one copy; a `path` that is not numbers is refused.
+        const rawPath = query.get('path');
+        const parsed = InspectQuerySchema.safeParse({
+          id: query.get('id'),
+          ...(rawPath === null ? {} : { path: pathOf(rawPath) }),
+        });
         if (!parsed.success || !namesSourceFile(parsed.data.id)) {
           throw new RequestError(
             'REQUEST_INVALID',
@@ -237,6 +243,7 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
           },
           params.slug,
           parsed.data.id,
+          parsed.data.path,
         );
         return { status: 200, body: inspected };
       },

@@ -66,6 +66,8 @@ export const ERROR_TABLE = {
   DOCTOR_FAILED: { exit: 60, http: 500 },
   // Plan 18b (ADR 0064): another program holds a draft's files, so it cannot be moved.
   DRAFT_LOCKED: { exit: 61, http: 409 },
+  // Plan 18c: `draft restore | purge` of a name that is not in the trash points at `--deleted`.
+  DRAFT_NOT_DELETED: { exit: 62, http: 404 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;

@@ -56,18 +56,21 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0047](0047-facts-on-live-pages.md) | Facts on live pages | 2026-11-23 | accepted |
 | [0048](0048-edit-operations.md) | Edit operations | 2026-11-23 | accepted |
 | [0049](0049-editing-session-version.md) | Editing session and version | 2026-11-23 | accepted, changed in part by ADR 0058 |
-| [0050](0050-styles-in-section-scss.md) | Styles in section SCSS | 2026-11-23 | accepted |
+| [0050](0050-styles-in-section-scss.md) | Styles in section SCSS | 2026-11-23 | accepted, changed in part by ADR 0067 |
 | [0051](0051-structural-edits.md) | Structural edits | 2026-11-23 | accepted |
 | [0052](0052-element-identity.md) | Element identity | 2026-11-23 | accepted |
 | [0053](0053-canvas-tools.md) | Canvas tools | 2026-11-23 | accepted, changed in part by ADR 0059 |
 | [0054](0054-editor-screen.md) | The editor screen | 2026-11-24 | accepted |
-| [0055](0055-editor-widths-states-live.md) | The editor at every width and state, live checks, waivers, lists and uploads | 2026-11-24 | accepted |
+| [0055](0055-editor-widths-states-live.md) | The editor at every width and state, live checks, waivers, lists and uploads | 2026-11-24 | accepted, changed in part by ADR 0065 |
 | [0056](0056-editor-claude-notes-locks-time.md) | The editor with Claude: requests, variants, notes, locks, time, suggestions and reasons | 2026-11-24 | accepted |
 | [0057](0057-studio-theme.md) | The studio's own theme | 2026-11-24 | accepted |
 | [0058](0058-live-swap.md) | A build is taken into the frame in place | 2026-11-24 | accepted |
-| [0059](0059-pointer-gestures.md) | Pointer gestures in the frame | 2026-11-24 | accepted |
+| [0059](0059-pointer-gestures.md) | Pointer gestures in the frame | 2026-11-24 | accepted, changed in part by ADR 0066 |
 | [0060](0060-text-sources.md) | Text sources | 2026-11-24 | accepted |
 | [0061](0061-apply-fix-kept-history.md) | Apply on a live finding, and an undo history kept across a reload | 2026-11-24 | accepted |
 | [0062](0062-scout.md) | Scout, the agent that reads the web | 2026-11-24 | accepted |
 | [0063](0063-doctor.md) | Doctor | 2026-11-24 | accepted |
 | [0064](0064-delete-draft.md) | Delete a draft, with a way back | 2026-11-24 | accepted |
+| [0065](0065-copies-list-items.md) | A selection of copies, and list items at any depth | 2026-11-24 | accepted |
+| [0066](0066-drag-copies-lists-edges.md) | Gestures in the frame: copies, lists and a container's edge | 2026-11-24 | accepted |
+| [0067](0067-nested-class-rules.md) | Nested class rules, and class names after the section | 2026-11-24 | accepted |

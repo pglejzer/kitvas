@@ -28,9 +28,12 @@ import { mountStateHeld } from './props/state-held.ts';
 import { mountKeys } from './select/keys.ts';
 import { mountMode } from './select/mode.ts';
 import { mountRect } from './select/rect.ts';
+import { mountRelease } from './select/release.ts';
 import { createStore, type Store } from './store.ts';
+import { mountGestureNote } from './structure/gesture-note.ts';
 import { mountLists } from './structure/lists.ts';
 import { mountMenu } from './structure/menu.ts';
+import { mountRefusalNote } from './structure/refusal-note.ts';
 import { mountReorder } from './structure/reorder.ts';
 import { mountStructure } from './structure/structure.ts';
 import { mountHandleWrites } from './style/handle-writes.ts';
@@ -72,9 +75,13 @@ export function startEditor(main: HTMLElement, frame: Frame): Editor | undefined
   mountFrameDrop(ctx);
   // The frame's pointer gestures (ADR 0059): the selection rectangle and a reordered list item.
   mountRect(ctx);
+  mountRelease(ctx);
   mountReorder(ctx);
   mountMenu(ctx);
   mountKeys(ctx);
+  // A refused edit, an action that is off and a handle that wrote nothing say why (ADR 0065).
+  mountRefusalNote(ctx);
+  mountGestureNote(ctx);
   // The zoom is the canvas's (`client/studio/canvas/`), which works without the editor too.
   mountHandleWrites(ctx);
   // The editor screen (plan 15).

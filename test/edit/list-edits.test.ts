@@ -131,17 +131,30 @@ async function roundTrip(op: EditOp, expected: string): Promise<void> {
 
 test('a move writes only the items between, and its inverse gives the file back', async () => {
   await roundTrip({ op: 'moveItem', id: CARD, item: 0, to: 2 }, pricing([PRO, TEAM, FREE]));
-  await roundTrip({ op: 'moveItem', id: HEADING, item: 2, to: 1 }, pricing([FREE, TEAM, PRO]));
+  await roundTrip({ op: 'moveItem', id: CARD, item: 2, to: 1 }, pricing([FREE, TEAM, PRO]));
 });
 
 test('duplicating an item puts a copy right after it, and undo takes it out again', async () => {
-  await roundTrip({ op: 'duplicateItem', id: TEXT, item: 1 }, pricing([FREE, PRO, PRO, TEAM]));
+  await roundTrip({ op: 'duplicateItem', id: CARD, item: 1 }, pricing([FREE, PRO, PRO, TEAM]));
   await roundTrip({ op: 'duplicateItem', id: CARD, item: 2 }, pricing([FREE, PRO, TEAM, TEAM]));
 });
 
 test('deleting an item takes it with one separator, and undo puts it back', async () => {
   await roundTrip({ op: 'removeItem', id: CARD, item: 0 }, pricing([PRO, TEAM]));
-  await roundTrip({ op: 'removeItem', id: HEADING, item: 2 }, pricing([FREE, PRO]));
+  await roundTrip({ op: 'removeItem', id: CARD, item: 2, path: [2] }, pricing([FREE, PRO]));
+});
+
+test('an item op on a part of the item is refused; nothing is written', async () => {
+  const { store, deps } = setup();
+  for (const id of [HEADING, TEXT]) {
+    const op: EditOp = { op: 'removeItem', id, item: 0 };
+    assert.deepEqual(await applyEdits(deps, request(store, 1, [op])), {
+      outcome: 'refused',
+      version: 1,
+      refusals: [{ index: 0, reason: 'not-list-item' }],
+    });
+  }
+  assert.equal(store.readText('plans', `v2/${PRICING}`), undefined);
 });
 
 test("editing an item's title writes that field, and undo puts the old title back", async () => {

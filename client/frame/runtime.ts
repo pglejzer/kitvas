@@ -10,8 +10,14 @@
 // shown. The listeners, the overlays and the page's scroll stay as they are.
 
 import { isCanvasStudio } from '../channel/canvas-protocol.ts';
-import { type ForceState, isLiveStudio, MAX_LONGHANDS } from '../channel/live-protocol.ts';
-import { type FrameMessage, parseStudioMessage, readHash } from '../channel/protocol.ts';
+import {
+  type ForceState,
+  isLiveStudio,
+  type LiveMark,
+  MAX_LONGHANDS,
+  type NotePin,
+} from '../channel/live-protocol.ts';
+import { type FrameMessage, type Mark, parseStudioMessage, readHash } from '../channel/protocol.ts';
 import { createMotion } from './drag/motion.ts';
 import { createEdit } from './edit/edit.ts';
 import { createPreview } from './edit/preview.ts';
@@ -21,6 +27,7 @@ import { createForce } from './live/force.ts';
 import { createLive } from './live/live.ts';
 import { createPins } from './live/pins.ts';
 import { createCanvas } from './page/canvas.ts';
+import { hushed } from './page/hush.ts';
 import { createMarks } from './page/marks.ts';
 import { measureElements, settle } from './page/measure.ts';
 import { type Bundle, createSwap, pagePorts, register, running } from './page/swap.ts';
@@ -65,13 +72,33 @@ export function startFrame(input: FrameInput): void {
   const preview = createPreview();
   // Edit mode stays off, with no listener on the page, until the studio turns it on.
   const edit = createEdit({ channel, post, preview });
-  const structure = createStructure({ channel, post });
-  // The screen's canvas (plan 15): forwards the zoom wheel, Space and the screen's keys.
-  const canvas = createCanvas({ channel, post });
-  // Stage 4c (plan 16): forced states, live measurements and the accessibility card.
-  const force = createForce();
+  // Stage 4c (plan 16): live measurements, the accessibility card and the note pins.
   const live = createLive({ channel, post });
   const pins = createPins();
+  // What the studio has the frame draw leaves the page while a drag runs (ADR 0066).
+  const shownMarks = hushed<Mark[]>((value) => marks.draw(value), []);
+  const shownPins = hushed<NotePin[]>((value) => pins.set(value), []);
+  const shownLive = hushed<LiveMark[]>(
+    (value) => live.handle({ kitvas: 1, channel, type: 'live-marks', marks: value }),
+    [],
+  );
+  // Made before the canvas: its listeners on the window run before the canvas's keys.
+  const structure = createStructure({
+    channel,
+    post,
+    quiet(on) {
+      edit.quiet(on);
+      shownMarks.hush(on);
+      shownPins.hush(on);
+      shownLive.hush(on);
+    },
+    // A gesture that was lost (`drag/gesture-log.ts`): its last steps, for whoever reads them.
+    report: (message) => studio.postMessage(message, studioOrigin),
+  });
+  // The screen's canvas (plan 15): forwards the zoom wheel, Space and the screen's keys.
+  const canvas = createCanvas({ channel, post });
+  // Stage 4c (plan 16): forced states.
+  const force = createForce();
   // The ring on an element a change was just applied to (ADR 0057).
   const flash = createFlash();
   let current = initial;
@@ -118,6 +145,8 @@ export function startFrame(input: FrameInput): void {
       // The twins were made from the sheet that left, and the attribute sat on elements that did.
       force.clear();
       if (forced) force.set(forced.ids, forced.state);
+      // A press that has not become a drag yet does not hold the page: its log hears of the build.
+      structure.swapped();
     },
     answer(build, step) {
       if (step !== 'ready') post({ kitvas: 1, channel, type: 'swap', live: build, step });
@@ -134,7 +163,7 @@ export function startFrame(input: FrameInput): void {
     heard = true;
     if (message.type === 'measure') answer(message.request);
     else if (message.type === 'state') show(message.state);
-    else if (message.type === 'marks') marks.draw(message.marks);
+    else if (message.type === 'marks') shownMarks.set(message.marks);
     else if (message.type === 'tones') setTones({ theme: message.theme, accent: message.accent });
     else if (message.type === 'flash') flash.show(message.ids);
     else if (message.type === 'swap') swap.ask(message.live);
@@ -143,7 +172,8 @@ export function startFrame(input: FrameInput): void {
         const { ids, state } = message;
         forced = state === null || ids.length === 0 ? null : { ids, state };
         force.set(ids, state);
-      } else if (message.type === 'pins') pins.set(message.pins);
+      } else if (message.type === 'pins') shownPins.set(message.pins);
+      else if (message.type === 'live-marks') shownLive.set(message.marks);
       else if (message.type === 'state-held') {
         const { request, id } = message;
         const longhands = force.held(id).slice(0, MAX_LONGHANDS);

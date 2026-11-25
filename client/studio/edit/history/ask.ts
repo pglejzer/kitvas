@@ -60,6 +60,8 @@ const REASONS: Record<AskSubject['reason'], string> = {
   'list-not-literal': 'the list does not map over a literal array in the same file',
   'list-item-gone': 'the list has no item at that place any more',
   'list-text-not-literal': 'the text is not a plain string field of the list item',
+  'not-list-item':
+    'the element is a part of a list item, not the root element the list renders for each item',
   'utility-unknown': 'kitvas does not know how to change this utility class',
   locked: 'the element is locked, so the editor keeps it as it is',
   'kit-state-wins':
@@ -87,6 +89,27 @@ function sourceWords(op: Extract<EditOp, { op: 'setItemText' }>, path: readonly 
         : ` in item ${places.join(' > ')} of the nested lists`;
   const wanted = op.value === op.before ? '' : ` to "${op.value}"`;
   return `change the text "${op.before}"${where}${wanted}`;
+}
+
+/**
+ * ADR 0065: the item a list op names. In a list inside another the path says which outer item's
+ * list it is, so the words name every place, outer first.
+ */
+function itemWords(item: number, path: readonly number[] | undefined): string {
+  if (path === undefined || path.length < 2) return `item ${item + 1} of the list`;
+  return `item ${path.map((place) => place + 1).join(' > ')} of the nested lists`;
+}
+
+/** A move by path: the place in the item's own list, or the item it stands before elsewhere. */
+function moveWords(op: Extract<EditOp, { op: 'moveItem' }>): string {
+  const from = itemWords(op.item, op.path);
+  const { path, toPath } = op;
+  if (path === undefined || toPath === undefined || path.length < 2) {
+    return `move ${from} to place ${op.to + 1}`;
+  }
+  const same = path.slice(0, -1).every((place, depth) => place === toPath[depth]);
+  if (same) return `move ${from} to place ${op.to + 1} of its list`;
+  return `move ${from} to place ${toPath.map((place) => place + 1).join(' > ')}`;
 }
 
 /** Text refusals the hint above Ask Claude words itself; every other one has the general hint. */
@@ -127,11 +150,11 @@ export function opWords(op: EditOp): string {
         ? `remove the utility class "${op.before ?? ''}"`
         : `use the utility class "${op.value}"${op.before === null ? '' : ` instead of "${op.before}"`}`;
     case 'moveItem':
-      return `move item ${op.item + 1} of the list to place ${op.to + 1}`;
+      return moveWords(op);
     case 'duplicateItem':
-      return `duplicate item ${op.item + 1} of the list`;
+      return `duplicate ${itemWords(op.item, op.path)}`;
     case 'removeItem':
-      return `delete item ${op.item + 1} of the list`;
+      return `delete ${itemWords(op.item, op.path)}`;
     case 'setItemText':
       return op.path === undefined
         ? `change the text of item ${op.item + 1} of the list to "${op.value}"`

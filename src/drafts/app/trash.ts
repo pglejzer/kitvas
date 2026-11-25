@@ -74,6 +74,17 @@ function requireSlug(slug: string): void {
 }
 
 /**
+ * The deleted copies of `slug`, newest first, for the CLI, whose message for a name that is not
+ * in the trash points at `draft list --deleted`: DRAFT_NOT_DELETED when there is none.
+ */
+export function requireDeleted(store: DraftStore, slug: string): DeletedDraft[] {
+  requireSlug(slug);
+  const copies = copiesOf(store, slug);
+  if (copies.length === 0) throw new KitvasError('DRAFT_NOT_DELETED', { slug });
+  return copies;
+}
+
+/**
  * Moves the draft to the trash. A draft whose `draft.json` does not read can be deleted too: its
  * title is then its slug. Two deletes of one slug give two copies.
  */

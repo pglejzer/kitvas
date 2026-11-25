@@ -1,6 +1,6 @@
 # 0050. Styles in section SCSS
 
-Date: 2026-11-23. Status: accepted. Spec: `docs/specs/2026-11-23-kitvas-stage-4a-editor-core-design.md`, decisions 3 and 9.
+Date: 2026-11-23. Status: accepted, changed in part by ADR 0067. Spec: `docs/specs/2026-11-23-kitvas-stage-4a-editor-core-design.md`, decisions 3 and 9.
 
 ## Context
 

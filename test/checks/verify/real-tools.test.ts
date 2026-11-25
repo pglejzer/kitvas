@@ -67,7 +67,7 @@ test('the tiny fixture kit is valid: it bundles, compiles and shows its example'
   // The tiny kit maps no token onto a variable, so there is nothing to compare.
   assert.deepEqual(file.steps, { ...ALL_PASSED, tokens: 'skipped' });
   assert.equal(file.valid, true);
-  assert.deepEqual(file.notes, []);
+  assert.deepEqual(file.notes, ['kits.verify.noTokenMap', 'kits.verify.notWritten']);
 });
 
 test('the Base kit is valid', async () => {
@@ -75,6 +75,7 @@ test('the Base kit is valid', async () => {
   assert.deepEqual(file.issues, []);
   assert.deepEqual(file.steps, { ...ALL_PASSED, tokens: 'skipped' });
   assert.equal(file.valid, true);
+  assert.deepEqual(file.notes, ['kits.verify.noTokenMap', 'kits.verify.notWritten']);
 });
 
 test('the npm fixture kit is valid in all five steps, its tokens read from the package styles', async () => {

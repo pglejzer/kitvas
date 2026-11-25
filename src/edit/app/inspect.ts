@@ -14,9 +14,8 @@ import {
 import { elementIds, readSites } from '../../render/index.ts';
 import { KitvasError } from '../../shared/index.ts';
 import { constantClass } from '../domain/expr/class-start.ts';
-import { itemTexts } from '../domain/list/edit.ts';
-import { type ListInfo, listInfo } from '../domain/list/find.ts';
 import { listRoots, showsExpression, textSource } from '../domain/list/source.ts';
+import { type ListView, listView } from '../domain/list/view.ts';
 import {
   CLASS_NAME,
   ELEMENT_ID,
@@ -27,6 +26,7 @@ import {
 } from '../domain/ops.ts';
 import { elementSpan } from '../domain/structure/subtree.ts';
 import { IMAGE_FILE, MAX_IMAGES, readRule, scssOverrides } from '../domain/style/apply-scss.ts';
+import { newClassName } from '../domain/style/class-name.ts';
 import { type SourceInput, styleSource, tokenGroupsOf } from '../domain/style/source.ts';
 import { utilityOverrides } from '../domain/style/utilities.ts';
 import { offsetOf, readTag } from '../domain/tsx/apply-tsx.ts';
@@ -113,8 +113,12 @@ export type InspectView = {
     offKit: boolean;
     utility: string | null;
   }[];
-  /** Spec 4c, goal 9: the `.map` the element is rendered by; `null` when it is not in one. */
-  list: (ListInfo & { texts: (string | null)[] | null }) | null;
+  /**
+   * Spec 4c, goal 9: the `.map` the element is rendered by; `null` when it is not in one. Asked
+   * with a copy's path (ADR 0065), it is read for that copy: a list inside another one is the
+   * array of the outer item the path names.
+   */
+  list: ListView | null;
   /** Spec 4d, goal 6: the kit component a plain element looks like; `null`: nothing to offer. */
   suggest: Suggest | null;
   /**
@@ -126,12 +130,6 @@ export type InspectView = {
    */
   expression: { roots: string[] | null } | null;
 };
-
-/** Spec 4c, goal 9: the `.map` the element is rendered by, with its items' texts when literal. */
-function listOf(text: string, at: number): InspectView['list'] {
-  const info = listInfo(text, at);
-  return info === null ? null : { ...info, texts: itemTexts(text, at) };
-}
 
 /**
  * ADR 0060: an element that shows text through `{…}`, with the ids of the list roots around it.
@@ -199,17 +197,7 @@ function propOut(prop: PropView): InspectProp {
     : { name: prop.name, kind: 'expr', source: prop.source };
 }
 
-/** `Card.Header` becomes `card-header`: a class name kitvas may write (`CLASS_NAME`). */
-export function classNameOf(tag: string): string {
-  const words = tag
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  const name = /^[a-z]/.test(words) ? words : `el-${words}`;
-  // Room for a `-12` after it within the 64 characters of a class name.
-  return name.slice(0, 56).replace(/-+$/, '');
-}
+export { classNameOf } from '../domain/style/class-name.ts';
 
 const CLASS_ATTRIBUTE = /\bclassName\s*=\s*(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/g;
 const QUOTED = /"([^"]*)"|'([^']*)'|`([^`]*)`/g;
@@ -238,29 +226,21 @@ const splitClasses = (value: string): string[] => value.split(/\s+/).filter((nam
 const classesOf = (tag: TagView): string[] =>
   tag.className?.kind === 'string' ? splitClasses(tag.className.value) : [];
 
-/** The tag's class name, with `-2`, `-3` until neither file uses it yet. */
-function freeClassName(tag: string, tsx: string, scss: string): string {
-  const taken = tsxClasses(tsx);
-  const used = (name: string): boolean =>
-    taken.has(name) || new RegExp(`\\.${name}(?![\\w-])`).test(scss);
-  const base = classNameOf(tag);
-  let name = base;
-  for (let n = 2; used(name); n += 1) name = `${base}-${n}`;
-  return name;
-}
-
 /**
  * The class a style edit writes (decision 3): the first class with a rule in the section SCSS,
- * else the first class, else a new one (`exists: false`: the edit adds it first). A `className`
- * built in code gives the class every one of its values starts with (ADR 0060,
- * `constantClass`). `null` when no class can carry a style: a kit component without `className`,
- * a `className` built in code without such a class, or only classes kitvas cannot write.
+ * else the first class, else a new one named after the section (`newClassName`; `exists: false`:
+ * the edit adds it first). A `className` built in code gives the class every one of its values
+ * starts with (ADR 0060, `constantClass`). `null` when no class can carry a style: a kit
+ * component without `className`, a `className` built in code without such a class, or only
+ * classes kitvas cannot write. `file`: the TSX file of the element, which names the block of a
+ * new class when the section's root has no class.
  */
 export function pickStyleClass(
   tag: TagView,
   component: KitComponent | null,
   tsx: string,
   scss: string | undefined,
+  file: string,
 ): { className: string; exists: boolean } | null {
   if (component !== null && !component.styling.includes('className')) return null;
   if (tag.className?.kind === 'expr') {
@@ -274,7 +254,15 @@ export function pickStyleClass(
   const first = ruled ?? writable[0];
   if (first !== undefined) return { className: first, exists: true };
   if (classes.length > 0) return null;
-  return { className: freeClassName(tag.name, tsx, scss ?? ''), exists: false };
+  const className = newClassName({
+    tag: tag.name,
+    tsx,
+    at: tag.span.start,
+    file,
+    scss: scss ?? '',
+    taken: tsxClasses(tsx),
+  });
+  return { className, exists: false };
 }
 
 function classNameOut(tag: TagView): InspectView['className'] {
@@ -284,11 +272,15 @@ function classNameOut(tag: TagView): InspectView['className'] {
     : { kind: 'expr', source: tag.className.source };
 }
 
-/** The element `id` in the latest version. Throws EDIT_ELEMENT_NOT_FOUND when it is not there. */
+/**
+ * The element `id` in the latest version. Throws EDIT_ELEMENT_NOT_FOUND when it is not there.
+ * `path`: the rendered copy its `list` is read for (its place in each list around it).
+ */
 export async function inspectElement(
   deps: InspectDeps,
   slug: string,
   id: string,
+  path?: readonly number[],
 ): Promise<InspectView> {
   const draft = loadDraft(deps.drafts, slug);
   const version = latestVersion(draft);
@@ -309,7 +301,7 @@ export async function inspectElement(
   const scssFile = sectionScss(deps.drafts, slug, version, file);
   const scssText =
     scssFile === null ? undefined : deps.drafts.readText(slug, `${base}/${scssFile}`);
-  const styleClass = pickStyleClass(tag, component, text, scssText);
+  const styleClass = pickStyleClass(tag, component, text, scssText, file);
   const read =
     styleClass === null || scssText === undefined ? null : readRule(scssText, styleClass.className);
   const rule: RuleView | null = read === null || read === 'ambiguous' ? null : read;
@@ -382,7 +374,7 @@ export async function inspectElement(
     images: imageNames(deps.images?.(slug, version) ?? []),
     breakpoints: kit === null ? [...DEFAULT_BREAKPOINTS] : kitBreakpoints(kit.kit),
     overrides,
-    list: listOf(text, at),
+    list: listView(text, at, path),
     suggest: suggestFor({
       text,
       at,

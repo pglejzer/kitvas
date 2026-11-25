@@ -140,7 +140,11 @@ export function mountLive(ctx: EditorContext): void {
       return;
     }
     cardRequest = bridge.nextRequest();
-    bridge.sendLive({ type: 'a11y', request: cardRequest, id }, edit);
+    const { item } = state;
+    bridge.sendLive(
+      { type: 'a11y', request: cardRequest, id, ...(item === null ? {} : { item }) },
+      edit,
+    );
   }
 
   function onApplied(state: EditorState): void {
@@ -185,6 +189,9 @@ export function mountLive(ctx: EditorContext): void {
     if (state.on !== previous.on) onMode(state);
     else if (state.selection[0] !== previous.selection[0]) {
       if (state.a11y !== null) store.set({ a11y: null });
+      askCard();
+    } else if (state.item !== previous.item) {
+      // Another copy of the same element: its card is read again.
       askCard();
     }
     // A card that loaded a build has lost its marks: they are sent again.

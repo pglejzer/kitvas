@@ -91,4 +91,7 @@ export const SKIN_EDITOR_CLAUDE = `
   font-size: var(--st-font-size-sm);
   white-space: nowrap;
 }
+/* The words are cut short where the bar has no room; the dot keeps its size. */
+.claude-bar > .k-dot { flex: none; }
+.claude-bar-words { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 `;

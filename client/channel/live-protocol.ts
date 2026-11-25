@@ -68,8 +68,8 @@ export type LiveStudioMessage = Head &
     | { type: 'force'; ids: string[]; state: ForceState | null }
     /** Measure `ids` and their descendants, and compare `expect` with the computed values. */
     | { type: 'measure-live'; request: number; ids: string[]; expect: Expected[] }
-    /** The accessibility card of `id`. */
-    | { type: 'a11y'; request: number; id: string }
+    /** The accessibility card of `id`; `item`: which rendered copy of it (a `.map` list item). */
+    | { type: 'a11y'; request: number; id: string; item?: number }
     /** The live marks of this frame's width; an empty list takes them all away. */
     | { type: 'live-marks'; marks: LiveMark[] }
     /** The note pins of this frame (spec 4d); an empty list takes them all away. */
@@ -132,6 +132,9 @@ const isText = (value: unknown, max = MAX_TEXT): value is string =>
   typeof value === 'string' && value.length <= max;
 const isRequest = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 1e9;
+/** A list item's place: the same bound as the edit protocol's `item`. */
+const isItem = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 10_000;
 const isNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= 1e6;
 const isIds = (value: unknown, max: number): value is string[] =>
@@ -280,8 +283,10 @@ export function parseLiveStudio(message: Loose, channel: string): LiveStudioMess
       return { ...head, type: 'measure-live', request, ids: [...ids], expect: parsed };
     }
     case 'a11y': {
-      const { request, id } = message;
-      return isRequest(request) && isId(id) ? { ...head, type: 'a11y', request, id } : undefined;
+      const { request, id, item } = message;
+      if (!isRequest(request) || !isId(id)) return undefined;
+      if (item === undefined) return { ...head, type: 'a11y', request, id };
+      return isItem(item) ? { ...head, type: 'a11y', request, id, item } : undefined;
     }
     case 'state-held': {
       const { request, id } = message;

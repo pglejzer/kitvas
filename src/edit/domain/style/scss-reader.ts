@@ -1,7 +1,8 @@
 // The reader under the SCSS editor (`apply-scss.ts`): the lexical units a brace, a semicolon or a
-// quote must not be read inside, the statements of a block, and the top-level class rules with
-// their own declarations and their context blocks (spec 4c: `@media (min-width: Npx)`, `&:hover`,
-// `&:focus-visible`, `&:active`, a state inside a width). Nothing here writes.
+// quote must not be read inside, the statements of a block, and the body of a rule with its own
+// declarations, its context blocks (spec 4c: `@media (min-width: Npx)`, `&:hover`,
+// `&:focus-visible`, `&:active`, a state inside a width) and the rules nested in it as `&__part`
+// (ADR 0067). The class rules themselves are read in `scss-rules.ts`. Nothing here writes.
 
 import {
   MAX_BREAKPOINT,
@@ -10,7 +11,7 @@ import {
   type StyleContext,
   type StyleState,
 } from '../ops.ts';
-import type { Declaration, RuleView, Span } from '../types.ts';
+import type { Declaration, Span } from '../types.ts';
 
 // ---- Reading: the lexical units a brace, a semicolon or a quote must not be read inside --------
 
@@ -29,6 +30,12 @@ export function endOfLine(text: string, at: number): number {
 }
 
 export const lineStart = (text: string, at: number): number => text.lastIndexOf('\n', at - 1) + 1;
+
+/** The indent of the line `at` starts, or none when something stands before it on that line. */
+export function indentAt(text: string, at: number): string {
+  const lead = text.slice(lineStart(text, at), at);
+  return blank(lead) ? lead : '';
+}
 
 /** The length of the line ending that starts at `at`: 2, 1 or 0. */
 export function eolAt(text: string, at: number): number {
@@ -197,7 +204,7 @@ export function scssBalanced(text: string): boolean {
 // ---- Reading: statements, declarations and rules ------------------------------------------------
 
 /** One statement of a block: `a: b;`, `@include x;`, or a prelude with its own `{…}`. */
-type Statement = {
+export type Statement = {
   /** The first character after whitespace and comments. */
   start: number;
   /** The index of its `{` or `;`, or where it stops without one (the parent's `}`). */
@@ -211,7 +218,7 @@ type Statement = {
 };
 
 /** The statements between `from` and `to` (the index of the enclosing `}`, or the text's end). */
-function statements(text: string, from: number, to: number): Statement[] {
+export function statements(text: string, from: number, to: number): Statement[] {
   const list: Statement[] = [];
   let i = skipTrivia(text, from, to);
   while (i < to) {
@@ -300,7 +307,7 @@ function readDeclaration(text: string, statement: Statement): Own | null {
   };
 }
 
-type Block = { open: number; close: number };
+export type Block = { open: number; close: number };
 
 function nestedProperties(text: string, block: Block, into: string[]): void {
   for (const statement of statements(text, block.open, block.close)) {
@@ -330,6 +337,8 @@ export type Body = {
   blocks: Nest[];
   /** Properties set only inside its other nested blocks: never written. */
   nested: string[];
+  /** The rules right inside a rule's body that join a class name to `&`, in file order. */
+  joins: Join[];
 };
 
 /** A context block: a width, a state, or a state inside a width's block. */
@@ -339,10 +348,13 @@ export type Nest = Body & {
   span: Span;
 };
 
-/** A top-level class rule with what the writer needs beside its view. */
-export type Found = Body & { view: RuleView };
+/**
+ * A nested rule whose prelude is `&` and characters of a class name (`&__switch`, `&--featured`,
+ * `&-2`): it styles the class `<the class around it><suffix>`, never the element around it.
+ */
+export type Join = { suffix: string; span: Span; block: Block; closed: boolean };
 
-const CLASS_SELECTOR = /^\.(-?[A-Za-z_][A-Za-z0-9_-]*)$/;
+const JOIN = /^&([A-Za-z0-9_-]+)$/;
 const MEDIA = /^@media\s*\(\s*min-width\s*:\s*([1-9]\d{0,4})px\s*\)$/i;
 const STATE = /^&:([a-z-]+)$/;
 
@@ -359,7 +371,7 @@ function contextOf(prelude: string, width: number | null): StyleContext | null {
 }
 
 /** The prelude without its comments, so `/* a *\/ .card /* b *\/` reads as `.card`. */
-function withoutComments(text: string, from: number, to: number): string {
+export function withoutComments(text: string, from: number, to: number): string {
   let out = '';
   let i = from;
   while (i < to) {
@@ -371,10 +383,10 @@ function withoutComments(text: string, from: number, to: number): string {
 }
 
 /**
- * A body with its declarations and context blocks. `width`: the width of the block it is in
- * (`null` in the rule). `leaf`: a state's block, where no context block is read any more.
+ * A body with its declarations, context blocks and joined rules. `width`: the width of the block
+ * it is in (`null` in the rule). `leaf`: a state's block, where no context block is read any more.
  */
-function readBody(
+export function readBody(
   text: string,
   block: Block,
   closed: boolean,
@@ -384,10 +396,19 @@ function readBody(
   const body = statements(text, block.open, block.close);
   const own: Own[] = [];
   const blocks: Nest[] = [];
+  const joins: Join[] = [];
   const inNested: string[] = [];
   for (const inner of body) {
     if (inner.block !== null) {
       const prelude = withoutComments(text, inner.start, inner.stop).trim();
+      // A join inside a width's or a state's block is not a rule kitvas reads: it stays nested.
+      const suffix = width === null && !leaf ? JOIN.exec(prelude)?.[1] : undefined;
+      if (suffix !== undefined) {
+        // `&__title { … }` is the rule of another class: read as that class's, never this one's.
+        const span = { start: inner.start, end: inner.end };
+        joins.push({ suffix, span, block: inner.block, closed: inner.terminated });
+        continue;
+      }
       const context = leaf ? null : contextOf(prelude, width);
       if (context !== null) {
         blocks.push({
@@ -414,39 +435,6 @@ function readBody(
     dangling: last !== undefined && last.block === null && !last.terminated,
     blocks,
     nested: inNested.filter((name) => !own.some((d) => d.view.property === name)),
+    joins,
   };
-}
-
-export function readRules(text: string): Found[] {
-  const found: Found[] = [];
-  for (const statement of statements(text, 0, text.length)) {
-    if (statement.block === null) continue;
-    const selector = withoutComments(text, statement.start, statement.stop).trim();
-    const className = CLASS_SELECTOR.exec(selector)?.[1];
-    if (className === undefined) continue;
-
-    const body = readBody(text, statement.block, statement.terminated, null, false);
-    found.push({
-      ...body,
-      view: {
-        className,
-        span: { start: statement.start, end: statement.end },
-        declarations: body.own.map((declaration) => declaration.view),
-        nested: body.nested,
-      },
-    });
-  }
-  return found;
-}
-
-/** Every top-level rule whose selector is exactly one class, in file order. */
-export function listRules(text: string): RuleView[] {
-  return readRules(text).map((rule) => rule.view);
-}
-
-/** The top-level rule `.className`: `null` without one, `'ambiguous'` with two or more. */
-export function readRule(text: string, className: string): RuleView | null | 'ambiguous' {
-  const rules = readRules(text).filter((rule) => rule.view.className === className);
-  if (rules.length > 1) return 'ambiguous';
-  return rules[0]?.view ?? null;
 }

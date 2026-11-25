@@ -22,6 +22,19 @@ test('the page forces a state, asks for measurements, the card and the held prop
   const expect = [{ id: ID, property: 'gap', value: '8px' }];
   assert.ok(parseLiveStudio({ type: 'measure-live', request: 1, ids: [ID], expect }, CHANNEL));
   assert.ok(parseLiveStudio({ type: 'a11y', request: 2, id: ID }, CHANNEL));
+  assert.deepEqual(parseLiveStudio({ type: 'a11y', request: 2, id: ID, item: 1 }, CHANNEL), {
+    kitvas: 1,
+    channel: CHANNEL,
+    type: 'a11y',
+    request: 2,
+    id: ID,
+    item: 1,
+  });
+  assert.equal(parseLiveStudio({ type: 'a11y', request: 2, id: ID, item: -1 }, CHANNEL), undefined);
+  assert.equal(
+    parseLiveStudio({ type: 'a11y', request: 2, id: ID, item: 1.5 }, CHANNEL),
+    undefined,
+  );
   assert.ok(parseLiveStudio({ type: 'state-held', request: 3, id: ID }, CHANNEL));
   assert.equal(parseLiveStudio({ type: 'state-held', request: -1, id: ID }, CHANNEL), undefined);
   const marks = [{ id: ID, label: 'L1', tone: 'fix' }];

@@ -10,10 +10,22 @@ import { icon } from '../../ui/icon.ts';
 import { getPalette } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { NOTE_EVENT } from '../notes/model.ts';
-import type { EditorState } from '../store.ts';
+import { refOf, sameChosen } from '../select/copies.ts';
+import type { EditorState, Menu } from '../store.ts';
 import { text } from '../texts.ts';
 import { type ActionId, type ActionState, actionsFor, runAction } from './actions.ts';
+import { partTarget } from './list-parts.ts';
 import { itemTarget, LIST_ACTIONS } from './lists.ts';
+import { clampToView, menuSelection, toPageBox, toPagePoint } from './menu-place.ts';
+
+export {
+  type Box,
+  clampToView,
+  menuSelection,
+  selectionFor,
+  toPageBox,
+  toPagePoint,
+} from './menu-place.ts';
 
 /** One line of the menu as drawn: a label, and the reason when it is off. */
 export type MenuItem = {
@@ -100,15 +112,18 @@ export function menuIcon(item: Pick<MenuItem, 'action' | 'note'>): IconName | nu
  * The items for the actions of the moment. "Show all" only matters while something is hidden.
  * The key hints come from the list of shortcuts, so the two never disagree. `listItem`: the
  * selection is an item of a data list, so Move, Duplicate and Delete say they act on the item.
+ * `part`: it is a part of a list item, an element of the template, so they say every item changes.
  */
 export function menuItems(
   actions: readonly ActionState[],
   hiddenCount: number,
   mac = false,
   listItem = false,
+  part = false,
 ): MenuItem[] {
+  const group = listItem ? 'menu.list' : part ? 'menu.part' : 'menu';
   const labelOf = (id: ActionId): string =>
-    text(listItem && LIST_ACTIONS.has(id) ? `menu.list.${id}` : `menu.${id}`);
+    text(LIST_ACTIONS.has(id) ? `${group}.${id}` : `menu.${id}`);
   return (
     actions
       .filter((action) => action.id !== 'show-all' || hiddenCount > 0)
@@ -156,45 +171,38 @@ export function stepIndex(items: readonly MenuItem[], from: number, key: string)
   return after[after.length - 1] ?? on[on.length - 1] ?? -1;
 }
 
+/** Two lists of items draw the same menu. */
+export function sameItems(a: readonly MenuItem[], b: readonly MenuItem[]): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 /** What Enter does on the focused item: `null` when nothing is focused or the item is off. */
 export function activate(items: readonly MenuItem[], index: number): MenuItem | null {
   const item = items[index];
   return item?.enabled ? item : null;
 }
 
-export type Box = { left: number; top: number };
-
-/** A point in the frame's CSS pixels as page pixels, through the frame's box and the zoom. */
-export function toPagePoint(box: Box, zoom: number, point: { x: number; y: number }) {
-  return { x: box.left + point.x * zoom, y: box.top + point.y * zoom };
-}
-
-/** Keeps the menu on screen: moved left or up by the amount it would stick out. */
-export function clampToView(
-  at: { x: number; y: number },
-  size: { width: number; height: number },
-  view: { width: number; height: number },
-): { x: number; y: number } {
-  return {
-    x: Math.max(0, Math.min(at.x, view.width - size.width)),
-    y: Math.max(0, Math.min(at.y, view.height - size.height)),
-  };
-}
-
-/** The ids the menu acts on: a right click on an element outside the selection selects it first. */
-export function selectionFor(selection: readonly string[], id: string | null): string[] {
-  if (id === null || selection.includes(id)) return [...selection];
-  return [id];
-}
-
-/** Opens the menu on the page at page pixels. */
-export function openMenuAt(ctx: EditorContext, id: string | null, x: number, y: number): void {
+/** Opens the menu on the page at page pixels; `from` is what a frame's `menu` message adds. */
+export function openMenuAt(
+  ctx: EditorContext,
+  id: string | null,
+  x: number,
+  y: number,
+  from: { item?: number; path?: number[]; box?: NonNullable<Menu['box']> } = {},
+): void {
   const state = ctx.store.get();
   if (!state.on) return;
-  const selection = selectionFor(state.selection, id);
-  const changed =
-    selection.length !== state.selection.length || selection[0] !== state.selection[0];
-  ctx.store.set({ menu: { id, x, y }, ...(changed ? { selection } : {}) });
+  const next = menuSelection(state, id, from);
+  const changed = !sameChosen(next, state);
+  const copy =
+    id !== null && (from.item !== undefined || from.path !== undefined)
+      ? { copy: refOf(id, from) }
+      : {};
+  const box = from.box === undefined ? {} : { box: from.box };
+  ctx.store.set({
+    menu: { id, x, y, ...copy, ...box },
+    ...(changed ? { selection: next.selection, copies: next.copies } : {}),
+  });
 }
 
 /** Where the menu key opens it: near the frame's top left corner, as the key has no pointer. */
@@ -295,13 +303,35 @@ export function mountMenu(ctx: EditorContext): void {
     element.style.top = `${at.y}px`;
   }
 
+  /** The actions of the moment as items, with "Note…" last. */
+  function itemsOf(state: EditorState): MenuItem[] {
+    const listItem = itemTarget(state) !== null;
+    const part = partTarget(state) !== null;
+    const mac = isMac(navigator.platform);
+    const actions = menuItems(actionsFor(state), state.hidden.length, mac, listItem, part);
+    return [...actions, noteItem()];
+  }
+
   function show(state: EditorState): void {
     const menu = state.menu;
     if (!menu) return;
     replacing = null;
-    const listItem = itemTarget(state) !== null;
-    items = menuItems(actionsFor(state), state.hidden.length, isMac(navigator.platform), listItem);
-    items.push(noteItem());
+    items = itemsOf(state);
+    draw();
+    place(menu);
+    focusItem(stepIndex(items, -1, 'ArrowDown'));
+  }
+
+  /**
+   * What a right click selected is read a moment after the menu opens: the facts of a list item
+   * come from the studio. The items follow them, so "Delete item" never stays switched off.
+   */
+  function follow(state: EditorState): void {
+    const menu = state.menu;
+    if (!menu || replacing !== null) return;
+    const next = itemsOf(state);
+    if (sameItems(next, items)) return;
+    items = next;
     draw();
     place(menu);
     focusItem(stepIndex(items, -1, 'ArrowDown'));
@@ -393,12 +423,20 @@ export function mountMenu(ctx: EditorContext): void {
     }
     if (message.type !== 'menu') return;
     const box = bridge.frame.element.getBoundingClientRect();
-    const at = toPagePoint(box, store.get().zoom, message);
-    openMenuAt(ctx, message.id, at.x, at.y);
+    const zoom = store.get().zoom;
+    const at = toPagePoint(box, zoom, message);
+    openMenuAt(ctx, message.id, at.x, at.y, {
+      ...(message.item === undefined ? {} : { item: message.item }),
+      ...(message.path === undefined ? {} : { path: message.path }),
+      ...(message.box === undefined ? {} : { box: toPageBox(box, zoom, message.box) }),
+    });
   });
 
   store.subscribe((state, previous) => {
-    if (state.menu === previous.menu) return;
+    if (state.menu === previous.menu) {
+      follow(state);
+      return;
+    }
     if (state.menu) {
       show(state);
     } else {

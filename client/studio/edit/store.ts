@@ -9,9 +9,10 @@ import type { Structure } from '../../../src/studio/api/edit/structure-schemas.t
 import type { NoteView } from '../../../src/studio/api/notes/note-schemas.ts';
 import type { Listening, RequestView } from '../../../src/studio/api/requests/request-schemas.ts';
 import type { Waiver } from '../../../src/studio/api/waivers/waiver-schemas.ts';
-import type { TreeNode } from '../../channel/edit-protocol.ts';
+import type { CopyRef, TreeNode } from '../../channel/edit-protocol.ts';
 import type { A11yCard } from '../../channel/live-protocol.ts';
 import type { StateHeld } from './props/state-held.ts';
+import { settle } from './select/copies.ts';
 
 /**
  * One undo step: the ops of one gesture (task H), with the text the change list shows.
@@ -38,7 +39,15 @@ export type Gesture = {
 export type Clip = { items: { source: string; from: string }[]; text: string; at: number };
 
 /** The context menu, open at page pixels, for an element or for none (task D3). */
-export type Menu = { id: string | null; x: number; y: number };
+export type Menu = {
+  id: string | null;
+  x: number;
+  y: number;
+  /** The copy under the pointer, when the frame named one. */
+  copy?: CopyRef;
+  /** The element's box in page pixels, when the menu came from the frame. */
+  box?: { x: number; y: number; width: number; height: number };
+};
 
 /** One line of the session's change list (task J). */
 /**
@@ -106,8 +115,17 @@ export type EditorState = {
    */
   locked: string[];
   // Stage 4c (plan 16).
-  /** Which rendered copy of `selection[0]` was picked, for a `.map` item; `null` otherwise. */
+  /**
+   * The one chosen copy of `selection[0]`, when the selection is that one id with one chosen
+   * copy; else `null`. Worked out with `copies` by `select/copies.ts`, never set alone.
+   */
   item: number | null;
+  /**
+   * The chosen copies of the selected ids (ADR 0065): what a click, Ctrl+click or the rectangle
+   * took. An id of `selection` with no entry here is the element itself, every copy (a row of the
+   * layers list, a key).
+   */
+  copies: CopyRef[];
   /** Where style edits go: the edit card's width (`null` all widths) and the state bar's state. */
   context: StyleContext;
   /** The session's live findings: the frame's measurements and the code checks of changed files. */
@@ -182,6 +200,7 @@ export function initialState(slug: string): EditorState {
     hidden: [],
     locked: [],
     item: null,
+    copies: [],
     context: { width: null, state: null },
     live: [],
     waivers: [],
@@ -208,7 +227,16 @@ export function createStore(slug: string): Store {
     get: () => state,
     set(patch) {
       const previous = state;
-      state = { ...state, ...patch };
+      const next = { ...state, ...patch };
+      // The one place that sets a selection with its copies (ADR 0065). A selection set alone
+      // names elements, not copies (a row of the layers list, a key), so it keeps none; `item`
+      // follows from the two.
+      if (patch.selection !== undefined || patch.copies !== undefined) {
+        const settled = settle(next.selection, patch.copies ?? [], previous.copies);
+        next.copies = settled.copies;
+        next.item = settled.item;
+      }
+      state = next;
       for (const listener of [...listeners]) listener(state, previous);
     },
     subscribe(listener) {

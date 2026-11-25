@@ -9,8 +9,11 @@ import {
   type MenuItem,
   menuIcon,
   menuItems,
+  menuSelection,
+  sameItems,
   selectionFor,
   stepIndex,
+  toPageBox,
   toPagePoint,
 } from '../../../../../client/studio/edit/structure/menu.ts';
 import { ICON_NAMES } from '../../../../../src/studio/pages/icons/paths.ts';
@@ -132,6 +135,48 @@ test('the menu is moved back into the view when it would stick out', () => {
   assert.deepEqual(clampToView({ x: -5, y: -5 }, size, view), { x: 0, y: 0 });
 });
 
+test('a box in the frame becomes a box on the page: the corner moves, the size scales', () => {
+  const box = { x: 10, y: 20, width: 40, height: 60 };
+  assert.deepEqual(toPageBox({ left: 100, top: 50 }, 0.5, box), {
+    x: 105,
+    y: 60,
+    width: 20,
+    height: 30,
+  });
+});
+
+test('a right click on a copy selects that copy as a left click does', () => {
+  const chosen = { selection: ['row'], copies: [{ id: 'row', item: 1, path: [1] }] };
+  // A chosen copy stays, with the others chosen beside it.
+  const two = {
+    selection: ['row'],
+    copies: [
+      { id: 'row', item: 1, path: [1] },
+      { id: 'row', item: 2, path: [2] },
+    ],
+  };
+  assert.equal(menuSelection(chosen, 'row', { item: 1, path: [1] }), chosen);
+  assert.equal(menuSelection(two, 'row', { item: 2, path: [2] }), two);
+  // Another copy becomes the one chosen copy.
+  assert.deepEqual(menuSelection(two, 'row', { item: 0, path: [0] }), {
+    selection: ['row'],
+    copies: [{ id: 'row', item: 0, path: [0] }],
+  });
+  // An element not selected yet: only that copy, and other selected elements leave.
+  const other = { selection: ['a', 'b'], copies: [{ id: 'b', item: 1 }] };
+  assert.deepEqual(menuSelection(other, 'row', { item: 3 }), {
+    selection: ['row'],
+    copies: [{ id: 'row', item: 3 }],
+  });
+});
+
+test('a right click on no copy keeps what is selected and drops copies of what leaves', () => {
+  const current = { selection: ['a', 'b'], copies: [{ id: 'b', item: 1 }] };
+  assert.equal(menuSelection(current, 'b', {}), current);
+  assert.equal(menuSelection(current, null, {}), current);
+  assert.deepEqual(menuSelection(current, 'c', {}), { selection: ['c'], copies: [] });
+});
+
 test('a click on an element outside the selection selects it, inside keeps the selection', () => {
   assert.deepEqual(selectionFor(['a', 'b'], 'b'), ['a', 'b']);
   assert.deepEqual(selectionFor(['a', 'b'], 'c'), ['c']);
@@ -175,4 +220,13 @@ test('an item has an icon only where its action has one; the rest keep their wor
 
 test('every icon of the menu is one the studio draws', () => {
   for (const name of Object.values(MENU_ICONS)) assert.ok(ICON_NAMES.includes(name), name);
+});
+
+test('the open menu is drawn again only when an item changed', () => {
+  const before = menuItems([off('delete', 'in-expression'), on('copy')], 0);
+  assert.equal(sameItems(before, menuItems([off('delete', 'in-expression'), on('copy')], 0)), true);
+  // The facts of a list item came: Delete is on now, and it says it acts on the item.
+  assert.equal(sameItems(before, menuItems([on('delete'), on('copy')], 0)), false);
+  assert.equal(sameItems(before, menuItems([on('delete'), on('copy')], 0, false, true)), false);
+  assert.equal(sameItems(before, before.slice(0, 1)), false);
 });

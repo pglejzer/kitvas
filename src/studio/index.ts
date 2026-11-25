@@ -1,5 +1,6 @@
 // Public API of the studio module.
 
+export * from './api/trash/trash-client.ts';
 export * from './inbox/inbox.ts';
 export * from './live/index.ts';
 export * from './requests/request-client.ts';

@@ -45,6 +45,8 @@ export function createDoctorCommand(deps: DoctorCommandDeps) {
   return defineCommand<DoctorView>({
     name: 'doctor',
     summary: 'command.doctor.summary',
+    // Its own `workspace` check reports a config file that does not read.
+    runsWithoutSettings: true,
     async run(ctx) {
       const { cwd, home, t } = ctx;
       const verifiedHash = (id: string): string | undefined =>

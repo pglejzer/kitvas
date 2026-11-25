@@ -217,11 +217,22 @@ test('an unquoted url keeps its semicolon and its slashes', () => {
   );
 });
 
-test('readRule answers null without the rule and ambiguous with two', () => {
+test('readRule answers null without the rule and reads two rules of a class together', () => {
   const source = '.a { color: red; }\n.b { color: red; }\n.a { gap: 1px; }\n';
   assert.equal(readRule(source, 'c'), null);
-  assert.equal(readRule(source, 'a'), 'ambiguous');
+  const both = ruleOf(source, 'a');
+  assert.deepEqual(
+    both.declarations.map((d) => [d.property, d.value]),
+    [
+      ['color', 'red'],
+      ['gap', '1px'],
+    ],
+  );
+  // The span is the last rule's, where a new declaration goes.
+  assert.equal(source.slice(both.span.start, both.span.end), '.a { gap: 1px; }');
   assert.equal(ruleOf(source, 'b').className, 'b');
+  // Each rule is listed as written.
+  assert.deepEqual(names(source), ['a', 'b', 'a']);
 });
 
 test('scssBalanced holds for balanced braces outside strings and comments only', () => {
@@ -316,7 +327,7 @@ test('force writes over a value that changed', () => {
   });
 });
 
-test('two declarations of the property, or two rules of the class, are ambiguous', () => {
+test('two declarations of the property in one rule are ambiguous', () => {
   const twice = '.a {\n  gap: 1px;\n  gap: 2px;\n}\n';
   assert.deepEqual(applyScss(twice, set('a', 'gap', token('space-sm'), null), FORCE), {
     refused: 'ambiguous',
@@ -324,13 +335,20 @@ test('two declarations of the property, or two rules of the class, are ambiguous
   assert.deepEqual(applyScss(twice, remove('a', 'gap', raw('1px')), PLAIN), {
     refused: 'ambiguous',
   });
+});
+
+test('two rules of the class take a new declaration in the last, and a value where it is', () => {
   const rules = '.a { gap: 1px; }\n.a { color: red; }\n';
-  assert.deepEqual(applyScss(rules, set('a', 'margin', token('space-sm'), null), PLAIN), {
-    refused: 'ambiguous',
-  });
-  assert.deepEqual(applyScss(rules, set('a', 'margin', token('space-sm'), null, true), PLAIN), {
-    refused: 'ambiguous',
-  });
+  const added = '.a { gap: 1px; }\n.a { color: red; margin: var(--kit-space-sm); }\n';
+  roundTrip(rules, set('a', 'margin', token('space-sm'), null), added);
+  // `newRule` on a class that has rules after all adds as a plain setStyle.
+  const again = applyScss(rules, set('a', 'margin', token('space-sm'), null, true), PLAIN);
+  assert.equal(textOf(again), added);
+  roundTrip(
+    rules,
+    set('a', 'gap', token('space-sm'), { raw: '1px', mark: false }),
+    '.a { gap: var(--kit-space-sm); }\n.a { color: red; }\n',
+  );
 });
 
 test('a missing rule is not-found for setStyle without newRule and for removeStyle', () => {

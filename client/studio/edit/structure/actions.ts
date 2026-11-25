@@ -18,7 +18,9 @@ import type { EditorState, Gesture } from '../store.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 import { copyElements, copyLocation, pasteClip } from './clipboard.ts';
+import { type PartChange, partDone, partOf } from './list-parts.ts';
 import { listReason, runListAction } from './lists.ts';
+import { sayDone, sayReason } from './refusal-note.ts';
 
 export const ACTIONS = [
   'delete',
@@ -197,7 +199,8 @@ function pasteOps(target: Inspect, kept: StyleClip, format: 'scss' | 'tailwind')
 }
 
 function reasonOf(state: EditorState, id: ActionId, running: boolean): ActionReason | null {
-  // An item of a data list: Move, Duplicate and Delete act on the item (spec 4c, goal 9).
+  // An item of a data list: Move, Duplicate and Delete act on the item (spec 4c, goal 9). A part
+  // of an item is an element of the template and follows the rules below (ADR 0065).
   const listed = listReason(state, id);
   if (listed !== undefined) return listed;
   const entries = entriesOf(state);
@@ -278,18 +281,25 @@ function landing(
 const label = (id: string, params: Record<string, string | number> = {}): string =>
   text(`actions.label.${id}`, params);
 
+/** `done`: what is said over the canvas once the change is written (a part of a list item). */
 async function send(
   ctx: EditorContext,
   ops: EditOp[],
   name: string,
   created = false,
+  done: string | null = null,
 ): Promise<void> {
   if (ops.length === 0) return;
   const gesture: Selecting = { ops, label: name, ...(created ? { selectCreated: true } : {}) };
-  await ctx.history.apply(gesture);
+  const outcome = await ctx.history.apply(gesture);
+  if (done !== null && outcome?.outcome === 'applied') sayDone(ctx.main, done);
 }
 
-async function duplicate(ctx: EditorContext, ids: readonly string[]): Promise<void> {
+async function duplicate(
+  ctx: EditorContext,
+  ids: readonly string[],
+  done: string | null,
+): Promise<void> {
   const ops: EditOp[] = [];
   for (const id of ids) {
     const answer = await getSubtree(ctx.slug, id);
@@ -297,7 +307,7 @@ async function duplicate(ctx: EditorContext, ids: readonly string[]): Promise<vo
     const { source, file } = answer.body;
     ops.push({ op: 'insertElement', anchor: id, place: 'after', source, from: file });
   }
-  await send(ctx, ops, label('duplicate', { count: ids.length }), true);
+  await send(ctx, ops, label('duplicate', { count: ids.length }), true, done);
 }
 
 async function paste(ctx: EditorContext, ids: readonly string[]): Promise<void> {
@@ -361,7 +371,12 @@ export async function runAction(
   extra: ActionExtra = {},
 ): Promise<void> {
   const state = ctx.store.get();
-  if (reasonOf(state, id, true) !== null) return;
+  const off = reasonOf(state, id, true);
+  if (off !== null) {
+    // Never in silence: the reason is said over the canvas.
+    sayReason(ctx.main, off);
+    return;
+  }
   if (await runListAction(ctx, id)) return;
   const entries = entriesOf(state);
   const ids = ordered(state, entries);
@@ -369,11 +384,17 @@ export async function runAction(
   const first = ids[0] ?? '';
   const remove = (list: readonly string[]): EditOp[] =>
     list.map((one): EditOp => ({ op: 'removeElement', id: one, ...hashOf(entries, one) }));
+  // A change to a part of a list item shows in every item: that is said once it is written.
+  const part = outer.length === 1 ? partOf(state, outer[0] ?? '') : null;
+  const said = (change: PartChange): string | null =>
+    part === null ? null : partDone(part, change);
   switch (id) {
-    case 'delete':
-      return send(ctx, remove(outer), label('delete', { count: outer.length }));
+    case 'delete': {
+      const name = label('delete', { count: outer.length });
+      return send(ctx, remove(outer), name, false, said('delete'));
+    }
     case 'duplicate':
-      return duplicate(ctx, outer);
+      return duplicate(ctx, outer, said('duplicate'));
     case 'copy': {
       const clip = await copyElements(ctx, outer);
       toast(ctx.main, text(clip ? 'copy.done' : 'copy.failed'));
@@ -386,15 +407,18 @@ export async function runAction(
     }
     case 'cut': {
       if (await copyElements(ctx, outer)) {
-        await send(ctx, remove(outer), label('cut', { count: outer.length }));
+        const name = label('cut', { count: outer.length });
+        await send(ctx, remove(outer), name, false, said('delete'));
       }
       return;
     }
     case 'paste':
       return paste(ctx, ids);
     case 'move-up':
-    case 'move-down':
-      return send(ctx, move(ids, entries, id === 'move-up' ? 'up' : 'down'), label(id));
+    case 'move-down': {
+      const ops = move(ids, entries, id === 'move-up' ? 'up' : 'down');
+      return send(ctx, ops, label(id), false, said('move'));
+    }
     case 'wrap-stack':
     case 'wrap-row':
     case 'wrap-grid':

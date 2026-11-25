@@ -2,29 +2,28 @@
 // nested in the element's class rule. `@media (min-width: Npx)` blocks stand after the rule's own
 // declarations in ascending width, then `&:hover`, `&:focus-visible` and `&:active`; a state at a
 // width is that state's block inside the width's block. A block that an operation creates
-// (`newBlock`) is taken away by its inverse (`dropBlock`) byte for byte, and so is a rule.
+// (`newBlock`) is taken away by its inverse (`dropBlock`) byte for byte, and so is a rule. A class
+// with several rules (ADR 0067) is read in file order: a value is written where its last
+// declaration is, and a new one goes into the class's last rule.
 
 import { STYLE_STATES, type StyleContext } from '../ops.ts';
 import { type ApplyResult, isStyleProperty, type StyleProperty } from '../types.ts';
-import { type Body, type Found, type Nest, readRules } from './scss-reader.ts';
+import { type Body, indentAt, type Nest } from './scss-reader.ts';
+import { classRules, type Found } from './scss-rules.ts';
 import {
   addDeclaration,
   blockCut,
-  blockText,
-  bodyIndent,
-  createRule,
   declarationCut,
   declarationText,
   dropEmptyRule,
   emptyBody,
-  eolOf,
-  fileIndent,
   holds,
-  indentAt,
+  insertNested,
+  lastDeclaration,
+  newRule,
   replaceValue,
   type ScssOp,
   type ScssOptions,
-  slotBefore,
   splice,
 } from './scss-write.ts';
 
@@ -61,12 +60,13 @@ function placeOf(text: string, rule: Found, context: StyleContext): Place | 'amb
   if (context.width === null || context.state === null) {
     const target = blockIn(rule, context);
     if (target === 'ambiguous') return target;
-    return { parent: rule, outer: '', target, missing: [context] };
+    return { parent: rule, outer: rule.outer, target, missing: [context] };
   }
   const media = blockIn(rule, widthOnly(context));
   if (media === 'ambiguous') return media;
   if (media === undefined) {
-    return { parent: rule, outer: '', target: undefined, missing: [widthOnly(context), context] };
+    const missing = [widthOnly(context), context];
+    return { parent: rule, outer: rule.outer, target: undefined, missing };
   }
   if (!media.closed) return 'open';
   const target = blockIn(media, context);
@@ -95,48 +95,75 @@ function insertBlocks(text: string, place: Place, declaration: string): ApplyRes
   const { parent, missing } = place;
   const first = missing[0];
   if (first === undefined) return { refused: 'invalid' };
-  const next = nextOf(parent, first);
-  // After a last declaration without its `;` a block would not parse.
-  if (next === parent.close && parent.dangling) return { refused: 'invalid' };
-  const slot = slotBefore(text, parent, next);
   const preludes = preludesOf(missing.at(-1) ?? first).slice(-missing.length);
-  const eol = eolOf(text);
-  const insert = slot.lines
-    ? (slot.lead ? eol : '') +
-      blockText(preludes, declaration, {
-        indent: bodyIndent(text, parent, place.outer),
-        eol,
-        unit: fileIndent(text),
-      })
-    : blockText(preludes, declaration, null);
-  return {
-    text: splice(text, slot.at, slot.at, insert),
-    changed: [{ start: slot.at, end: slot.at + insert.length }],
-  };
-}
-
-/** The rule `.className` when the text has exactly one, closed. */
-function oneRule(text: string, className: string): Found | undefined {
-  const rules = readRules(text).filter((rule) => rule.view.className === className);
-  return rules.length === 1 && rules[0]?.closed ? rules[0] : undefined;
+  return insertNested(text, parent, place.outer, nextOf(parent, first), preludes, declaration);
 }
 
 /**
- * The text without the context's block when the block is empty, and then without the width's
- * block around a state's when that is empty too: what `insertBlocks` put in, or less.
+ * Another rule of the class than `home` sets the property in a block of the same state at a wider
+ * width. A new value in `home`, the class's last rule, would come after that block in the cascade
+ * and win over it where the wider width should: which value shows is not kitvas's to guess.
  */
-function dropEmptyBlocks(text: string, className: string, context: StyleContext): string {
+function outranked(
+  rules: readonly Found[],
+  home: Found,
+  property: string,
+  context: StyleContext,
+): boolean {
+  const wider = (block: Nest): boolean =>
+    block.context.state === context.state &&
+    (block.context.width ?? 0) > (context.width ?? 0) &&
+    block.own.some((own) => own.view.property === property);
+  const any = (blocks: readonly Nest[]): boolean =>
+    blocks.some((block) => wider(block) || any(block.blocks));
+  return rules.some((rule) => rule !== home && any(rule.blocks));
+}
+
+/**
+ * The text without the context's block of the class's rule number `index` when the block is
+ * empty, and then without the width's block around a state's when that is empty too: what
+ * `insertBlocks` put in, or less.
+ */
+function dropEmptyBlocks(
+  text: string,
+  className: string,
+  context: StyleContext,
+  index: number,
+): string {
   let next = text;
   const both = context.width !== null && context.state !== null;
   for (const each of both ? [context, widthOnly(context)] : [context]) {
-    const rule = oneRule(next, className);
-    const place = rule === undefined ? 'open' : placeOf(next, rule, each);
+    const rule = classRules(next, className)[index];
+    const place = rule === undefined || !rule.closed ? 'open' : placeOf(next, rule, each);
     if (typeof place === 'string' || place.target === undefined) return next;
     if (!emptyBody(next, place.target)) return next;
     const cut = blockCut(next, place.parent, place.target);
     next = splice(next, cut.start, cut.end, '');
   }
   return next;
+}
+
+/** A declaration that is not there yet: in the context's block of the class's last rule. */
+function addInContext(
+  text: string,
+  op: ScssOp,
+  context: StyleContext,
+  options: ScssOptions,
+  rules: readonly Found[],
+  home: { rule: Found; place: Place },
+): ApplyResult {
+  // Nothing to remove, and no value the person could have seen there.
+  if (op.op === 'removeStyle') return options.force ? { refused: 'not-found' } : conflict();
+  if (op.before !== null && !options.force) return conflict();
+  if (outranked(rules, home.rule, op.property, context)) return { refused: 'ambiguous' };
+  const declaration = declarationText(op.property, op.value);
+  const { target } = home.place;
+  if (target === undefined) {
+    if (op.newBlock !== true && !options.force) return { refused: 'not-found' };
+    return insertBlocks(text, home.place, declaration);
+  }
+  if (!target.closed) return { refused: 'invalid' };
+  return addDeclaration(text, target, indentAt(text, target.span.start), declaration);
 }
 
 /** Applies a style operation whose context is a width, a state or both. */
@@ -150,46 +177,40 @@ export function applyScssContext(
   if (width !== null && options.breakpoints !== undefined) {
     if (!options.breakpoints().includes(width)) return { refused: 'not-breakpoint' };
   }
-  const rules = readRules(text).filter((rule) => rule.view.className === op.className);
-  if (rules.length > 1) return { refused: 'ambiguous' };
-  const rule = rules[0];
-  if (rule === undefined) {
+  const rules = classRules(text, op.className);
+  const last = rules.at(-1);
+  if (last === undefined) {
     if (op.op !== 'setStyle' || !op.newRule) return { refused: 'not-found' };
     if (op.before !== null && !options.force) return { refused: 'not-found' };
-    const declaration = declarationText(op.property, op.value);
-    return createRule(text, op.className, (indent, eol) =>
-      blockText(preludesOf(context), declaration, { indent, eol, unit: indent }),
-    );
+    return newRule(text, op.className, preludesOf(context), declarationText(op.property, op.value));
   }
-  if (!rule.closed) return { refused: 'invalid' };
-  const place = placeOf(text, rule, context);
-  if (place === 'ambiguous') return { refused: 'ambiguous' };
-  if (place === 'open') return { refused: 'invalid' };
-
-  const { target } = place;
-  if (target === undefined) {
-    // No block: nothing to remove, and no value the person could have seen there.
-    if (op.op === 'removeStyle') return options.force ? { refused: 'not-found' } : conflict();
-    if (op.before !== null && !options.force) return conflict();
-    if (op.newBlock !== true && !options.force) return { refused: 'not-found' };
-    return insertBlocks(text, place, declarationText(op.property, op.value));
+  if (rules.some((rule) => !rule.closed)) return { refused: 'invalid' };
+  const places: Place[] = [];
+  for (const rule of rules) {
+    const place = placeOf(text, rule, context);
+    if (place === 'ambiguous') return { refused: 'ambiguous' };
+    if (place === 'open') return { refused: 'invalid' };
+    places.push(place);
   }
-  if (!target.closed) return { refused: 'invalid' };
-  const matches = target.own.filter((declaration) => declaration.view.property === op.property);
-  if (matches.length > 1) return { refused: 'ambiguous' };
-  const found = matches[0];
-  if (found === undefined && target.nested.includes(op.property)) return { refused: 'nested' };
+  const targets = places.flatMap((place) => (place.target === undefined ? [] : [place.target]));
+  const found = lastDeclaration(targets, op.property);
+  if (found === 'ambiguous') return { refused: 'ambiguous' };
+  if (found === undefined) {
+    const nested = targets.some((target) => target.nested.includes(op.property));
+    if (nested) return { refused: 'nested' };
+    const home = places.at(-1);
+    if (home === undefined) return { refused: 'invalid' };
+    return addInContext(text, op, context, options, rules, { rule: last, place: home });
+  }
+  // The rule whose block holds the declaration: an emptied block goes from that rule.
+  const index = places.findIndex((each) => each.target?.own.includes(found) === true);
+  if (places[index]?.target?.closed !== true) return { refused: 'invalid' };
   if (!options.force && !holds(found, op.before)) return conflict();
 
-  if (op.op === 'setStyle') {
-    if (found !== undefined) return replaceValue(text, found, op.value);
-    const outer = indentAt(text, target.span.start);
-    return addDeclaration(text, target, outer, declarationText(op.property, op.value));
-  }
-  if (found === undefined) return { refused: 'not-found' };
+  if (op.op === 'setStyle') return replaceValue(text, found, op.value);
   const cut = declarationCut(text, found.view.span);
   let next = splice(text, cut.start, cut.end, '');
-  if (op.dropBlock === true) next = dropEmptyBlocks(next, op.className, context);
+  if (op.dropBlock === true) next = dropEmptyBlocks(next, op.className, context, index);
   const result: ApplyResult = { text: next, changed: [{ start: cut.start, end: cut.start }] };
   return (op.dropRule ? dropEmptyRule(next, op.className) : null) ?? result;
 }
@@ -203,25 +224,22 @@ export type ScssOverride = {
 };
 
 /**
- * Every value the rule `.className` sets in a context block, for the properties of the editor's
- * set: the last declaration of each property of each block, which is the one the browser applies.
- * None when the text has no such rule, or two.
+ * Every value the rules of `.className` set in a context block, for the properties of the
+ * editor's set: for each context and property the last declaration in file order, which is the
+ * one the browser applies, in the order they first appear. None when the text has no such rule.
  */
 export function scssOverrides(text: string, className: string): ScssOverride[] {
-  const rules = readRules(text).filter((rule) => rule.view.className === className);
-  const rule = rules.length === 1 ? rules[0] : undefined;
-  const found: ScssOverride[] = [];
+  const last = new Map<string, ScssOverride>();
   const take = (block: Nest): void => {
-    const last = new Map<StyleProperty, ScssOverride>();
     for (const own of block.own) {
       const property = own.view.property.trim().toLowerCase();
       if (!isStyleProperty(property)) continue;
       const { value, offKit } = own.view;
-      last.set(property, { context: block.context, property, value, offKit });
+      const key = `${block.context.width ?? ''}|${block.context.state ?? ''}|${property}`;
+      last.set(key, { context: block.context, property, value, offKit });
     }
-    found.push(...last.values());
     block.blocks.forEach(take);
   };
-  rule?.blocks.forEach(take);
-  return found;
+  for (const rule of classRules(text, className)) rule.blocks.forEach(take);
+  return [...last.values()];
 }

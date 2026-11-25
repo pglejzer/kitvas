@@ -1,11 +1,12 @@
-// The rules of a drag in the frame (ADR 0059), with no DOM: what a press will do, when it becomes
-// a drag, what a release posts. `drag.ts` gives it the pointer and the page; a test gives it
-// fakes. Points, boxes and slots are viewport pixels of the frame.
+// The rules of a drag in the frame (ADRs 0059 and 0066), with no DOM: what a press will do, when
+// it becomes a drag, what a release posts. `drag.ts` gives it the pointer and the page; a test
+// gives it fakes. Points, boxes and slots are viewport pixels of the frame.
 
-import type { EditFrameMessage } from '../../channel/edit-protocol.ts';
+import type { CopyRef, EditFrameMessage } from '../../channel/edit-protocol.ts';
 import type { DragSource } from '../../channel/structure-protocol.ts';
-import { rectOf, type Taken } from '../page/rect.ts';
-import type { ItemSlot } from './item-slots.ts';
+import { rectOf } from '../page/rect.ts';
+import type { GestureEnd, GestureLog } from './gesture-log.ts';
+import type { ListSlot } from './item-slots.ts';
 import type { Box, Point, Slot } from './slots.ts';
 
 /** A press becomes a drag or a rectangle once the pointer is more than this far, on the screen. */
@@ -16,16 +17,23 @@ export function passed(start: Point, point: Point, scale = 1): boolean {
   return Math.hypot(point.x - start.x, point.y - start.y) > THRESHOLD * scale;
 }
 
-/** The element a drag picks first, with its copy when several elements carry the id. */
-export type Picked = { id: string; item?: number };
+/**
+ * A rendered copy as a pick names it: `item` when several elements carry the id, `path` when
+ * the page can count it in the lists around it.
+ */
+export type Copy = { item?: number; path?: number[] };
+
+/** The element a drag picks first, with its copy. */
+export type Picked = { id: string } & Copy;
 
 /**
- * What a press will do if the pointer moves on: move these elements, reorder one list item, or
- * draw a rectangle. `pick`: the element was not selected, so the drag selects it first.
+ * What a press will do if the pointer moves on: move these elements, drag one list item, or draw
+ * a rectangle. `pick`: the drag selects the pressed copy first. An item's `item` is its place
+ * among the elements that carry `id`, `from` its path through the lists around it.
  */
 export type Press =
   | { kind: 'move'; ids: string[]; pick: Picked | null }
-  | { kind: 'item'; id: string; from: number; pick: Picked }
+  | { kind: 'item'; id: string; item: number; from: number[]; pick: Picked }
   | { kind: 'rect' };
 
 export type PressInput = {
@@ -35,24 +43,26 @@ export type PressInput = {
   /** A key that adds to the selection is held: Shift, Ctrl or Cmd. */
   add: boolean;
   movable(id: string): boolean;
-  /** One copy per item of a literal data list (`FrameEntry.item`). */
+  /** The root a `.map` callback returns, of a list the editor can write (`FrameEntry.item`). */
   item(id: string): boolean;
   /** The element a section returns. */
   section(id: string): boolean;
   /** The ids of the element's parent's children in document order, itself among them. */
   siblings(id: string): readonly string[];
-  /** Which rendered copy of `id` is in the path; `undefined` when only one element carries it. */
-  copy(id: string): number | undefined;
+  /** The copy of `id` that is in the path. */
+  copy(id: string): Copy;
 };
 
 function pickOf(input: PressInput, id: string): Picked {
-  const item = input.copy(id);
-  return item === undefined ? { id } : { id, item };
+  return { id, ...input.copy(id) };
 }
 
-function itemPress(input: PressInput, id: string): Press {
+/** `null` for an item the page cannot count in its lists: it has no path to name. */
+function itemPress(input: PressInput, id: string): Press | null {
+  const copy = input.copy(id);
+  if (copy.path === undefined) return null;
   // Picked also when it is selected: the pressed copy may be another one than the chosen one.
-  return { kind: 'item', id, from: input.copy(id) ?? 0, pick: pickOf(input, id) };
+  return { kind: 'item', id, item: copy.item ?? 0, from: copy.path, pick: { id, ...copy } };
 }
 
 /**
@@ -73,24 +83,31 @@ function runOf(input: PressInput, grabbed: string, chosen: ReadonlySet<string>):
 /**
  * What a press does, from the pressed element outwards:
  * 1. With Shift, Ctrl or Cmd it draws a rectangle that adds to the selection, wherever it starts.
- * 2. A selected element around the point is grabbed, also by one of its children: it moves (or
- *    the selected run does), or reorders when it is a list item.
+ * 2. A selected element around the point is grabbed, also by one of its children: it drags as an
+ *    item when it is a list item, else it moves (or the selected run does).
  * 3. Else the nearest element that can move is dragged, or the nearest list item, whichever
  *    comes first; the drag selects it.
  * 4. With none up to the section's root, it draws a rectangle.
- * An element that is a list item reorders, whatever else the structure says of it.
+ * An element that is a list item drags as an item at any depth, whatever else the structure says
+ * of it. A part of an item's template that can move drags as an element.
  */
 export function pressOf(input: PressInput): Press {
   const { path, movable, item } = input;
   if (input.add) return { kind: 'rect' };
   const chosen = new Set(input.selection);
   const grabbed = path.find((id) => chosen.has(id));
-  if (grabbed !== undefined && item(grabbed)) return itemPress(input, grabbed);
+  const held = grabbed !== undefined && item(grabbed) ? itemPress(input, grabbed) : null;
+  if (held) return held;
   if (grabbed !== undefined && movable(grabbed)) {
-    return { kind: 'move', ids: runOf(input, grabbed, chosen), pick: null };
+    const ids = runOf(input, grabbed, chosen);
+    const copy = input.copy(grabbed);
+    // One of several copies: the pressed one may be another than the chosen one, so it is picked.
+    const again = ids.length === 1 && copy.item !== undefined;
+    return { kind: 'move', ids, pick: again ? { id: grabbed, ...copy } : null };
   }
   for (const id of path) {
-    if (item(id)) return itemPress(input, id);
+    const press = item(id) ? itemPress(input, id) : null;
+    if (press) return press;
     if (movable(id)) return { kind: 'move', ids: [id], pick: pickOf(input, id) };
     if (input.section(id)) break;
   }
@@ -122,8 +139,22 @@ export function samePlace(
   return slot.place === 'first' ? from === 0 : to === row.length - 1;
 }
 
-/** One copy of a list item on its way to another place among the copies. */
-export type ItemSource = { kind: 'item'; id: string; from: number };
+/** Two paths name the same item. */
+export function samePath(a: readonly number[], b: readonly number[]): boolean {
+  return a.length === b.length && a.every((place, index) => place === b[index]);
+}
+
+/**
+ * One copy of a list item on its way to another place: copy `item` of the elements that carry
+ * `id`, which stands at the path `from`.
+ */
+export type ItemSource = { kind: 'item'; id: string; item: number; from: number[] };
+
+/** What the page offers a dragged item: the place under the pointer, and every list it can go to. */
+export type ItemOffer = { slot: ListSlot | null; lists: readonly Box[] };
+
+/** What a rectangle takes: a box per taken copy for the outline, and the copies when asked. */
+export type RectTake = { boxes: readonly Box[]; picks(): CopyRef[] };
 
 /** What a session needs around it. */
 export type SessionEnv = {
@@ -133,23 +164,26 @@ export type SessionEnv = {
   scale(): number;
   /** Always asked with the one source object of the drag: the slots keep a lookup on it. */
   slot(point: Point, source: DragSource): Slot | null;
-  /** The place among the copies of the dragged item under the point. */
-  itemSlot(point: Point, source: ItemSource): ItemSlot | null;
-  indicate(slot: Slot | null): void;
+  /** The place among the lists of the dragged item under the point. */
+  itemSlot(point: Point, source: ItemSource): ItemOffer;
+  /** `lists`: the lists a dragged item can go to, each drawn faintly. */
+  indicate(slot: Slot | null, lists?: readonly Box[]): void;
   /** The page's scroll offset: a rectangle keeps its first corner on the page while it scrolls. */
   scroll(): Point;
   /** Draws the rectangle and outlines what it would take; `null` takes both away. */
   outline(rect: Box | null, boxes: readonly Box[]): void;
   /** What a rectangle takes. */
-  taken(rect: Box): Taken;
+  taken(rect: Box): RectTake;
   family(id: string): Family;
   /** A drag (its source) or a rectangle (`null`) began: the threshold is behind. */
   started(source: DragSource | ItemSource | null): void;
   ended(): void;
   /** The optimistic preview of a drop. */
   preview(source: DragSource, slot: Slot): void;
-  /** The optimistic preview of a reordered item. */
-  previewItem(source: ItemSource, slot: ItemSlot): void;
+  /** The optimistic preview of a moved item. */
+  previewItem(source: ItemSource, slot: ListSlot): void;
+  /** Hears every change of state, and why each gesture ended (`gesture-log.ts`). */
+  log?: GestureLog;
 };
 
 export type Session = {
@@ -164,7 +198,10 @@ export type Session = {
   /** Also called again with the same point after a scroll: the slot is another one then. */
   move(point: Point): void;
   release(point: Point): void;
-  cancel(): void;
+  /** Ends whatever runs with nothing posted. `why` is for the log. */
+  cancel(why?: GestureEnd): void;
+  /** Something happened under a press or a gesture, which goes on: the log hears of it. */
+  note(why: GestureEnd): void;
 };
 
 type State =
@@ -188,10 +225,9 @@ export function createSession(env: SessionEnv): Session {
     return slot;
   }
 
-  /** What the indicator draws for an item's place: the line beside the copy. */
-  function lineFor(source: ItemSource, point: Point): Slot | null {
-    const slot = env.itemSlot(point, source);
-    return slot && { anchor: source.id, place: slot.place, line: slot.line, box: null };
+  /** What the indicator draws for an item's place: the line beside the copy, in its list. */
+  function lineOf(source: ItemSource, slot: ListSlot | null): Slot | null {
+    return slot && { anchor: source.id, place: slot.place, line: slot.line, box: slot.box };
   }
 
   /** The rectangle from its first corner, which is kept on the page, to the pointer. */
@@ -206,18 +242,25 @@ export function createSession(env: SessionEnv): Session {
     return samePlace(source.ids, slot, env.family(first));
   }
 
-  function cancel(): void {
+  /** Puts the gesture away: the indicator, the outlines and the dimming leave. */
+  function putAway(): State {
     const ending = state;
     state = IDLE;
     if (ending.kind === 'drag' || ending.kind === 'item') env.indicate(null);
     if (ending.kind === 'rect') env.outline(null, []);
     if (ending.kind === 'drag' || ending.kind === 'item' || ending.kind === 'rect') env.ended();
+    return ending;
+  }
+
+  function cancel(why: GestureEnd = 'cancelled'): void {
+    if (putAway().kind !== 'idle') env.log?.end(why, false);
   }
 
   /** The threshold is behind: the press becomes what `pressOf` said it would. */
   function start(press: Press, origin: Point, add: boolean): void {
     if (press.kind === 'rect') {
       state = { kind: 'rect', origin, add };
+      env.log?.step('rect');
       env.started(null);
       return;
     }
@@ -226,11 +269,18 @@ export function createSession(env: SessionEnv): Session {
     if (press.kind === 'move') {
       const source: DragSource = { kind: 'move', ids: [...press.ids] };
       state = { kind: 'drag', source };
+      env.log?.step('drag');
       env.started(source);
       return;
     }
-    const source: ItemSource = { kind: 'item', id: press.id, from: press.from };
+    const source: ItemSource = {
+      kind: 'item',
+      id: press.id,
+      item: press.item,
+      from: [...press.from],
+    };
     state = { kind: 'item', source };
+    env.log?.step('item');
     env.started(source);
   }
 
@@ -240,11 +290,48 @@ export function createSession(env: SessionEnv): Session {
       start(state.press, state.origin, state.add);
     }
     if (state.kind === 'drag') env.indicate(slotFor(state.source, point));
-    if (state.kind === 'item') env.indicate(lineFor(state.source, point));
+    if (state.kind === 'item') {
+      const offer = env.itemSlot(point, state.source);
+      env.indicate(lineOf(state.source, offer.slot), offer.lists);
+    }
     if (state.kind === 'rect') {
       const rect = rectTo(state.origin, point);
       env.outline(rect, env.taken(rect).boxes);
     }
+  }
+
+  /** The release of a dragged element or of a forwarded drag: its drop, when there is one. */
+  function drop(source: DragSource, slot: Slot | null): void {
+    if (!slot) {
+      env.log?.end('no-slot', false);
+      return;
+    }
+    // A drop where the element already stands changes nothing: no write, no move.
+    if (stays(source, slot)) {
+      env.log?.end('same-place', false);
+      return;
+    }
+    // Posted first: the write must not depend on the preview going well.
+    env.post({ ...head, type: 'drop', source, anchor: slot.anchor, place: slot.place });
+    env.preview(source, slot);
+    env.log?.end('released', true);
+  }
+
+  /** The release of a dragged item: its `reorder`, when it has another place now. */
+  function dropItem(source: ItemSource, place: ListSlot | null): void {
+    if (!place) {
+      env.log?.end('no-slot', false);
+      return;
+    }
+    // A drop on its own place changes nothing: no write, no move.
+    if (samePath(place.path, source.from)) {
+      env.log?.end('same-place', false);
+      return;
+    }
+    const { id, from } = source;
+    env.post({ ...head, type: 'reorder', id, from: [...from], to: [...place.path] });
+    env.previewItem(source, place);
+    env.log?.end('released', true);
   }
 
   return {
@@ -252,15 +339,17 @@ export function createSession(env: SessionEnv): Session {
     drawing: () => state.kind === 'rect',
 
     press(press, point, add) {
-      cancel();
+      cancel('new-press');
       const scroll = env.scroll();
       const origin = { x: point.x + scroll.x, y: point.y + scroll.y };
       state = { kind: 'pressed', press, start: point, origin, add };
+      env.log?.step('pressed');
     },
 
     begin(source, point) {
-      cancel();
+      cancel('new-press');
       state = { kind: 'drag', source };
+      env.log?.step('drag');
       env.started(source);
       move(point);
     },
@@ -272,28 +361,28 @@ export function createSession(env: SessionEnv): Session {
       // Read before the gesture is put away, which removes the indicator, the outlines and the
       // dimming.
       const slot = ending.kind === 'drag' ? slotFor(ending.source, point) : null;
-      const place = ending.kind === 'item' ? env.itemSlot(point, ending.source) : null;
-      const taken = ending.kind === 'rect' ? env.taken(rectTo(ending.origin, point)) : null;
-      cancel();
-      if (ending.kind === 'rect' && taken) {
-        env.post({ ...head, type: 'rect', ids: taken.ids, add: ending.add });
+      const place = ending.kind === 'item' ? env.itemSlot(point, ending.source).slot : null;
+      const picks = ending.kind === 'rect' ? env.taken(rectTo(ending.origin, point)).picks() : [];
+      putAway();
+      if (ending.kind === 'drag') drop(ending.source, slot);
+      if (ending.kind === 'item') dropItem(ending.source, place);
+      if (ending.kind === 'rect') {
+        // A rectangle that took nothing still posts: the selection is cleared.
+        env.post({ ...head, type: 'rect', picks, add: ending.add });
+        env.log?.end('released', true);
       }
-      if (ending.kind === 'item' && place) {
-        const { id, from } = ending.source;
-        // A drop on its own place changes nothing: no write, no move.
-        if (place.to === from) return;
-        env.post({ ...head, type: 'reorder', id, item: from, to: place.to });
-        env.previewItem(ending.source, place);
+      // A press that never moved far enough was a click, which `edit.ts` picks. One let go away
+      // from where it began was a drag whose moves were never heard: the log says so.
+      if (ending.kind === 'pressed') {
+        const lost = passed(ending.start, point, env.scale());
+        env.log?.end(lost ? 'no-move' : 'released', !lost);
       }
-      if (ending.kind !== 'drag' || !slot) return;
-      const { source } = ending;
-      // A drop where the element already stands changes nothing: no write, no move.
-      if (stays(source, slot)) return;
-      // Posted first: the write must not depend on the preview going well.
-      env.post({ ...head, type: 'drop', source, anchor: slot.anchor, place: slot.place });
-      env.preview(source, slot);
     },
 
     cancel,
+
+    note(why) {
+      if (state.kind !== 'idle') env.log?.step(state.kind, why);
+    },
   };
 }

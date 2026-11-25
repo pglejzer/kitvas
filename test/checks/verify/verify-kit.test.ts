@@ -120,7 +120,7 @@ test('with a browser all steps run: one build, one session, every example opened
   });
   assert.equal(file.valid, true);
   assert.deepEqual(file.issues, []);
-  assert.deepEqual(file.notes, []);
+  assert.deepEqual(file.notes, ['kits.verify.noTokenMap', 'kits.verify.notWritten']);
   assert.deepEqual([browser.opened, browser.closed], [1, 1]);
   assert.deepEqual(browser.asked, [
     {
@@ -164,7 +164,7 @@ test('a kit that fails schema is not looked at any further', async () => {
         params: { id: 'tiny', folder: 'other' },
       },
     ],
-    notes: [],
+    notes: ['kits.verify.afterSchema'],
   });
   assert.match(file.hash, /^[0-9a-f]{64}$/);
   assert.deepEqual(shop.bundler.bundles, []);

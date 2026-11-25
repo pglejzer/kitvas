@@ -82,7 +82,9 @@ function nameButton(item: LayerItem, level: number, env: RowEnv): HTMLButtonElem
     const badge = document.createElement('span');
     badge.className = 'layers-badge k-meta';
     badge.textContent = shown.label;
-    if (shown.title !== null) badge.title = shown.title;
+    badge.title = shown.title;
+    badge.setAttribute('role', 'img');
+    badge.setAttribute('aria-label', shown.title);
     if (facts.kind !== null) badge.dataset.kind = facts.kind;
     button.append(badge);
   }

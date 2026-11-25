@@ -49,3 +49,26 @@ test('an element both hovered and selected gets the select label only', () => {
     ['x:B:hover', 'x:A:select'],
   );
 });
+
+test('a selection of several elements gets no label; a hovered one outside it keeps its own', () => {
+  const box = { left: 0, top: 0, width: 10, height: 10 };
+  const a = {};
+  const b = {};
+  const shown = labelled([
+    { element: {}, id: 'x:C', kind: 'hover', box },
+    { element: a, id: 'x:A', kind: 'hover', box },
+    { element: a, id: 'x:A', kind: 'select', box },
+    { element: b, id: 'x:B', kind: 'select', box },
+  ]);
+  assert.deepEqual(
+    shown.map((item) => `${item.id}:${item.kind}`),
+    ['x:C:hover'],
+  );
+  // Copies of one id are several elements too.
+  const rows = labelled([
+    { element: {}, id: 'x:Row', kind: 'select', box },
+    { element: {}, id: 'x:Row', kind: 'select', box },
+    { element: {}, id: 'x:Row', kind: 'select', box },
+  ]);
+  assert.deepEqual(rows, []);
+});
