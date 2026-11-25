@@ -3,7 +3,8 @@
 // (`--st-*`); shared classes are `../` (`k-`).
 
 export const SKIN_TRASH = `
-/* On the card's corner, over the thumbnail and the link that covers the card; it shows on hover or focus. */
+/* On the card's corner, over the thumbnail and the link that covers the card. It is always in view,
+   in the muted tone, and at full strength on hover and focus. */
 .trash-card-del {
   position: absolute;
   top: var(--st-space-12);
@@ -11,17 +12,14 @@ export const SKIN_TRASH = `
   z-index: 1;
   background: var(--st-color-pop);
   box-shadow: var(--st-shadow-low);
-  opacity: 0;
-  transition: opacity var(--st-motion-fast) var(--st-ease-out);
+  color: var(--st-color-ink-mid);
+  transition: color var(--st-motion-fast) var(--st-ease-out);
 }
 .trash-card-del:hover { background: var(--st-color-pop); }
 .gallery-card:hover .trash-card-del,
 .gallery-card:focus-within .trash-card-del,
-.trash-card-del:focus-visible { opacity: 1; }
-/* Without a pointer that hovers, the control stays in view. */
-@media (hover: none) {
-  .trash-card-del { opacity: 1; }
-}
+.trash-card-del:hover,
+.trash-card-del:focus-visible { color: var(--st-color-ink); }
 .trash-list {
   display: grid;
   gap: var(--st-space-8);

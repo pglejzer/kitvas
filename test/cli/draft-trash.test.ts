@@ -92,8 +92,9 @@ test('draft restore brings the draft back, or says why not', async () => {
   assert.match(h.out.at(-1) ?? '', /^Bike shop \(shop\)/);
 
   // Nothing deleted under that name now, and a name taken by a live draft.
-  assert.equal(await h.run('draft', 'restore', 'shop', '--json'), 9);
-  assert.equal(h.error().code, 'DRAFT_NOT_FOUND');
+  assert.equal(await h.run('draft', 'restore', 'shop', '--json'), 62);
+  assert.equal(h.error().code, 'DRAFT_NOT_DELETED');
+  assert.match(h.error().message, /draft list --deleted/);
   await h.run('draft', 'delete', 'shop');
   await h.run('draft', 'new', 'shop');
   assert.equal(await h.run('draft', 'restore', 'shop', '--json'), 10);
@@ -115,7 +116,7 @@ test('draft purge removes one slug or all for good and lists what it removed', a
     ['a'],
   );
   assert.equal(existsSync(h.kitvas('trash', first.purged[0]?.entry ?? '?')), false);
-  assert.equal(await h.run('draft', 'purge', 'a', '--json'), 9);
+  assert.equal(await h.run('draft', 'purge', 'a', '--json'), 62);
 
   assert.equal(await h.run('draft', 'purge', '--all'), 0);
   const lines = (h.out.at(-1) ?? '').split('\n');

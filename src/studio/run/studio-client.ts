@@ -18,7 +18,12 @@ export function callStudio(address: StudioAddress, call: StudioCall): Promise<St
   const body = call.body === undefined ? undefined : JSON.stringify(call.body);
   const headers: Record<string, string> = { host, authorization: `Bearer ${address.token}` };
   if (call.method !== 'GET') headers.origin = `http://${host}`;
-  if (body !== undefined) headers['content-type'] = 'application/json';
+  if (body !== undefined) {
+    headers['content-type'] = 'application/json';
+    // Said here: Node sends no length and no chunks for a DELETE by itself, and the studio then
+    // reads the body as the start of a second, broken request.
+    headers['content-length'] = String(Buffer.byteLength(body));
+  }
   return new Promise((resolve, reject) => {
     const req = request(
       {

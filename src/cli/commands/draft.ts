@@ -8,21 +8,23 @@ import {
   type Draft,
   type DraftListItem,
   type DraftStore,
-  deleteDraft,
   latestVersion,
   listDeleted,
   listDrafts,
   loadDraft,
-  purgeAllDeleted,
-  purgeDeleted,
-  restoreDraft,
 } from '../../drafts/index.ts';
 import { type KitStore, requireKit } from '../../kit/index.ts';
 import { KitvasError, loadSettings, type Translate } from '../../shared/index.ts';
 import { columns } from '../output/columns.ts';
 import { type Command, type CommandContext, defineCommand } from '../registry.ts';
+import { deleteIn, purgeAllIn, purgeIn, restoreIn, type TrashStudio } from './draft-trash.ts';
 
-export type DraftDeps = { draftsAt(cwd: string): DraftStore; kits: KitStore };
+export type DraftDeps = {
+  draftsAt(cwd: string): DraftStore;
+  kits: KitStore;
+  /** Where a running studio is reached; `delete`, `restore` and `purge` use it when one runs. */
+  studio?: TrashStudio | undefined;
+};
 
 export type DraftView =
   | { view: 'new'; draft: Draft; path: string }
@@ -107,7 +109,7 @@ export function createDraftCommand(deps: DraftDeps): Command {
   return defineCommand<DraftView>({
     name: 'draft',
     summary: 'command.draft.summary',
-    run(ctx) {
+    async run(ctx) {
       const sub = ctx.positionals[0] ?? 'list';
       const drafts = openDrafts(deps, ctx);
       switch (sub) {
@@ -131,7 +133,7 @@ export function createDraftCommand(deps: DraftDeps): Command {
         case 'version':
           return { view: 'version', ...addVersion(drafts, slugAt(ctx, 1), new Date()) };
         case 'delete': {
-          const deleted = deleteDraft(drafts, slugAt(ctx, 1), new Date());
+          const deleted = await deleteIn(deps.studio, ctx.cwd, drafts, slugAt(ctx, 1));
           return {
             view: 'delete',
             deleted,
@@ -140,7 +142,10 @@ export function createDraftCommand(deps: DraftDeps): Command {
           };
         }
         case 'restore':
-          return { view: 'restore', restored: restoreDraft(drafts, slugAt(ctx, 1)) };
+          return {
+            view: 'restore',
+            restored: await restoreIn(deps.studio, ctx.cwd, drafts, slugAt(ctx, 1)),
+          };
         case 'purge': {
           const slug = ctx.positionals[1];
           if (ctx.flags.all === (slug !== undefined)) {
@@ -148,7 +153,10 @@ export function createDraftCommand(deps: DraftDeps): Command {
           }
           return {
             view: 'purge',
-            purged: slug === undefined ? purgeAllDeleted(drafts) : purgeDeleted(drafts, slug),
+            purged:
+              slug === undefined
+                ? await purgeAllIn(deps.studio, ctx.cwd, drafts)
+                : await purgeIn(deps.studio, ctx.cwd, drafts, slug),
           };
         }
         default:

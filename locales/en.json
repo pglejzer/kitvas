@@ -1654,5 +1654,6 @@
   "error.STUDIO_NOT_RUNNING": "No studio runs for this project. Start it with \"kitvas studio\".",
   "error.NOTE_LIMIT": "A draft keeps at most {max} notes. Delete some first.",
   "error.DOCTOR_FAILED": "{count} checks failed. Run kitvas doctor --report for text to paste into an issue.",
-  "error.NOTE_NOT_FOUND": "Draft \"{slug}\" has no note \"{id}\"."
+  "error.NOTE_NOT_FOUND": "Draft \"{slug}\" has no note \"{id}\".",
+  "error.DRAFT_NOT_DELETED": "Draft \"{slug}\" is not in the trash. Run \"kitvas draft list --deleted\" to see the deleted drafts."
 }

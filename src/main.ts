@@ -305,7 +305,7 @@ export function main(argv: string[]): Promise<number> {
       scan,
       crop,
     }),
-    createDraftCommand(drafts),
+    createDraftCommand({ ...drafts, studio: { lifecycle: studio.lifecycle } }),
     createCraftCommand({ ...drafts, kitWriter, start: craftStart }),
     createReworkCommand({ ...drafts, start: reworkStart }),
     createLayoutCommand(drafts),

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import type { Browser } from '../../src/checks/index.ts';
-import { createDoctorCommand, runCli } from '../../src/cli/index.ts';
+import { createDoctorCommand, runCli, statusCommand } from '../../src/cli/index.ts';
 import { createNodeMachine } from '../../src/doctor/adapters/node-machine.ts';
 import type { CheckResult, Machine } from '../../src/doctor/index.ts';
 import { createProjectFiles } from '../../src/kit/adapters/project-files.ts';
@@ -108,6 +109,27 @@ test('no workspace is a warning, and the checks that need one are skipped', asyn
   const result = statuses(h.data().checks);
   assert.equal(result.workspace, 'warn');
   assert.equal(result.studio, 'skipped');
+});
+
+test('a config file that does not parse is reported by the workspace check, not a stop', async () => {
+  const h = harness(found);
+  writeFileSync(join(h.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"../x"}');
+  // The report is printed and the exit code says a check failed, not that the config is invalid.
+  assert.equal(await h.run('--json'), 60);
+  const result = statuses(h.data().checks);
+  assert.equal(result.workspace, 'fail');
+  assert.equal(result.kit, 'skipped');
+  assert.deepEqual(h.err, []);
+
+  // Any other command still ends with CONFIG_INVALID.
+  const other = await runCli(['status', '--json'], [statusCommand], {
+    out: () => undefined,
+    err: (text: string) => h.err.push(text),
+    cwd: h.cwd,
+    home: tempDir(),
+    localesDir: join(PLUGIN_ROOT, 'locales'),
+  });
+  assert.equal(other, 3);
 });
 
 test('--report adds the text to paste, with the project folder written out', async () => {
