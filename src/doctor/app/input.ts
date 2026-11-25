@@ -1,6 +1,6 @@
 // What the doctor is given: the facts of one project and the ports that read the machine.
 
-import type { Settings, Translate } from '../../shared/index.ts';
+import type { DecisionWarning, Settings, Translate } from '../../shared/index.ts';
 import type { Machine } from '../ports/machine.ts';
 
 export type KitFacts = {
@@ -42,6 +42,8 @@ export type DoctorInput = {
   settings(): Settings;
   /** Loads the project's kit; throws a kitvas error when it cannot. */
   kit(settings: Settings): KitFacts;
+  /** The project's decisions file (`.kitvas/decisions.md`) and the problems found reading it. */
+  decisions(): { exists: boolean; warnings: DecisionWarning[] };
   browser(): Promise<BrowserFacts>;
   studio(): Promise<StudioFacts>;
 };

@@ -14,7 +14,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { generatedEntry, parseKit } from '../../src/kit/index.ts';
-import { initWorkspace, PLUGIN_ROOT } from '../../src/shared/index.ts';
+import { decisionsTemplate, initWorkspace, PLUGIN_ROOT } from '../../src/shared/index.ts';
 import { tempDir } from './tmp.ts';
 
 export type FixtureName = 'acme-npm' | 'acme-repo' | 'acme-tailwind' | 'acme-written';
@@ -73,10 +73,7 @@ export function fixtureProject(name: FixtureName): FixtureProject {
   }
 
   const { path: workspace } = initWorkspace(dir);
-  writeFileSync(
-    join(workspace, 'config.json'),
-    `${JSON.stringify({ schemaVersion: 1, kit: kitId }, null, 2)}\n`,
-  );
+  writeFileSync(join(workspace, 'decisions.md'), decisionsTemplate(kitId));
   const kitDir = join(workspace, 'kits', kitId);
   cpSync(join(source, 'kit'), kitDir, { recursive: true });
   const kit = parseKit(JSON.parse(readFileSync(join(kitDir, 'kit.json'), 'utf8')), kitId);

@@ -18,6 +18,7 @@ import { KitvasError, loadSettings, type Translate } from '../../shared/index.ts
 import { columns } from '../output/columns.ts';
 import { type Command, type CommandContext, defineCommand } from '../registry.ts';
 import { deleteIn, purgeAllIn, purgeIn, restoreIn, type TrashStudio } from './draft-trash.ts';
+import { projectKitId } from './project-kit.ts';
 
 export type DraftDeps = {
   draftsAt(cwd: string): DraftStore;
@@ -115,7 +116,7 @@ export function createDraftCommand(deps: DraftDeps): Command {
       switch (sub) {
         case 'new': {
           const slug = slugAt(ctx, 1);
-          const kitId = loadSettings({ home: ctx.home, cwd: ctx.cwd }).kit;
+          const kitId = projectKitId(deps.kits, ctx);
           const { kit, hash } = requireKit(deps.kits, kitId);
           const draft = createDraft(drafts, {
             slug,

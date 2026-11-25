@@ -20,6 +20,7 @@ import {
   loadSettings,
   PLUGIN_ROOT,
   pluginVersion,
+  readProjectDecisions,
   type Translate,
   workspaceDir,
 } from '../../shared/index.ts';
@@ -66,16 +67,22 @@ async function probe(
     insidePlugin: insidePlugin(cwd),
     machine: deps.machine,
     settings: () => loadSettings({ home, cwd }),
+    decisions: () => {
+      const found = readProjectDecisions(cwd, deps.kits.list());
+      return { exists: found.exists, warnings: found.warnings };
+    },
     kit: (settings) => {
-      const loaded = loadKit(deps.kits, settings.kit);
+      // A kit the decisions file names that does not exist is that check's warning; `base` loads here.
+      const id = deps.kits.list().includes(settings.kit) ? settings.kit : 'base';
+      const loaded = loadKit(deps.kits, id);
       const found = detectKits({
         kits: deps.kits,
         files: deps.projectFiles(cwd),
         verifiedHash,
-        activeKit: settings.kit,
-      }).kits.find((kit) => kit.id === settings.kit);
+        activeKit: id,
+      }).kits.find((kit) => kit.id === id);
       return {
-        id: settings.kit,
+        id,
         version: loaded.kit.version,
         source: loaded.kit.source.type,
         issues: loaded.issues.length,

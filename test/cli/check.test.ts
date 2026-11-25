@@ -33,7 +33,7 @@ async function harness(browser?: Browser) {
     localesDir: join(PLUGIN_ROOT, 'locales'),
   };
   initWorkspace(io.cwd);
-  writeFileSync(join(io.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"tiny"}');
+  writeFileSync(join(io.cwd, '.kitvas', 'decisions.md'), '---\nkit: tiny\n---\n');
   const deps = {
     draftsAt: (cwd: string) => createFsDraftStore(join(workspaceDir(cwd), 'drafts')),
     kits: createFolderKitStore(FIXTURE_KITS),
@@ -47,7 +47,7 @@ async function harness(browser?: Browser) {
   await run('draft', 'new', 'shop', '--title', 'Shop');
   writeShopSections(draftDir);
   const data = (): CheckData => (JSON.parse(out.at(-1) ?? '') as { data: CheckData }).data;
-  return { out, err, run, draftDir, data };
+  return { out, err, run, draftDir, data, cwd: io.cwd };
 }
 
 test('a clean draft: nothing to fix, the browser checks are not run yet', async () => {
@@ -229,6 +229,23 @@ test('--deep visits the deep widths too, writes deep: true and says so', async (
   assert.equal(savedDeep(h.draftDir), undefined);
   assert.ok(!(h.out.at(-1) ?? '').includes('Deep check'));
   assert.equal(fake.visits.filter((visit) => visit.width === 1440).length, 2);
+});
+
+test('check: deep in the decisions file makes the check deep; an option or the default decides otherwise', async () => {
+  const fake = fakeBrowser();
+  const h = await harness(fake.browser);
+  assert.equal(await h.run('check', 'shop'), 0);
+  assert.equal(savedDeep(h.draftDir), undefined);
+  writeFileSync(join(h.cwd, '.kitvas', 'decisions.md'), '---\nkit: tiny\ncheck: deep\n---\n');
+  assert.equal(await h.run('check', 'shop'), 0);
+  assert.equal(savedDeep(h.draftDir), true);
+  assert.equal(await h.run('check', 'shop', '--deep', '--json'), 0);
+  assert.equal(h.data().deep, true);
+  writeFileSync(join(h.cwd, '.kitvas', 'decisions.md'), '---\nkit: tiny\ncheck: normal\n---\n');
+  assert.equal(await h.run('check', 'shop'), 0);
+  assert.equal(savedDeep(h.draftDir), undefined);
+  assert.equal(await h.run('check', 'shop', '--deep'), 0);
+  assert.equal(savedDeep(h.draftDir), true);
 });
 
 test('--deep without a browser runs nothing deep and does not say so', async () => {

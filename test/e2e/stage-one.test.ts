@@ -115,7 +115,7 @@ const HTML = /^text\/html/;
 async function initProject(box: Sandbox): Promise<void> {
   const init = await kitvas<{ path: string; created: boolean }>(box, ['init'], QUICK_MS);
   assert.equal(init.created, true);
-  assert.ok(existsSync(join(init.path, 'config.json')), init.path);
+  assert.ok(existsSync(join(init.path, 'decisions.md')), init.path);
   const status = await kitvas<Status>(box, ['status'], QUICK_MS);
   assert.equal(status.kit, 'base');
   assert.equal(status.workspace.exists, true);

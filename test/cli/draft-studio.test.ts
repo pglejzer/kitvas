@@ -41,7 +41,7 @@ function harness(running: boolean, call: TrashCaller) {
     localesDir: join(PLUGIN_ROOT, 'locales'),
   };
   initWorkspace(io.cwd);
-  writeFileSync(join(io.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"tiny"}');
+  writeFileSync(join(io.cwd, '.kitvas', 'decisions.md'), '---\nkit: tiny\n---\n');
   const lifecycle = fakeLifecycle(running ? { running: SAMPLE_STATE } : {});
   const base = {
     draftsAt: (cwd: string) => createFsDraftStore(join(workspaceDir(cwd), 'drafts')),

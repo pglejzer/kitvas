@@ -47,6 +47,7 @@ import {
 import { columns } from '../output/columns.ts';
 import { type Command, type CommandContext, defineCommand } from '../registry.ts';
 import type { RenderTools } from './build.ts';
+import { projectKitId } from './project-kit.ts';
 
 type IssueLine = { path: string; message: string };
 
@@ -272,7 +273,7 @@ export type KitDeps = {
 
 export function createKitCommand(deps: KitDeps): Command {
   const idAt = (ctx: CommandContext, index: number): string =>
-    ctx.positionals[index] ?? loadSettings({ home: ctx.home, cwd: ctx.cwd }).kit;
+    ctx.positionals[index] ?? projectKitId(deps.kits, ctx);
   const requiredId = (ctx: CommandContext, command: string): string => {
     const id = ctx.positionals[1];
     if (!id) throw new KitvasError('USAGE', { detail: ctx.t('kits.usage.id', { command }) });
@@ -394,7 +395,6 @@ export function createKitCommand(deps: KitDeps): Command {
           return { view: 'use', id };
         }
         case 'detect': {
-          const settings = loadSettings({ home: ctx.home, cwd: ctx.cwd });
           const verifiedHash = (id: string): string | undefined => {
             try {
               const text = readFileSync(join(catalogDir(ctx.cwd, id), VERIFY_FILE), 'utf8');
@@ -409,7 +409,7 @@ export function createKitCommand(deps: KitDeps): Command {
               kits: deps.kits,
               files: deps.projectFiles(ctx.cwd),
               verifiedHash,
-              activeKit: settings.kit,
+              activeKit: projectKitId(deps.kits, ctx),
             }),
           };
         }

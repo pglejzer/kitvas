@@ -17,9 +17,10 @@ import {
   type KitStore,
   type KitWriter,
 } from '../../kit/index.ts';
-import { KitvasError, loadSettings, type Translate } from '../../shared/index.ts';
+import { KitvasError, type Translate } from '../../shared/index.ts';
 import { type Command, type CommandContext, defineCommand } from '../registry.ts';
 import { openDrafts, slugAt } from './draft.ts';
+import { projectKitId } from './project-kit.ts';
 
 export type CraftCommandDeps = {
   draftsAt(cwd: string): DraftStore;
@@ -69,13 +70,12 @@ export function createCraftCommand(deps: CraftCommandDeps): Command {
           if (subject === undefined || !isSubject(subject)) throw usage(ctx, 'craft.usage.subject');
           if (name === undefined) throw usage(ctx, 'craft.usage.name');
           if (description === undefined) throw usage(ctx, 'craft.usage.description');
-          const settings = loadSettings({ home: ctx.home, cwd: ctx.cwd });
           const result = await deps.start(
             ctx.cwd,
             {
               slug,
               title: ctx.flags.title ?? name,
-              kit: ctx.flags.kit ?? settings.kit,
+              kit: ctx.flags.kit ?? projectKitId(deps.kits, ctx),
               subject,
               name,
               description,

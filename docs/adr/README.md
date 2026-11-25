@@ -36,7 +36,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0027](0027-page-access.md) | Pages open only from a one-time link | 2026-11-22 | accepted (owner decision after `docs/security.md`) |
 | [0028](0028-inbox-take-is-a-write.md) | Taking notes from the inbox is a POST | 2026-11-22 | accepted |
 | [0029](0029-kit-catalog.md) | Rendered examples on the kit page | 2026-11-23 | accepted |
-| [0030](0030-project-kits.md) | Project kits and the `npm` and `repo` sources | 2026-11-23 | accepted |
+| [0030](0030-project-kits.md) | Project kits and the `npm` and `repo` sources | 2026-11-23 | accepted, changed in part by ADR 0076 |
 | [0031](0031-agent-written-kits-verified.md) | Agent-written kits, verified by kitvas | 2026-11-23 | accepted |
 | [0032](0032-packages-and-react-from-project.md) | Packages and React from the project | 2026-11-23 | accepted |
 | [0033](0033-component-styles-in-the-bundle.md) | Component styles in the bundle | 2026-11-23 | accepted |
@@ -82,3 +82,4 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0073](0073-wide-screens-in-deep-checks.md) | Wide screens in the deep checks | 2026-11-25 | accepted, changed in part by ADR 0074 |
 | [0074](0074-tablet-width-in-every-check.md) | The tablet width in every check | 2026-11-25 | accepted |
 | [0075](0075-insert-pane-previews.md) | Previews in the Insert pane are screenshots made once per kit change | 2026-11-25 | accepted |
+| [0076](0076-project-decisions-file.md) | A decisions file with front matter replaces the project's config.json | 2026-11-25 | accepted |

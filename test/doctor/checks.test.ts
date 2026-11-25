@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { checkData, probeFolder } from '../../src/doctor/app/checks/data.ts';
-import { checkBrowser, checkKit, checkWorkspace } from '../../src/doctor/app/checks/project.ts';
+import {
+  checkBrowser,
+  checkDecisions,
+  checkKit,
+  checkWorkspace,
+} from '../../src/doctor/app/checks/project.ts';
 import { checkDeps, checkNode, checkPlugin } from '../../src/doctor/app/checks/runtime.ts';
 import { checkPorts, checkStudio } from '../../src/doctor/app/checks/studio.ts';
 import { CHECK_IDS, runDoctor } from '../../src/doctor/index.ts';
@@ -96,6 +101,33 @@ test('kit: ok, stale, issues, a load failure and no settings', () => {
   const lost = checkKit(missing, SETTINGS);
   assert.equal(lost.status, 'fail');
   assert.equal(lost.code, 'KIT_NOT_FOUND');
+});
+
+test('decisions: clean passes, warnings warn with the fix, no workspace skips', () => {
+  assert.equal(checkDecisions(healthy().input, true).status, 'ok');
+  assert.equal(checkDecisions(healthy().input, false).status, 'skipped');
+
+  const none = healthy({ decisions: () => ({ exists: false, warnings: [] }) }).input;
+  assert.equal(checkDecisions(none, true).status, 'ok');
+
+  const bad = healthy({
+    decisions: () => ({
+      exists: true,
+      warnings: [{ code: 'badValue', line: 3, params: { key: 'check', value: 'x' } }],
+    }),
+  }).input;
+  const warned = checkDecisions(bad, true);
+  assert.equal(warned.status, 'warn');
+  assert.match(warned.detail, /"count":1/);
+  assert.match(warned.fix ?? '', /doctor\.decisions\.fix\b(?!Kit)/);
+
+  const lost = healthy({
+    decisions: () => ({
+      exists: true,
+      warnings: [{ code: 'kitMissing', line: 2, params: { id: 'gone' } }],
+    }),
+  }).input;
+  assert.match(checkDecisions(lost, true).fix ?? '', /doctor\.decisions\.fixKit/);
 });
 
 test('browser: found passes, missing warns', async () => {
@@ -235,5 +267,6 @@ test('runDoctor: a broken config skips the checks that need it', async () => {
   const byId = Object.fromEntries(results.map((result) => [result.id, result.status]));
   assert.equal(byId.workspace, 'fail');
   assert.equal(byId.kit, 'skipped');
+  assert.equal(byId.decisions, 'skipped');
   assert.equal(byId.studio, 'skipped');
 });

@@ -2,7 +2,13 @@
 
 import { type CheckId, type CheckResult, codeOf, fail } from '../domain/check.ts';
 import { checkData } from './checks/data.ts';
-import { checkBrowser, checkKit, checkWorkspace, type WorkspaceCheck } from './checks/project.ts';
+import {
+  checkBrowser,
+  checkDecisions,
+  checkKit,
+  checkWorkspace,
+  type WorkspaceCheck,
+} from './checks/project.ts';
 import { checkDeps, checkNode, checkPlugin } from './checks/runtime.ts';
 import { checkPorts, checkStudio } from './checks/studio.ts';
 import type { DoctorInput } from './input.ts';
@@ -40,6 +46,7 @@ export async function runDoctor(input: DoctorInput): Promise<CheckResult[]> {
     await guarded(input, 'plugin', () => checkPlugin(input)),
     workspace.result,
     await guarded(input, 'kit', () => checkKit(input, settings)),
+    await guarded(input, 'decisions', () => checkDecisions(input, hasWorkspace)),
     await guarded(input, 'browser', () => checkBrowser(input)),
     await guarded(input, 'data', () => checkData(input, hasWorkspace)),
     await guarded(input, 'ports', () => checkPorts(input)),

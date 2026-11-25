@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { initCommand, runCli } from '../../src/cli/index.ts';
-import { PLUGIN_ROOT } from '../../src/shared/index.ts';
+import { decisionsTemplate, PLUGIN_ROOT } from '../../src/shared/index.ts';
 import { tempDir } from '../helpers/tmp.ts';
 
 function harness(cwd: string) {
@@ -39,4 +39,18 @@ test('init works in a project folder', async () => {
   const h = harness(cwd);
   assert.equal(await h.run('init', '--json'), 0);
   assert.equal(existsSync(join(cwd, '.kitvas')), true);
+});
+
+test('init makes the decisions file from the template and a second run keeps it', async () => {
+  const cwd = tempDir();
+  const h = harness(cwd);
+  assert.equal(await h.run('init', '--json'), 0);
+  const file = join(cwd, '.kitvas', 'decisions.md');
+  assert.equal(readFileSync(file, 'utf8'), decisionsTemplate());
+  assert.equal(existsSync(join(cwd, '.kitvas', 'config.json')), false);
+  writeFileSync(file, '---\nkit: mine\n---\n');
+  assert.equal(await h.run('init', '--json'), 0);
+  assert.equal(readFileSync(file, 'utf8'), '---\nkit: mine\n---\n');
+  const second = JSON.parse(h.out.at(-1) ?? '') as { data: { created: boolean } };
+  assert.equal(second.data.created, false);
 });

@@ -1,5 +1,6 @@
-// Settings: the user's language, studio idle time and view of the studio, and the project's kit,
-// each from its own config.json. The project's kit (`kit use`) and the user's view (the studio's
+// Settings: the user's language, studio idle time and view of the studio from `~/.kitvas/config.json`,
+// and the project's kit, copy language and check depth from the front matter of
+// `.kitvas/decisions.md` (ADR 0076). The project's kit (`kit use`) and the user's view (the studio's
 // View popover) are also written here.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -7,6 +8,13 @@ import { join } from 'node:path';
 import { type Zod, z } from '../deps/zod.ts';
 import { userDir, workspaceDir } from '../env/paths.ts';
 import { KitvasError } from '../errors/errors.ts';
+import { type CheckDepth, isValidSetting, parseDecisions, withSetting } from './decisions.ts';
+import {
+  decisionsPath,
+  effectiveSettings,
+  readDecisionsText,
+  updateDecisions,
+} from './project-file.ts';
 
 /** A studio nobody uses stops after 4 hours unless the user says otherwise (ADR 0042). */
 export const STUDIO_IDLE_MINUTES = 240;
@@ -50,19 +58,14 @@ export const UserConfigSchema = z.strictObject({
 
 export type UserConfig = Zod.infer<typeof UserConfigSchema>;
 
-export const ProjectConfigSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  kit: z
-    .string()
-    .regex(/^[a-z0-9][a-z0-9-]{0,62}$/)
-    .default('base'),
-});
-
-export type ProjectConfig = Zod.infer<typeof ProjectConfigSchema>;
-
 export type Settings = {
   language: string;
+  /** The project's kit as `.kitvas/decisions.md` names it, `base` when it says none. */
   kit: string;
+  /** The language of the copy in drafts; null when the project's decisions say none. */
+  copy: string | null;
+  /** How deep `kitvas check` goes when `--deep` is not given. */
+  check: CheckDepth;
   /** Minutes without use before the studio stops by itself; 0 never stops it. */
   studioIdleMinutes: number;
   workspace: { path: string; exists: boolean };
@@ -96,7 +99,6 @@ function readConfig<T>(file: string, schema: Zod.ZodType<T>, fallback: T): T {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const DEFAULT_PROJECT: ProjectConfig = { schemaVersion: 1, kit: 'base' };
 const DEFAULT_USER: UserConfig = {
   schemaVersion: 1,
   language: 'en',
@@ -106,26 +108,29 @@ const DEFAULT_USER: UserConfig = {
 export function loadSettings({ home, cwd }: { home: string; cwd: string }): Settings {
   const user = readConfig(join(userDir(home), 'config.json'), UserConfigSchema, DEFAULT_USER);
   const workspace = workspaceDir(cwd);
-  const project = readConfig(join(workspace, 'config.json'), ProjectConfigSchema, DEFAULT_PROJECT);
+  const { settings } = effectiveSettings(parseDecisions(readDecisionsText(cwd) ?? ''));
   return {
     language: user.language,
-    kit: project.kit,
+    kit: settings.kit,
+    copy: settings.copy,
+    check: settings.check,
     studioIdleMinutes: user.studioIdleMinutes,
     workspace: { path: workspace, exists: existsSync(workspace) },
   };
 }
 
 /**
- * Sets the project's kit in `.kitvas/config.json`, keeping the rest of the file. The caller checks
- * that the kit exists; a config that is broken already, or an id that is not one, is CONFIG_INVALID.
+ * Sets `kit:` in the front matter of `.kitvas/decisions.md`, keeping every other byte of the file.
+ * The caller checks that the kit exists; an id that is not one is CONFIG_INVALID.
  */
 export function saveProjectKit(cwd: string, id: string): void {
-  const workspace = workspaceDir(cwd);
-  const file = join(workspace, 'config.json');
-  const current = readConfig(file, ProjectConfigSchema, DEFAULT_PROJECT);
-  const next = parseConfig(file, ProjectConfigSchema, { ...current, kit: id });
-  mkdirSync(workspace, { recursive: true });
-  writeFileSync(file, `${JSON.stringify(next, null, 2)}\n`);
+  if (!isValidSetting('kit', id)) {
+    throw new KitvasError('CONFIG_INVALID', {
+      file: decisionsPath(cwd),
+      detail: `kit: "${id}" is not a kit id`,
+    });
+  }
+  updateDecisions(cwd, (text) => withSetting(text, 'kit', id));
 }
 
 /** Reads and writes the user's view of the studio; the studio's pages and its API use it. */

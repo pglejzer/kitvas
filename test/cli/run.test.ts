@@ -52,7 +52,7 @@ test('init creates the workspace once', async () => {
   const h = harness();
   assert.equal(await h.run('init', '--json'), 0);
   assert.equal((JSON.parse(h.out[0] ?? '') as { data: { created: boolean } }).data.created, true);
-  assert.ok(existsSync(join(h.io.cwd, '.kitvas', 'config.json')));
+  assert.ok(existsSync(join(h.io.cwd, '.kitvas', 'decisions.md')));
   await h.run('init');
   assert.match(h.out[1] ?? '', /already exists/);
 });
@@ -81,8 +81,8 @@ test('no command prints usage and exits 2; --help exits 0', async () => {
 
 test('broken settings give CONFIG_INVALID and exit code 3', async () => {
   const h = harness();
-  mkdirSync(join(h.io.cwd, '.kitvas'));
-  writeFileSync(join(h.io.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"../x"}');
+  mkdirSync(join(h.io.home, '.kitvas'), { recursive: true });
+  writeFileSync(join(h.io.home, '.kitvas', 'config.json'), '{"schemaVersion":1,"extra":true}');
   assert.equal(await h.run('status', '--json'), 3);
   assert.equal(
     (JSON.parse(h.err[0] ?? '') as { error: { code: string } }).error.code,

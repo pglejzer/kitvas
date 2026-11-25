@@ -9,6 +9,7 @@ import {
   runChecks,
   type TypeChecker,
 } from '../../checks/index.ts';
+import { loadSettings } from '../../shared/index.ts';
 import { type Command, defineCommand } from '../registry.ts';
 import type { BuildDeps } from './build.ts';
 import { openDrafts, slugAt } from './draft.ts';
@@ -35,7 +36,10 @@ export function createCheckCommand(deps: CheckCommandDeps): Command {
         const render = { drafts, kits: deps.kits, ...tools };
         const browser = deps.browser?.();
         const options = { render, types: deps.types(), t: ctx.t, ...(browser ? { browser } : {}) };
-        return await runChecks(options, slug, { deep: ctx.flags.deep });
+        // An option beats the project's decisions (`check: deep`), which beat the default.
+        const deep =
+          ctx.flags.deep || loadSettings({ home: ctx.home, cwd: ctx.cwd }).check === 'deep';
+        return await runChecks(options, slug, { deep });
       } finally {
         await tools.bundler.dispose();
         await tools.styles.dispose();

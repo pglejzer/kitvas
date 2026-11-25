@@ -33,7 +33,7 @@ On `"ok":false` show `error.message` to the user and stop. Exit code 5 means Nod
 
 ## 2. Workspace
 
-If `workspace.exists` is false, ask the user whether to create it in this folder. On yes run `KITVAS init --json`.
+If `workspace.exists` is false, ask the user whether to create it in this folder. On yes run `KITVAS init --json`. It also makes `.kitvas/decisions.md`, the file where the project's choices live (kit, copy language, check depth, layout habits); the person may edit it and commit it.
 
 ## 3. When something does not work
 
@@ -45,4 +45,4 @@ Delete a draft only when the user asks for it: `KITVAS draft delete <slug> --jso
 
 ## 5. Report
 
-Tell the user in their language: the kitvas version, the kit in use, and where the workspace is.
+Tell the user in their language: the kitvas version, the kit in use (from `.kitvas/decisions.md`), where the workspace is, and that `.kitvas/decisions.md` is where the project's choices live.

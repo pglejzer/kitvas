@@ -86,7 +86,7 @@ function harness(lifecycle: LifecycleDeps, call: StudioCaller = STUDIO.call, wor
   };
   if (workspace) {
     initWorkspace(io.cwd);
-    writeFileSync(join(io.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"tiny"}');
+    writeFileSync(join(io.cwd, '.kitvas', 'decisions.md'), '---\nkit: tiny\n---\n');
   }
   const commands = [createRequestCommand({ lifecycle: () => lifecycle, call })];
   const run = (...argv: string[]) => runCli(argv, commands, io);

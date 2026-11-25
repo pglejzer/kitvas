@@ -28,7 +28,7 @@ function harness(options: { workspace?: boolean } = {}) {
   };
   if (options.workspace !== false) {
     initWorkspace(io.cwd);
-    writeFileSync(join(io.cwd, '.kitvas', 'config.json'), '{"schemaVersion":1,"kit":"tiny"}');
+    writeFileSync(join(io.cwd, '.kitvas', 'decisions.md'), '---\nkit: tiny\n---\n');
   }
   const deps = {
     draftsAt: (cwd: string) => createFsDraftStore(join(workspaceDir(cwd), 'drafts')),
