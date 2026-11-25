@@ -4,9 +4,9 @@ import { readFileSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { type DraftStore, versionFolder } from '../../drafts/index.ts';
-import { KitvasError, type Translate } from '../../shared/index.ts';
+import { catalogDir, KitvasError, type Translate } from '../../shared/index.ts';
 import { catalogBuildDir } from '../frame/catalog-files.ts';
-import { frameFile } from '../frame/frame-files.ts';
+import { frameFile, SERVED_PREVIEWS, type Served } from '../frame/frame-files.ts';
 import { type FrameAddress, parseFrameAddress } from '../frame/frame-url.ts';
 import { problemReply, RequestError } from '../http/problem.ts';
 import { send } from '../http/reply.ts';
@@ -31,12 +31,23 @@ export type FrameContext = {
   denied: DeniedLog | undefined;
 };
 
-/** The `build/` folder an address names; a catalog address without a project has none. */
-function buildDirOf(ctx: FrameContext, found: FrameAddress): string | undefined {
+/** The folder an address's files are below; a catalog address without a project has none. */
+type Root = { dir: string; served?: Served };
+
+/**
+ * A draft version's `build/`, a kit catalog's `build/`, or for `previews/…` the kit's catalog
+ * folder itself, where the Insert pane's previews sit beside `build/` (ADR 0075).
+ */
+function rootOf(ctx: FrameContext, found: FrameAddress): Root | undefined {
   if (found.kind === 'draft') {
-    return join(ctx.drafts.dir(found.slug), versionFolder(found.version), 'build');
+    return { dir: join(ctx.drafts.dir(found.slug), versionFolder(found.version), 'build') };
   }
-  return ctx.project === undefined ? undefined : catalogBuildDir(ctx.project, found.kitId);
+  if (ctx.project === undefined) return undefined;
+  const [folder] = found.relPath.split('/');
+  if (folder !== undefined && SERVED_PREVIEWS.dirs.includes(folder)) {
+    return { dir: catalogDir(ctx.project, found.kitId), served: SERVED_PREVIEWS };
+  }
+  return { dir: catalogBuildDir(ctx.project, found.kitId) };
 }
 
 function serve(
@@ -63,8 +74,8 @@ function serve(
   const found = segments && parseFrameAddress(segments);
   if (!found) throw new RequestError('ROUTE_NOT_FOUND', { path: '/' });
   // A wrong key answers the same as a missing file.
-  const buildDir = secretMatches(found.key, ctx.key) ? buildDirOf(ctx, found) : undefined;
-  const file = buildDir === undefined ? undefined : frameFile(buildDir, found.relPath);
+  const root = secretMatches(found.key, ctx.key) ? rootOf(ctx, found) : undefined;
+  const file = root === undefined ? undefined : frameFile(root.dir, found.relPath, root.served);
   if (!file) throw new RequestError('ROUTE_NOT_FOUND', { path: found.relPath });
   // Stage 4c (ADR 0055): the frame reads its own stylesheets' rules to make the forced-state twins.
   // Its opaque origin makes that a cross-origin read, so a sheet allows it; the key still guards it.

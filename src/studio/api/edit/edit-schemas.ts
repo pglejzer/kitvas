@@ -6,6 +6,7 @@
 // `refused`. Malformed requests, a missing draft or a stale version are errors as elsewhere.
 
 import {
+  CLASS_NAME,
   EditOpSchema,
   ElementIdSchema,
   HASH,
@@ -90,11 +91,19 @@ const PathSchema = z.array(z.number().int().min(0).max(10_000)).max(MAX_LIST_DEP
 /**
  * The query of `GET /api/v1/drafts/{slug}/inspect?id=<element id>&path=0,2`. `path` (ADR 0065):
  * the rendered copy the answer's `list` is read for; left out, the list is read for no one copy.
+ * `scope=item` (ADR 0072): the answer is read for that copy's own class, so it needs `path`.
  */
-export const InspectQuerySchema = z.strictObject({
-  id: ElementIdSchema,
-  path: PathSchema.optional(),
-});
+export const InspectQuerySchema = z
+  .strictObject({
+    id: ElementIdSchema,
+    path: PathSchema.optional(),
+    scope: z.literal('item').optional(),
+  })
+  .superRefine((query, issues) => {
+    if (query.scope !== undefined && query.path === undefined) {
+      issues.addIssue({ code: 'custom', path: ['path'], message: 'scope=item needs a path' });
+    }
+  });
 
 /**
  * The query of `GET /api/v1/drafts/{slug}/text-source?id=…&text=…&path=0,2` (ADR 0060): the
@@ -176,6 +185,18 @@ export const InspectSchema = z.strictObject({
   /** The 1-based line of the element's `<` in `file`, for the panel's header (plan 15). */
   line: z.number().int().min(1).optional(),
   /**
+   * Plan 18f (spec S4.6, the Source strip): the opening tag as one line (white space joined, at
+   * most 200 characters), and the file and 1-based line where the element's class rule starts;
+   * `null` for both when it has no rule. Optional so an answer of an older studio still reads.
+   */
+  source: z
+    .strictObject({
+      tag: z.string().max(200),
+      ruleFile: SourcePath.nullable(),
+      ruleLine: z.number().int().min(1).nullable(),
+    })
+    .optional(),
+  /**
    * The image files of the version's `src/img`, sorted: what a background image may name as
    * `url(../img/<file>)` (plan 15). Optional so an answer of an older studio still reads.
    */
@@ -231,6 +252,26 @@ export const InspectSchema = z.strictObject({
    */
   expression: z
     .strictObject({ roots: z.array(ElementIdSchema).max(MAX_LIST_DEPTH).nullable() })
+    .nullable()
+    .optional(),
+  /**
+   * ADR 0072, asked with `scope=item` and a copy's `path`: the item's own class
+   * (`plans__card--pro`) this answer is read for. `styleClass` is that class (`exists: true`),
+   * `scss` and `overrides` are its rules (`rule: false` when it has none yet), and each of
+   * `styles` is the item rule's where it sets the property, else the value every item shares,
+   * with its class and without `via`. `inTsx`: the element's `className` gives the modifier
+   * already; when not, a style edit starts with `addItemClass`. `refused`: why the item can have
+   * no class of its own. `null`: not asked.
+   */
+  itemScope: z
+    .union([
+      z.strictObject({
+        className: z.string().regex(CLASS_NAME),
+        inTsx: z.boolean(),
+        path: PathSchema,
+      }),
+      z.strictObject({ refused: z.enum(REFUSALS) }),
+    ])
     .nullable()
     .optional(),
   /**

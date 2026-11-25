@@ -128,20 +128,23 @@ export const SKIN_EDITOR_STAGE = `
 .side-screen[data-resizing] .card-handle::after { background: var(--st-color-accent); }
 .card-handle:focus-visible { outline: none; }
 
-/* The pills at the top right: width, cards and state; they wrap to the right, leaving the top
-   left free. */
+/* The pills at the top right, one row: the state, then the width with More. The top left stays
+   free; a long state name is cut, never the row wrapped. */
 .pill-row {
   position: absolute;
   top: var(--st-space-12);
   right: var(--st-space-12);
   z-index: 3;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: var(--st-space-6);
   max-width: calc(100% - 200px);
 }
+.pill-row > .k-pill { min-width: 0; }
+.pill-state { min-width: 0; }
+.pill-state > summary { max-width: 160px; }
+.pill-state-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pill-group { display: flex; align-items: center; gap: var(--st-space-2); }
 .pill-opt:hover, .pill-opt[aria-current] {
   background: var(--st-color-raised-strong);
@@ -149,23 +152,46 @@ export const SKIN_EDITOR_STAGE = `
 }
 .pill-opt[aria-current] { font-weight: var(--st-font-weight-bold); }
 .pill-num { color: var(--st-color-ink-mid); font-weight: var(--st-font-weight-regular); }
-.pill-cap {
-  padding: 0 var(--st-space-4) 0 var(--st-space-8);
-  color: var(--st-color-ink-mid);
-  font-size: var(--st-font-size-sm);
-}
 .pill-field {
   display: inline-flex;
   align-items: center;
   gap: var(--st-space-4);
   margin: 0;
-  padding-right: var(--st-space-8);
+  padding: var(--st-space-2) var(--st-space-8);
   color: var(--st-color-ink-mid);
   font-size: var(--st-font-size-sm);
 }
 .pill-number { width: 72px; text-align: right; }
 /* At a width that is not a preset the checks' marks are hidden: a mark at the pill's end. */
 .pill-mark, .pill-mark:hover { color: var(--st-color-review); }
+
+/* The menus of the pills, the state and More, open downwards from their button: sections of rows,
+   a hairline between sections, a label above each. A 1px tick after a width: the kit has a
+   breakpoint there. Both menus scroll when the canvas is short. */
+.pill-more > summary, .pill-state > summary { gap: var(--st-space-4); }
+.pill-sizes {
+  position: absolute;
+  top: calc(100% + var(--st-space-8));
+  right: 0;
+  z-index: 5;
+  display: grid;
+  gap: var(--st-space-2);
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+}
+.pill-menu:not([open]) > .pill-sizes { animation: none; }
+.pill-block, .pill-set { display: grid; }
+.pill-block + .pill-block, .pill-more > .pill-sizes > * + * {
+  margin-top: var(--st-space-4);
+  padding-top: var(--st-space-4);
+  border-top: 1px solid var(--st-color-line);
+}
+.pill-head { margin: 0; padding: var(--st-space-4) var(--st-space-8) var(--st-space-2); }
+.pill-count { display: flex; gap: var(--st-space-2); padding: 0 var(--st-space-4); }
+.pill-count > .pill-opt { flex: 1; justify-content: center; }
+.pill-states .k-icon { margin-left: auto; color: var(--st-color-accent); }
+.pill-width { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--st-space-6); }
+.pill-tick { width: 1px; height: var(--st-space-12); background: var(--st-color-ink-mid); }
 
 /* The zoom pill at the bottom right: −, the percent, +, and the menu that opens upwards. */
 .pill-zoom { position: absolute; right: var(--st-space-12); bottom: var(--st-space-12); z-index: 3; }

@@ -6,11 +6,23 @@ import type { EditOp } from '../../../../src/edit/index.ts';
 import type { TreeNode } from '../../../channel/edit-protocol.ts';
 import { icon } from '../../ui/icon.ts';
 import type { EditorContext } from '../context.ts';
+import { modeStorage } from '../select/mode-memory.ts';
 import { filterTree, nextSelection } from '../select/selection.ts';
 import type { EditorState } from '../store.ts';
 import { type ListKind, listOf } from '../structure/lists.ts';
 import { text } from '../texts.ts';
 import { changedIds, type Listed, listKindOf, nestTree } from './facts.ts';
+import {
+  type Choices,
+  isOpen,
+  readFolds,
+  revealSelection,
+  setOpen,
+  setSubtree,
+  treeKey,
+  writeFolds,
+} from './folds.ts';
+import type { NamedEntry } from './names.ts';
 import { layerRow, type RowEnv, type Section } from './row.ts';
 import { isNoop, type Row, sectionDrop, treeDrop, type Zone, zoneOf } from './tree-drag.ts';
 
@@ -27,6 +39,8 @@ export {
 
 /** The pointer must move this far (page pixels) before a press on a row becomes a drag. */
 const DRAG_THRESHOLD = 4;
+/** A drag held this long (ms) over a folded row opens it, so a drop inside it stays possible. */
+const SPRING_OPEN_MS = 600;
 
 /**
  * The ops of dropping `ids` (in document order) at one place: each element goes to the same place,
@@ -59,6 +73,12 @@ function toggled(current: readonly string[], id: string): string[] {
   return current.includes(id) ? current.filter((one) => one !== id) : [...current, id];
 }
 
+/** Whether a selected element is not in the tree (yet). */
+function notInTree(tree: readonly TreeNode[], selection: readonly string[]): boolean {
+  const known = new Set(tree.map((node) => node.id));
+  return selection.some((id) => !known.has(id));
+}
+
 export function mountLayers(ctx: EditorContext): void {
   const { store, bridge, panel, history } = ctx;
   const section = panel.querySelector('[data-edit="layers"]');
@@ -71,6 +91,14 @@ export function mountLayers(ctx: EditorContext): void {
   const kinds = new Map<string, ListKind>();
   // A drag ends with a click on the row it started on; that click must not select.
   let swallowClick = false;
+  // The person's fold and open choices, kept for the tab per draft.
+  const storage = modeStorage();
+  let choices: Choices = readFolds(storage, ctx.slug);
+  /** A selected element the tree does not hold yet: its ancestors open when the tree arrives. */
+  let revealPending = false;
+  /** The folded row a drag hovers, and the timer that opens it. */
+  let spring: { id: string; timer: ReturnType<typeof setTimeout> } | null = null;
+  let lastMove: PointerEvent | null = null;
 
   const head = document.createElement('div');
   head.className = 'k-pad layers-head';
@@ -121,6 +149,12 @@ export function mountLayers(ctx: EditorContext): void {
       components: new Map(
         (state.structure?.elements ?? []).map((entry) => [entry.id, entry.component]),
       ),
+      named: new Map(
+        (state.structure?.elements ?? []).map((entry): [string, NamedEntry] => [
+          entry.id,
+          { component: entry.component, tag: entry.tag },
+        ]),
+      ),
       changed: changedIds(state.changes),
       kindOf: (id) => listKindOf(listed.get(id), kinds, id),
       swallowClick: () => swallowClick,
@@ -143,7 +177,25 @@ export function mountLayers(ctx: EditorContext): void {
         store.set({ locked: next });
         bridge.send({ type: 'lock', ids: next });
       },
+      open: (id, level) => isOpen(id, level, choices, searching()),
+      searching: searching(),
+      toggle(item, level, whole) {
+        if (searching()) return;
+        const open = !isOpen(item.node.id, level, choices, false);
+        choose(whole ? setSubtree(item, open, choices) : setOpen(item.node.id, open, choices));
+      },
     };
+  }
+
+  const searching = (): boolean => query.trim() !== '';
+
+  /** Keeps `next` as the choices (and in storage) and draws again; `false` when nothing changed. */
+  function choose(next: Choices): boolean {
+    if (next === choices) return false;
+    choices = next;
+    writeFolds(storage, ctx.slug, choices);
+    render();
+    return true;
   }
 
   function render(): void {
@@ -151,8 +203,9 @@ export function mountLayers(ctx: EditorContext): void {
     const nodes: TreeNode[] = filterTree(state.tree, query);
     // Rebuilding the list must not drop the keyboard focus from the row the person used.
     const active = document.activeElement;
-    const focused =
-      active instanceof HTMLElement && list.contains(active) ? active.dataset.layer : null;
+    const inList = active instanceof HTMLElement && list.contains(active) ? active : null;
+    const focused = inList?.dataset.layer ?? null;
+    const focusedTwist = inList?.dataset.twist ?? null;
     list.replaceChildren();
     if (nodes.length === 0) {
       const empty = document.createElement('li');
@@ -175,6 +228,52 @@ export function mountLayers(ctx: EditorContext): void {
         if (button.dataset.layer === focused) button.focus();
       }
     }
+    if (focusedTwist !== null) {
+      for (const button of list.querySelectorAll<HTMLElement>('.layers-twist')) {
+        if (button.dataset.twist === focusedTwist) button.focus();
+      }
+    }
+  }
+
+  /** Brings the first selected row into view; only after the selection changed. */
+  function scrollToSelection(): void {
+    list.querySelector('li[aria-selected="true"] > .layers-line')?.scrollIntoView({
+      block: 'nearest',
+    });
+  }
+
+  /** Opens the ancestors of the selection; draws again when that changed the choices. */
+  function reveal(): void {
+    const { tree, selection } = store.get();
+    revealPending = notInTree(tree, selection);
+    const next = revealSelection(tree, selection, choices);
+    if (!choose(next)) render();
+    scrollToSelection();
+  }
+
+  function stopSpring(): void {
+    if (spring) clearTimeout(spring.timer);
+    spring = null;
+  }
+
+  /** A drag over a folded row with children opens it after a short hold (not while searching). */
+  function springOpen(el: HTMLElement | null): void {
+    const li = el?.closest('li');
+    const id = el?.dataset.layer;
+    const folded = li?.getAttribute('aria-expanded') === 'false' && !searching();
+    if (!folded || id === undefined) {
+      stopSpring();
+      return;
+    }
+    if (spring?.id === id) return;
+    stopSpring();
+    const timer = setTimeout(() => {
+      spring = null;
+      choose(setOpen(id, true, choices));
+      // The rebuild dropped the drop marks; aim again where the pointer is.
+      if (press?.active && lastMove) aim(press, lastMove);
+    }, SPRING_OPEN_MS);
+    spring = { id, timer };
   }
 
   function markHover(id: string | null): void {
@@ -223,6 +322,8 @@ export function mountLayers(ctx: EditorContext): void {
     for (const el of list.querySelectorAll<HTMLElement>('[data-drop]')) delete el.dataset.drop;
     list.classList.remove('layers-dragging');
     target = null;
+    lastMove = null;
+    stopSpring();
   }
 
   function aim(from: Press, event: PointerEvent): void {
@@ -230,7 +331,12 @@ export function mountLayers(ctx: EditorContext): void {
     target = null;
     const under = document.elementFromPoint(event.clientX, event.clientY);
     const el = under instanceof Element ? under.closest<HTMLElement>('.layers-row') : null;
-    if (!el || !list.contains(el) || el.dataset.layer === undefined) return;
+    if (!el || !list.contains(el) || el.dataset.layer === undefined) {
+      stopSpring();
+      return;
+    }
+    // Only element rows spring open: a section move has no inside to drop into.
+    springOpen(from.section === null ? el : null);
     const box = el.getBoundingClientRect();
     const fraction = box.height > 0 ? (event.clientY - box.top) / box.height : 0.5;
     const accepts = rowsOf().get(el.dataset.layer)?.accepts ?? false;
@@ -272,6 +378,7 @@ export function mountLayers(ctx: EditorContext): void {
       press.active = true;
       list.classList.add('layers-dragging');
     }
+    lastMove = event;
     aim(press, event);
   });
   // A row press that moves would also select the panel's text on its way; no text is selected
@@ -290,6 +397,30 @@ export function mountLayers(ctx: EditorContext): void {
     render();
   });
 
+  // The WAI-ARIA tree keys on a focused name button. Plain arrows only: the editor's global keys
+  // use Alt+Arrow (move the element), and they skip an event this handler already took.
+  list.addEventListener('keydown', (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+    const row = event.target instanceof HTMLElement ? event.target.closest('.layers-row') : null;
+    const li = row?.closest('li');
+    if (!(row instanceof HTMLElement) || !li) return;
+    const id = row.dataset.layer;
+    const expanded = li.getAttribute('aria-expanded');
+    const above = li.parentElement?.closest('li') ?? null;
+    const action = treeKey(event.key, {
+      hasChildren: expanded !== null,
+      open: expanded === 'true',
+      hasParent: above !== null,
+    });
+    if (action === null || id === undefined) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (action === 'first-child') li.querySelector<HTMLElement>(':scope > ul .layers-row')?.focus();
+    else if (action === 'parent') above?.querySelector<HTMLElement>('.layers-row')?.focus();
+    // While searching every row is drawn open; there is nothing to open or fold.
+    else if (!searching()) choose(setOpen(id, action === 'open', choices));
+  });
+
   /** Keeps what kind of list an inspected element is in; `true` when that is news. */
   function learn(state: EditorState): boolean {
     const kind = listOf(state.inspected)?.kind;
@@ -301,6 +432,13 @@ export function mountLayers(ctx: EditorContext): void {
 
   store.subscribe((state, previous) => {
     const learned = state.inspected !== previous.inspected && learn(state);
+    // A new selection (here or on the canvas) opens its ancestors and scrolls to its row.
+    const picked =
+      state.selection !== previous.selection || (revealPending && state.tree !== previous.tree);
+    if (picked && !press?.active) {
+      reveal();
+      return;
+    }
     const changed =
       learned ||
       state.tree !== previous.tree ||
@@ -314,5 +452,10 @@ export function mountLayers(ctx: EditorContext): void {
     if (changed && !press?.active) render();
     else if (state.hovered !== previous.hovered) markHover(state.hovered);
   });
+  {
+    const { tree, selection } = store.get();
+    revealPending = notInTree(tree, selection);
+    choices = revealSelection(tree, selection, choices);
+  }
   render();
 }

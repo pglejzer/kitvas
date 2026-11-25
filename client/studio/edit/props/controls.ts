@@ -7,10 +7,12 @@
 
 import type { StyleProperty, StyleValue, TokenOption } from '../../../../src/edit/index.ts';
 import { icon } from '../../ui/icon.ts';
+import { type SelectItem, studioSelect } from '../../ui/select/select.ts';
 import { text } from '../texts.ts';
 import { segmentIcons } from './keyword-icons.ts';
 import { MAX_SEGMENTS } from './kinds.ts';
 import { parseRaw, stepToken } from './steps.ts';
+import { tokenItems } from './token-items.ts';
 import { lengthValue, readLength } from './units.ts';
 
 export function el<K extends keyof HTMLElementTagNameMap>(
@@ -36,7 +38,21 @@ function field(className: string, control: string, label: string, value: string)
 
 export type SelectOption = { value: string; label: string };
 
-/** A select for an enum prop. `data-control="main"` is what the panel refocuses after a redraw. */
+/** The words the studio select's search field and its empty list need. */
+function searchWords(): { label: string; none: string } {
+  return { label: text('props.select.search'), none: text('props.select.none') };
+}
+
+/** A plain item: a name for a value, no group, detail, swatch or warning. */
+function plainItem(value: string, name: string): SelectItem {
+  return { value, name, group: null, detail: null, swatch: null, warn: null };
+}
+
+/**
+ * A studio select for an enum prop. `data-control="main"` (on its trigger) is what the panel
+ * refocuses after a redraw. `onActive` hears the row under the pointer or the keys, `null` when
+ * none; `onClose` hears every close (the panel draws again then).
+ */
 export function selectControl(options: {
   label: string;
   value: string;
@@ -44,24 +60,23 @@ export function selectControl(options: {
   disabled?: boolean;
   placeholder?: string;
   onChange(value: string): void;
-}): HTMLSelectElement {
-  const select = el('select', 'k-field props-select');
-  select.dataset.control = 'main';
-  select.setAttribute('aria-label', options.label);
-  select.disabled = options.disabled ?? false;
+  onActive?(value: string | null): void;
+  onClose?(): void;
+}): HTMLElement {
   const known = options.options.some((option) => option.value === options.value);
-  const empty = { value: '', label: options.placeholder || text('props.choose') };
-  const all = known ? options.options : [empty, ...options.options];
-  for (const option of all) {
-    const item = el('option', undefined, option.label);
-    item.value = option.value;
-    select.append(item);
-  }
-  select.value = known ? options.value : '';
-  select.addEventListener('change', () => {
-    if (select.value !== '') options.onChange(select.value);
+  const picker = studioSelect({
+    label: options.label,
+    items: options.options.map((option) => plainItem(option.value, option.label)),
+    value: known ? options.value : null,
+    placeholder: options.placeholder || text('props.choose'),
+    disabled: options.disabled ?? false,
+    search: searchWords(),
+    onPick: options.onChange,
+    ...(options.onActive ? { onActive: options.onActive } : {}),
+    ...(options.onClose ? { onClose: options.onClose } : {}),
   });
-  return select;
+  picker.root.classList.add('props-select');
+  return picker.root;
 }
 
 export function checkboxControl(options: {
@@ -129,16 +144,25 @@ export function keywordControl(options: {
   current: string | null;
   hint: string;
   onPick(keyword: string): void;
+  /** The list only: the keyword under the pointer or the keys, `null` when none. */
+  onPreview?(keyword: string | null): void;
+  /** The list only: it closed. */
+  onClose?(): void;
+  /** Plan 18f: the word a keyword is shown and named by (Layout's human rows); else itself. */
+  name?(keyword: string): string;
 }): HTMLElement {
+  const nameOf = options.name ?? ((keyword: string): string => keyword);
   if (options.keywords.length > MAX_SEGMENTS) {
     return selectControl({
       label: options.label,
       value: options.current ?? '',
-      options: options.keywords.map((keyword) => ({ value: keyword, label: keyword })),
+      options: options.keywords.map((keyword) => ({ value: keyword, label: nameOf(keyword) })),
       placeholder: options.hint,
       onChange: (keyword) => {
         if (keyword !== options.current) options.onPick(keyword);
       },
+      ...(options.onPreview ? { onActive: options.onPreview } : {}),
+      ...(options.onClose ? { onClose: options.onClose } : {}),
     });
   }
   const icons = segmentIcons(options.property, options.keywords);
@@ -149,11 +173,11 @@ export function keywordControl(options: {
     const button = el('button');
     const glyph = icons?.[index];
     if (glyph === undefined) {
-      button.textContent = keyword;
+      button.textContent = nameOf(keyword);
     } else {
       // An icon alone: the keyword is its name and its tooltip.
-      button.setAttribute('aria-label', keyword);
-      button.title = keyword;
+      button.setAttribute('aria-label', nameOf(keyword));
+      button.title = nameOf(keyword);
       button.append(icon(glyph));
     }
     button.type = 'button';
@@ -178,6 +202,9 @@ export function imageControl(options: {
   current: string | null;
   shown: string;
   onPick(file: string): void;
+  /** The file under the pointer or the keys, `null` when none. */
+  onPreview?(file: string | null): void;
+  onClose?(): void;
 }): HTMLElement {
   if (options.images.length === 0) return el('span', 'props-hint', text('props.image.none'));
   return selectControl({
@@ -188,6 +215,8 @@ export function imageControl(options: {
     onChange: (file) => {
       if (file !== options.current) options.onPick(file);
     },
+    ...(options.onPreview ? { onActive: options.onPreview } : {}),
+    ...(options.onClose ? { onClose: options.onClose } : {}),
   });
 }
 
@@ -222,6 +251,7 @@ function lengthEditor(options: {
   units: readonly string[];
   raw: string | null;
   onPick(value: StyleValue): void;
+  onClose?(): void;
 }): { root: HTMLElement; focus(): void; hidden(on: boolean): void } {
   const root = el('span', 'props-raw');
   const read = options.raw === null ? null : readLength(options.raw);
@@ -231,32 +261,37 @@ function lengthEditor(options: {
   const amount = field('k-field props-raw-value', 'custom', label, amountText);
   amount.inputMode = 'decimal';
   if (options.raw !== null && read === null) amount.placeholder = options.raw;
-  const unit = el('select', 'k-field props-raw-unit');
-  unit.dataset.control = 'unit';
-  unit.setAttribute('aria-label', text('props.unit', { property: options.property }));
-  for (const name of options.units) {
-    const item = el('option', undefined, name);
-    item.value = name;
-    unit.append(item);
-  }
-  unit.value = options.units.includes(unitNow) ? unitNow : (options.units[0] ?? 'px');
-  const problem = el('span', 'props-error', text('props.length.invalid'));
-  problem.hidden = true;
+  let unitValue = options.units.includes(unitNow) ? unitNow : (options.units[0] ?? 'px');
   const commit = (): void => {
-    amount.disabled = unit.value === 'auto';
-    if (unit.value !== 'auto' && amount.value.trim() === '') return;
-    const value = lengthValue(options.property, amount.value, unit.value);
+    amount.disabled = unitValue === 'auto';
+    if (unitValue !== 'auto' && amount.value.trim() === '') return;
+    const value = lengthValue(options.property, amount.value, unitValue);
     amount.setAttribute('aria-invalid', value === null ? 'true' : 'false');
     problem.hidden = value !== null;
     if (value !== null) options.onPick(value);
   };
-  amount.disabled = unit.value === 'auto';
+  const unit = studioSelect({
+    label: text('props.unit', { property: options.property }),
+    items: options.units.map((name) => plainItem(name, name)),
+    value: unitValue,
+    placeholder: unitValue,
+    control: 'unit',
+    search: searchWords(),
+    onPick: (name) => {
+      unitValue = name;
+      commit();
+    },
+    ...(options.onClose ? { onClose: options.onClose } : {}),
+  });
+  unit.root.classList.add('props-raw-unit');
+  const problem = el('span', 'props-error', text('props.length.invalid'));
+  problem.hidden = true;
+  amount.disabled = unitValue === 'auto';
   amount.addEventListener('change', commit);
-  unit.addEventListener('change', commit);
-  root.append(amount, unit, problem);
+  root.append(amount, unit.root, problem);
   return {
     root,
-    focus: () => (unit.value === 'auto' ? unit : amount).focus(),
+    focus: () => (unitValue === 'auto' ? unit.trigger : amount).focus(),
     hidden: (on) => {
       root.hidden = on;
     },
@@ -299,29 +334,17 @@ const CUSTOM = '__custom';
  * that keeps a half-typed raw value must show the field it is in.
  */
 export function showCustom(root: Element): void {
-  const select = root.querySelector('select[data-control="main"]');
-  if (!(select instanceof HTMLSelectElement)) return;
-  if (![...select.options].some((option) => option.value === CUSTOM)) return;
-  if (select.value === CUSTOM || select.value === RAW) return;
-  select.value = CUSTOM;
-  select.dispatchEvent(new Event('change'));
-}
-
-/** A colour's sample beside its value (`.k-swatch`); `null` draws it empty. */
-function swatchOf(color: string | null): HTMLElement {
-  const sample = el('span', 'k-swatch props-sample');
-  sample.setAttribute('aria-hidden', 'true');
-  // Only a colour is taken: anything else leaves the sample empty.
-  if (color !== null) sample.style.backgroundColor = color;
-  return sample;
+  root.querySelector('.props-picker')?.dispatchEvent(new Event('kv-show-custom'));
 }
 
 /**
- * Kit tokens first, then "Custom…" for a raw value, which the caller marks off-kit. `current` is
- * the value now in the source; `placeholder` is what the frame computes when the source has none.
- * With `length`, the raw value is a number and a unit; without it, a free text field.
- * `warn` (spec 4c): the words of a live check a token would fail, shown with a sign on its option.
- * `sample` (plan 18): a colour row's swatch before the list, the colour shown or `null`.
+ * The raw value first when the source holds one, then the kit's tokens, and "Custom…" as the
+ * footer for a raw value, which the caller marks off-kit. `current` is the value now in the
+ * source; `placeholder` is what the frame computes when the source has none. With `length`, the
+ * raw value is a number and a unit; without it, a free text field. `warn` (spec 4c): the words of
+ * a live check a token would fail, shown with a sign on its item. `colour`: its items get a
+ * swatch, and the trigger shows it. `onPreview` hears the token under the pointer or the keys
+ * (`null` for none, the raw value or "Custom…"); `onClose` hears every close of a list.
  */
 export function tokenPicker(options: {
   label: string;
@@ -331,33 +354,36 @@ export function tokenPicker(options: {
   disabled?: boolean;
   length?: { property: StyleProperty; units: readonly string[] };
   warn?: (token: TokenOption) => string | null;
-  sample?: string | null;
+  colour?: boolean;
+  /** Plan 18f: the raw value's field shows from the start ("Custom" under a stepper). */
+  open?: boolean;
   onPick(value: StyleValue): void;
+  onPreview?(value: StyleValue | null): void;
+  onClose?(): void;
 }): HTMLElement {
   const root = el('span', 'props-picker');
-  const select = el('select', 'k-field props-select');
-  select.dataset.control = 'main';
-  select.setAttribute('aria-label', options.label);
-  select.disabled = options.disabled ?? false;
+  const colour = options.colour === true;
   const rawNow = options.current && 'raw' in options.current ? options.current.raw : null;
-  const add = (value: string, label: string, warning: string | null = null): void => {
-    // An option holds text only: the sign and its words go into its label.
-    const item = el('option', undefined, warning === null ? label : `${label} ⚠ ${warning}`);
-    item.value = value;
-    if (warning !== null) item.dataset.warn = '';
-    select.append(item);
-  };
-  if (!options.current) add('', options.placeholder || text('props.choose'));
-  for (const token of options.tokens) {
-    add(token.var, `${token.path} · ${token.css}`, options.warn?.(token) ?? null);
+  const items: SelectItem[] = [];
+  if (rawNow !== null) {
+    const swatch = colour ? rawNow : null;
+    items.push({
+      value: RAW,
+      name: rawNow,
+      group: null,
+      detail: text('props.raw.source'),
+      swatch,
+      warn: null,
+    });
   }
-  if (rawNow !== null) add(RAW, rawNow);
-  add(CUSTOM, text('props.custom'));
+  items.push(
+    ...tokenItems(options.tokens, { colour, ...(options.warn ? { warn: options.warn } : {}) }),
+  );
   const wanted =
-    options.current === null ? '' : 'token' in options.current ? options.current.token : RAW;
-  select.value = wanted;
-  // A token the kit does not have: show the custom field rather than the wrong token.
-  if (select.value !== wanted) select.value = CUSTOM;
+    options.current === null ? null : 'token' in options.current ? options.current.token : RAW;
+  const known = wanted !== null && items.some((item) => item.value === wanted);
+  // A raw value or a token the kit does not have shows the custom field, not a wrong token.
+  let editorShown = options.open === true || (wanted !== null && (wanted === RAW || !known));
 
   let current = options.current
     ? 'token' in options.current
@@ -369,28 +395,63 @@ export function tokenPicker(options: {
     options.onPick(value);
   };
   const editor = options.length
-    ? lengthEditor({ ...options.length, raw: rawNow, onPick: pick })
+    ? lengthEditor({
+        ...options.length,
+        raw: rawNow,
+        onPick: pick,
+        ...(options.onClose ? { onClose: options.onClose } : {}),
+      })
     : rawEditor({ label: options.label, raw: rawNow, onPick: pick });
-  const toggleEditor = (): void => editor.hidden(select.value !== CUSTOM && select.value !== RAW);
+  const toggleEditor = (): void => editor.hidden(!editorShown);
   toggleEditor();
 
-  select.addEventListener('change', () => {
-    toggleEditor();
-    if (select.value === CUSTOM) editor.focus();
-    else if (select.value !== '' && select.value !== RAW) pick({ token: select.value });
+  const picker = studioSelect({
+    label: options.label,
+    items,
+    value: known ? wanted : null,
+    placeholder: options.placeholder || text('props.choose'),
+    disabled: options.disabled ?? false,
+    footer: { value: CUSTOM, name: text('props.custom') },
+    search: searchWords(),
+    // The stepper stays on the trigger: the arrow keys walk the scale, not the list.
+    stepKeys: false,
+    onPick(value) {
+      if (value === CUSTOM || value === RAW) {
+        editorShown = true;
+        toggleEditor();
+        if (value === CUSTOM) editor.focus();
+        return;
+      }
+      editorShown = false;
+      toggleEditor();
+      pick({ token: value });
+    },
+    onActive(value) {
+      const token = value === null || value === RAW || value === CUSTOM ? null : value;
+      options.onPreview?.(token === null ? null : { token });
+    },
+    ...(options.onClose ? { onClose: options.onClose } : {}),
   });
-  attachStepper(select, {
+  picker.root.classList.add('props-select');
+  attachStepper(picker.trigger, {
     tokens: options.tokens,
     getCurrent: () => current,
     onStep(token) {
-      select.value = token.var;
+      picker.show(token.var);
+      editorShown = false;
       toggleEditor();
       pick({ token: token.var });
     },
   });
+  // A redraw that kept a half-typed raw value asks for the field it was typed in.
+  root.addEventListener('kv-show-custom', () => {
+    if (editorShown) return;
+    editorShown = true;
+    toggleEditor();
+    editor.focus();
+  });
   const line = el('span', 'props-pick-line');
-  if (options.sample !== undefined) line.append(swatchOf(options.sample));
-  line.append(select);
+  line.append(picker.root);
   root.append(line, editor.root);
   return root;
 }

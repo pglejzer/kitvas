@@ -91,6 +91,22 @@ export function waitingRequest(
   return requests.find((request) => request.note === noteId && request.status === 'waiting');
 }
 
+/**
+ * What a note's status line says: `done`; `waiting` (its request waits for a listening Claude);
+ * `working` (Claude took it); `null` for an open note nothing is asked of (or Claude closed
+ * without a word).
+ */
+export type NoteStatus = 'waiting' | 'working' | 'done' | null;
+
+export function noteStatus(note: NoteView, requests: readonly RequestView[]): NoteStatus {
+  if (note.done) return 'done';
+  if (note.for !== 'claude') return null;
+  const asked = requests.filter((request) => request.note === note.id);
+  if (asked.some((request) => request.status === 'waiting')) return 'waiting';
+  if (asked.some((request) => request.status === 'taken')) return 'working';
+  return null;
+}
+
 /** The status of each request that carries a note, to tell when one moved (Claude closed it). */
 export function noteRequestKey(requests: readonly RequestView[]): string {
   return requests

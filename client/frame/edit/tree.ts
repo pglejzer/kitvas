@@ -3,6 +3,7 @@
 // at the end read the page and hand it to them.
 
 import {
+  MAX_CLASS,
   MAX_NAME,
   MAX_NODES,
   MAX_STYLE_VALUE,
@@ -71,6 +72,8 @@ export type RawNode = {
   heading(): string | null;
   /** The element's text. */
   text(): string | null;
+  /** The element's first class; `null` with none. */
+  cls: string | null;
   /** The ids of the enclosing `[data-ks]` elements, the nearest first. */
   ancestors(): readonly string[];
 };
@@ -81,6 +84,12 @@ const tidy = (raw: string | null): string =>
 /** A layer's name: its label, else its first heading, else its text, else its tag. */
 export function nameOf(raw: Pick<RawNode, 'tag' | 'label' | 'heading' | 'text'>): string {
   return tidy(raw.label) || tidy(raw.heading()) || tidy(raw.text()) || tidy(raw.tag.toLowerCase());
+}
+
+/** The first class, cut to what the protocol carries; `null` when there is none. */
+export function firstClass(raw: string | null | undefined): string | null {
+  const first = (raw ?? '').trim().split(/\s+/)[0] ?? '';
+  return first === '' ? null : cut(first, MAX_CLASS);
 }
 
 /** The protocol's own check, so one odd id never makes the studio refuse the whole tree. */
@@ -109,7 +118,13 @@ export function buildTree(elements: Iterable<RawNode>): TreeNode[] {
       continue;
     }
     const parent = raw.ancestors().find((id) => id !== raw.id && nodes.has(id)) ?? null;
-    nodes.set(raw.id, { id: raw.id, parent, name: nameOf(raw), count: 1 });
+    nodes.set(raw.id, {
+      id: raw.id,
+      parent,
+      name: nameOf(raw),
+      count: 1,
+      cls: firstClass(raw.cls),
+    });
   }
   return [...nodes.values()];
 }
@@ -141,6 +156,8 @@ function* rawNodes(): Generator<RawNode> {
       label: element.getAttribute('aria-label'),
       heading: () => element.querySelector(HEADINGS)?.textContent ?? null,
       text: () => element.textContent,
+      // An SVG element's `className` is not a string; the attribute is read the same way for all.
+      cls: element.getAttribute('class'),
       ancestors: () => ancestorIds(element),
     };
   }

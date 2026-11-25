@@ -1,38 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { Draft, States } from '../../../../src/drafts/index.ts';
-import { choiceLink } from '../../../../src/studio/pages/draft/draft-links.ts';
 import {
   cardSize,
-  pills,
   type StageInput,
   stage,
 } from '../../../../src/studio/pages/draft/draft-stage.ts';
 import { escapeHtml, html } from '../../../../src/studio/pages/html.ts';
-import type { DraftChoice } from '../../../../src/studio/views/draft-query.ts';
 import { t } from '../../../helpers/translate.ts';
 
-const DRAFT: Draft = {
-  schemaVersion: 1,
-  slug: 'shop',
-  title: 'Shop',
-  kind: 'screen',
-  kit: { id: 'base', version: '1.0.0', hash: 'a'.repeat(64) },
-  createdAt: '2026-11-22T10:00:00.000Z',
-  versions: [
-    { number: 1, createdAt: '2026-11-22T10:00:00.000Z' },
-    { number: 3, createdAt: '2026-11-22T11:00:00.000Z' },
-  ],
-};
-
-const STATES: States = {
-  schemaVersion: 1,
-  default: 'filled',
-  states: [
-    { id: 'filled', label: 'With data' },
-    { id: 'empty', label: 'Empty' },
-  ],
-};
+// The pills over the canvas have their own tests: `draft-pills.test.ts`.
 
 const SRC = 'http://127.0.0.1:5001/f/k3y/shop/v3/html/index.html?state=filled';
 
@@ -50,16 +26,6 @@ const input = (fields: Partial<StageInput> = {}): StageInput => ({
 });
 
 const count = (text: string, part: string): number => text.split(part).length - 1;
-
-const CHOICE: DraftChoice = { version: 3, state: 'filled', width: 390 };
-const docked = (choice: DraftChoice = CHOICE): string =>
-  pills({ t, choice, states: STATES, link: choiceLink(DRAFT, choice) }).text;
-
-/** One pill of the row, by its `data-dock`. */
-const pill = (text: string, part: string): string =>
-  new RegExp(`<(div|nav) class="k-pop k-pill" data-dock="${part}"[^>]*>(.*?)</\\1>`).exec(
-    text,
-  )?.[0] ?? '';
 
 test('one version shows as one card in the canvas, with the scroller, sizer, world and shield', () => {
   const text = stage(input()).text;
@@ -224,111 +190,6 @@ test('names from files are escaped in the frame title and the label', () => {
   assert.ok(text.includes('&lt;script&gt;'));
 });
 
-test('the pills: width, cards and state at the top right, and the empty zoom pill apart', () => {
-  const text = docked();
-  assert.ok(text.startsWith('<div class="pill-row" data-shell="dock" role="group"'));
-  assert.ok(text.includes(`aria-label="${escapeHtml(t('studio.edit.canvas.controls'))}"`));
-  const width = text.indexOf('data-dock="width"');
-  const cards = text.indexOf('data-dock="cards"');
-  const states = text.indexOf('data-dock="states"');
-  const zoom = text.indexOf('data-dock="zoom"');
-  assert.ok(width > 0 && cards > width && states > cards && zoom > states);
-  assert.ok(text.includes('<div class="k-pop k-pill" data-dock="width">'));
-  assert.ok(text.includes('<nav class="k-pop k-pill" data-dock="states"'));
-  // The zoom pill is outside the row: it sits at the bottom right, filled by the script.
-  assert.ok(
-    text.endsWith(
-      `<div class="k-pop k-pill pill-zoom" data-dock="zoom" role="group" aria-label="${escapeHtml(t('studio.edit.zoom.label'))}"></div>`,
-    ),
-  );
-  assert.ok(!text.includes('class="opt"'));
-});
-
-test('the width presets are links to the same view, the current one marked', () => {
-  const text = docked({ ...CHOICE, width: 768 });
-  assert.ok(text.includes('<nav class="pill-group" data-dock="widths"'));
-  for (const width of [390, 768, 1280]) {
-    const href = escapeHtml(`/drafts/shop?version=3&state=filled&width=${width}`);
-    const link = new RegExp(
-      `<a class="k-btn pill-opt" data-dock-width="${width}"[^>]*>${width}</a>`,
-    );
-    const found = link.exec(text)?.[0] ?? '';
-    assert.ok(found.includes(`href="${href}"`), String(width));
-    assert.ok(found.includes(`title="${escapeHtml(t(`studio.width.${width}`))}"`), String(width));
-    assert.equal(found.includes('aria-current="true"'), width === 768, String(width));
-  }
-});
-
-test('the number field takes any width from 320 to 2560 and works without the script', () => {
-  const text = docked({ ...CHOICE, compare: 1 });
-  const field = /<input class="k-field pill-number" type="number"[^>]*>/.exec(text)?.[0] ?? '';
-  assert.ok(field.includes('name="view"'));
-  assert.ok(field.includes('data-dock-view'));
-  assert.ok(field.includes('min="320"'));
-  assert.ok(field.includes('max="2560"'));
-  assert.ok(field.includes('step="1"'));
-  assert.ok(field.includes('value="390"'));
-  assert.ok(field.includes(`aria-label="${escapeHtml(t('studio.edit.canvas.width'))}"`));
-  // A plain GET form that names the rest of the view, in the width pill.
-  assert.ok(text.includes('<form class="pill-field" data-dock="view" method="get" action="">'));
-  assert.ok(text.indexOf('data-dock="view"') > text.indexOf('data-dock="widths"'));
-  assert.ok(text.includes('<input type="hidden" name="version" value="3">'));
-  assert.ok(text.includes('<input type="hidden" name="state" value="filled">'));
-  assert.ok(text.includes('<input type="hidden" name="width" value="390">'));
-  assert.ok(text.includes('<input type="hidden" name="compare" value="1">'));
-});
-
-test('without a comparison the form names none', () => {
-  assert.ok(!docked().includes('name="compare"'));
-});
-
-test('the state links carry their state id, the current one marked', () => {
-  const text = docked({ ...CHOICE, state: 'empty' });
-  const filled =
-    /<a class="k-btn pill-opt" data-state="filled"[^>]*>With data<\/a>/.exec(text)?.[0] ?? '';
-  const empty =
-    /<a class="k-btn pill-opt" data-state="empty"[^>]*>Empty<\/a>/.exec(text)?.[0] ?? '';
-  assert.ok(filled.includes(escapeHtml('/drafts/shop?version=3&state=filled&width=390')));
-  assert.ok(!filled.includes('aria-current'));
-  assert.ok(empty.includes('aria-current="true"'));
-});
-
-test('at a preset the mark of hidden marks is there but hidden, and says nothing', () => {
-  const text = docked();
-  assert.match(
-    text,
-    /<button type="button" class="k-icon-btn pill-mark" data-dock-note[^>]* hidden>/,
-  );
-  assert.ok(text.includes('<span class="k-sr" role="status" data-dock-said></span>'));
-});
-
-test('a width that is not a preset says that the marks are hidden at it', () => {
-  const text = docked({ ...CHOICE, view: 1000 });
-  const note = escapeHtml(t('studio.edit.canvas.marksHidden'));
-  // A mark at the end of the width pill, never a block over the canvas: its words are its name
-  // and its title, and a status for a screen reader.
-  assert.ok(
-    text.includes(
-      `<button type="button" class="k-icon-btn pill-mark" data-dock-note aria-label="${note}" title="${note}">`,
-    ),
-  );
-  assert.ok(text.includes(`<span class="k-sr" role="status" data-dock-said>${note}</span></div>`));
-  assert.ok(!text.includes('pill-note'));
-  // No preset is current, the field shows the width, and the checks stay on the preset.
-  assert.ok(!/data-dock-width="[0-9]+"[^>]*aria-current/.test(text));
-  assert.ok(/<input class="k-field pill-number" type="number"[^>]*value="1000"/.test(text));
-  assert.ok(text.includes('<input type="hidden" name="width" value="390">'));
-});
-
-test('at a custom width the state links keep it and the preset links drop it', () => {
-  const text = docked({ ...CHOICE, view: 1000 });
-  const state = /<a class="k-btn pill-opt" data-state="empty"[^>]*>/.exec(text)?.[0] ?? '';
-  assert.ok(state.includes(escapeHtml('state=empty&width=390&view=1000')));
-  const preset = /<a class="k-btn pill-opt" data-dock-width="768"[^>]*>/.exec(text)?.[0] ?? '';
-  assert.ok(preset.includes(escapeHtml('width=768')));
-  assert.ok(!preset.includes('view='));
-});
-
 test('three cards: the width shown first, then one card per other preset', () => {
   const text = stage(input({ width: 768, cards: 3 })).text;
   assert.equal(count(text, '<figure class="card-box"'), 3);
@@ -356,49 +217,4 @@ test('two cards add the next preset; one card and compare add none', () => {
   const other = SRC.replace('v3', 'v1');
   const compared = stage(input({ cards: 3, compare: { version: 1, built: true, src: other } }));
   assert.ok(!compared.text.includes('data-frame="width"'));
-});
-
-test('the cards pill links to one, two and three cards, the shown count marked', () => {
-  const text = docked({ ...CHOICE, cards: 2 });
-  const part = pill(text, 'cards');
-  assert.ok(part, 'the pill is there');
-  assert.ok(part.includes(`aria-label="${escapeHtml(t('studio.edit.canvas.cards'))}"`));
-  const links = [...part.matchAll(/<a class="k-btn pill-opt" data-dock-cards="(\d)"[^>]*>/g)];
-  assert.deepEqual(
-    links.map((link) => link[1]),
-    ['1', '2', '3'],
-  );
-  const two = links.find((link) => link[1] === '2')?.[0] ?? '';
-  assert.ok(two.includes('aria-current="true"'));
-  assert.ok(two.includes(escapeHtml('width=390&cards=2')));
-  const one = links.find((link) => link[1] === '1')?.[0] ?? '';
-  assert.ok(!one.includes('&amp;cards='));
-  // "Every width" needs the script, which shows it.
-  assert.match(part, /<button type="button" class="k-btn pill-opt" data-dock-every [^>]*hidden>/);
-});
-
-test('the pills keep the cards, and the number field names them', () => {
-  const text = docked({ ...CHOICE, cards: 3 });
-  const state = /<a class="k-btn pill-opt" data-state="empty"[^>]*>/.exec(text)?.[0] ?? '';
-  assert.ok(state.includes(escapeHtml('state=empty&width=390&cards=3')));
-  const preset = /<a class="k-btn pill-opt" data-dock-width="768"[^>]*>/.exec(text)?.[0] ?? '';
-  assert.ok(preset.includes(escapeHtml('width=768&cards=3')));
-  assert.ok(text.includes('<input type="hidden" name="cards" value="3">'));
-  assert.ok(!docked().includes('name="cards"'));
-});
-
-test('while comparing the cards pill is off, with the reason', () => {
-  const text = docked({ ...CHOICE, compare: 1 });
-  const part = /<div class="k-pop k-pill" data-dock="cards"[^>]*>/.exec(text)?.[0] ?? '';
-  assert.ok(part.includes('data-off'));
-  assert.ok(part.includes(`title="${escapeHtml(t('studio.edit.canvas.cardsOff'))}"`));
-  assert.ok(!text.includes('data-dock-cards'));
-  assert.ok(!text.includes('data-dock-every'));
-  assert.equal(count(text, 'aria-disabled="true"'), 3);
-});
-
-test('a comparison stays on in the pills links', () => {
-  const text = docked({ ...CHOICE, compare: 1 });
-  const preset = /<a class="k-btn pill-opt" data-dock-width="768"[^>]*>/.exec(text)?.[0] ?? '';
-  assert.ok(preset.includes(escapeHtml('width=768&compare=1')));
 });

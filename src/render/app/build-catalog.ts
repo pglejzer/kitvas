@@ -5,6 +5,7 @@ import { serializeJson } from '../../drafts/index.ts';
 import {
   type KitStore,
   type KitWriter,
+  type LoadedKit,
   requireKit,
   syncGeneratedEntry,
   tokensToCss,
@@ -24,6 +25,7 @@ import {
   exampleKey,
   readCatalogStamp,
 } from '../domain/catalog-stamp.ts';
+import { iconSheet } from '../domain/icon-sheet.ts';
 import { pageHtml } from '../domain/page.ts';
 import type { BuildError } from '../domain/report.ts';
 import type { BuildFs } from '../ports/build-fs.ts';
@@ -73,14 +75,51 @@ export type CatalogReport = {
   path: string;
 };
 
-/** Bump when the shape of the catalog output changes, so old outputs are rebuilt. */
-const CATALOG_FORMAT = 4;
+/** Bump when the shape of the catalog output changes, so old outputs are rebuilt (5: icon sheet). */
+const CATALOG_FORMAT = 5;
 
 /** What the entry imports as `kitvas-example`: the example's end of the studio channel. */
 const EXAMPLE_RUNTIME = join(PLUGIN_ROOT, 'client', 'frame', 'page', 'example.ts');
 
 /** Inside the catalog folder: the examples alone, where a utility build reads their class names. */
 const EXAMPLES_SOURCE = join('build', 'json', 'examples.tsx');
+
+/** The disk and the runtime files are all a key needs; the bundler and the styles are not. */
+export type CatalogKeyDeps = Pick<CatalogDeps, 'kits' | 'fs' | 'runtimeFiles'>;
+
+/** The hash of everything a catalog build of `loaded` reads, with the utility files of one build. */
+function catalogHash(
+  deps: CatalogKeyDeps,
+  loaded: LoadedKit,
+  probe: string[],
+  utilityFiles: string[],
+): string {
+  const fromProject = projectInputs(loaded);
+  return sourceHash(deps.fs, {
+    format: CATALOG_FORMAT,
+    kitHash: loaded.hash,
+    dirs: [loaded.dir, ...fromProject.dirs],
+    files: [...deps.runtimeFiles, ...fromProject.files, ...utilityFiles],
+    settings: { probe },
+  });
+}
+
+/**
+ * The key a catalog build of the kit would compare now, without building or writing anything: the
+ * stamp's key when nothing changed since the last good build (ADR 0075). A project kit's generated
+ * entry is not written first, so one that is out of date gives another key, and the next build
+ * writes it. A kit that cannot be built throws as `buildCatalog` does.
+ */
+export function currentCatalogKey(
+  deps: CatalogKeyDeps,
+  kitId: string,
+  dir: string,
+  options: CatalogOptions = {},
+): string {
+  const loaded = requireKit(deps.kits, kitId);
+  const previous = readCatalogStamp(deps.fs.readText(join(dir, CATALOG_STAMP)));
+  return catalogHash(deps, loaded, probeNames(loaded, options.probe), previous?.utility ?? []);
+}
 
 /**
  * `dir` is the kit's catalog folder (`catalogDir`). Only `<dir>/build/` is written; other files of
@@ -110,15 +149,7 @@ export async function buildCatalog(
   };
 
   const probe = probeNames(loaded, options.probe);
-  const fromProject = projectInputs(loaded);
-  const keyOf = (utilityFiles: string[]): string =>
-    sourceHash(fs, {
-      format: CATALOG_FORMAT,
-      kitHash: loaded.hash,
-      dirs: [loaded.dir, ...fromProject.dirs],
-      files: [...deps.runtimeFiles, ...fromProject.files, ...utilityFiles],
-      settings: { probe },
-    });
+  const keyOf = (utilityFiles: string[]): string => catalogHash(deps, loaded, probe, utilityFiles);
   const previous = readCatalogStamp(fs.readText(stampFile));
   const before = keyOf(previous?.utility ?? []);
   if (previous?.key === before && previous.kit === kitId && fs.exists(page)) {
@@ -145,6 +176,8 @@ export async function buildCatalog(
     }
   }
   const shown = examples.map((example) => example.key);
+  // The editor's Insert pane shows the icons from one shot of this grid (ADR 0075).
+  const sheet = kit.icons?.source === 'component' ? iconSheet(kit.icons) : undefined;
 
   // esbuild is given the folder as its working directory; make sure it exists on a first build.
   if (!fs.exists(dir)) fs.writeText(join(dir, 'build', 'json', '.gitkeep'), '');
@@ -158,6 +191,7 @@ export async function buildCatalog(
         providers: mountProviders(fs, loaded),
         components: kit.components.map((component) => component.name),
         examples,
+        sheet,
       }),
     },
     alias: {
@@ -196,6 +230,7 @@ export async function buildCatalog(
     shown,
     skipped,
     utility: utilityFiles,
+    ...(sheet ? { icons: sheet.names } : {}),
   };
   fs.writeText(join(dir, 'build', 'js', 'index.js'), bundle.js);
   fs.writeText(

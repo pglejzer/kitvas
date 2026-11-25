@@ -12,7 +12,7 @@ import type {
   EditState,
   SourceEvent,
 } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import type { SwapStep } from '../../../channel/protocol.ts';
+import { type Scroll, type SwapStep, withScroll } from '../../../channel/protocol.ts';
 import { type Frame, frameMessage, sendSwap } from '../../frames.ts';
 import { buildOf, sourceOf } from '../../live/job-events.ts';
 import { onStudioEvent } from '../../live/live.ts';
@@ -93,6 +93,20 @@ export function withHashOf(served: string, current: string): string | undefined 
   }
 }
 
+/**
+ * `address` with the frame hash's scroll set to `scroll`, so a page loaded again opens there. The
+ * same address when its hash is no frame hash.
+ */
+export function withScrollAt(address: string, scroll: Scroll): string {
+  try {
+    const url = new URL(address);
+    url.hash = withScroll(url.hash, scroll);
+    return url.href;
+  } catch {
+    return address;
+  }
+}
+
 /** The page's side of the loop, replaceable in tests. */
 export type LiveFrameIo = {
   getEditState(slug: string): Promise<Answer<EditState>>;
@@ -124,8 +138,11 @@ export type LiveFrame = {
    * put into its page, absent when the frame loaded.
    */
   ready(frame?: Frame, live?: number): void;
-  /** A card's frame answered a swap whose build is not in its page. */
-  swapped(frame: Frame, live: number, step: SwapStep): void;
+  /**
+   * A card's frame answered a swap whose build is not in its page. `scroll` is where it was
+   * scrolled, sent with `failed`: the page loaded again opens there.
+   */
+  swapped(frame: Frame, live: number, step: SwapStep, scroll?: Scroll): void;
 };
 
 /** A swap a card was asked for: the build, and where its frame goes when it cannot take it. */
@@ -237,8 +254,9 @@ export function createLiveFrame(deps: LiveFrameDeps, io: LiveFrameIo): LiveFrame
    * A card that cannot take its build in place loads it. Not when its frame was sent to another
    * page meanwhile (an older version in the timeline): that page says `ready` on its own.
    */
-  function plainly(frame: Frame, asked: Asked): void {
-    if (samePage(frame.element.src, asked.address)) navigate(frame, asked.address);
+  function plainly(frame: Frame, asked: Asked, scroll?: Scroll): void {
+    if (!samePage(frame.element.src, asked.address)) return;
+    navigate(frame, scroll ? withScrollAt(asked.address, scroll) : asked.address);
   }
 
   function ask(frame: Frame, asked: Asked): void {
@@ -353,7 +371,7 @@ export function createLiveFrame(deps: LiveFrameDeps, io: LiveFrameIo): LiveFrame
       if (selection.length > 0) bridge.send({ type: 'select', ids: selection });
       bridge.send({ type: 'tree', request: bridge.nextRequest() });
     },
-    swapped(frame, live, step) {
+    swapped(frame, live, step, scroll) {
       const asked = swapping.get(frame);
       // The answer to an older swap, or to one no longer waited for.
       if (!asked || asked.live !== live) return;
@@ -364,7 +382,7 @@ export function createLiveFrame(deps: LiveFrameDeps, io: LiveFrameIo): LiveFrame
       }
       forget(frame);
       if (step === 'failed') {
-        plainly(frame, asked);
+        plainly(frame, asked, scroll);
         return;
       }
       // `free`: the gesture ended. A change it made is on its way, and that build is the one to
@@ -415,6 +433,7 @@ export function watchSources(ctx: EditorContext): void {
     if (!heard) return;
     const { frame, message } = heard;
     if (message.type === 'ready') live.ready(frame, message.live);
-    else if (message.type === 'swap') live.swapped(frame, message.live, message.step);
+    else if (message.type === 'swap')
+      live.swapped(frame, message.live, message.step, message.scroll);
   });
 }

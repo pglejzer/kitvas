@@ -22,6 +22,7 @@ import {
   noteRequest,
   noteRequestKey,
   noteRows,
+  noteStatus,
   openCount,
   pinsOf,
   waitingRequest,
@@ -181,7 +182,7 @@ export function mountNotes(ctx: EditorContext): void {
     rows = noteRows(state.notes);
     const selected = state.selection[0] ?? null;
     pane.target(selected === null ? null : elementName(selected));
-    pane.draw(rows, handlers, selected, loaded);
+    pane.draw(rows, handlers, selected, loaded, (row) => noteStatus(row.note, state.requests));
     syncBar();
   }
 
@@ -199,7 +200,10 @@ export function mountNotes(ctx: EditorContext): void {
 
   store.subscribe((state, previous) => {
     if (state.menu !== null && state.menu !== previous.menu) clicked = state.menu;
-    if (state.notes !== previous.notes || state.selection !== previous.selection) render();
+    const asked = noteRequestKey(state.requests) !== noteRequestKey(previous.requests);
+    if (state.notes !== previous.notes || state.selection !== previous.selection || asked) {
+      render();
+    }
     if (state.notes !== previous.notes || state.on !== previous.on) sendPins();
     else if (state.builds !== previous.builds) sendPins();
     // Claude closed a note's request (the note is done now), or the files changed (ids moved).

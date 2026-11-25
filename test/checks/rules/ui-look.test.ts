@@ -121,7 +121,7 @@ const picture = (width: number, height: number, fit = 'fill'): FactNode =>
     tag: 'img',
     ks: 'a:img/0',
     box: [0, 0, width, height],
-    image: { natural: [400, 300], sized: true, alt: 'Photo' },
+    image: { natural: [400, 300], sized: true, alt: 'Photo', vector: false },
     style: { objectFit: fit },
   });
 

@@ -34,6 +34,8 @@ export type CopyRef = { id: string; item?: number; path?: number[] };
 export const MAX_COPIES = 200;
 export const MAX_NODES = 2000;
 export const MAX_NAME = 80;
+/** The longest first class a tree node carries (plan 18f). */
+export const MAX_CLASS = 40;
 export const MAX_INLINE_TEXT = 2000;
 export const MAX_STYLES = 40;
 export const MAX_STYLE_VALUE = 200;
@@ -72,13 +74,25 @@ export type TreeNode = {
   name: string;
   /** Elements in the page with this id: more than 1 for an item of a mapped list. */
   count: number;
+  /** The element's first class, cut to `MAX_CLASS` characters; `null` with none. Absent in older data. */
+  cls?: string | null;
 };
 
-/** A change shown in the frame at once, before the build confirms it (task E2). */
-export type PreviewChange =
-  | { id: string; kind: 'text'; value: string }
-  | { id: string; kind: 'style'; property: string; value: string }
-  | { id: string; kind: 'class'; className: string; on: boolean };
+/**
+ * A change shown in the frame at once, before the build confirms it (task E2). `item`: the copy
+ * (its place among the elements that carry `id`, as in `select`'s `copies`) the change shows on,
+ * and only on it; left out, every copy shows it.
+ */
+export type PreviewChange = { id: string; item?: number } & (
+  | { kind: 'text'; value: string }
+  | { kind: 'style'; property: string; value: string }
+  | { kind: 'class'; className: string; on: boolean }
+);
+
+/** One element Claude's mark goes on: every copy of `id`, or copy `item` only. */
+export type ClaudeMark = { id: string; item?: number; motion: boolean };
+/** The most marks one message names. */
+export const MAX_CLAUDE_MARKS = 200;
 
 /** The keys held during a click, as a mouse event has them. */
 export type ClickKeys = { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean };
@@ -176,6 +190,11 @@ export type EditStudioMessage =
         | { type: 'preview'; changes: PreviewChange[] }
         /** Takes every preview back: a refused edit, or a build that replaced the page. */
         | { type: 'unpreview' }
+        /**
+         * What Claude looks at or works on, marked on the canvas (spec 18e, D). `label`: the word
+         * on the mark's tag, a text of the studio's, never one of the frame's.
+         */
+        | { type: 'claude-marks'; label: string; marks: ClaudeMark[] }
       ));
 
 export const EDIT_FRAME_TYPES = new Set([
@@ -199,6 +218,7 @@ export const EDIT_STUDIO_TYPES = new Set([
   'text-back',
   'preview',
   'unpreview',
+  'claude-marks',
   ...STRUCTURE_STUDIO_TYPES,
 ]);
 
@@ -229,10 +249,12 @@ function chosenCopy(value: unknown): { id: string; item: number } | undefined {
 
 function node(value: unknown): TreeNode | undefined {
   if (!isObject(value)) return undefined;
-  const { id, parent, name, count } = value;
+  const { id, parent, name, count, cls } = value;
   if (!isId(id) || !isIdOrNull(parent) || !isText(name, MAX_NAME) || !isCount(count))
     return undefined;
-  return { id, parent, name, count };
+  if (cls === undefined) return { id, parent, name, count };
+  if (cls !== null && !isText(cls, MAX_CLASS)) return undefined;
+  return { id, parent, name, count, cls };
 }
 
 function styles(value: unknown): Record<string, string> | undefined {
@@ -247,7 +269,7 @@ function styles(value: unknown): Record<string, string> | undefined {
   return out;
 }
 
-function change(value: unknown): PreviewChange | undefined {
+function changeBody(value: unknown): PreviewChange | undefined {
   if (!isObject(value) || !isId(value.id)) return undefined;
   const { id, kind } = value;
   if (kind === 'text' && isText(value.value, MAX_INLINE_TEXT))
@@ -263,6 +285,22 @@ function change(value: unknown): PreviewChange | undefined {
       : undefined;
   }
   return undefined;
+}
+
+/** A change with its copy: a place that is no whole number refuses the change. */
+function change(value: unknown): PreviewChange | undefined {
+  const body = changeBody(value);
+  if (!body || !isObject(value) || value.item === undefined) return body;
+  return isItem(value.item) ? { ...body, item: value.item } : undefined;
+}
+
+/** One mark of `claude-marks`: an element id, the copy when it is one, and whether it moves. */
+function claudeMark(value: unknown): ClaudeMark | undefined {
+  if (!isObject(value)) return undefined;
+  const { id, item, motion } = value;
+  if (!isId(id) || typeof motion !== 'boolean') return undefined;
+  if (item === undefined) return { id, motion };
+  return isItem(item) ? { id, item, motion } : undefined;
 }
 
 /** An edit message from the frame, already known to be on `channel`; `undefined` for a bad one. */
@@ -384,6 +422,14 @@ export function parseEditStudio(message: Loose, channel: string): EditStudioMess
     }
     case 'unpreview':
       return { ...head, type: 'unpreview' };
+    case 'claude-marks': {
+      const { label, marks } = message;
+      if (!isText(label, MAX_NAME) || !Array.isArray(marks)) return undefined;
+      if (marks.length > MAX_CLAUDE_MARKS) return undefined;
+      const parsed = marks.map(claudeMark);
+      if (parsed.some((mark) => mark === undefined)) return undefined;
+      return { ...head, type: 'claude-marks', label, marks: parsed as ClaudeMark[] };
+    }
     default:
       return parseStructureStudio(message, channel);
   }

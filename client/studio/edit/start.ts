@@ -27,6 +27,7 @@ import { mountProps } from './props/panel.ts';
 import { mountStateHeld } from './props/state-held.ts';
 import { mountKeys } from './select/keys.ts';
 import { mountMode } from './select/mode.ts';
+import { modeStorage, opensInEdit, readMode } from './select/mode-memory.ts';
 import { mountRect } from './select/rect.ts';
 import { mountRelease } from './select/release.ts';
 import { createStore, type Store } from './store.ts';
@@ -63,6 +64,8 @@ export function startEditor(main: HTMLElement, frame: Frame): Editor | undefined
   const deps = { slug, main, panel, store, bridge };
   const ctx: EditorContext = { ...deps, history: createHistory(deps) };
   mountMode(ctx);
+  // Back on the latest version the editor opens in the mode the person chose before.
+  if (opensInEdit(readMode(modeStorage(), slug), true)) store.set({ on: true });
   mountLayers(ctx);
   mountProps(ctx);
   mountConflict(ctx);

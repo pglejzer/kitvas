@@ -66,6 +66,7 @@ const REASONS: Record<AskSubject['reason'], string> = {
   locked: 'the element is locked, so the editor keeps it as it is',
   'kit-state-wins':
     "the kit's own style for this state is more specific than a class rule, so a value set there would not show",
+  'item-key': "the list's key does not give each item a name a class can use",
 };
 
 const tokenName = (token: string): string => token.replace(/^--kit-/, '').replace('-', '.');
@@ -155,6 +156,8 @@ export function opWords(op: EditOp): string {
       return `duplicate ${itemWords(op.item, op.path)}`;
     case 'removeItem':
       return `delete ${itemWords(op.item, op.path)}`;
+    case 'addItemClass':
+      return `give ${itemWords(op.path.at(-1) ?? 0, op.path)} its own class "${op.className}"`;
     case 'setItemText':
       return op.path === undefined
         ? `change the text of item ${op.item + 1} of the list to "${op.value}"`

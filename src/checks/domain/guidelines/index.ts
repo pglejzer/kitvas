@@ -10,7 +10,9 @@ import { SOURCE_GUIDELINES } from './source.ts';
 import type { Guideline } from './types.ts';
 import { UI_LAYOUT_GUIDELINES } from './ui-layout.ts';
 import { UI_LOOK_GUIDELINES } from './ui-look.ts';
+import { UI_NARROW_GUIDELINES } from './ui-narrow.ts';
 import { UI_TYPE_GUIDELINES } from './ui-type.ts';
+import { UI_WIDE_GUIDELINES } from './ui-wide.ts';
 import { UX_FLOW_GUIDELINES } from './ux-flow.ts';
 import { UX_FORMS_GUIDELINES } from './ux-forms.ts';
 
@@ -27,6 +29,8 @@ export const GUIDELINES: readonly Guideline[] = [
   ...UI_TYPE_GUIDELINES,
   ...UI_LAYOUT_GUIDELINES,
   ...UI_LOOK_GUIDELINES,
+  ...UI_WIDE_GUIDELINES,
+  ...UI_NARROW_GUIDELINES,
   ...UX_FORMS_GUIDELINES,
   ...UX_FLOW_GUIDELINES,
   ...SOURCE_GUIDELINES,

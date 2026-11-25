@@ -1,20 +1,23 @@
-// The Changes tab (plan 13, task J; plan 18, task D): the session's steps as a rail of nodes, each
-// with who made it, what changed as chips and, on the newest of the person's, its undo; the last
-// saved version at the rail's end; the values outside the kit; and the foot with Undo all and
-// Save version, always in view. The logic is in pure functions over plain data (`rail.ts`,
-// `chips.ts`); `mountChanges` only draws it and wires the clicks.
+// The Changes tab (plan 13, task J; plan 18, task D; plan 18f, task 3): a filter All | You | Claude,
+// then the session's steps as a rail of nodes, each with the element, who made it, when, what
+// changed as chips and, on the newest of the person's, its undo; the last saved version at the
+// rail's end; the values outside the kit; and the foot with Undo all and Save version, always in
+// view. The logic is in pure functions over plain data (`rail.ts`, `change-chips.ts`, `chips.ts`);
+// `entry-view.ts` draws the rows; `mountChanges` wires them.
 
 import type { EditOp } from '../../../../src/edit/index.ts';
 import type { OffKit } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import { iconButton } from '../../ui/icon.ts';
 import { getOffKit } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { mismatchedIds } from '../live/items.ts';
 import type { ChangeEntry } from '../store.ts';
 import { text } from '../texts.ts';
-import { chipRow } from './chip-view.ts';
-import { chipsOf, type StepEntry } from './chips.ts';
+import { type ChangeFilter, countChanges, filterChanges } from './change-chips.ts';
+import type { StepEntry } from './chips.ts';
+import { createFilterBar, renderEntry, renderMarker } from './entry-view.ts';
 import { footNote, isFresh, savedVersion, undoableIndex } from './rail.ts';
+import { readSavedAt } from './saved-at.ts';
+import { mountTabCounts } from './tab-counts.ts';
 
 export type OffKitItem = OffKit['items'][number];
 
@@ -107,73 +110,6 @@ function button(className: string, words: string): HTMLButtonElement {
   return node;
 }
 
-function chip(words: string, tone?: 'review'): HTMLElement {
-  const node = element('span', 'k-chip', words);
-  if (tone !== undefined) node.dataset.tone = tone;
-  return node;
-}
-
-/** The dot of a step on the rail; a version's is a square (`changes.ts` of the skin). */
-const node = (): HTMLElement => {
-  const dot = element('span', 'changes-node');
-  dot.setAttribute('aria-hidden', 'true');
-  return dot;
-};
-
-type StepView = { undo: boolean; flash: boolean; mismatched: ReadonlySet<string> };
-
-function renderStep(ctx: EditorContext, entry: StepEntry, view: StepView): HTMLElement {
-  const parts = entryParts(entry);
-  const row = element('li', 'changes-step');
-  row.dataset.by = parts.who;
-  if (view.flash) row.classList.add('k-flash');
-  const head = element('div', 'changes-row');
-  const id = parts.id;
-  if (parts.element !== '') {
-    const name = button('changes-element k-clip', parts.element);
-    name.title = parts.element;
-    if (id === null) name.setAttribute('aria-disabled', 'true');
-    else name.addEventListener('click', () => ctx.store.set({ selection: [id] }));
-    head.append(name);
-  }
-  head.append(chip(text(parts.who === 'claude' ? 'changes.claude' : 'changes.you')));
-  if (view.undo) {
-    const undo = iconButton('undo', text('changes.undoStep'));
-    undo.dataset.changesUndo = '';
-    undo.disabled = ctx.store.get().busy;
-    undo.addEventListener('click', () => void ctx.history.undo());
-    head.append(undo);
-  }
-  row.append(node(), head);
-  const chips = chipRow(chipsOf(entry));
-  if (chips) row.append(chips);
-  row.append(element('p', 'changes-label', parts.label));
-  const flags: HTMLElement[] = [];
-  if (parts.offKit) flags.push(chip(text('changes.entryOffKit'), 'review'));
-  // Spec 4c, goal 8: the build shows another value than the editor did for this element.
-  if (id !== null && view.mismatched.has(id)) flags.push(chip(text('live.mismatchFlag'), 'review'));
-  if (flags.length > 0) {
-    const line = element('div', 'changes-chips');
-    line.append(...flags);
-    row.append(line);
-  }
-  return row;
-}
-
-/** The rail's end: the last saved version, and whether the steps above are in it. */
-function renderSaved(version: number, above: boolean): HTMLElement {
-  const row = element('li', 'changes-step changes-saved');
-  row.dataset.by = 'version';
-  const head = element('div', 'changes-row');
-  head.append(element('strong', undefined, text('changes.version', { version })));
-  row.append(
-    node(),
-    head,
-    element('p', 'k-meta', text(above ? 'changes.notInVersion' : 'changes.lastSaved')),
-  );
-  return row;
-}
-
 function renderOffKit(ctx: EditorContext, items: OffKitItem[]): HTMLElement {
   const box = element('section', 'changes-offkit');
   const title = text(items.length === 0 ? 'changes.offKitNone' : 'changes.offKit', {
@@ -234,13 +170,20 @@ export function mountChanges(ctx: EditorContext): void {
   /** How many lines the rail showed last: a new one flashes once. */
   let shown = ctx.store.get().changes.length;
   let undoing = false;
+  let filter: ChangeFilter = 'all';
+  /** The saved version's clock time, by version: read once, drawn in the marker. */
+  const savedAt = new Map<number, string | null>();
 
   // Drawn once: the part that scrolls, and the foot that stays in view (C8). The rail and the
   // values outside the kit are drawn apart, so a read of the one leaves the other as it is.
+  const bar = createFilterBar((by) => {
+    filter = by;
+    draw();
+  });
   const steps = element('div', 'changes-steps');
   const offKit = element('div');
   const body = element('div', 'k-pad changes-body');
-  body.append(steps, offKit);
+  body.append(bar.element, steps, offKit);
   const scroll = element('div', 'k-scroll');
   scroll.append(body);
   const foot = element('div', 'k-actions changes-foot');
@@ -279,15 +222,36 @@ export function mountChanges(ctx: EditorContext): void {
     const undoAt = undoableIndex(entries, state.undo[state.undo.length - 1]);
     const fresh = isFresh(shown, state.changes.length);
     shown = state.changes.length;
+    bar.render(filter, countChanges(entries));
+    const now = Date.now();
     const rail = element('ol', 'changes-rail');
     rail.setAttribute('aria-label', text('changes.title'));
-    entries.forEach((entry, index) => {
-      const flash = fresh && index === 0;
-      rail.append(renderStep(ctx, entry, { undo: index === undoAt, flash, mismatched }));
-    });
+    // The filter hides lines, never the undo: the newest line keeps its place in the whole list.
+    const newest = entries[0];
+    for (const entry of filterChanges(entries, filter)) {
+      const view = {
+        undo: undoAt === 0 && entry === newest,
+        flash: fresh && entry === newest,
+        mismatched,
+        now,
+        element: entryParts(entry).element,
+      };
+      rail.append(renderEntry(ctx, entry, view));
+    }
     const version = savedVersion(state.edit);
-    if (version !== null) rail.append(renderSaved(version, entries.length > 0));
-    const empty = entries.length === 0 ? element('p', 'k-quiet', text('changes.empty')) : null;
+    if (version !== null) {
+      rail.append(renderMarker(version, savedAt.get(version) ?? null, entries.length > 0));
+      if (!savedAt.has(version)) {
+        savedAt.set(version, null);
+        void readSavedAt(state.slug, version).then((time) => {
+          savedAt.set(version, time);
+          if (time !== null) draw();
+        });
+      }
+    }
+    const none = entries.length === 0 ? 'changes.empty' : 'changes.emptyFilter';
+    const hidden = filterChanges(entries, filter).length === 0;
+    const empty = hidden ? element('p', 'k-quiet', text(none)) : null;
     steps.replaceChildren(...(empty ? [empty] : []), ...(rail.childElementCount > 0 ? [rail] : []));
     renderFoot();
   };
@@ -315,4 +279,5 @@ export function mountChanges(ctx: EditorContext): void {
   draw();
   offKit.replaceChildren(renderOffKit(ctx, items));
   void refresh();
+  mountTabCounts(ctx);
 }

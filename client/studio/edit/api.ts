@@ -17,6 +17,8 @@ import type {
   Subtree,
 } from '../../../src/studio/api/edit/structure-schemas.ts';
 import type {
+  ImageDelete,
+  ImageList,
   ImageUpload,
   ImageUploadRequest,
 } from '../../../src/studio/api/images/image-schemas.ts';
@@ -26,7 +28,11 @@ export type Answer<T> =
   | { ok: true; status: number; body: T }
   | { ok: false; status: number; code: string | null };
 
-async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<Answer<T>> {
+async function call<T>(
+  method: 'GET' | 'POST' | 'DELETE',
+  path: string,
+  body?: unknown,
+): Promise<Answer<T>> {
   try {
     const response = await fetch(path, {
       method,
@@ -53,15 +59,18 @@ export const getEditState = (slug: string): Promise<Answer<EditState>> =>
 
 /**
  * One element as its source writes it. `path` (ADR 0065): the rendered copy its `list` is read
- * for, its place in each list around it; left out, the list is read for no one copy.
+ * for, its place in each list around it; left out, the list is read for no one copy. `scope`
+ * `item` (ADR 0072, needs `path`): the answer is read for that copy's own class.
  */
 export const inspect = (
   slug: string,
   id: string,
   path?: readonly number[],
+  scope?: 'item',
 ): Promise<Answer<Inspect>> => {
   const copy = path === undefined ? '' : `&path=${path.join(',')}`;
-  return call('GET', `${base(slug)}/inspect?id=${encodeURIComponent(id)}${copy}`);
+  const own = scope === undefined || path === undefined ? '' : `&scope=${scope}`;
+  return call('GET', `${base(slug)}/inspect?id=${encodeURIComponent(id)}${copy}${own}`);
 };
 
 /**
@@ -107,6 +116,14 @@ export const postImage = (
   slug: string,
   request: ImageUploadRequest,
 ): Promise<Answer<ImageUpload>> => call('POST', `${base(slug)}/images`, request);
+
+/** The image files of the latest version's `src/img/`, sorted by name. */
+export const getImages = (slug: string): Promise<Answer<ImageList>> =>
+  call('GET', `${base(slug)}/images`);
+
+/** Removes an image of the latest version for good; `deleted: false` says the draft still uses it. */
+export const deleteImage = (slug: string, file: string): Promise<Answer<ImageDelete>> =>
+  call('DELETE', `${base(slug)}/images/${encodeURIComponent(file)}`, {});
 
 type WaiverList = { waivers: Waiver[] };
 

@@ -1,12 +1,14 @@
 // The header of the properties panel (plan 15, task C; spec goal 8): the path of the element's
-// parents as crumbs that select on click, its name with a chip when it is a kit component,
-// buttons for the parent and the first child, and its file and line. With several elements
-// selected it says how many and that the rows are the ones they share. Plan 18 (task C): the path
-// is one quiet clipped line; the suggestion is under the header (`view.ts`). The paths are pure
-// over the editor's state; the DOM part is thin.
+// parents as crumbs that select on click, its name with a chip when it is a kit component, and
+// buttons for the parent and the first child. With several elements selected it says how many.
+// Plan 18 (task C): the path is one quiet clipped line; the suggestion is under the header
+// (`view.ts`). Plan 18f (task 2, spec S4.6 item 1): a kit component has the kit's icon before its
+// name; the file and line moved to the Source strip; what explains the whole element (several
+// selected, a Tailwind draft, a spread) is an info mark whose tooltip says it, and a screen reader
+// reads it there. The paths are pure over the editor's state; the DOM part is thin.
 
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import { iconButton } from '../../ui/icon.ts';
+import { icon, iconButton } from '../../ui/icon.ts';
 import { firstChildOf, parentOf, tagOfId } from '../select/selection.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
@@ -83,16 +85,40 @@ function navButton(
   return button;
 }
 
-/** The name line: a title, and what sits at its end (`.k-head`). */
-function nameLine(name: string, after: HTMLElement[], end: HTMLElement | null): HTMLElement {
+/** The name line: an icon, a title, and what sits at its end (`.k-head`). */
+function nameLine(
+  name: string,
+  before: HTMLElement | null,
+  after: HTMLElement[],
+  end: HTMLElement | null,
+): HTMLElement {
   const line = el('div', 'k-head props-named');
   const ident = el('div', 'props-ident');
   const title = el('h3', 'props-tag k-clip', name);
   title.title = name;
+  if (before !== null) ident.append(before);
   ident.append(title, ...after);
   line.append(ident);
   if (end !== null) line.append(end);
   return line;
+}
+
+/**
+ * The info mark: the sentences as its tooltip, and as text a screen reader reads in place. A
+ * shared tooltip that also opens on focus is not in the studio's base layer yet.
+ */
+function infoMark(sentences: readonly string[]): HTMLElement {
+  const mark = el('span', 'props-info');
+  mark.title = sentences.join('\n');
+  mark.append(icon('info'), el('span', 'k-sr', sentences.join(' ')));
+  return mark;
+}
+
+/** The kit's mark before a kit component's name; it says nothing the chip does not. */
+function kitIcon(): HTMLElement {
+  const mark = el('span', 'props-kit-icon');
+  mark.append(icon('component'));
+  return mark;
 }
 
 /** The parents as one line of crumbs; `null` for an element without any. */
@@ -111,26 +137,29 @@ function pathView(crumbs: readonly Crumb[], select: (id: string) => void): HTMLE
   return nav;
 }
 
-/** The header of one element, or of several. */
+/**
+ * The header of one element, or of several. `notes`: the sentences that explain the element as
+ * a whole, behind the info mark.
+ */
 export function headerView(options: {
   state: Lineage;
   inspected: Inspect;
   count: number;
   select(id: string): void;
+  notes?: readonly string[];
 }): HTMLElement {
   const { inspected, count, select } = options;
+  const notes = options.notes ?? [];
   const head = el('header', 'props-element');
   head.dataset.row = 'head';
   if (count > 1) {
-    head.append(
-      nameLine(text('props.many', { count }), [], null),
-      el('p', 'props-hint', text('props.many.note')),
-    );
+    const info = infoMark([text('props.many.note'), ...notes]);
+    head.append(nameLine(text('props.many', { count }), null, [info], null));
     return head;
   }
   const path = pathView(crumbsOf(options.state, inspected.id), select);
   if (path !== null) head.append(path);
-  // A chip only on a kit component: a plain element needs no mark.
+  // A chip and the kit's icon only on a kit component: a plain element needs no mark.
   const after: HTMLElement[] = [];
   const kind = kindOf(inspected);
   if (kind === 'kit') {
@@ -138,13 +167,10 @@ export function headerView(options: {
     chip.dataset.kind = kind;
     after.push(chip);
   }
+  if (notes.length > 0) after.push(infoMark(notes));
   const near = neighboursOf(options.state, inspected.id);
   const jump = el('div', 'props-jump');
   jump.append(navButton('parent', near.parent, select), navButton('child', near.child, select));
-  const where = placeOf(inspected);
-  const place = el('p', 'k-meta k-clip props-file');
-  place.title = where;
-  place.append(el('code', undefined, where));
-  head.append(nameLine(inspected.tag, after, jump), place);
+  head.append(nameLine(inspected.tag, kind === 'kit' ? kitIcon() : null, after, jump));
   return head;
 }

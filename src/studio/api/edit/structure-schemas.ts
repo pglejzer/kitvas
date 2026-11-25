@@ -1,6 +1,7 @@
 // Shapes of the editor's structure API (spec 4b; plan 14, C10). The routes are in
 // `structure-routes.ts` (task B6); the rules are in the edit module.
 
+import { BACKDROP } from '../../../checks/index.ts';
 import { ElementIdSchema, HASH, MAX_LIST_DEPTH, REFUSALS } from '../../../edit/index.ts';
 import { type Zod, z } from '../../../shared/index.ts';
 import { EtagsSchema } from './edit-schemas.ts';
@@ -69,6 +70,25 @@ export const StructureSchema = z.strictObject({
   ),
 });
 
+/** Rendered previews of the kit for the Insert pane (ADR 0075). */
+export const PreviewsSchema = z.strictObject({
+  /** 'ready': made for the kit as it is now; 'making': a job is making them, ask again; 'none': none can be made (no browser, the catalog failed). */
+  state: z.enum(['ready', 'making', 'none']),
+  /** The kit page's background as `#rrggbb` or `rgb(…)`/`rgba(…)` (checked by a regex), for the tile behind a preview; null when unknown. */
+  backdrop: z.string().regex(BACKDROP).nullable(),
+  /** Each component's preview image address (usable as `<img src>` on the studio page), by component name (roots and parts); a component without one is absent. */
+  components: z.record(z.string(), z.string()),
+  /** One image of the kit's icons in a grid: `columns` cells a row, each `cell` px square, in `names` order (cell i at x = (i % columns) * cell, y = floor(i / columns) * cell); null when not made. */
+  icons: z
+    .strictObject({
+      src: z.string(),
+      cell: z.number().int().positive(),
+      columns: z.number().int().positive(),
+      names: z.array(z.string()),
+    })
+    .nullable(),
+});
+
 /** `GET /api/v1/drafts/{slug}/palette`: what the insert palette offers (spec 4b, decision 10). */
 export const PaletteSchema = z.strictObject({
   components: z.array(
@@ -89,6 +109,8 @@ export const PaletteSchema = z.strictObject({
   icons: z.strictObject({ component: z.string(), names: z.array(z.string()) }).nullable(),
   /** Sections of other drafts that use the same kit, their latest version. */
   sections: z.array(z.strictObject({ slug: z.string(), section: z.string(), purpose: z.string() })),
+  /** Rendered previews of the kit for the Insert pane (ADR 0075). */
+  previews: PreviewsSchema,
 });
 
 /** `GET /api/v1/drafts/{slug}/subtree?id=`: an element's whole source, for copy and cut. */
@@ -102,4 +124,5 @@ export const SubtreeSchema = z.strictObject({
 export type StructureEntry = Zod.infer<typeof StructureEntrySchema>;
 export type Structure = Zod.infer<typeof StructureSchema>;
 export type Palette = Zod.infer<typeof PaletteSchema>;
+export type Previews = Zod.infer<typeof PreviewsSchema>;
 export type Subtree = Zod.infer<typeof SubtreeSchema>;

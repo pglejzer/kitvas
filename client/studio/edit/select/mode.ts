@@ -14,6 +14,7 @@ import type { EditorContext } from '../context.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { chosenCopy, pickSelection, sameChosen, selectBody } from './copies.ts';
+import { modeStorage, writeMode } from './mode-memory.ts';
 import { firstChildOf, parentOf } from './selection.ts';
 import { createSourceText, doubleKind } from './source-text.ts';
 
@@ -143,6 +144,8 @@ export function mountMode(ctx: EditorContext): void {
       const patch = modePatch(store.get().on, pressed);
       if (patch === null) return;
       if (pressed === 'preview') pendingDouble = null;
+      // Only a press is the person's choice; it outlives a version switch.
+      writeMode(modeStorage(), store.get().slug, pressed);
       store.set(patch);
     });
   }

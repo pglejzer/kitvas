@@ -4,6 +4,7 @@
 
 import type { StyleContext } from '../../../../src/edit/index.ts';
 import type { Answer } from '../api.ts';
+import { factsOf, type VersionFacts } from './facts.ts';
 import type { ElementHistory, RestorePreview } from './points.ts';
 
 async function call(
@@ -52,6 +53,12 @@ export async function isBuilt(slug: string, version: number): Promise<boolean | 
   const answer = await call('GET', `${base(slug)}/versions/${version}`);
   if (!answer.ok || !isRecord(answer.body)) return null;
   return answer.body.built === true;
+}
+
+/** What the studio knows of one version for its row: date, screenshot, check. `null` if unread. */
+export async function getVersionFacts(slug: string, version: number): Promise<VersionFacts | null> {
+  const answer = await call('GET', `${base(slug)}/versions/${version}`);
+  return answer.ok ? factsOf(answer.body) : null;
 }
 
 // The two answers below are the server's own schemas, checked there before they are sent.

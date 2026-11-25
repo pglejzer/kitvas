@@ -1,5 +1,5 @@
-// The Why pane (spec 4d, goal 7; plan 17, task E; plan 18, task B): the left panel's reasons, one
-// `.k-item` per section in layout order. A click on a name selects the section's root; "may be out
+// The Why pane (spec 4d, goal 7; plan 17, task E; plan 18, task B; plan 18f, task 1): the left
+// panel's reasons, one `.k-card` per section in layout order, as the mock's cards. A click on a name selects the section's root; "may be out
 // of date" says the section changed after its lines were written; a section with none offers "Ask
 // Claude for the reasons", which sends a `why` request (task A's route). The data is pure
 // (`entries.ts`).
@@ -9,11 +9,24 @@ import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
 import { askWhy, getWhy } from './api.ts';
 import { itemsOf, type WhyItem, type WhyReport } from './entries.ts';
+import { splitLead } from './lead.ts';
 
 type Shown = WhyReport | 'loading' | 'failed';
 
+/** One reason: its first words in bold, then the rest, as the mock's card sets it. */
+function reasonView(line: string): HTMLElement {
+  const reason = el('p', 'why-line');
+  const { lead, rest } = splitLead(line);
+  if (lead !== '') {
+    reason.append(el('em', undefined, lead), document.createTextNode(` ${rest}`));
+  } else {
+    reason.textContent = rest;
+  }
+  return reason;
+}
+
 function entryView(item: WhyItem, select: (id: string) => void, ask: () => void): HTMLElement {
-  const row = el('li', 'k-item why-item');
+  const row = el('li', 'k-card why-card');
   row.dataset.section = item.section;
   row.dataset.state = item.state;
   const { element } = item;
@@ -26,10 +39,10 @@ function entryView(item: WhyItem, select: (id: string) => void, ask: () => void)
   });
   row.append(name);
   if (item.state === 'written') {
-    const lines = el('ul', 'why-lines');
-    for (const line of item.lines) lines.append(el('li', undefined, line));
-    row.append(lines);
-    // Guideline ids and the stale mark sit under a hairline: one fill, the item's own.
+    for (const line of item.lines) row.append(reasonView(line));
+    // The files do not say which version wrote them (a new version copies them), so no number.
+    row.append(el('small', 'why-by', text('why.writtenBy')));
+    // Guideline ids and the stale mark sit under a hairline: one fill, the card's own.
     if (item.guidelines.length > 0 || item.stale) {
       const foot = el('div', 'why-foot');
       if (item.guidelines.length > 0) {

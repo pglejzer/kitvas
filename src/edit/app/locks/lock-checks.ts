@@ -85,6 +85,15 @@ async function lockPlace(work: Work, lock: Kept): Promise<Placed | null> {
   return moved ?? at;
 }
 
+/**
+ * The strings of a `className` in braces, and the strings inside a template's `${…}` too: "This
+ * item" (ADR 0072) wraps an expression as `` `${a ? 'card card--a' : 'card'} card--${id}` ``.
+ */
+const stringsOf = (source: string): string[] =>
+  [...source.matchAll(QUOTED)].flatMap((m) =>
+    m[3] === undefined ? [m[1] ?? m[2] ?? ''] : [m[3], ...stringsOf(m[3])],
+  );
+
 /** Every class written in `span` of `text`: in a `className="…"`, or in the strings of one in braces. */
 function classesIn(text: string, span: Span): string[] {
   const names = new Set<string>();
@@ -93,9 +102,7 @@ function classesIn(text: string, span: Span): string[] {
     const view = readTag(text, at);
     if (typeof view === 'string' || view.className === null) continue;
     const chunks =
-      view.className.kind === 'string'
-        ? [view.className.value]
-        : [...view.className.source.matchAll(QUOTED)].map((m) => m[1] ?? m[2] ?? m[3] ?? '');
+      view.className.kind === 'string' ? [view.className.value] : stringsOf(view.className.source);
     for (const chunk of chunks) {
       for (const name of chunk.split(/\s+/)) if (name !== '') names.add(name);
     }
@@ -124,6 +131,8 @@ async function touchesOf(work: Work, op: EditOp): Promise<FileTouch[]> {
     case 'removeClass':
     case 'setUtility':
     case 'replaceTag':
+    // ADR 0072: the element's `className` gets its item's modifier.
+    case 'addItemClass':
       return one(await placed(work, op.id), (at) => ({ kind: 'element', at: at.at }));
     case 'setStyle':
     case 'removeStyle': {

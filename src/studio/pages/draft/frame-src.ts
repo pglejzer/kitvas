@@ -1,6 +1,11 @@
 // The address a studio page frames a version at, on the prototype origin.
 
-import { catalogFrameUrl, catalogRefUrl, frameUrl } from '../../frame/frame-url.ts';
+import {
+  catalogFrameUrl,
+  catalogPreviewUrl,
+  catalogRefUrl,
+  frameUrl,
+} from '../../frame/frame-url.ts';
 
 /** The prototype origin: its port and the key every file address starts with. */
 export type FrameOrigin = { port: number; key: string };
@@ -23,6 +28,16 @@ export function catalogRefSrc(
 ): string {
   const hostname = host.slice(0, host.lastIndexOf(':'));
   return catalogRefUrl({ hostname, port: frame.port, key: frame.key, ...target });
+}
+
+/** The address of a preview image of a kit (`previews/<set>/<file>` of its catalog folder). */
+export function catalogPreviewSrc(
+  frame: FrameOrigin,
+  host: string,
+  target: { kitId: string; path: string },
+): string {
+  const hostname = host.slice(0, host.lastIndexOf(':'));
+  return catalogPreviewUrl({ hostname, port: frame.port, key: frame.key, ...target });
 }
 
 export function frameSrc(

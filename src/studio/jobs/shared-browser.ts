@@ -1,9 +1,14 @@
-// One browser for every check job while the studio runs: started at the first check, ended with it.
+// One browser for every check and previews job while the studio runs: started at the first such
+// job, ended with the studio.
 
 import { SHARED_BROWSER_ENV, type SharedBrowser } from '../../checks/index.ts';
 
+/** The jobs that open a browser: a check, and a kit's previews (ADR 0075). */
+const usesBrowser = (args: readonly string[]): boolean =>
+  args[0] === 'check' || (args[0] === 'kit' && args[1] === 'previews');
+
 export type BrowserKeeper = {
-  /** The environment for a job: a check gets the shared browser, other jobs nothing. */
+  /** The environment for a job: a check or previews job gets the shared browser, others nothing. */
   envFor(args: string[]): Promise<NodeJS.ProcessEnv>;
   /** The browser's pid while it runs. */
   pid(): number | undefined;
@@ -40,7 +45,7 @@ export function keepBrowser(
 
   return {
     async envFor(args) {
-      if (args[0] !== 'check') return {};
+      if (!usesBrowser(args)) return {};
       current ??= start();
       const browser = await current;
       return {

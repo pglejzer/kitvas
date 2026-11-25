@@ -109,6 +109,8 @@ export type ActionFacts = {
   menu: boolean;
   /** aria-current; null when absent. */
   current: string | null;
+  /** Rendered lines of the visible label (line boxes grouped by top); 1 when it has none to measure. */
+  lines: number;
 };
 
 export type ImageFacts = {
@@ -116,6 +118,8 @@ export type ImageFacts = {
   /** Has width and height attributes, or a CSS aspect-ratio other than auto. */
   sized: boolean;
   alt: string | null;
+  /** The current source is an SVG (`.svg` path or `data:image/svg+xml`). */
+  vector: boolean;
 };
 
 export type FactNode = {
@@ -199,10 +203,14 @@ export const FACTS_NODE_CAP = 3000;
 export const FOCUS_STOP_CAP = 60;
 export const REFLOW_VIEWPORT = { width: 320, height: 568 } as const;
 export const LANDSCAPE_VIEWPORT = { width: 844, height: 390 } as const;
+/** The tablet width every check visits besides the phone and the laptop (ADR 0074): measured only. */
+export const TABLET_VIEWPORT = { width: 768, height: 1024 } as const;
+/** The widths only `--deep` visits, measured only (ADR 0073). */
 export const DEEP_VIEWPORTS = [
-  { width: 768, height: 1024 },
   { width: 1024, height: 768 },
   { width: 1440, height: 900 },
+  { width: 1920, height: 1080 },
+  { width: 2560, height: 1440 },
 ] as const;
 /** WCAG 1.4.12. */
 export const SPACING_OVERRIDE =

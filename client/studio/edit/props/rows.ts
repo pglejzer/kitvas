@@ -1,8 +1,9 @@
 // The rows of the properties panel (plan 13, task G; plan 15, task C): a catalog prop and the
-// text; the style rows are in `props-style.ts`. With several elements selected a row writes to
-// each of them, as one gesture. Every edit goes through `env.commit`; a row never sends anything
-// itself. Stage 4c: a prop has one value for every width and state, so its row is read-only in
-// any other edit context.
+// text; the style rows are in `style.ts`. With several elements selected a row writes to each of
+// them, as one gesture. Every edit goes through `env.commit`; a row never sends anything itself.
+// Stage 4c: a prop has one value for every width and state, so its row is read-only in any other
+// edit context. Plan 18f (task 2): an enum prop is option chips, a boolean a switch, a prop set by
+// code or held by the context a locked chip whose reason is its tooltip (`prop-control.ts`).
 
 import type {
   EditOp,
@@ -17,8 +18,9 @@ import type { EditorState, Gesture } from '../store.ts';
 import { isBase } from '../style/context-ops.ts';
 import { type Format, opsForPropAll, PROP_NAME } from '../style/ops.ts';
 import { text } from '../texts.ts';
-import { noteOnce } from './context.ts';
+import { lockedChip, optionChips } from './chips.ts';
 import { checkboxControl, el, numberControl, selectControl, textControl } from './controls.ts';
+import { controlOf, type PropControl } from './prop-control.ts';
 
 /**
  * Sends a gesture when its turn comes: `build` gets the selected elements as the server last
@@ -53,6 +55,17 @@ export type Env = {
   upload(onStored: (file: string) => void): HTMLElement;
   /** Reads the selected elements again: a new image file is in the version now. */
   reread(): void;
+  // Plan 18e (task 1).
+  /**
+   * Shows `ops` in the cards at once (hover preview); `null` takes the preview back. Nothing is
+   * shown while an edit is on its way.
+   */
+  preview(ops: readonly EditOp[] | null): void;
+  /** The list scope switch: all items of a list or this one; `null` outside a list. */
+  scope: { mode: 'all' | 'item'; count: number } | null;
+  // Plan 18f (task 2).
+  /** The rows whose typed field the person opened with "Custom" under the kit's control. */
+  custom: { has(row: string): boolean; toggle(row: string): void };
 };
 
 type Row = { root: HTMLElement; label: HTMLElement; body: HTMLElement; meta: HTMLElement };
@@ -77,6 +90,16 @@ export function makeRow(env: Env, key: string, aliases: string[], label: string)
     meta.append(problem);
   }
   return { root, label: name, body, meta };
+}
+
+/**
+ * Plan 18f (spec S4.6 "Less text"): a sentence that explains a row goes into its label's tooltip
+ * and, for a screen reader, into the label itself; it no longer stands under the control.
+ */
+export function explain(label: HTMLElement, sentence: string): void {
+  if (sentence === '') return;
+  label.title = label.title === '' ? sentence : `${label.title}\n${sentence}`;
+  label.append(el('span', 'k-sr', ` ${sentence}`));
 }
 
 /** A value that cannot be edited here, as the source or the frame has it. */
@@ -109,26 +132,58 @@ function sharedProp(views: readonly Inspect[], name: string): PropValue | undefi
   return same ? one.value : undefined;
 }
 
-/** One prop's control: a list, a box, a text or a number field, by the catalog's type. */
-function propControl(
-  kind: string,
-  label: string,
-  raw: string | number | boolean | undefined,
-  set: (value: PropValue) => void,
-): HTMLElement {
-  if (kind === 'boolean') {
-    const onChange = (value: boolean): void => set({ kind: 'boolean', value });
-    return checkboxControl({ label, checked: raw === true, onChange });
+/** What a prop's row shows and writes, read once for its control. */
+type PropRow = {
+  env: Env;
+  name: string;
+  /** The value the tag writes (or every selected element shares); `undefined` for none. */
+  value: PropValue | undefined;
+  /** The value in force: the written one, else the catalog's default when none is written. */
+  raw: string | number | boolean | undefined;
+  /** No selected element writes the prop: the catalog's default is in force. */
+  absent: boolean;
+  single: boolean;
+  set(value: PropValue): void;
+};
+
+/** One prop's control, by `controlOf`: chips, a list, a switch, a text or a number field. */
+function propControl(prop: PropRow, control: PropControl): HTMLElement {
+  const { name: label, raw, set } = prop;
+  switch (control.kind) {
+    case 'chips': {
+      // The written value is pressed; with none written, the default in force is outlined.
+      const written = prop.value === undefined ? null : String(prop.value.value);
+      const hint = prop.absent && raw !== undefined ? String(raw) : null;
+      const onPick = (one: string): void => set({ kind: 'string', value: one });
+      return optionChips({ label, options: control.options, current: written, hint, onPick });
+    }
+    case 'list': {
+      const options = control.options.map((one) => ({ value: one, label: one }));
+      const placeholder = prop.single || prop.absent ? '' : text('props.mixed');
+      return selectControl({
+        label,
+        value: String(raw ?? ''),
+        options,
+        placeholder,
+        onChange: (one) => set({ kind: 'string', value: one }),
+        onClose: () => prop.env.redraw(),
+      });
+    }
+    case 'switch': {
+      const onChange = (value: boolean): void => set({ kind: 'boolean', value });
+      return checkboxControl({ label, checked: raw === true, onChange });
+    }
+    case 'field': {
+      if (control.type === 'string') {
+        const onCommit = (value: string): void => set({ kind: 'string', value });
+        return textControl({ label, value: String(raw ?? ''), onCommit });
+      }
+      const onCommit = (value: number): void => set({ kind: 'number', value });
+      return numberControl({ label, value: typeof raw === 'number' ? raw : null, onCommit });
+    }
+    default:
+      return staticValue(String(raw ?? ''));
   }
-  if (kind === 'string') {
-    const onCommit = (value: string): void => set({ kind: 'string', value });
-    return textControl({ label, value: String(raw ?? ''), onCommit });
-  }
-  if (kind === 'number') {
-    const onCommit = (value: number): void => set({ kind: 'number', value });
-    return numberControl({ label, value: typeof raw === 'number' ? raw : null, onCommit });
-  }
-  return staticValue(String(raw ?? ''));
 }
 
 /**
@@ -159,9 +214,10 @@ export function propRows(env: Env): HTMLElement[] {
     const row = makeRow(env, key, [], name);
     const set = (value: PropValue): void =>
       commit(key, (now) => opsForPropAll(now, name, value), text('props.label.prop', { name }));
-    if (written?.kind === 'expr') {
-      row.body.append(staticValue(text('props.expr.source', { source: written.source })));
-      row.meta.append(el('span', 'props-hint', text('props.reason.computed')));
+    const control = controlOf({ type: kind, values: def?.values, written });
+    if (control.kind === 'code') {
+      // Set in code: the expression, locked, with the reason as its tooltip.
+      row.body.append(lockedChip(control.text, text('props.reason.computed')));
       rows.push(row.root);
       continue;
     }
@@ -169,24 +225,14 @@ export function propRows(env: Env): HTMLElement[] {
     const value = written?.kind === 'literal' ? written.value : shared;
     const raw = value ? value.value : absent ? def?.default : undefined;
     if (fixed) {
-      row.body.append(staticValue(String(raw ?? '')));
-      if (noteOnce(env, 'propOnce')) {
-        row.meta.append(el('span', 'props-hint', text('context.propOnce')));
-      }
+      // A prop has one value for every width and state: the reason is the chip's tooltip.
+      row.body.append(lockedChip(String(raw ?? ''), text('context.propOnce')));
       rows.push(row.root);
       continue;
     }
-    if (kind === 'enum') {
-      const options = (def?.values ?? []).map((one) => ({ value: one, label: one }));
-      const onChange = (one: string): void => set({ kind: 'string', value: one });
-      const placeholder = single || absent ? '' : text('props.mixed');
-      row.body.append(
-        selectControl({ label: name, value: String(raw ?? ''), options, placeholder, onChange }),
-      );
-    } else {
-      row.body.append(propControl(kind, name, raw, set));
-    }
-    if (single && !written) row.meta.append(el('span', 'props-hint', text('props.default')));
+    const prop: PropRow = { env, name, value, raw, absent, single, set };
+    row.body.append(propControl(prop, control));
+    if (single && !written) explain(row.label, text('props.default'));
     else if (def) {
       const clear = (): void =>
         commit(key, (now) => opsForPropAll(now, name, null), text('props.label.reset', { name }));

@@ -25,12 +25,13 @@ function buildDir(): string {
   return dir;
 }
 
-test('the map holds the page, its script, its sheet and images, nothing else', () => {
+test('the map holds the page, its script, its sheet, images and check shots, nothing else', () => {
   assert.deepEqual([...frameFileMap(buildDir()).keys()].sort(), [
     'css/index.css',
     'html/index.html',
     'img/photos/a.png',
     'js/index.js',
+    'shots/filled-390.png',
   ]);
 });
 
@@ -40,13 +41,7 @@ test('a file is found by its path below build/, with its content type', () => {
   assert.equal(css?.type, 'text/css; charset=utf-8');
   assert.ok(css?.file.endsWith('index.css'));
   assert.equal(frameFile(dir, 'img/photos/a.png')?.type, 'image/png');
-  const refused = [
-    'json/ids.json',
-    'shots/filled-390.png',
-    'img/notes.txt',
-    'html/../json/ids.json',
-    'html/missing.html',
-  ];
+  const refused = ['json/ids.json', 'img/notes.txt', 'html/../json/ids.json', 'html/missing.html'];
   for (const rel of refused) assert.equal(frameFile(dir, rel), undefined, rel);
 });
 

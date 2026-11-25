@@ -2,7 +2,7 @@
 // shown at one of three presets (the widths the checks run at, so their marks show) or at any
 // other width from 320 to 2560, where the marks are hidden.
 
-import type { Width } from '../../../src/studio/views/draft-query.ts';
+import type { SizeGroup, Width } from '../../../src/studio/views/draft-query.ts';
 
 /**
  * A copy of `WIDTHS`, `MIN_VIEW` and `MAX_VIEW` in `src/studio/views/draft-query.ts`: the page
@@ -11,6 +11,25 @@ import type { Width } from '../../../src/studio/views/draft-query.ts';
 export const PRESETS: readonly Width[] = [390, 768, 1280];
 export const MIN_VIEW = 320;
 export const MAX_VIEW = 2560;
+
+/** A copy of `SIZES` in `src/studio/views/draft-query.ts` (the width pill's menu); a test keeps it equal. */
+export const SIZES: readonly { width: number; group: SizeGroup; name: string }[] = [
+  { width: 320, group: 'phone', name: 'small' },
+  { width: 390, group: 'phone', name: 'phone' },
+  { width: 430, group: 'phone', name: 'large' },
+  { width: 768, group: 'tablet', name: 'tablet' },
+  { width: 1024, group: 'tablet', name: 'wide' },
+  { width: 1280, group: 'desktop', name: 'laptop' },
+  { width: 1440, group: 'desktop', name: 'laptopLarge' },
+  { width: 1920, group: 'desktop', name: 'desktop' },
+  { width: 2560, group: 'desktop', name: 'wide' },
+];
+
+/** The width a menu row stands for (`data-dock-size`); `null` for anything that is not a size. */
+export function sizeOf(text: string | null | undefined): number | null {
+  const width = parseView(text);
+  return width !== null && SIZES.some((size) => size.width === width) ? width : null;
+}
 
 /** A drag that ends this close to a preset, in pixels of width, lands on it. */
 export const SNAP = 8;

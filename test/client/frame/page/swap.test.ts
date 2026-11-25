@@ -35,6 +35,7 @@ type Options = {
 function setup(options: Options = {}) {
   const clock = fakeClock();
   const log: string[] = [];
+  const answers: { step: string; scroll: { x: number; y: number } | undefined }[] = [];
   const sheets: { live: number; load(ok: boolean): void }[] = [];
   const scripts: { live: number; end(): void }[] = [];
   let gesture: Promise<void> | null = null;
@@ -73,11 +74,14 @@ function setup(options: Options = {}) {
       sheet.use();
       log.push(`take ${handed.initial}`);
     },
-    answer: (live, step) => {
+    scroll: () => ({ x: 3, y: 600 }),
+    answer: (live, step, scroll) => {
       log.push(`${step} ${live}`);
+      answers.push({ step, scroll });
     },
   });
   return {
+    answers,
     clock,
     log,
     sheets,
@@ -137,6 +141,17 @@ test('a bundle made with another frame runtime is not taken', async () => {
   await page.sheetLoads();
   await page.scriptRuns(bundle({ runtime: 'r2' }));
   assert.deepEqual(page.log, ['sheet 1', 'script 1', 'drop 1', 'failed 1']);
+});
+
+test('a failed swap carries the scroll the page has; no other answer does', async () => {
+  const failing = setup();
+  failing.swap.ask(1);
+  await settled();
+  await failing.sheetLoads(false);
+  assert.deepEqual(failing.answers, [{ step: 'failed', scroll: { x: 3, y: 600 } }]);
+  const ready = setup();
+  await ready.takes(1);
+  assert.deepEqual(ready.answers, [{ step: 'ready', scroll: undefined }]);
 });
 
 test('a sheet that cannot load fails the swap, and no script runs', async () => {

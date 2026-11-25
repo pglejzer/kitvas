@@ -80,6 +80,12 @@ export type StructureStudioMessage = Head &
      * frame pixels; `shift` and `alt` as they were held.
      */
     | { type: 'release'; x: number; y: number; shift: boolean; alt: boolean }
+    /**
+     * The last drop was not taken (refused, in conflict or lost): the frame puts the nodes its
+     * preview moved back where they stood and removes an insert's placeholder. Sent to the edit
+     * card only and never replayed: it is about one drop.
+     */
+    | { type: 'drop-back' }
     /** Elements shown with `display: none` in the frame only (spec 4b, decision 14). */
     | { type: 'hide'; ids: string[] }
     /** Locked elements: the canvas cannot select or drag them, while editing only. */
@@ -131,6 +137,7 @@ export const STRUCTURE_STUDIO_TYPES = new Set([
   'tokens',
   'drag',
   'release',
+  'drop-back',
   'hide',
   'lock',
   'handles',
@@ -328,6 +335,8 @@ export function parseStructureStudio(
       }
       return { ...head, type: 'release', x, y, shift, alt };
     }
+    case 'drop-back':
+      return { ...head, type: 'drop-back' };
     case 'hide':
       return isIds(message.ids) ? { ...head, type: 'hide', ids: [...message.ids] } : undefined;
     case 'lock':

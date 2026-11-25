@@ -1,18 +1,17 @@
 // The live checks on the screen (spec 4c, goals 5 and 7; plan 16, task C): the Live section above
 // the Checks pane, grouped by element with the widths each finding was seen at, and the selected
-// element's live findings with its accessibility card above the Properties pane. Each is a block
+// element's live findings above the Properties pane (its accessibility is a group of the pane). Each is a block
 // of its own beside its pane, never inside it (the pane's own script redraws its content, and a
 // state switch swaps the Checks pane's), shown with the pane's tab through `data-pane`. A finding
 // is a `.k-item` with its short name, the evidence it carries and its actions (plan 18, task D):
 // Apply when kitvas can make the fix, else Ask Claude, beside Accept… (ADR 0061, `fix-view.ts`).
 
-import type { A11yCard } from '../../../channel/live-protocol.ts';
 import { icon } from '../../ui/icon.ts';
+import { setRunState } from '../checks/run.ts';
 import type { EditorContext } from '../context.ts';
 import { elementName } from '../history/changes.ts';
 import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
-import { renderCard } from './card.ts';
 import type { FullCheckStatus } from './check.ts';
 import { type Evidence, evidenceName, ratioWords } from './evidence.ts';
 import { createFixes, type Fixes, fixControl } from './fix-view.ts';
@@ -23,33 +22,13 @@ export type LiveModel = {
   on: boolean;
   groups: LiveGroup[];
   selected: string | null;
-  card: A11yCard | null;
   status: FullCheckStatus;
 };
 
 export type LiveView = { render(model: LiveModel): void };
 
-/** Whether the accessibility card is open: a convenience of this viewer only. */
-const CARD_KEY = 'kitvas.edit.a11yOpen';
-
-/** A row of a finding; the accessibility card links its problems to them. */
+/** A row of a finding; the Accessibility group of Properties links its problems to them. */
 export const LIVE_ROW = 'checks-live-row';
-
-function readOpen(): boolean {
-  try {
-    return localStorage.getItem(CARD_KEY) !== '0';
-  } catch {
-    return true;
-  }
-}
-
-function writeOpen(open: boolean): void {
-  try {
-    localStorage.setItem(CARD_KEY, open ? '1' : '0');
-  } catch {
-    // Storage refused: the card opens as it did.
-  }
-}
 
 const STATUS_KEYS: Record<FullCheckStatus, string | null> = {
   idle: null,
@@ -200,7 +179,6 @@ export function mountLiveView(ctx: EditorContext): LiveView {
   const props = blockBefore(propsPane, 'live-props', text('live.here'));
   // The source views the fixes are made from, shared by both blocks.
   const fixes = createFixes(ctx);
-  let open = readOpen();
   let shownChecks = '';
   let shownProps = '';
 
@@ -214,6 +192,8 @@ export function mountLiveView(ctx: EditorContext): LiveView {
   checks?.append(head, body);
 
   function renderChecks(model: LiveModel): void {
+    // The pane's Run buttons and the time since the check follow the job (`checks/run.ts`).
+    setRunState(ctx.panel, model.status);
     if (!checks) return;
     checks.toggleAttribute('data-off', !model.on);
     const key = STATUS_KEYS[model.status];
@@ -238,10 +218,9 @@ export function mountLiveView(ctx: EditorContext): LiveView {
   function renderProps(model: LiveModel): void {
     if (!props) return;
     const group = model.groups.find((one) => one.id !== null && one.id === model.selected);
-    const something = group !== undefined || model.card !== null;
-    const shown = model.on && model.selected !== null && something;
+    const shown = model.on && model.selected !== null && group !== undefined;
     props.toggleAttribute('data-off', !shown);
-    const next = keyOf([shown, model.selected, group, model.card]);
+    const next = keyOf([shown, model.selected, group]);
     if (next === shownProps) return;
     shownProps = next;
     if (!shown) {
@@ -256,22 +235,6 @@ export function mountLiveView(ctx: EditorContext): LiveView {
       if (tag) heading.prepend(tag);
       findings.append(heading, rowsOf(ctx, fixes, group));
       parts.push(findings);
-    }
-    if (model.card) {
-      const card = renderCard(model.card, {
-        open,
-        onToggle: (value) => {
-          open = value;
-          writeOpen(value);
-        },
-        findingOf: (rule) => {
-          for (const row of findings.querySelectorAll<HTMLElement>(`.${LIVE_ROW}`)) {
-            if (row.dataset.liveRule === rule && row.dataset.accepted === undefined) return row;
-          }
-          return null;
-        },
-      });
-      parts.push(card);
     }
     props.replaceChildren(...parts);
   }

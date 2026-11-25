@@ -12,9 +12,11 @@ import {
   presetOf,
   readShown,
   type Shown,
+  SIZES,
   SNAP,
   sameShown,
   shownWidth,
+  sizeOf,
   snapToPreset,
   stepView,
   widthAddress,
@@ -22,6 +24,7 @@ import {
 import {
   MAX_VIEW as SERVER_MAX,
   MIN_VIEW as SERVER_MIN,
+  SIZES as SERVER_SIZES,
   WIDTHS,
 } from '../../../../src/studio/views/draft-query.ts';
 
@@ -32,6 +35,23 @@ test('the page keeps the same presets and range as the server', () => {
   assert.deepEqual([...PRESETS], [...WIDTHS]);
   assert.equal(MIN_VIEW, SERVER_MIN);
   assert.equal(MAX_VIEW, SERVER_MAX);
+});
+
+test('the page keeps the same sizes as the server', () => {
+  assert.deepEqual([...SIZES], [...SERVER_SIZES]);
+});
+
+test('a menu row stands for a size of the list and nothing else', () => {
+  for (const size of SIZES) assert.equal(sizeOf(String(size.width)), size.width);
+  for (const asked of ['1000', '391', '', 'wide', null, undefined]) {
+    assert.equal(sizeOf(asked), null, String(asked));
+  }
+});
+
+test('a size from the menu sets the width in place', () => {
+  assert.deepEqual(chooseWidth(PHONE, 1920), { width: 390, view: 1920 });
+  assert.deepEqual(chooseWidth({ width: 390, view: 1920 }, 768), { width: 768, view: null });
+  assert.deepEqual(chooseWidth(PHONE, 2560), { width: 390, view: 2560 });
 });
 
 test('a width is a whole number from 320 to 2560', () => {

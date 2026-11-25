@@ -174,9 +174,11 @@ export function noteOnce(env: object, key: string): boolean {
   return true;
 }
 
-/** The note on a covered row: a prop sets it everywhere; a pick asks Claude. Once per panel. */
-export function coveredNote(env: Env): HTMLElement | null {
-  if (!noteOnce(env, 'covered')) return null;
+/**
+ * Why a covered row is not written here: a prop sets it everywhere; a pick asks Claude. Plan 18f:
+ * the words are every covered row's tooltip, no longer a note shown once per panel.
+ */
+export function coveredWords(env: Env): string {
   const canAsk = env.inspected.scss !== null && env.inspected.styleClass !== null;
-  return el('span', 'props-hint', text(canAsk ? 'context.covered.ask' : 'context.covered'));
+  return text(canAsk ? 'context.covered.ask' : 'context.covered');
 }

@@ -8,10 +8,29 @@ import type { LiveStudioBody } from '../../../../../client/channel/live-protocol
 import { createCardList } from '../../../../../client/studio/canvas/card-list.ts';
 import type { Bridge } from '../../../../../client/studio/edit/bridge.ts';
 import type { EditorContext } from '../../../../../client/studio/edit/context.ts';
-import { mountContextBar } from '../../../../../client/studio/edit/props/context-bar.ts';
+import { mountContextBar, scopeOf } from '../../../../../client/studio/edit/props/context-bar.ts';
 import { createStore } from '../../../../../client/studio/edit/store.ts';
 import type { Frame } from '../../../../../client/studio/frames.ts';
 import type { Inspect } from '../../../../../src/studio/api/edit/edit-schemas.ts';
+
+const literal: Inspect['list'] = { kind: 'literal', count: 3, reason: null };
+
+test('the switch shows for one element of a literal list in an SCSS draft', () => {
+  assert.equal(scopeOf({ views: 1, count: 3, format: 'scss', list: literal }), 3);
+});
+
+test('the switch is left out for several elements, a Tailwind draft or one item', () => {
+  assert.equal(scopeOf({ views: 2, count: 3, format: 'scss', list: literal }), null);
+  assert.equal(scopeOf({ views: 1, count: 3, format: 'tailwind', list: literal }), null);
+  assert.equal(scopeOf({ views: 1, count: 1, format: 'scss', list: literal }), null);
+});
+
+test('the switch is left out for a list that is not a literal array or no list', () => {
+  const prop: Inspect['list'] = { kind: 'prop', count: null, reason: 'list-not-literal' };
+  assert.equal(scopeOf({ views: 1, count: 3, format: 'scss', list: prop }), null);
+  assert.equal(scopeOf({ views: 1, count: 3, format: 'scss', list: null }), null);
+  assert.equal(scopeOf({ views: 1, count: 3, format: 'scss', list: undefined }), null);
+});
 
 const frameOf = (name: string, width: number): Frame => ({
   role: 'current',

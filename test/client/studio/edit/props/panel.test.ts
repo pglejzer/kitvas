@@ -68,6 +68,56 @@ const written = (name: string, value: string): Inspect['props'][number] => ({
   value: { kind: 'string', value },
 });
 
+/** A card of a plans list read for its copy `[1]`: the item's own class, `plans__card--pro`. */
+function itemView(inTsx: boolean): Inspect {
+  return inspected({
+    styleClass: { className: 'plans__card--pro', exists: true },
+    itemScope: { className: 'plans__card--pro', inTsx, path: [1] },
+  });
+}
+
+test('this item puts the class into the TSX first', () => {
+  const ops = opsForStyle(itemView(false), 'background-color', { token: '--kit-color-ink-soft' });
+  assert.deepEqual(ops[0], {
+    op: 'addItemClass',
+    id: ID,
+    path: [1],
+    className: 'plans__card--pro',
+  });
+  assert.equal(ops.length, 2);
+  assert.equal(ops[1]?.op, 'setStyle');
+  assert.equal(ops[1] && 'className' in ops[1] ? ops[1].className : null, 'plans__card--pro');
+});
+
+test('a class already in the TSX adds nothing', () => {
+  const ops = opsForStyle(itemView(true), 'background-color', { token: '--kit-color-ink-soft' });
+  assert.deepEqual(
+    ops.map((op) => op.op),
+    ['setStyle'],
+  );
+});
+
+test('this item adds its class once for a write in a width context', () => {
+  const ops = opsForStyle(itemView(false), 'background-color', MD_COLOR, {
+    context: { width: 768, state: null },
+  });
+  assert.deepEqual(
+    ops.map((op) => op.op),
+    ['addItemClass', 'setStyle'],
+  );
+});
+
+test('a refused item scope changes nothing in the ops', () => {
+  const view = inspected({ itemScope: { refused: 'item-key' } });
+  const ops = opsForStyle(view, 'background-color', MD_COLOR);
+  assert.deepEqual(
+    ops.map((op) => op.op),
+    ['addClass', 'setStyle'],
+  );
+});
+
+const MD_COLOR = { token: '--kit-color-ink-soft' };
+
 test('a style whose source is a prop gives one setProp that keeps the prop in place', () => {
   const view = stack({ props: [written('direction', 'row'), written('gap', 'sm')] });
   assert.deepEqual(opsForStyle(view, 'gap', MD), [

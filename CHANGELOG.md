@@ -40,8 +40,11 @@ All notable changes to this project are documented here. The format follows [Kee
 - Guidelines with ids and sources, and `kitvas guidelines` for the checklist a skill answers from the screenshots; facts read from the rendered page for the checks (ADR 0043, 0044, 0047).
 - `/kitvas:rework` and `/kitvas:craft`: a draft that reworks an existing page or screenshot, and one that sketches a missing component, icon or logo with the `sketcher` agent. `kitvas craft pick | add | export` keep a sketch, put it into the project's additions layer for the kit or write it to a folder; `kitvas kit detect` lists the project's kits and the signs of a design system not learned yet (ADR 0045, 0046).
 - A studio address that can be kept, `http://kitvas.localhost:<port>/`, open for 30 days after the first visit, and a studio that stops when nobody uses it (ADR 0040, 0042).
-- The editor in the studio: a change made on the canvas is written into the draft's own TSX and SCSS; moving, inserting, deleting and wrapping elements, with element ids kept across edits; canvas tools, press and drag, handles and zoom; every width and state with live checks, waivers, lists and uploads; an undo history kept across a reload (ADR 0048 to 0055, 0058 to 0061, 0065 to 0067, 0069, 0070).
+- The editor in the studio: a change made on the canvas is written into the draft's own TSX and SCSS; moving, inserting, deleting and wrapping elements, with element ids kept across edits; canvas tools, press and drag, handles and zoom; every width and state with live checks, waivers, lists and uploads; an undo history kept across a reload; one list item styled apart from the others (ADR 0048 to 0055, 0058 to 0061, 0065 to 0067, 0069, 0070, 0072).
 - `/kitvas:edit`: the editor with Claude, through requests, variants, notes, locks, a timeline, suggestions and the reasons for each section (ADR 0056).
+- The editor's panes: Layers that fold, versions with the result of their check, Properties in groups with kit values, Changes and Claude with counts on their tabs, and Checks as cards with evidence and the nearest kit token.
+- The Insert pane shows each kit component and icon as a picture: `kitvas kit previews` takes them once per kit change, as a studio job (ADR 0075). Uploaded images can be deleted, and an image uploaded twice is kept once.
+- Width visits in `kitvas check`: 768 px in every check, and 1024, 1440, 1920 and 2560 px with `--deep`, with rules for button labels on two lines, text in narrow columns, images shown larger than their file and fields that run across a wide page (ADR 0073, 0074).
 - The studio's own look, in light and dark, with Cards and Flush layouts and accents (ADR 0057); a start page with the moving logo, Claude's status in every bar, and Guide, Shortcuts and Doctor pages (ADR 0068).
 - `kitvas:scout`, an agent that looks facts up on the web for the compose and craft skills and writes one research note (ADR 0062).
 - `kitvas doctor`: a report of the setup that holds nothing private, also as a studio page (ADR 0063).
@@ -49,10 +52,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - A kit page for an id that is not there: a 404 that says so and gives `kitvas kit list`.
 - Skill evals for `claude plugin eval` in `evals/`, for the `kitvas`, `kit`, `compose`, `learn`, `craft` and `rework` skills.
 - `.claude-plugin/marketplace.json`, so the plugin installs with `claude plugin marketplace add pglejzer/kitvas` and `claude plugin install kitvas@kitvas`.
-
-### Security
-
-- Taking notes from the inbox is `POST /api/v1/inbox/take` with the studio's Origin; no GET changes state any more (ADR 0028).
+- Notes are taken from the inbox only by `POST /api/v1/inbox/take` with the studio's Origin; no GET request changes state (ADR 0028).
 - Refused requests of the studio and the prototype origin are written to the studio log, without queries, tokens or cookies, at most 20 a minute.
 - Stopping a job ends the processes its command started, on Windows, Linux and macOS.
-- A job that cannot start no longer puts the error's own text into the API; the cause goes to the log.
+- A job that cannot start keeps the error's own text out of the API; the cause goes to the log.

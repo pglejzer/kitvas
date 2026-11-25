@@ -55,6 +55,29 @@ test('a file that is not JSON or does not fit the schema is left out as missing'
   });
 });
 
+test('guideline ids of the book, with their area and a slash, are read, not left out as missing', () => {
+  // The lab draft's version 4 wrote `ux/one-primary` and `a11y/icon-contrast` (the ids of
+  // `kitvas guidelines`); a pattern without the slash refused every file, so every section read
+  // "No reasons are written for this section yet" although all the files were there.
+  const store = draft();
+  const guidelines = ['ux/one-primary', 'a11y/icon-contrast', 'ui-type-scale'];
+  const text = `${JSON.stringify({ lines: ['Says what the shop sells.'], guidelines, hash: PENDING_HASH })}\n`;
+  writeVersionFiles(store, 'shop', 1, { 'why/Hero.json': text, 'why/OrderSummary.json': text });
+  const report = readWhy(store, 'shop', 1);
+  assert.deepEqual(report.missing, []);
+  assert.deepEqual(report.sections[0]?.guidelines, guidelines);
+  assert.equal(stampWhy(store, 'shop', 1), 2);
+});
+
+test('an id that is not a guideline id still leaves the file out', () => {
+  const store = draft();
+  for (const bad of ['UX/One', 'ux//one', '/ux', 'ux/', '../etc', 'ux/one/two']) {
+    const text = JSON.stringify({ lines: ['A line.'], guidelines: [bad], hash: PENDING_HASH });
+    writeVersionFiles(store, 'shop', 1, { 'why/Hero.json': text });
+    assert.deepEqual(readWhy(store, 'shop', 1).missing, ['Hero', 'OrderSummary'], bad);
+  }
+});
+
 test('the section root is the first id of its file with no slash after the colon', () => {
   const store = draft();
   writeVersionFiles(store, 'shop', 1, {

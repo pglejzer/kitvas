@@ -288,6 +288,18 @@ export const EditOpSchema = z.discriminatedUnion('op', [
     path: PathSchema.optional(),
   }),
   /**
+   * ADR 0072, "This item": the element's `className` gets its style class's modifier named by
+   * the list's key (`plans__card--${plan.id}`), once. `className` is the class that makes for the
+   * copy at `path` (`plans__card--pro`, as the inspect's `itemScope` says); another one is a
+   * conflict. A `className` that gives the modifier already is left alone. Server-made inverse.
+   */
+  z.strictObject({
+    op: z.literal('addItemClass'),
+    ...target,
+    path: PathSchema,
+    className: z.string().regex(CLASS_NAME),
+  }),
+  /**
    * Server-made inverses (decision 4). `patch`: each hunk's `find` occurs exactly once in the
    * file and becomes `replace`; anything else is a conflict. `file`: the whole file becomes
    * `text` (`null` removes it) when its text hashes to `before` (`null`: it must not exist).
@@ -326,8 +338,10 @@ export type SimpleOp = Extract<
       | 'setUtility';
   }
 >;
+/** ADR 0072: one list item's class. Not a 4a op (its inverse is server-made), nor a 4b shape op. */
+export type ItemClassOp = Extract<EditOp, { op: 'addItemClass' }>;
 /** The ops of 4b: structure, sections, and the server-made inverses. */
-export type StructuralOp = Exclude<EditOp, SimpleOp>;
+export type StructuralOp = Exclude<EditOp, SimpleOp | ItemClassOp>;
 
 const SIMPLE: ReadonlySet<EditOpKind> = new Set([
   'setProp',
@@ -340,7 +354,8 @@ const SIMPLE: ReadonlySet<EditOpKind> = new Set([
   'setUtility',
 ]);
 
-export const isStructural = (op: EditOp): op is StructuralOp => !SIMPLE.has(op.op);
+/** Not a 4a op: the answer's inverse is made by the server (decision 4). */
+export const isStructural = (op: EditOp): op is StructuralOp | ItemClassOp => !SIMPLE.has(op.op);
 
 /** Every element id `op` names: its element, its anchor, the ends of a wrap. Section and file ops name none. */
 export function idsOf(op: EditOp): string[] {

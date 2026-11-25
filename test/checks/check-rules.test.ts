@@ -32,11 +32,11 @@ test('a rule finding reaches checks.json with its element, state and widths', as
     );
     assert.deepEqual([found.states, found.widths], [['filled'], [390, 1280]]);
     assert.deepEqual([saved.checks.ui, saved.checks.ux], ['ran', 'ran']);
-    // No --deep: the file does not say deep, and no deep width was visited.
+    // No --deep: the file does not say deep, and no deep width was visited (768 is in every check).
     assert.equal(saved.deep, undefined);
     assert.deepEqual(
       fake.visits.map((visit) => visit.width),
-      [390, 1280],
+      [390, 1280, 768],
     );
     assert.deepEqual(saved.notes, []);
   } finally {

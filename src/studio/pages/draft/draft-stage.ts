@@ -1,6 +1,7 @@
 // The canvas of a draft page (plan 15; plan 18, task A): the framed version in a card with its
 // label above, or two cards side by side when comparing, and the pills that float over the canvas:
-// width, cards and state at the top right, zoom at the bottom right.
+// the state and the width (with More: sizes, custom width, cards) in one row at the top right, zoom
+// at the bottom right.
 // Stage 4c (spec goal 4): beside the card of the width shown, more cards of the same version at
 // other preset widths, each its own frame on its own channel.
 //
@@ -17,11 +18,14 @@ import {
   extraWidths,
   MAX_VIEW,
   MIN_VIEW,
+  SIZES,
+  type SizeGroup,
   WIDTHS,
   type Width,
 } from '../../views/draft-query.ts';
 import { type Html, html } from '../html.ts';
 import { icon } from '../icons/icon.ts';
+import type { IconName } from '../icons/paths.ts';
 import { commandBox } from '../states/command.ts';
 import type { ChoiceLink } from './draft-links.ts';
 import { withChannel } from './frame-channel.ts';
@@ -164,6 +168,8 @@ export type PillsInput = {
   states: States;
   /** Links to this view with one choice changed (`draft-links.ts`). */
   link: ChoiceLink;
+  /** The draft's kit's breakpoints (`kitBreakpoints`): the sizes menu ticks these widths. */
+  breakpoints: readonly number[];
 };
 
 /** A link built by `ChoiceLink` names no custom width; the state links keep the one shown. */
@@ -176,31 +182,61 @@ const withCards = (href: string, choice: DraftChoice, cards = choice.cards): str
     ? href
     : `${href}&cards=${cards}`;
 
-/** The presets as links; a click sets the frame's width in place when the script runs. */
-function widthLinks({ t, choice, link }: PillsInput): Html {
-  const links = WIDTHS.map((width) => {
-    const current = choice.view === undefined && width === choice.width;
-    const mark = current ? html` aria-current="true"` : '';
-    const name = t(`studio.width.${width}`);
-    const href = withCards(link({ width }), choice);
-    return html`<a class="k-btn pill-opt" data-dock-width="${width}" href="${href}" title="${name}"${mark}>${width}</a>`;
+const PRESET_ICONS = { 390: 'phone', 768: 'tablet', 1280: 'laptop' } as const satisfies Record<
+  Width,
+  IconName
+>;
+const SIZE_GROUPS: readonly SizeGroup[] = ['phone', 'tablet', 'desktop'];
+
+/**
+ * One row of the sizes in More: its name, then the width, with a tick after it where the kit has a
+ * breakpoint. A row links a view (the three presets are buttons of the pill itself); the script
+ * sets it in place (`data-dock-size`).
+ */
+function sizeRow({ t, choice, link, breakpoints }: PillsInput, size: (typeof SIZES)[number]): Html {
+  const preset = WIDTHS.find((width) => width === size.width);
+  const current = (choice.view ?? choice.width) === size.width;
+  const mark = current ? html` aria-current="true"` : '';
+  const base = preset === undefined ? withView(link({}), size.width) : link({ width: preset });
+  const href = withCards(base, choice);
+  const kit = breakpoints.includes(size.width);
+  const tick = kit ? html`<span class="pill-tick" aria-hidden="true"></span>` : '';
+  const why = kit ? html` title="${t('studio.width.breakpoint')}"` : '';
+  const name = t(`studio.width.size.${size.group}.${size.name}`);
+  return html`<a class="k-menu-item pill-size" data-dock-size="${size.width}" href="${href}"${why}${mark}><span>${name}</span><span class="k-meta pill-width">${size.width}${tick}</span></a>`;
+}
+
+/** A section's label in More, above its rows; the group's name is the label for a screen reader. */
+const head = (label: string): Html =>
+  html`<p class="k-meta pill-head" aria-hidden="true">${label}</p>`;
+
+/** The sizes More lists, grouped by device: the three presets are buttons of the pill itself. */
+function sizeGroups(input: PillsInput): Html {
+  const { t } = input;
+  const groups = SIZE_GROUPS.map((group) => {
+    const label = t(`studio.width.group.${group}`);
+    const sizes = SIZES.filter(
+      (size) => size.group === group && !WIDTHS.some((preset) => preset === size.width),
+    );
+    if (sizes.length === 0) return '';
+    const rows = sizes.map((size) => sizeRow(input, size));
+    return html`<div class="pill-block" role="group" aria-label="${label}">${head(label)}${rows}</div>`;
   });
-  return html`<nav class="pill-group" data-dock="widths" aria-label="${t('studio.draft.width')}">${links}</nav>`;
+  return html`<div class="pill-set" data-dock="sizes">${groups}</div>`;
 }
 
 /**
  * How many cards (spec 4c, goal 4): links that work without the script, and "Every width", which
  * needs it (the script shows it). Off while comparing: compare has a card per version.
  */
-function cardsPill({ t, choice, link }: PillsInput): Html {
+function cardsBlock({ t, choice, link }: PillsInput): Html {
   const label = t('studio.edit.canvas.cards');
-  const cap = html`<span class="pill-cap" aria-hidden="true">${label}</span>`;
   if (choice.compare !== undefined) {
     const off = t('studio.edit.canvas.cardsOff');
     const items = CARD_COUNTS.map(
       (count) => html`<span class="k-btn pill-opt" aria-disabled="true">${count}</span>`,
     );
-    return html`<div class="k-pop k-pill" data-dock="cards" role="group" aria-label="${label}" title="${off}" data-off>${cap}${items}</div>`;
+    return html`<div class="pill-block" data-dock="cards" role="group" aria-label="${label}" title="${off}" data-off>${head(label)}<div class="pill-count">${items}</div></div>`;
   }
   const shown = choice.cards ?? 1;
   const links = CARD_COUNTS.map((count) => {
@@ -209,8 +245,45 @@ function cardsPill({ t, choice, link }: PillsInput): Html {
     const name = t(`studio.edit.canvas.cards.${count}`);
     return html`<a class="k-btn pill-opt" data-dock-cards="${count}" href="${href}" title="${name}"${mark}>${count}</a>`;
   });
-  const every = html`<button type="button" class="k-btn pill-opt" data-dock-every title="${t('studio.edit.canvas.everyTitle')}" hidden>${t('studio.edit.canvas.every')}</button>`;
-  return html`<div class="k-pop k-pill" data-dock="cards" role="group" aria-label="${label}">${cap}${links}${every}</div>`;
+  const every = html`<button type="button" class="k-menu-item" data-dock-every title="${t('studio.edit.canvas.everyTitle')}" hidden>${t('studio.edit.canvas.every')}</button>`;
+  return html`<div class="pill-block" data-dock="cards" role="group" aria-label="${label}">${head(label)}<div class="pill-count">${links}</div>${every}</div>`;
+}
+
+/** The custom width: a field, in its own section of More. */
+function customBlock(input: PillsInput): Html {
+  const label = input.t('studio.edit.canvas.custom');
+  return html`<div class="pill-block" role="group" aria-label="${label}">${head(label)}${widthField(input)}</div>`;
+}
+
+/**
+ * "More": a menu of the other sizes, the custom width and the cards, in sections, so that it works
+ * without the script (a `<details>`; `pill-menus.ts` gives it the keyboard).
+ */
+function moreMenu(input: PillsInput): Html {
+  const { t } = input;
+  return html`<details class="pill-menu pill-more" data-dock="more" data-pill-menu><summary class="k-btn" title="${t('studio.width.more')}"><span>${t('studio.edit.canvas.more')}</span>${icon('chevron-down')}</summary><div class="k-pop k-menu pill-sizes">${sizeGroups(input)}${customBlock(input)}${cardsBlock(input)}</div></details>`;
+}
+
+/**
+ * The presets as links with a device icon and their number; a click sets the frame's width in place
+ * when the script runs. A width that is not a preset is one more button, its number, pressed (the
+ * script keeps it; hidden at a preset so the pill's markup is final on load).
+ */
+function widthLinks(input: PillsInput): Html {
+  const { t, choice, link } = input;
+  const links = WIDTHS.map((width) => {
+    const current = choice.view === undefined && width === choice.width;
+    const mark = current ? html` aria-current="true"` : '';
+    const name = t(`studio.width.${width}`);
+    const href = withCards(link({ width }), choice);
+    return html`<a class="k-btn pill-opt" data-dock-width="${width}" href="${href}" title="${name}"${mark}>${icon(PRESET_ICONS[width])}<span>${width}</span></a>`;
+  });
+  const href = withCards(withView(link({}), choice.view), choice);
+  const custom =
+    choice.view === undefined
+      ? html`<a class="k-btn pill-opt" data-dock-custom href="${href}" hidden></a>`
+      : html`<a class="k-btn pill-opt" data-dock-custom href="${href}" aria-current="true">${choice.view}</a>`;
+  return html`<nav class="pill-group" data-dock="widths" aria-label="${t('studio.draft.width')}">${links}${custom}</nav>`;
 }
 
 /**
@@ -230,29 +303,39 @@ function widthField({ t, choice }: PillsInput): Html {
   return html`<form class="pill-field" data-dock="view" method="get" action=""><input type="hidden" name="version" value="${choice.version}"><input type="hidden" name="state" value="${choice.state}"><input type="hidden" name="width" value="${choice.width}">${compare}${cards}<input class="k-field pill-number" type="number" name="view" data-dock-view min="${MIN_VIEW}" max="${MAX_VIEW}" step="1" inputmode="numeric" value="${choice.view ?? choice.width}" aria-label="${label}"><span aria-hidden="true">${t('studio.edit.canvas.px')}</span></form>`;
 }
 
+/**
+ * The state pill: the name of the state shown with a chevron, and a menu of the draft's states
+ * (links, so it works without the script). A draft with one state has nothing to choose: no pill.
+ */
 function statesPill({ t, choice, states, link }: PillsInput): Html {
+  if (states.states.length < 2) return html``;
+  const shown = states.states.find((state) => state.id === choice.state)?.label ?? choice.state;
+  const label = t('studio.draft.state');
   const links = states.states.map((state) => {
-    const mark = state.id === choice.state ? html` aria-current="true"` : '';
+    const current = state.id === choice.state;
+    const mark = current ? html` aria-current="true"` : '';
+    const tick = current ? icon('check') : '';
     const href = withCards(withView(link({ state: state.id }), choice.view), choice);
-    return html`<a class="k-btn pill-opt" data-state="${state.id}" href="${href}"${mark}>${state.label}</a>`;
+    return html`<a class="k-menu-item" data-state="${state.id}" href="${href}"${mark}><span>${state.label}</span>${tick}</a>`;
   });
-  return html`<nav class="k-pop k-pill" data-dock="states" aria-label="${t('studio.draft.state')}">${links}</nav>`;
+  return html`<div class="k-pop k-pill"><details class="pill-menu pill-state" data-dock="states" data-pill-menu><summary class="k-btn" title="${label}"><span class="pill-state-name">${shown}</span>${icon('chevron-down')}</summary><div class="k-pop k-menu pill-sizes pill-states" role="group" aria-label="${label}">${links}</div></details></div>`;
 }
 
 /**
- * The pills over the canvas: at the top right the width (presets and any width), the cards and
- * the state; at the end of the width pill a mark while the checks' marks are hidden, at a width
- * that is not a preset (its words on hover, as a toast on a press, and as a status); at
- * the bottom right the zoom (`div[data-dock="zoom"]`, filled by the page script). The top left and
- * the bottom centre stay free.
+ * The pills over the canvas: one row at the top right, the state pill (when the draft has more than
+ * one state) then the width pill, `390 | 768 | 1280 | More`; More holds the other sizes, the custom
+ * width and the cards. At the end of the width pill a mark while the checks' marks are hidden, at a
+ * width that is not a preset (its words on hover, as a toast on a press, and as a status); at the
+ * bottom right the zoom (`div[data-dock="zoom"]`, filled by the page script). The top left and the
+ * bottom centre stay free.
  */
 export function pills(input: PillsInput): Html {
   const { t, choice } = input;
   const hidden = choice.view === undefined ? html` hidden` : '';
   const said = t('studio.edit.canvas.marksHidden');
   const note = html`<button type="button" class="k-icon-btn pill-mark" data-dock-note aria-label="${said}" title="${said}"${hidden}>${icon('eye-off')}</button><span class="k-sr" role="status" data-dock-said>${choice.view === undefined ? '' : said}</span>`;
-  const width = html`<div class="k-pop k-pill" data-dock="width">${widthLinks(input)}<span class="k-sep" aria-hidden="true"></span>${widthField(input)}${note}</div>`;
-  const row = html`<div class="pill-row" data-shell="dock" role="group" aria-label="${t('studio.edit.canvas.controls')}">${width}${cardsPill(input)}${statesPill(input)}</div>`;
+  const width = html`<div class="k-pop k-pill" data-dock="width">${widthLinks(input)}${moreMenu(input)}${note}</div>`;
+  const row = html`<div class="pill-row" data-shell="dock" role="group" aria-label="${t('studio.edit.canvas.controls')}">${statesPill(input)}${width}</div>`;
   const zoom = html`<div class="k-pop k-pill pill-zoom" data-dock="zoom" role="group" aria-label="${t('studio.edit.zoom.label')}"></div>`;
   return html`${row}${zoom}`;
 }

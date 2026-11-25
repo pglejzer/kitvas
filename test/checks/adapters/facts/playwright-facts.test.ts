@@ -186,6 +186,7 @@ test('actions carry their name, visible text and href; images their natural size
     disabled: false,
     menu: false,
     current: null,
+    lines: 1,
   });
   assert.deepEqual(find(facts, 'close').node.action, {
     kind: 'button',
@@ -196,6 +197,7 @@ test('actions carry their name, visible text and href; images their natural size
     disabled: false,
     menu: false,
     current: null,
+    lines: 1,
   });
   const save = find(facts, 'save').node.action;
   assert.deepEqual([save?.kind, save?.name, save?.submit], ['button', 'Save', true]);
@@ -203,11 +205,29 @@ test('actions carry their name, visible text and href; images their natural size
   assert.equal(find(facts, 'name').node.action, null);
   assert.equal(find(facts, 'more').node.field, null);
 
-  assert.deepEqual(find(facts, 'photo').node.image, { natural: [4, 2], sized: true, alt: 'A dot' });
+  assert.deepEqual(find(facts, 'photo').node.image, {
+    natural: [4, 2],
+    sized: true,
+    alt: 'A dot',
+    // The fixture's photo is an SVG data URL: a drawing, never "upscaled".
+    vector: true,
+  });
   const path = facts.nodes.find((node) => node.tag === 'path');
   assert.deepEqual([path?.style.stroke, path?.style.fill], ['#1a1a1aff', '#000000ff']);
   // Fill and stroke belong to SVG elements only.
   assert.equal(find(facts, 'close').node.style.fill, '');
+});
+
+test('an action counts the lines its visible label takes', { timeout: TEST_MS }, async (t) => {
+  const report = await visit('wrapped-action.html');
+  if (report === undefined) return t.skip(NO_BROWSER);
+  const facts = factsOf(report);
+  const lines = (id: string) => find(facts, id).node.action?.lines;
+  assert.ok((lines('narrow') ?? 0) >= 2, 'a narrow button wraps its label');
+  assert.equal(lines('fits'), 1);
+  assert.equal(lines('icon'), 1);
+  assert.equal(lines('field-button'), 1);
+  assert.ok((lines('link') ?? 0) >= 2, 'a block link that wraps counts its lines too');
 });
 
 test('a sticky header is a bar at the top one viewport down the page', {

@@ -6,8 +6,11 @@ export const JobErrorSchema = z.strictObject({ code: z.string(), message: z.stri
 
 export const JobSchema = z.strictObject({
   id: z.uuid(),
-  kind: z.enum(['build', 'check', 'catalog']),
-  /** The draft's slug; for a `catalog` job the id of the kit whose examples it builds. */
+  kind: z.enum(['build', 'check', 'catalog', 'previews']),
+  /**
+   * The draft's slug; for a `catalog` job the id of the kit whose examples it builds, for a
+   * `previews` job the id of the kit whose Insert pane previews it makes (ADR 0075).
+   */
   slug: z.string(),
   state: z.enum(['running', 'succeeded', 'failed', 'cancelled']),
   createdAt: z.string(),
@@ -20,6 +23,19 @@ export const JobSchema = z.strictObject({
 export type Job = Zod.infer<typeof JobSchema>;
 export type JobError = Zod.infer<typeof JobErrorSchema>;
 export type JobKind = Job['kind'];
+
+/** What a job of a kind is run on: a draft, a kit's examples, or a kit's previews. */
+export type JobTarget = 'draft' | 'catalog' | 'previews';
+
+export const jobTarget = (kind: JobKind): JobTarget =>
+  kind === 'catalog' || kind === 'previews' ? kind : 'draft';
+
+/** The CLI arguments of a job; the runner adds `--json`. */
+export function jobArgs(kind: JobKind, slug: string): string[] {
+  if (kind === 'catalog') return ['kit', 'build', slug];
+  if (kind === 'previews') return ['kit', 'previews', slug];
+  return [kind, slug];
+}
 
 /** How a job ended. */
 export type JobOutcome =

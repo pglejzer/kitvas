@@ -1,11 +1,13 @@
-// The Notes pane (spec 4d, goal 3; plan 17, task C; plan 18, task B): a head with the count of
-// open notes, one `.k-item` per note in list order, numbered as its pin, with where it is, who it
-// is for, and Edit, Done and Delete; and at the pane's foot the field that adds one. A pinned
-// note's number selects its element. Drawing only; `notes.ts` acts.
+// The Notes pane (spec 4d, goal 3; plan 17, task C; plan 18, task B; plan 18f, task 1; spec 4.5):
+// a head with the count of open notes, one `.k-card` per note in list order (a muted first line
+// with its number, where it is and who it is for; the words; a status line with a dot; Edit, Done
+// and Delete), and at the pane's foot one line, "Add a note to <element>" and Add, that grows on
+// focus to show the choice For me / For Claude. A pinned note's number selects its element.
+// Drawing only; `notes.ts` acts.
 
 import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
-import { MAX_NOTE_TEXT, type NoteRow } from './model.ts';
+import { MAX_NOTE_TEXT, type NoteRow, type NoteStatus } from './model.ts';
 
 export type ListHandlers = {
   select(row: NoteRow): void;
@@ -32,26 +34,41 @@ function placeWords(row: NoteRow): string {
     : text('notes.on', { name: row.place.name });
 }
 
+/** The status line of a note: a dot and "Waiting for Claude", "Claude is working on it" or "Done". */
+function statusLine(status: NoteStatus): HTMLElement | null {
+  if (status === null) return null;
+  const line = el('span', 'notes-status');
+  line.dataset.status = status;
+  const dot = el('span', 'k-dot');
+  dot.dataset.state = status === 'waiting' ? 'review' : status === 'working' ? 'working' : '';
+  dot.setAttribute('aria-hidden', 'true');
+  line.append(dot, el('span', undefined, text(`notes.status.${status}`)));
+  return line;
+}
+
 function line(
   row: NoteRow,
+  status: NoteStatus,
   handlers: ListHandlers,
   selected: string | null,
   fresh: boolean,
 ): HTMLLIElement {
   const { note } = row;
-  const item = el('li', fresh ? 'k-item notes-item k-slide' : 'k-item notes-item');
+  const item = el('li', fresh ? 'k-card notes-item k-slide' : 'k-card notes-item');
   item.dataset.note = note.id;
   if (note.done) item.dataset.done = '';
-  if (row.pinned && note.current === selected) item.setAttribute('aria-current', 'true');
-  const head = el('div', 'notes-head');
+  if (row.pinned && note.current === selected) item.dataset.on = '';
+  const head = el('div', 'k-card-meta notes-head');
   const label = el('button', 'notes-label', row.label);
   label.type = 'button';
   label.disabled = !row.pinned;
   label.title = row.pinned ? text('notes.show') : text('notes.unpinned');
   label.addEventListener('click', () => handlers.select(row));
-  const who = el('span', 'notes-who k-meta', text(`notes.for.${note.for}`));
-  head.append(label, el('span', 'notes-place k-meta k-clip', placeWords(row)), who);
-  const words = el('p', 'notes-text', note.text);
+  head.append(
+    label,
+    el('span', 'notes-place k-clip', placeWords(row)),
+    el('span', 'notes-who', text(`notes.for.${note.for}`)),
+  );
   const actions = el('div', 'notes-actions');
   actions.append(
     action(text('notes.editButton'), text('notes.editTitle'), () => handlers.edit(row)),
@@ -60,17 +77,24 @@ function line(
       : action(text('notes.done'), text('notes.doneTitle'), () => handlers.done(row, true)),
     action(text('notes.delete'), text('notes.deleteTitle'), () => handlers.remove(row)),
   );
-  item.append(head, words, actions);
+  item.append(head, el('p', 'notes-text', note.text));
+  const shown = statusLine(status);
+  if (shown) item.append(shown);
+  item.append(actions);
   return item;
 }
 
 export type NotesPane = {
-  /** `animate`: a note not drawn before slides in (off for the notes the page loaded with). */
+  /**
+   * `animate`: a note not drawn before slides in (off for the notes the page loaded with).
+   * `statusOf`: the status line of a note's row.
+   */
   draw(
     rows: readonly NoteRow[],
     handlers: ListHandlers,
     selected: string | null,
     animate: boolean,
+    statusOf: (row: NoteRow) => NoteStatus,
   ): void;
   /** The name the foot's field says it adds to; `null` for the draft as a whole. */
   target(name: string | null): void;
@@ -95,12 +119,18 @@ export function createNotesPane(
   head.append(bar);
   const scroll = el('div', 'k-scroll notes-scroll');
   const foot = el('form', 'k-actions notes-foot');
+  // One line at rest (the mock's "Add a note to Button" and Add); the choice and the hint show
+  // while the form has focus or the field has words (`data-open`), and the field takes more lines.
+  const main = el('div', 'notes-foot-main');
   const field = el('textarea', 'k-field notes-field');
-  field.rows = 3;
+  field.rows = 1;
   field.maxLength = MAX_NOTE_TEXT;
   field.setAttribute('aria-label', text('notes.text'));
-  const hint = el('p', 'k-meta notes-hint', text('notes.hint'));
-  const controls = el('div', 'notes-foot-row');
+  const submit = el('button', 'k-btn k-btn-line notes-submit', text('notes.add'));
+  submit.type = 'submit';
+  submit.disabled = true;
+  main.append(field, submit);
+  const more = el('div', 'notes-foot-more');
   const pick = el('div', 'k-seg');
   pick.setAttribute('role', 'group');
   pick.setAttribute('aria-label', text('notes.for'));
@@ -118,17 +148,20 @@ export function createNotesPane(
     });
     pick.append(one);
   }
-  const submit = el('button', 'k-btn k-btn-line', text('notes.add'));
-  submit.type = 'submit';
-  submit.disabled = true;
-  controls.append(pick, submit);
-  foot.append(field, hint, controls);
+  more.append(pick, el('p', 'k-meta notes-hint', text('notes.hint')));
+  foot.append(main, more);
   host.append(head, scroll, foot);
 
-  // The field grows with its words (`field-sizing` in the skin) up to a third of the pane.
+  const open = (): void => {
+    foot.toggleAttribute('data-open', foot.matches(':focus-within') || field.value.trim() !== '');
+  };
   field.addEventListener('input', () => {
     submit.disabled = field.value.trim() === '';
+    open();
   });
+  foot.addEventListener('focusin', open);
+  // After focus has left the form: the choice folds again unless words wait in the field.
+  foot.addEventListener('focusout', () => queueMicrotask(open));
   // Ctrl+Enter (Cmd+Enter) adds the note, as it sends in the Claude tab; Enter is a new line.
   field.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
@@ -144,6 +177,7 @@ export function createNotesPane(
     void add({ text: words, for: who }).then((saved) => {
       if (saved) field.value = '';
       submit.disabled = field.value.trim() === '';
+      open();
       field.focus();
     });
   });
@@ -155,16 +189,17 @@ export function createNotesPane(
       const words = name === null ? text('notes.addDraft') : text('notes.addTo', { name });
       field.placeholder = words;
     },
-    draw(rows, handlers, selected, animate) {
-      const open = rows.filter((row) => !row.note.done).length;
-      count.textContent = text('notes.open', { count: open });
-      count.hidden = open === 0;
+    draw(rows, handlers, selected, animate, statusOf) {
+      const openNotes = rows.filter((row) => !row.note.done).length;
+      count.textContent = text('notes.open', { count: openNotes });
+      count.hidden = openNotes === 0;
       if (rows.length === 0) {
         scroll.replaceChildren(el('p', 'k-empty notes-none', text('notes.none')));
       } else {
         const list = el('ol', 'k-stack notes-list');
         for (const row of rows) {
-          list.append(line(row, handlers, selected, animate && !seen.has(row.note.id)));
+          const fresh = animate && !seen.has(row.note.id);
+          list.append(line(row, statusOf(row), handlers, selected, fresh));
         }
         scroll.replaceChildren(list);
       }

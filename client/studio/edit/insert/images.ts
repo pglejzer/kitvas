@@ -1,12 +1,16 @@
 // Image upload (spec 4c, goal 10; plan 16, task E): the Insert tab takes image files, dropped or
 // picked, and only stores them; a drop on the canvas is `file-drop.ts`, and the background image
-// picker's Upload button is `uploadControl`, which the properties panel places.
+// picker's Upload button is `uploadControl`, which the properties panel places. Here the Upload
+// image tile is the last cell of the Images tab's grid (`upload-tile.ts`).
 
 import type { EditorContext } from '../context.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 import { carriesFiles } from './image-drop.ts';
-import { firstImage, uploadControl, uploadImage } from './image-upload.ts';
+import { mountImageGrid } from './image-grid.ts';
+import { storedMessage } from './image-stored.ts';
+import { firstImage, uploadImage } from './image-upload.ts';
+import { uploadTile } from './upload-tile.ts';
 
 /** The stored files, said in one note: one name, or how many. */
 export function storedNote(files: readonly string[]): string {
@@ -23,19 +27,17 @@ export function mountImages(ctx: EditorContext): void {
 
   const box = document.createElement('div');
   box.className = 'insert-images';
-  const heading = document.createElement('h3');
-  heading.className = 'insert-cat';
-  heading.textContent = text('palette.images');
   const hint = document.createElement('p');
   hint.className = 'insert-hint k-quiet';
   hint.textContent = text('upload.insertHint');
-  box.append(
-    heading,
-    hint,
-    uploadControl(ctx, (file) => toast(main, storedNote([file]))),
-  );
-  // Inside the part of the pane that scrolls, after the kit's components (`palette.ts`).
-  (section.querySelector('[data-insert-scroll]') ?? section).append(box);
+  box.append(hint);
+  // A file that was already in the draft is told by the tile itself.
+  const upload = uploadTile(ctx, (file, duplicate) => {
+    if (!duplicate) toast(main, storedNote([file]));
+  });
+  // The Images tab's panel, made by `palette.ts`.
+  (section.querySelector('[data-insert-panel="images"]') ?? section).append(box);
+  mountImageGrid(ctx, hint, upload);
 
   const over = (on: boolean): void => {
     box.toggleAttribute('data-over', on);
@@ -62,8 +64,8 @@ export function mountImages(ctx: EditorContext): void {
     }
     // Every image of the drop is stored; a file that is not one is skipped with its reason.
     void Promise.all(files.map((file) => uploadImage(ctx, file))).then((stored) => {
-      const done = stored.filter((file): file is string => file !== null);
-      if (done.length > 0) toast(main, storedNote(done));
+      const note = storedMessage(stored);
+      if (note !== null) toast(main, text(note.key, note.params));
     });
   });
 }

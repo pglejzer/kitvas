@@ -50,6 +50,7 @@ import {
 } from './request-state.ts';
 import { applyStructural } from './structure/structural.ts';
 import { contextRefusal } from './style/context-checks.ts';
+import { applyItemClass } from './style/item-class-apply.ts';
 import { scssOptions, undoableByOps } from './style/style-checks.ts';
 
 /**
@@ -246,6 +247,7 @@ async function applyOne(work: Work, index: number, op: EditOp): Promise<OpResult
   const locked = await lockRefusal(work, op);
   if (locked !== null) return { refused: locked };
   if (!isStructural(op)) return applySimple(work, index, op);
+  if (op.op === 'addItemClass') return applyItemClass(work, index, op);
   if (op.op === 'patch' || op.op === 'file') return applyInverse(work, index, op);
   return applyStructural(work, index, op);
 }

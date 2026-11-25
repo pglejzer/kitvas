@@ -55,6 +55,7 @@ function setup(): Calls {
     released: (point) => calls.log.push(`drag.released ${point.x},${point.y}`),
     scale: (value) => calls.log.push(`drag.scale ${value}`),
     swapped: () => calls.log.push('drag.swapped'),
+    dropBack: () => calls.log.push('drag.dropBack'),
   };
   const handles: Handles = {
     enable: (on) => calls.log.push(`handles.enable ${on}`),
@@ -240,6 +241,16 @@ test('a build taken in place reaches the drag, for its log', () => {
   const calls = setup();
   calls.structure.swapped();
   assert.deepEqual(calls.log, ['drag.swapped']);
+});
+
+test('a drop the studio did not take reaches the drag, while editing only', () => {
+  const calls = setup();
+  send(calls, { ...head, type: 'drop-back' });
+  assert.deepEqual(calls.log, []);
+  send(calls, { ...head, type: 'edit', on: true });
+  calls.log.length = 0;
+  send(calls, { ...head, type: 'drop-back' });
+  assert.deepEqual(calls.log, ['drag.dropBack']);
 });
 
 test('the handles hear what the element cannot take before they are placed', () => {

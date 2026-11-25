@@ -5,7 +5,10 @@
 // tab paints it with each state it reads, so the bar and the tab cannot disagree. The words are
 // in `statusLine`, pure; `createStatus` draws them.
 
-import type { Listening } from '../../../../src/studio/api/requests/request-schemas.ts';
+import type {
+  Listening,
+  RequestView,
+} from '../../../../src/studio/api/requests/request-schemas.ts';
 import { barStateOf, LISTEN_RECHECK_MS, paintBarStatus } from '../../shell/bar-status.ts';
 import { iconButton } from '../../ui/icon.ts';
 import { el } from '../props/controls.ts';
@@ -40,7 +43,22 @@ export function statusLine(listening: Listening, slug: string): StatusLine {
 /** The tab reads the requests again later: a session that ended says so on no event. */
 export const recheckLater = (listening: Listening): boolean => listening.state !== 'off';
 
-export type Status = { element: HTMLElement; render(listening: Listening): void };
+/** How many requests wait for Claude or are with it: the ones the status line counts as open. */
+export const openCount = (requests: readonly Pick<RequestView, 'status'>[]): number =>
+  requests.filter((request) => request.status === 'waiting' || request.status === 'taken').length;
+
+/** What follows the status words: "1 request open", "3 requests open", "No requests open". */
+export function openWords(open: number): { key: string; params: Record<string, number> } {
+  if (open === 0) return { key: 'ai.status.openNone', params: {} };
+  if (open === 1) return { key: 'ai.status.openOne', params: {} };
+  return { key: 'ai.status.open', params: { n: open } };
+}
+
+export type Status = {
+  element: HTMLElement;
+  /** `open`: the requests open now, said after the status words. */
+  render(listening: Listening, open: number): void;
+};
 
 /** A dot that says nothing itself: the words beside it do. */
 function dotOf(): HTMLElement {
@@ -63,7 +81,8 @@ export function createStatus(slug: string, main: HTMLElement): Status {
   const dot = dotOf();
   const words = el('span', 'claude-status-words');
   words.setAttribute('role', 'status');
-  line.append(dot, words);
+  const sub = el('span', 'k-meta claude-status-sub');
+  line.append(dot, words, sub);
   const start = el('div', 'claude-start');
   const command = el('div', 'k-cmd');
   const copy = iconButton('copy', text('ai.copy.label'));
@@ -89,10 +108,12 @@ export function createStatus(slug: string, main: HTMLElement): Status {
   let read = false;
   return {
     element,
-    render(listening) {
+    render(listening, open) {
       const next = statusLine(listening, slug);
       element.dataset.state = next.state;
       setDot(dot, listening);
+      const count = openWords(open);
+      sub.textContent = text(count.key, count.params);
       // The same words are not set again: a screen reader would read them out once more.
       if (next.key !== shown) {
         shown = next.key;

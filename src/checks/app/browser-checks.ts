@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import type { IdEntry } from '../domain/code/ids.ts';
 import type { RawFinding, Shot } from '../domain/findings/finding.ts';
 import { MAX_FINDINGS_PER_RULE } from '../domain/guidelines/index.ts';
-import { DEEP_VIEWPORTS } from '../domain/page/facts.ts';
+import { DEEP_VIEWPORTS, TABLET_VIEWPORT } from '../domain/page/facts.ts';
 import { a11yFindings, componentsOf, runtimeFindings, VIEWPORTS } from '../domain/page/page.ts';
 import { type CatalogComponent, usageFindings } from '../domain/page/usage.ts';
 import {
@@ -72,7 +72,8 @@ export const BROWSER_RULES: BrowserRules = {
 export type VisitPlan = { width: number; height: number; passes: Pass[]; shot: boolean };
 
 /**
- * A phone and a laptop with their passes, and with `deep` the deep widths, measured only. A craft
+ * A phone and a laptop with their passes, a tablet measured only (ADR 0074), and with `deep` the
+ * deep widths, measured only. A craft
  * board gets the phone and the laptop with the `craft` pass alone, `deep` or not: it is a board of
  * sketches, not a screen to stress.
  */
@@ -88,6 +89,7 @@ export function visitPlan(deep: boolean, kind: BrowserInput['kind'] = 'screen'):
   const plan: VisitPlan[] = [
     { ...phone, passes: ['reflow', 'focus', 'spacing', ...extra], shot: true },
     { ...laptop, passes: ['focus', 'spacing', ...extra], shot: true },
+    { ...TABLET_VIEWPORT, passes: [], shot: false },
   ];
   if (!deep) return plan;
   return [...plan, ...DEEP_VIEWPORTS.map((size) => ({ ...size, passes: [], shot: false }))];

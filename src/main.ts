@@ -10,6 +10,8 @@ import { createPlaywrightHost } from './checks/adapters/browser/playwright-host.
 import { createTscChecker } from './checks/adapters/tsc-checker.ts';
 import {
   cropKit,
+  makePreviews,
+  readPreviews,
   refuseFailedKit,
   SHARED_BROWSER_ENV,
   type StartReworkInput,
@@ -111,6 +113,7 @@ export function main(argv: string[]): Promise<number> {
           'frame/edit/edit.ts',
           'frame/edit/row-pick.ts',
           'frame/drag/preview.ts',
+          'frame/drag/drop-record.ts',
           'frame/drag/session.ts',
           'frame/drag/drag.ts',
           'frame/drag/gesture-log.ts',
@@ -131,6 +134,7 @@ export function main(argv: string[]): Promise<number> {
           'frame/drag/magnet.ts',
           'frame/drag/measure.ts',
           'frame/drag/spots.ts',
+          'frame/edit/claude-marks.ts',
           'frame/edit/hide.ts',
           'frame/edit/label.ts',
           'frame/live/live.ts',
@@ -201,6 +205,19 @@ export function main(argv: string[]): Promise<number> {
   const scan = (project: string, id: string, options: { urls: string[]; allowPrivate: boolean }) =>
     scanKit({ kits, kitWriter, browser: browser(), lookup: addresses }, project, id, options);
   const crop = (project: string, id: string) => cropKit({ kits, browser: browser() }, project, id);
+  // `kit previews` (ADR 0075): a studio job when the editor's Insert pane asks for them.
+  const previews = async (project: string, id: string) => {
+    const tools = render();
+    try {
+      return await makePreviews(
+        { kits, kitWriter, render: tools, browser: browser() },
+        id,
+        project,
+      );
+    } finally {
+      await disposeRenderTools(tools);
+    }
+  };
   const craftStart = (project: string, input: Parameters<typeof startCraft>[1], t: Translate) =>
     startCraft(
       {
@@ -290,6 +307,15 @@ export function main(argv: string[]): Promise<number> {
           dispose: () => compiler.dispose(),
         },
         imageStore: createImageStore(projectDrafts),
+        // The Insert pane's previews on disk, read on each palette request; jobs make them.
+        previews: {
+          read: (kitId) =>
+            readPreviews(
+              { kits: projectKits, fs: warm.fs, runtimeFiles: warm.runtimeFiles },
+              kitId,
+              project,
+            ),
+        },
         doctor: () => doctorReport(doctorDeps, { cwd: project, home: homedir(), t }),
         live: {
           watch: fsWatchPort(join(workspaceDir(project), 'drafts')),
@@ -327,6 +353,7 @@ export function main(argv: string[]): Promise<number> {
       verify,
       scan,
       crop,
+      previews,
     }),
     createDraftCommand({ ...drafts, studio: { lifecycle: studio.lifecycle } }),
     createCraftCommand({ ...drafts, kitWriter, start: craftStart }),

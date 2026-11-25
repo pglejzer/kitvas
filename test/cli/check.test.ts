@@ -211,10 +211,12 @@ test('--deep visits the deep widths too, writes deep: true and says so', async (
       [768, false, null],
       [1024, false, null],
       [1440, false, null],
+      [1920, false, null],
+      [2560, false, null],
     ],
   );
   assert.deepEqual((h.out.at(-1) ?? '').split('\n').slice(-3), [
-    'Deep check: the stress passes ran, and the widths 768, 1024, 1440 were checked too.',
+    'Deep check: the stress passes ran, and the widths 1024, 1440, 1920, 2560 were checked too.',
     `Screenshots: 2 in ${join(h.draftDir, 'v1', 'build', 'shots')}`,
     `Results: ${join(h.draftDir, 'v1', 'build', 'json', 'checks.json')}`,
   ]);

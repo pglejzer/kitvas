@@ -24,6 +24,7 @@ test('an alignment is bars against a line, at the start, the centre, the end or 
     assert.equal(keywordIcon(property, 'flex-end'), 'align-end', property);
   }
   assert.equal(keywordIcon('align-items', 'stretch'), 'align-stretch');
+  assert.equal(keywordIcon('justify-content', 'space-between'), 'align-between');
   assert.equal(keywordIcon('align-self', 'stretch'), 'align-stretch');
   assert.equal(keywordIcon('text-align', 'left'), 'align-start');
   assert.equal(keywordIcon('text-align', 'center'), 'align-center');
@@ -33,7 +34,8 @@ test('an alignment is bars against a line, at the start, the centre, the end or 
 
 test('a keyword without a drawing, or a property without any, has no icon', () => {
   assert.equal(keywordIcon('align-items', 'baseline'), null);
-  assert.equal(keywordIcon('justify-content', 'space-between'), null);
+  assert.equal(keywordIcon('justify-content', 'space-around'), null);
+  assert.equal(keywordIcon('align-items', 'space-between'), null);
   assert.equal(keywordIcon('align-self', 'auto'), null);
   assert.equal(keywordIcon('border-style', 'solid'), null);
   assert.equal(keywordIcon('flex-wrap', 'wrap'), null);
@@ -62,9 +64,13 @@ test('a row of keywords is icons only when every keyword in it has one', () => {
     'align-end',
     'align-stretch',
   ]);
+  assert.deepEqual(
+    segmentIcons('justify-content', ['flex-start', 'center', 'flex-end', 'space-between']),
+    ['align-start', 'align-center', 'align-end', 'align-between'],
+  );
   // One word without a drawing: the whole row shows words, never a mix.
-  const justify = ['flex-start', 'center', 'flex-end', 'space-between'];
-  assert.equal(segmentIcons('justify-content', justify), null);
+  const around = ['flex-start', 'center', 'space-around'];
+  assert.equal(segmentIcons('justify-content', around), null);
   assert.equal(segmentIcons('border-style', keywordsOf('border-style') ?? []), null);
   assert.equal(segmentIcons('background-size', keywordsOf('background-size') ?? []), null);
   assert.equal(segmentIcons('flex-direction', []), null);

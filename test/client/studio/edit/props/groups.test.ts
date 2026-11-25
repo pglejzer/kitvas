@@ -6,11 +6,15 @@ import {
   linkedSides,
   pickSide,
   sideText,
+  sizeOf,
 } from '../../../../../client/studio/edit/props/box.ts';
 import {
+  FOLDED_FIRST,
   FOLDS_KEY,
+  type FoldId,
   GROUPS,
   groupOf,
+  isFolded,
   readFolds,
   STYLE_GROUPS,
   type StorageLike,
@@ -39,10 +43,21 @@ const broken: StorageLike = {
   },
 };
 
-test('the groups come in the spec order and hold every style property once', () => {
+test('the groups come in the order of mock v10 and hold every style property once', () => {
   assert.deepEqual(
     [...GROUPS],
-    ['component', 'text', 'layout', 'spacing', 'size', 'typography', 'background', 'border'],
+    [
+      'component',
+      'text',
+      'layout',
+      'radius',
+      'spacing',
+      'size',
+      'typography',
+      'background',
+      'border',
+      'a11y',
+    ],
   );
   const all = Object.values(STYLE_GROUPS).flat();
   assert.deepEqual([...all].sort(), [...STYLE_PROPERTIES].sort());
@@ -51,11 +66,29 @@ test('the groups come in the spec order and hold every style property once', () 
   assert.equal(groupOf('padding-top'), 'spacing');
   assert.equal(groupOf('outline-style'), 'border');
   assert.equal(groupOf('background-image'), 'background');
+  // Plan 18f: Radius is a group of its own, and the gap is Layout's.
+  assert.equal(groupOf('border-radius'), 'radius');
+  assert.equal(groupOf('gap'), 'layout');
+  assert.equal(groupOf('border-width'), 'border');
+});
+
+test('Accessibility and the raw layout rows start folded, every other group open', () => {
+  assert.deepEqual([...FOLDED_FIRST].sort(), ['a11y', 'layout-all']);
+  const none = new Set<FoldId>();
+  assert.equal(isFolded(none, 'a11y'), true);
+  assert.equal(isFolded(none, 'layout-all'), true);
+  assert.equal(isFolded(none, 'layout'), false);
+  // A stored fold is the viewer turning it: open for what starts folded, folded for the rest.
+  assert.equal(isFolded(new Set(['a11y'] as const), 'a11y'), false);
+  assert.equal(isFolded(new Set(['layout'] as const), 'layout'), true);
+  assert.equal(isFolded(toggleFold(none, 'layout-all'), 'layout-all'), false);
 });
 
 test('the folds are read from the storage, and junk or a blocked storage reads as none', () => {
   const kept = memory({ [FOLDS_KEY]: JSON.stringify(['border', 'nope', 3, 'layout']) });
   assert.deepEqual([...readFolds(kept)].sort(), ['border', 'layout']);
+  const turned = memory({ [FOLDS_KEY]: JSON.stringify(['a11y', 'layout-all', 'radius']) });
+  assert.deepEqual([...readFolds(turned)].sort(), ['a11y', 'layout-all', 'radius']);
   assert.deepEqual([...readFolds(memory({ [FOLDS_KEY]: '{not json' }))], []);
   assert.deepEqual([...readFolds(memory({ [FOLDS_KEY]: '{"a":1}' }))], []);
   assert.deepEqual([...readFolds(memory())], []);
@@ -104,4 +137,12 @@ test('a side shows its computed px as a number, another value as it is, nothing 
   assert.equal(sideText(computed, 'margin-left'), '1.5em');
   assert.equal(sideText(computed, 'padding-left'), '-');
   assert.equal(sideText(null, 'padding-top'), '-');
+});
+
+test("the box's core is the element's size in whole px, or nothing while it is not known", () => {
+  assert.deepEqual(sizeOf({ width: '148.4px', height: '40px' }), [148, 40]);
+  assert.deepEqual(sizeOf({ width: '0px', height: '12.5px' }), [0, 13]);
+  assert.equal(sizeOf({ width: 'auto', height: '40px' }), null);
+  assert.equal(sizeOf({ width: '148px' }), null);
+  assert.equal(sizeOf(null), null);
 });

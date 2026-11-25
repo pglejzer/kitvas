@@ -8,6 +8,7 @@ import type { CardModel } from '../../../../../client/studio/edit/ai/tab.ts';
 const card = (over: Partial<CardModel> = {}): CardModel => ({
   key: 'r1:1',
   label: 'Roomier',
+  number: 1,
   changes: 2,
   chips: [],
   built: { kind: 'ready', ids: [], ops: [], dropsText: false, offKit: false },

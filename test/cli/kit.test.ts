@@ -54,6 +54,7 @@ function harness(options: Options = {}) {
     verify: options.verify ?? (() => Promise.reject(new Error('verify is not used here'))),
     scan: options.scan ?? (() => Promise.reject(new Error('scan is not used here'))),
     crop: options.crop ?? (() => Promise.reject(new Error('crop is not used here'))),
+    previews: () => Promise.reject(new Error('previews is not used here')),
   });
   const run = (...argv: string[]) => runCli(['kit', ...argv], [command], io);
   const last = (lines: string[]): unknown => JSON.parse(lines.at(-1) ?? '');

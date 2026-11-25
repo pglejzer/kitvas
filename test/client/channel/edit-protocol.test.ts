@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   addsToSelection,
+  MAX_CLAUDE_MARKS,
   MAX_COPIES,
+  MAX_NAME,
   MAX_NODES,
   MAX_SELECTED,
   textEditOf,
@@ -179,6 +181,59 @@ test('a select names copies, never one item for the whole selection', () => {
   );
   // A rectangle names as many copies as a select does.
   assert.equal(MAX_PICKS, MAX_COPIES);
+});
+
+test('claude-marks is read with its marks and capped', () => {
+  const marks = [
+    { id, motion: false },
+    { id, item: 2, motion: true },
+  ];
+  const body = sent({ type: 'claude-marks', label: 'Claude', marks });
+  assert.deepEqual(parseStudioMessage({ ...body, extra: 1 }, CHANNEL), body);
+  assert.ok(parseStudioMessage(sent({ type: 'claude-marks', label: '', marks: [] }), CHANNEL));
+  const full = Array.from({ length: MAX_CLAUDE_MARKS }, () => ({ id, motion: false }));
+  const filled = sent({ type: 'claude-marks', label: 'Claude', marks: full });
+  assert.ok(parseStudioMessage(filled, CHANNEL));
+  const over = [...full, { id, motion: false }];
+  assert.equal(
+    parseStudioMessage(sent({ type: 'claude-marks', label: 'Claude', marks: over }), CHANNEL),
+    undefined,
+  );
+  const long = 'x'.repeat(MAX_NAME + 1);
+  assert.equal(
+    parseStudioMessage(sent({ type: 'claude-marks', label: long, marks: [] }), CHANNEL),
+    undefined,
+  );
+});
+
+test('a mark with a bad id is dropped', () => {
+  const bad = [
+    { id: 'a"] *', motion: false },
+    { id: 7, motion: false },
+    { id, motion: 'yes' },
+    { id, item: 1.5, motion: false },
+    { id, item: -1, motion: false },
+  ];
+  for (const mark of bad) {
+    assert.equal(
+      parseStudioMessage(sent({ type: 'claude-marks', label: 'Claude', marks: [mark] }), CHANNEL),
+      undefined,
+      JSON.stringify(mark),
+    );
+  }
+});
+
+test('a preview change keeps a whole-number item and refuses any other', () => {
+  const change = { id, kind: 'style', property: 'gap', value: '8px' };
+  const keep = (item: unknown) =>
+    parseStudioMessage(sent({ type: 'preview', changes: [{ ...change, item }] }), CHANNEL);
+  assert.deepEqual(keep(2), sent({ type: 'preview', changes: [{ ...change, item: 2 }] }));
+  assert.deepEqual(keep(0), sent({ type: 'preview', changes: [{ ...change, item: 0 }] }));
+  for (const item of [1.5, -1, '1', null]) assert.equal(keep(item), undefined, String(item));
+  assert.deepEqual(
+    parseStudioMessage(sent({ type: 'preview', changes: [change] }), CHANNEL),
+    sent({ type: 'preview', changes: [change] }),
+  );
 });
 
 test('an edit message on another channel is not ours', () => {

@@ -2,8 +2,10 @@
 // time into #root when the studio's frame asks for it (`?example=<key>`). `kitvas-example`
 // (client/frame/page/example.ts) reads the key and reports the page's height to the studio.
 // Example code comes from kit.json and is inserted as JSX text, so only code that already passed
-// `exampleFunction` through the bundler's transform may be given to `catalogMountSource`.
+// `exampleFunction` through the bundler's transform may be given to `catalogMountSource`. A kit with
+// icons also gets the icon sheet (`icon-sheet.ts`) under its own key.
 
+import { ICON_SHEET_KEY, type IconSheet, iconSheetSource } from './icon-sheet.ts';
 import { type MountProvider, providerSource } from './provider-source.ts';
 
 export type CatalogExample = { key: string; code: string };
@@ -13,6 +15,8 @@ export type CatalogMountInput = {
   /** Every component name of the catalog; a name the kit does not export is not a bundle error. */
   components: string[];
   examples: CatalogExample[];
+  /** The kit's icons on one grid, shown for `?example=kitvas-icons`; absent without icons. */
+  sheet?: IconSheet | undefined;
 };
 
 /**
@@ -52,9 +56,22 @@ export function examplesSource(examples: CatalogExample[]): string {
   return `${functions.join('\n\n')}\n`;
 }
 
-export function catalogMountSource({ providers, components, examples }: CatalogMountInput): string {
+export function catalogMountSource({
+  providers,
+  components,
+  examples,
+  sheet,
+}: CatalogMountInput): string {
   const { imports, open, close } = providerSource(providers);
   const names = examples.map((_, index) => `KitvasExample${index}`);
+  const entries = examples.map(
+    (example, index) => `[${JSON.stringify(example.key)}, ${names[index]}]`,
+  );
+  const keys = examples.map((example) => example.key);
+  if (sheet) {
+    entries.push(`[${JSON.stringify(ICON_SHEET_KEY)}, KitvasIconSheet]`);
+    keys.push(ICON_SHEET_KEY);
+  }
   const lines = [
     "import { flushSync } from 'react-dom';",
     "import { createRoot } from 'react-dom/client';",
@@ -71,6 +88,7 @@ export function catalogMountSource({ providers, components, examples }: CatalogM
   for (const [index, example] of examples.entries()) {
     lines.push(exampleFunction(names[index] ?? '', example.code), '');
   }
+  if (sheet) lines.push(...iconSheetSource(sheet), '');
   lines.push(
     'let failed = false;',
     'class KitvasBoundary extends ReactComponent<{ children?: unknown }, { broken: boolean }> {',
@@ -86,9 +104,7 @@ export function catalogMountSource({ providers, components, examples }: CatalogM
     '  }',
     '}',
     '',
-    `const EXAMPLES: [string, () => unknown][] = [${examples
-      .map((example, index) => `[${JSON.stringify(example.key)}, ${names[index]}]`)
-      .join(', ')}];`,
+    `const EXAMPLES: [string, () => unknown][] = [${entries.join(', ')}];`,
     "const element = document.getElementById('root');",
     'const root = element ? createRoot(element) : undefined;',
     'const render = (key: string): boolean => {',
@@ -103,7 +119,7 @@ export function catalogMountSource({ providers, components, examples }: CatalogM
     '  }',
     '  return !failed;',
     '};',
-    `startExample({ keys: ${JSON.stringify(examples.map((example) => example.key))}, render });`,
+    `startExample({ keys: ${JSON.stringify(keys)}, render });`,
     '',
   );
   return lines.join('\n');

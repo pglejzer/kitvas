@@ -13,6 +13,7 @@ import {
   samePage,
   WAIT_FOR_NEXT_MS,
   withHashOf,
+  withScrollAt,
 } from '../../../../../client/studio/edit/sync/live-frame.ts';
 import type { Frame } from '../../../../../client/studio/frames.ts';
 import type { EditState } from '../../../../../src/studio/api/edit/edit-schemas.ts';
@@ -537,4 +538,25 @@ test('after a reset every card loads the address served now on its own channel',
   await settled();
   assert.equal(element.src, `${SERVED}?state=default&live=1${HASH}`);
   assert.equal(wide.element.src, `${SERVED}?state=default&live=1${WIDE_HASH}`);
+});
+
+test('a failed swap that carried a scroll loads the frame again with it in the hash', () => {
+  const { element, frame, live } = setup();
+  live.hear(build(2));
+  live.swapped(frame, 1, 'failed', { x: 0, y: 600 });
+  assert.equal(element.src, `${loaded(FRAME, 1)?.replace(HASH, '')}${HASH}&scroll=0,600`);
+  assert.equal(withScrollAt(FRAME, { x: 4, y: 5 }), `${FRAME}&scroll=4,5`);
+  assert.equal(withScrollAt('not an address', { x: 4, y: 5 }), 'not an address');
+});
+
+test('a load for another reason leaves the scroll out of the address', () => {
+  const failed = setup();
+  failed.live.hear(build(2));
+  failed.live.swapped(failed.frame, 1, 'failed');
+  assert.equal(failed.element.src, loaded(FRAME, 1), 'a failed swap with no scroll');
+  const silent = setup();
+  silent.live.hear(build(2));
+  silent.clock.advance(SWAP_ANSWER_MS);
+  assert.equal(silent.element.src, loaded(FRAME, 1), 'no answer in time');
+  assert.ok(!silent.element.src.includes('scroll='));
 });

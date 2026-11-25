@@ -150,6 +150,27 @@ test('inspect answers one element as written; an id that names no element is ref
   assert.deepEqual(errors, []);
 });
 
+test('scope without a path is refused', async () => {
+  const { studio, errors, get } = await editStudio();
+  try {
+    const one = `/api/v1/drafts/shop/inspect?id=${encodeURIComponent(STACK)}`;
+    // ADR 0072: the copy names the item, so `scope=item` needs a `path`; no other scope is known.
+    for (const query of ['&scope=item', '&scope=all&path=0', '&scope=']) {
+      const bad = await get(`${one}${query}`);
+      assert.equal(bad.status, 400, query);
+      assert.equal(json<Problem>(bad.text).code, 'REQUEST_INVALID', query);
+    }
+    // With a path the answer says why the Stack, in no list, has no item of its own.
+    const asked = await get(`${one}&scope=item&path=`);
+    assert.equal(asked.status, 200, asked.text);
+    assert.deepEqual(json<Inspect>(asked.text).itemScope, { refused: 'not-list-item' });
+    assert.equal(json<Inspect>((await get(one)).text).itemScope, null);
+  } finally {
+    await studio.close();
+  }
+  assert.deepEqual(errors, []);
+});
+
 test('the first edit starts a version, the next goes into it, and saving ends it', async () => {
   const { drafts, studio, errors, before, after, get, post } = await editStudio();
   try {

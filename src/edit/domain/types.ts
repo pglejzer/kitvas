@@ -85,6 +85,11 @@ export const REFUSALS = [
   'kit-state-wins',
   /** The element, or one it would remove, is locked (spec 4d, goal 4). */
   'locked',
+  /**
+   * "This item" (ADR 0072): the key of the list around the element does not give each item a
+   * name a class can use (not a field of the item, a value missing, repeated or no class part).
+   */
+  'item-key',
 ] as const;
 export type Refusal = (typeof REFUSALS)[number];
 

@@ -38,6 +38,7 @@ import {
 } from '../sync/remap.ts';
 import { text } from '../texts.ts';
 import { appliedNote } from './applied.ts';
+import { valuesOf } from './change-chips.ts';
 import { opChips, type StepEntry } from './chips.ts';
 
 /** Two edits of one property this close together are one undo step (R13): a stepper drag. */
@@ -256,15 +257,21 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
   }
 
   // The Changes rail shows what each step changed as chips (plan 18): the line carries them.
-  const entry = (ops: readonly EditOp[], label: string, id: string | null): StepEntry => ({
-    by: 'person',
-    id,
-    label,
-    files: [],
-    offKit: isOffKit(ops),
-    at: io.now(),
-    chips: opChips(ops),
-  });
+  // The op's own `before` is what the panel read before the edit; `valuesOf` keeps it with the
+  // new value on the line (plan 18f).
+  const entry = (ops: readonly EditOp[], label: string, id: string | null): StepEntry => {
+    const chips = opChips(ops);
+    return {
+      by: 'person',
+      id,
+      label,
+      files: [],
+      offKit: isOffKit(ops),
+      at: io.now(),
+      chips,
+      ...valuesOf(chips),
+    };
+  };
 
   /** The step a stack keeps for an applied request: what was sent, and the answer's inverse. */
   function stepOf(sent: Gesture, outcome: Applied, renames: Renames): Gesture {
@@ -364,6 +371,12 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
     }
   }
 
+  /** Nothing was written: the frame takes back its previews and the nodes a drop moved. */
+  function notTaken(): void {
+    bridge.send({ type: 'drop-back' });
+    bridge.send({ type: 'unpreview' });
+  }
+
   async function submit(
     kind: Kind,
     sent: Gesture,
@@ -374,7 +387,7 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
     store.set({ busy: true, conflict: null, refused: null });
     const changes = sent.ops.flatMap((op) => {
       const change = previewOf(op);
-      return change ? [change] : [];
+      return change ? [sent.item === undefined ? change : { ...change, item: sent.item }] : [];
     });
     if (changes.length > 0) bridge.send({ type: 'preview', changes });
     const { edit, etags } = store.get();
@@ -384,7 +397,7 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
     const answer = request ? await io.post(slug, request) : null;
     if (!answer?.ok) {
       // Nothing was saved: the stacks stay, and the person is told (no answer, or an error).
-      bridge.send({ type: 'unpreview' });
+      notTaken();
       store.set({ busy: false, failed: { kind, gesture: sent, status: answer?.status ?? 0 } });
       return null;
     }
@@ -399,11 +412,11 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
       if (kind !== 'apply' || original.flash) bridge.flash?.(note.ids);
       if (outcome.started) void learnSession(outcome.version);
     } else if (outcome.outcome === 'conflict') {
-      bridge.send({ type: 'unpreview' });
+      notTaken();
       store.set({ busy: false, conflict: { gesture: sent, outcome }, failed: null });
     } else {
       pending = null;
-      bridge.send({ type: 'unpreview' });
+      notTaken();
       const [first] = outcome.refusals;
       store.set({
         busy: false,

@@ -21,6 +21,7 @@ type Fields = {
   label?: string | null;
   heading?: string | null;
   text?: string | null;
+  cls?: string | null;
   ancestors?: string[];
 };
 
@@ -30,6 +31,7 @@ const raw = (fields: Fields = {}): RawNode => ({
   label: fields.label ?? null,
   heading: () => fields.heading ?? null,
   text: () => fields.text ?? null,
+  cls: fields.cls ?? null,
   ancestors: () => fields.ancestors ?? [],
 });
 
@@ -72,10 +74,24 @@ test('the tree has one node per id, in document order', () => {
     raw({ id: 'App:main/button', tag: 'BUTTON', text: 'Buy', ancestors: ['App:main'] }),
   ]);
   assert.deepEqual(tree, [
-    { id: 'App:main', parent: null, name: 'Shop Buy', count: 1 },
-    { id: 'App:main/h1', parent: 'App:main', name: 'Shop', count: 1 },
-    { id: 'App:main/button', parent: 'App:main', name: 'Buy', count: 1 },
+    { id: 'App:main', parent: null, name: 'Shop Buy', count: 1, cls: null },
+    { id: 'App:main/h1', parent: 'App:main', name: 'Shop', count: 1, cls: null },
+    { id: 'App:main/button', parent: 'App:main', name: 'Buy', count: 1, cls: null },
   ]);
+});
+
+test('a node carries the first class of its element, at most 40 characters, or null', () => {
+  const tree = buildTree([
+    raw({ id: 'A:p', tag: 'P', cls: '  plans__price  plans__big ' }),
+    raw({ id: 'A:div', tag: 'DIV', cls: 'x'.repeat(60) }),
+    raw({ id: 'A:span', tag: 'SPAN', cls: '   ' }),
+  ]);
+  assert.deepEqual(
+    tree.map((node) => node.cls),
+    ['plans__price', 'x'.repeat(40), null],
+  );
+  const message = { type: 'tree', request: 1, nodes: tree };
+  assert.ok(parseEditFrame(message, 'probe'));
 });
 
 test('an element inside a fragment hangs under the nearest element that has an id', () => {
@@ -104,8 +120,8 @@ test('the parent is the nearest enclosing element with another id', () => {
     raw({ id: 'A:ul/li', tag: 'LI', ancestors: ['A:ul/li', 'A:ul'] }),
   ]);
   assert.deepEqual(tree, [
-    { id: 'A:ul', parent: null, name: 'ul', count: 1 },
-    { id: 'A:ul/li', parent: 'A:ul', name: 'li', count: 2 },
+    { id: 'A:ul', parent: null, name: 'ul', count: 1, cls: null },
+    { id: 'A:ul/li', parent: 'A:ul', name: 'li', count: 2, cls: null },
   ]);
 });
 
@@ -122,10 +138,10 @@ test('the items of a mapped list are one node, counted, named by the first', () 
     raw({ id: 'A:footer', tag: 'FOOTER' }),
   ]);
   assert.deepEqual(tree, [
-    { id: 'A:ul', parent: null, name: 'Plans', count: 1 },
-    { id: 'A:ul/li', parent: 'A:ul', name: 'Free', count: 3 },
-    { id: 'A:ul/li/b', parent: 'A:ul/li', name: 'Free', count: 2 },
-    { id: 'A:footer', parent: null, name: 'footer', count: 1 },
+    { id: 'A:ul', parent: null, name: 'Plans', count: 1, cls: null },
+    { id: 'A:ul/li', parent: 'A:ul', name: 'Free', count: 3, cls: null },
+    { id: 'A:ul/li/b', parent: 'A:ul/li', name: 'Free', count: 2, cls: null },
+    { id: 'A:footer', parent: null, name: 'footer', count: 1, cls: null },
   ]);
 });
 

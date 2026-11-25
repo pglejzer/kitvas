@@ -3,6 +3,7 @@
 // under `studio.edit.` in locales/en.json, as in `edit-texts.ts`, which joins both lists.
 
 export const CLAUDE_TEXT_KEYS = [
+  'ai.mark',
   'ai.status.listening',
   'ai.status.working',
   'ai.status.off',

@@ -212,7 +212,7 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
     apiRoute({
       id: 'inspectElement',
       summary:
-        'One element of the latest version as its source writes it. Query: `id`, and `path` for the copy its list is read for.',
+        'One element of the latest version as its source writes it. Query: `id`, `path` for the copy its list is read for, and `scope=item` (with `path`) for the own class of that copy (ADR 0072).',
       method: 'GET',
       path: '/api/v1/drafts/{slug}/inspect',
       policy: 'read',
@@ -220,11 +220,14 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
       request: null,
       response: { status: 200, schema: InspectSchema },
       handle: async ({ params, query }) => {
-        // `path` left out reads the list for no one copy; a `path` that is not numbers is refused.
+        // `path` left out reads the list for no one copy; a `path` that is not numbers is refused,
+        // and so is a `scope` other than `item` or one without a `path`.
         const rawPath = query.get('path');
+        const rawScope = query.get('scope');
         const parsed = InspectQuerySchema.safeParse({
           id: query.get('id'),
           ...(rawPath === null ? {} : { path: pathOf(rawPath) }),
+          ...(rawScope === null ? {} : { scope: rawScope }),
         });
         if (!parsed.success || !namesSourceFile(parsed.data.id)) {
           throw new RequestError(
@@ -244,6 +247,7 @@ export function editRoutes(deps: EditRouteDeps): ApiRoute[] {
           params.slug,
           parsed.data.id,
           parsed.data.path,
+          parsed.data.scope,
         );
         return { status: 200, body: inspected };
       },

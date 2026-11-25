@@ -414,3 +414,99 @@ test('a new class name is the tag in kebab case', () => {
   assert.equal(classNameOf('PriceTag'), 'price-tag');
   assert.equal(classNameOf('h2'), 'h2');
 });
+
+/** Spelt apart, so no plain string here reads like a template's placeholder. */
+const DOLLAR = '$';
+const TICK = '`';
+
+/** The plans after "This item" on the Pro card (ADR 0072): the modifier in the TSX, its rule. */
+const ITEM_PLANS = {
+  'md/layout.md': '# Layout: Shop\n\n## plans\nPurpose: Show the plans.\nComponents: Card\n',
+  'src/tsx/sections/Plans.tsx': [
+    "import { Card, Text } from '@kit';",
+    '',
+    "const plans = [{ id: 'starter', name: 'Starter' }, { id: 'pro', name: 'Pro', featured: true }];",
+    '',
+    'export function Plans() {',
+    '  return (',
+    '    <section className="plans">',
+    '      {plans.map((plan) => (',
+    `        <Card key={plan.id} className={${TICK}${DOLLAR}{plan.featured ? 'plans__card plans__card--featured' : 'plans__card'} plans__card--${DOLLAR}{plan.id}${TICK}}>`,
+    '          <Text>{plan.name}</Text>',
+    '        </Card>',
+    '      ))}',
+    '    </section>',
+    '  );',
+    '}',
+    '',
+  ].join('\n'),
+  'src/scss/sections/plans.scss': [
+    '.plans {',
+    '  &__card {',
+    '    background: var(--kit-color-surface);',
+    '    border: 1px solid var(--kit-color-line);',
+    '  }',
+    '',
+    '  &__card--pro {',
+    '    background-color: var(--kit-color-ink-soft);',
+    '  }',
+    '}',
+    '',
+  ].join('\n'),
+};
+
+const ITEM_CARD = 'sections/Plans:section/Card';
+
+const inspectItem = (
+  drafts: DraftStore,
+  id: string,
+  path: number[],
+  kits: KitStore = builtinKits(),
+) => inspectElement({ drafts, kits, compiler, etag: etagOf }, 'shop', id, path, 'item');
+
+test("scope item reads the item's own rule", async () => {
+  const drafts = draftWith(ITEM_PLANS);
+  const card = await inspectItem(drafts, ITEM_CARD, [1]);
+  assert.deepEqual(card.itemScope, { className: 'plans__card--pro', inTsx: true, path: [1] });
+  assert.deepEqual(card.styleClass, { className: 'plans__card--pro', exists: true });
+  assert.equal(card.scss?.rule, true);
+  assert.deepEqual(card.scss?.declarations, [
+    { property: 'background-color', value: 'var(--kit-color-ink-soft)', offKit: false },
+  ]);
+  assert.deepEqual(card.styles['background-color'], {
+    kind: 'scss',
+    className: 'plans__card--pro',
+    value: 'var(--kit-color-ink-soft)',
+    offKit: false,
+  });
+  // Set only on the shared rule: its class, and no part of its shorthand, since a write in this
+  // scope goes into the item's rule.
+  const border = card.styles['border-color'];
+  assert.equal(border.kind === 'scss' ? border.className : null, 'plans__card');
+  assert.equal('via' in border, false);
+  // Without the scope the card reads the shared rule, through the wrapped template too.
+  const all = await inspectIn(drafts, ITEM_CARD);
+  assert.equal(all.itemScope, null);
+  assert.deepEqual(all.styleClass, { className: 'plans__card', exists: true });
+  const shared = all.styles['border-color'];
+  assert.equal(shared.kind === 'scss' ? shared.via : null, 'border');
+});
+
+test('scope item on an element in no list says why it has no item', async () => {
+  const drafts = draftWith(ITEM_PLANS);
+  const section = await inspectItem(drafts, 'sections/Plans:section', []);
+  assert.deepEqual(section.itemScope, { refused: 'not-list-item' });
+  // The rest of the answer is the element's own, as without the scope.
+  assert.deepEqual(section.styleClass, { className: 'plans', exists: true });
+  const gone = await inspectItem(drafts, ITEM_CARD, [5]);
+  assert.deepEqual(gone.itemScope, { refused: 'list-item-gone' });
+  // `key={plan.name}` gives `Pro`: kitvas writes no class name in capitals.
+  const named = await inspectItem(draftWith(PLANS), CARD, [1]);
+  assert.deepEqual(named.itemScope, { refused: 'item-key' });
+  assert.deepEqual(named.styleClass, { className: 'plans__card', exists: true });
+});
+
+test('a Tailwind draft refuses the scope', async () => {
+  const card = await inspectItem(draftWith(ITEM_PLANS), ITEM_CARD, [1], tailwindKits());
+  assert.deepEqual(card.itemScope, { refused: 'utility' });
+});

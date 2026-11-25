@@ -74,7 +74,7 @@ const placesOf = (findings: RawFinding[], rule: string) =>
     .filter((finding) => finding.rule === rule)
     .map((finding) => [finding.states[0], finding.widths[0]]);
 
-test('every state is visited at 390 with reflow and at 1280, each with a screenshot', async () => {
+test('every state is visited at 390 with reflow and at 1280 with a screenshot, and at 768 measured only', async () => {
   const fake = fakeBrowser();
   const result = await browserChecks(
     fake.browser,
@@ -86,8 +86,10 @@ test('every state is visited at 390 with reflow and at 1280, each with a screens
     [
       ['filled', 390, 844, ['reflow', 'focus', 'spacing']],
       ['filled', 1280, 900, ['focus', 'spacing']],
+      ['filled', 768, 1024, []],
       ['empty', 390, 844, ['reflow', 'focus', 'spacing']],
       ['empty', 1280, 900, ['focus', 'spacing']],
+      ['empty', 768, 1024, []],
     ],
   );
   assert.equal(fake.visits[0]?.page, join(DIR, 'build', 'html', 'index.html'));
@@ -114,6 +116,8 @@ test('deep adds its pass at 390 and 1280, and the deep widths with no pass and n
       [768, 1024, [], false],
       [1024, 768, [], false],
       [1440, 900, [], false],
+      [1920, 1080, [], false],
+      [2560, 1440, [], false],
     ],
   );
   const fake = fakeBrowser();
@@ -126,6 +130,8 @@ test('deep adds its pass at 390 and 1280, and the deep widths with no pass and n
       [768, true],
       [1024, true],
       [1440, true],
+      [1920, true],
+      [2560, true],
     ],
   );
   assert.deepEqual(
@@ -159,11 +165,15 @@ test('each visit with facts gets the rules with its screen, state kind, catalog 
     ['filled', 768],
     ['filled', 1024],
     ['filled', 1440],
+    ['filled', 1920],
+    ['filled', 2560],
     ['empty-orders', 390],
     ['empty-orders', 1280],
     ['empty-orders', 768],
     ['empty-orders', 1024],
     ['empty-orders', 1440],
+    ['empty-orders', 1920],
+    ['empty-orders', 2560],
   ]);
   assert.deepEqual(
     all.inputs.map((one) => [one.stateKind, one.screen, one.catalog, one.facts.viewport[0]]),
@@ -298,7 +308,7 @@ test('facts cut at the node cap are reported, and the rules still run on them', 
   const rules = { ...NO_RULES, visit: [all.rule], deepWidth: ['ui/any'] };
   const cut = await browserChecks(fake.browser, input({ deep: true }), rules);
   assert.equal(cut.truncated, true);
-  assert.equal(all.inputs.length, 5);
+  assert.equal(all.inputs.length, 7);
   const whole = await browserChecks(fake.browser, input(), rules);
   assert.equal(whole.truncated, false);
 });

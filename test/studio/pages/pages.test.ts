@@ -79,6 +79,9 @@ const numbered = (tone: string, n: number, title: string, meta?: string): string
 /** The end of a frame address in a page's HTML: a 22-character channel and the studio port. */
 const HASH_5000 = '#kitvas=[A-Za-z0-9_-]{22}&amp;studio=5000';
 
+/** The editor's panel on `main`: the inline layout script names the attribute in its code too. */
+const EDIT_PANEL = /<main\b[^>]*\bdata-edit-panel/;
+
 test('values are escaped, HTML from html is kept, lists are joined', () => {
   const name = `<b>"Tom" & 'Jerry'</b>`;
   assert.equal(
@@ -107,7 +110,7 @@ test('a draft not built yet says how to build it, and Edit says why it is off', 
   assert.ok(!text.includes('Built from'));
   const reason = escapeHtml(t('studio.edit.shell.reason.unbuilt'));
   assert.ok(editMode(text).endsWith(`aria-pressed="false" disabled title="${reason}">`));
-  assert.ok(!text.includes('data-edit-panel'));
+  assert.doesNotMatch(text, EDIT_PANEL);
   assert.ok(!text.includes('data-edit-undo'));
   // The editor's panes say so too, and the screen's texts are there for its own script.
   assert.ok(
@@ -140,14 +143,20 @@ test('a built draft is framed at the phone width in its default state', async ()
     ),
   );
   assert.ok(text.includes('<script type="module" src="/assets/draft.js"></script></main>'));
+  // The panels' first layout is set before the first paint: the script comes after both panels
+  // and their grips, and before the module script that would otherwise fix the page afterwards.
+  const opening = text.indexOf('<script nonce="N0nce">(function(){try{var D=document');
+  assert.ok(opening > text.indexOf('<aside class="k-island side-panel" data-side="right"'));
+  assert.ok(opening > text.indexOf('<div class="side-grip" data-grip="right"'));
+  assert.ok(opening < text.indexOf('src="/assets/draft.js"'));
+  assert.ok(text.includes("'kitvas.editor.layout'"));
   assert.ok(!text.includes('data-compare'));
   assert.ok(!text.includes('data-frame="before"'));
-  assert.ok(
-    text.includes(
-      '<div class="checks-lines"><p>Built from the Tiny kit.</p><p>Not checked yet.</p></div>',
-    ),
-  );
-  assert.ok(text.includes(escapeHtml(t('studio.next.check', { slug: 'shop' }))));
+  assert.ok(text.includes('<div class="checks-lines"><p>Built from the Tiny kit.</p></div>'));
+  // Not checked: the pane says so and offers the full check; no command to copy.
+  assert.ok(text.includes(escapeHtml(t('studio.notes.notChecked'))));
+  assert.ok(text.includes('data-checks-run>'));
+  assert.ok(!text.includes(escapeHtml(t('studio.next.check', { slug: 'shop' }))));
 });
 
 test('the screen has a full window of its own: no studio links, no edit toggle', async () => {
@@ -306,7 +315,7 @@ test('the address picks the version, state and width; anything else falls back',
   const versions = region(picked, '<details class="bar-menu" data-shell="version">', 'details');
   assert.ok(
     versions.includes(
-      `<summary class="k-btn">${t('studio.draft.versionCaption', { version: 1 })}<svg`,
+      `<summary class="k-btn"><span data-version-name>${t('studio.draft.versionCaption', { version: 1 })}</span><svg`,
     ),
   );
   assert.ok(
@@ -319,11 +328,13 @@ test('the address picks the version, state and width; anything else falls back',
       '<a class="k-menu-item" href="/drafts/shop?version=1&amp;state=empty&amp;width=1280" aria-current="true"><span>Version 1</span><span class="bar-tick">',
     ),
   );
-  assert.ok(versions.indexOf('Version 2') < versions.indexOf('Version 1</span>'));
+  assert.ok(
+    versions.indexOf('<span>Version 2</span>') < versions.indexOf('<span>Version 1</span>'),
+  );
   // An older version cannot be edited, and Edit says why.
   const reason = escapeHtml(t('studio.edit.shell.reason.old'));
   assert.ok(editMode(picked).endsWith(`disabled title="${reason}">`));
-  assert.ok(!picked.includes('data-edit-panel'));
+  assert.doesNotMatch(picked, EDIT_PANEL);
   const fallback = await view('draft', { ...SHOP, query: 'version=9&state=gone&width=1024' });
   assert.match(
     fallback,
@@ -386,7 +397,7 @@ test('compare shows the other version first, with the same state and width', asy
   // Comparing: Edit is off and says why.
   const reason = escapeHtml(t('studio.edit.shell.reason.compare'));
   assert.ok(editMode(text).endsWith(`disabled title="${reason}">`));
-  assert.ok(!text.includes('data-edit-panel'));
+  assert.doesNotMatch(text, EDIT_PANEL);
 });
 
 test('the compare menu marks the compared version and offers to stop', async () => {
@@ -477,13 +488,13 @@ test('a note carries its tone and, when it has one, its element', async () => {
     ]),
   );
   const text = await pages(store)('draft', SHOP);
-  const row = '<li class="note k-item checks-finding"';
+  const row = '<li class="note k-card checks-finding"';
   assert.ok(
     text.includes(
-      `${row} data-tone="fix" data-rule="a11y/label" data-element="Draft:main/Input.0">`,
+      `${row} data-tone="fix" data-rule="a11y/label" data-element="Draft:main/Input.0"`,
     ),
   );
-  assert.ok(text.includes(`${row} data-tone="review" data-rule="ds/raw-color">`));
+  assert.ok(text.includes(`${row} data-tone="review" data-rule="ds/raw-color" data-message=`));
   assert.ok(text.includes('<span class="num checks-num" data-tone="review">2</span>'));
 });
 
@@ -520,19 +531,13 @@ test('findings of this state and width are numbered beside the frame, with the n
   const view = pages(store);
   const phone = await view('draft', SHOP);
   assert.ok(phone.includes('<h2 class="checks-group-title">1 to fix</h2>'));
-  const where = 'Draft / Input.0';
-  assert.ok(
-    phone.includes(numbered('fix', 1, 'The phone field has no label.', `Accessibility · ${where}`)),
-  );
+  const where = 'Input.0 in Draft';
+  assert.ok(phone.includes(numbered('fix', 1, 'The phone field has no label.', where)));
   assert.ok(!phone.includes('The total colour'));
   assert.ok(phone.includes('1 more in other widths or states.'));
   assert.ok(phone.includes(escapeHtml(t('studio.next.fix', { slug: 'shop' }))));
   const desktop = await view('draft', { ...SHOP, query: 'width=1280' });
-  assert.ok(
-    desktop.includes(
-      numbered('review', 2, 'The total colour is typed by hand.', `Kit rules · ${where}`),
-    ),
-  );
+  assert.ok(desktop.includes(numbered('review', 2, 'The total colour is typed by hand.', where)));
 });
 
 test('clean checks say so and suggest the next version; skipped checks are named', async () => {
@@ -587,11 +592,7 @@ test('an older checks.json without ui and ux reads: its findings show, the new c
   store.writeText('shop', 'v1/build/json/checks.json', serializeJson(old));
   const text = await pages(store)('draft', SHOP);
   assert.ok(text.includes('<h2 class="checks-group-title">1 to fix</h2>'));
-  assert.ok(
-    text.includes(
-      numbered('fix', 1, 'The phone field has no label.', 'Accessibility · Draft / Input.0'),
-    ),
-  );
+  assert.ok(text.includes(numbered('fix', 1, 'The phone field has no label.', 'Input.0 in Draft')));
   assert.ok(text.includes('<p>Not run: Look, Usability.</p>'));
 });
 

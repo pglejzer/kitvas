@@ -7,6 +7,8 @@ import { text } from '../edit/texts.ts';
 import { toast } from '../edit/toast.ts';
 import type { Frame } from '../frames.ts';
 import { cardSize } from './caption.ts';
+import { pillMenu } from './pill-menu.ts';
+import { mountPillMenus } from './pill-menus.ts';
 import {
   chooseWidth,
   dragWidth,
@@ -17,6 +19,7 @@ import {
   type Shown,
   sameShown,
   shownWidth,
+  sizeOf,
   snapToPreset,
   stepView,
   widthAddress,
@@ -26,6 +29,9 @@ import {
 const SETTLE_MS = 250;
 
 const PRESET_LINK = 'a[data-dock-width]';
+const SIZE_LINK = 'a[data-dock-size]';
+/** The pill's own button for a width that is not a preset: its number, pressed. */
+const CUSTOM_LINK = 'a[data-dock-custom]';
 const STATE_LINK = '[data-dock="states"] a[data-state]';
 
 export type WidthDeps = {
@@ -77,6 +83,8 @@ export function mountWidth(deps: WidthDeps): WidthControl {
   // The mark's words are its title; a press shows them to a hand that cannot hover.
   note?.addEventListener('click', () => toast(main, note.title));
   const handle = main.querySelector<HTMLElement>('[data-canvas="handle"]');
+  // The state menu and More: the keyboard's part of both.
+  mountPillMenus(main);
 
   const fromAddress = new URL(location.href).searchParams.get('view');
   let shown: Shown = readShown(main.dataset.width, main.dataset.view ?? fromAddress);
@@ -100,6 +108,24 @@ export function mountWidth(deps: WidthDeps): WidthControl {
       const preset = presetOf(Number(link.dataset.dockWidth));
       if (shown.view === null && preset === shown.width) link.setAttribute('aria-current', 'true');
       else link.removeAttribute('aria-current');
+    }
+    // A width that is no preset shows in the pill as its number, pressed.
+    const custom = pillMenu({ width: shownWidth(shown), cards: 1 }).custom;
+    for (const link of main.querySelectorAll<HTMLAnchorElement>(CUSTOM_LINK)) {
+      link.hidden = !custom;
+      if (custom) {
+        link.textContent = String(shownWidth(shown));
+        link.setAttribute('aria-current', 'true');
+      } else {
+        link.textContent = '';
+        link.removeAttribute('aria-current');
+      }
+    }
+    // The menu's rows: the one at the width shown is current, a preset or not.
+    for (const link of main.querySelectorAll<HTMLAnchorElement>(SIZE_LINK)) {
+      if (Number(link.dataset.dockSize) === shownWidth(shown)) {
+        link.setAttribute('aria-current', 'true');
+      } else link.removeAttribute('aria-current');
     }
     // A state link keeps the width shown now, also before the server's fresh links are here.
     for (const link of main.querySelectorAll<HTMLAnchorElement>(STATE_LINK)) {
@@ -163,6 +189,25 @@ export function mountWidth(deps: WidthDeps): WidthControl {
 
   main.addEventListener('click', (event) => {
     if (!isPlainClick(event) || !(event.target instanceof Element)) return;
+    // The number of the width shown is already what the cards show.
+    if (event.target.closest(CUSTOM_LINK)) {
+      event.preventDefault();
+      return;
+    }
+    const size = event.target.closest<HTMLAnchorElement>(SIZE_LINK);
+    if (size) {
+      const asked = sizeOf(size.dataset.dockSize);
+      if (asked === null) return;
+      event.preventDefault();
+      set(chooseWidth(shown, asked), 'now');
+      // A pick closes the menu, the focus back on its button.
+      const menu = size.closest('details');
+      if (menu?.open) {
+        menu.open = false;
+        menu.querySelector('summary')?.focus();
+      }
+      return;
+    }
     const link = event.target.closest<HTMLAnchorElement>(PRESET_LINK);
     const preset = link ? presetOf(Number(link.dataset.dockWidth)) : null;
     if (preset === null) return;

@@ -56,6 +56,10 @@ export function startFrame(input: FrameInput): void {
   let mounted = input.mount();
   mounted.render(initial);
   const link = readHash(location.hash);
+  // A page the studio loaded again opens where it was, once; a shorter page ends at its bottom.
+  if (link?.scroll) {
+    window.scrollTo({ left: link.scroll.x, top: link.scroll.y, behavior: 'instant' });
+  }
   // Not framed, or no channel asked for: nothing more to do.
   if (!link || window.parent === window) return;
 
@@ -148,8 +152,15 @@ export function startFrame(input: FrameInput): void {
       // A press that has not become a drag yet does not hold the page: its log hears of the build.
       structure.swapped();
     },
-    answer(build, step) {
-      if (step !== 'ready') post({ kitvas: 1, channel, type: 'swap', live: build, step });
+    scroll: () => ({ x: window.scrollX, y: window.scrollY }),
+    answer(build, step, scroll) {
+      if (step !== 'ready') {
+        post(
+          scroll
+            ? { kitvas: 1, channel, type: 'swap', live: build, step, scroll }
+            : { kitvas: 1, channel, type: 'swap', live: build, step },
+        );
+      }
       // As after a load: the studio tells this page again what it draws, and reads its tree.
       else post({ kitvas: 1, channel, type: 'ready', state: current, live: build });
     },

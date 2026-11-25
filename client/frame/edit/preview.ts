@@ -3,7 +3,8 @@
 // remembered the first time and put back exactly by `clear`: the text node's text, and the `style`
 // and `class` attributes as they were written, also when they were not there at all.
 //
-// A change goes to every element with the id: the items of a mapped list share one.
+// A change goes to every element with the id: the items of a mapped list share one. A change with
+// `item` goes to that copy only (the copy `copyAt` of `items.ts` names).
 
 import type { PreviewChange } from '../../channel/edit-protocol.ts';
 
@@ -87,7 +88,13 @@ export function createPreviewOver(find: (id: string) => Iterable<PreviewElement>
   return {
     apply(changes) {
       for (const change of changes) {
-        for (const element of find(change.id)) show(element, change);
+        // `item`: that copy only, counted in the order `find` gives them (the page's order).
+        if (change.item === undefined) {
+          for (const element of find(change.id)) show(element, change);
+          continue;
+        }
+        const copy = [...find(change.id)][change.item];
+        if (copy) show(copy, change);
       }
     },
 

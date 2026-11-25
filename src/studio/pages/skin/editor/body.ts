@@ -114,18 +114,21 @@ body.screen { height: 100vh; height: 100dvh; margin: 0; padding: 0; overflow: hi
   flex: 1 1 auto;
   flex-wrap: nowrap;
   min-width: 0;
-  padding-right: var(--st-space-4);
-  padding-left: var(--st-space-4);
+  gap: 0;
+  padding-right: var(--st-space-2);
+  padding-left: var(--st-space-2);
   border-bottom: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
 }
 .side-tabs::-webkit-scrollbar { display: none; }
-.side-tabs > .k-tab { flex: none; }
+/* Four tabs with their counts and the fold button fit the panel's 312 px: the tabs a little
+   tighter than the shared ones, the fold button at the 24 px a pointer target needs. */
+.side-tabs > .k-tab { flex: none; padding: 0 var(--st-space-6); }
 /* The row clips what is under it, so the line of the tab picked sits on its edge, not below. */
-.side-tabs > .k-tab[aria-selected="true"]::after { bottom: 0; }
-.side-fold { align-self: center; margin: 0 var(--st-space-4); }
+.side-tabs > .k-tab[aria-selected="true"]::after { right: var(--st-space-6); bottom: 0; left: var(--st-space-6); }
+.side-fold { align-self: center; width: 24px; height: 24px; margin: 0 var(--st-space-2); }
 
 /* A pane host: a column that fills its panel and never scrolls itself. What it holds is an
    optional head, one \`.k-scroll\` and an optional \`.k-actions\` foot. */

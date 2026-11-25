@@ -8,7 +8,7 @@ import { shopDraft } from '../helpers/drafts.ts';
 import { call, studioOver, writeFakeBuild } from '../helpers/studio.ts';
 
 type Problem = { code: string };
-type Stored = { version: number; file: string };
+type Stored = { version: number; file: string; duplicate?: boolean };
 
 const json = <T>(text: string): T => JSON.parse(text) as T;
 
@@ -53,9 +53,18 @@ test('an image is stored in the latest version with a safe name, the bytes as se
     assert.equal(answer.status, 201, answer.text);
     assert.deepEqual(json<Stored>(answer.text), { version: 1, file: 'hero-shot.png' });
     assert.deepEqual(readFileSync(join(folder, 'hero-shot.png')), PNG);
-    // The same name again is a new file, never over the first.
-    const second = await upload(request(PNG, 'image/png'));
+    // Other bytes under the same name are a new file, never over the first.
+    const other = Buffer.concat([PNG, Buffer.from([0])]);
+    const second = await upload(request(other, 'image/png'));
     assert.equal(json<Stored>(second.text).file, 'hero-shot-2.png');
+    // The same bytes again are the file already there, and nothing is written.
+    const again = await upload(request(PNG, 'image/png'));
+    assert.equal(again.status, 200, again.text);
+    assert.deepEqual(json<Stored>(again.text), {
+      version: 1,
+      file: 'hero-shot.png',
+      duplicate: true,
+    });
     assert.deepEqual(readdirSync(folder).sort(), ['hero-shot-2.png', 'hero-shot.png']);
   } finally {
     await studio.close();

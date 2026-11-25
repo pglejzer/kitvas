@@ -169,6 +169,17 @@ export function tokensFor(tokens: readonly TokenOption[], property: StylePropert
   return own.sort((a, b) => key(a) - key(b));
 }
 
+/**
+ * Plan 18f: whether the kit has tokens of the property's own groups (`radius` for a radius), not
+ * only of its type. A stepper steps over a scale of its own; the field lists every token of the
+ * type.
+ */
+export function hasOwnScale(tokens: readonly TokenOption[], property: StyleProperty): boolean {
+  const type = TOKEN_TYPE[property];
+  const groups = GROUPS[property] ?? [];
+  return tokens.some((token) => token.type === type && groups.includes(groupOf(token)));
+}
+
 /** The token variable a CSS text names: `var(--kit-space-md)` or `--kit-space-md`. */
 export function varOf(text: string): string | null {
   const trimmed = text.trim();

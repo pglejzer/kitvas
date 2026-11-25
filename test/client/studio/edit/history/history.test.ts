@@ -444,6 +444,31 @@ test('a lost request takes the preview back and keeps the stacks', async () => {
   assert.equal(sent.at(-1)?.type, 'unpreview');
 });
 
+test('a drop the studio did not take is put back in the frame: refused, in conflict or lost, never applied', async () => {
+  const dropBacks = (sent: EditStudioBody[]): number =>
+    sent.filter((body) => body.type === 'drop-back').length;
+  const refused: Answer<EditOutcome> = {
+    ok: true,
+    status: 200,
+    body: { outcome: 'refused', version: 1, refusals: [{ index: 0, reason: 'computed' }] },
+  };
+  const cases: [string, Answer<EditOutcome>, number][] = [
+    ['applied', applied(), 0],
+    ['refused', refused, 1],
+    ['conflict', conflictAnswer(), 1],
+    ['failed', { ok: false, status: 500, code: null }, 1],
+  ];
+  for (const [name, answer, count] of cases) {
+    const { history, sent } = setup([answer]);
+    await history.apply({ ops: [move], label: 'Move' });
+    assert.equal(dropBacks(sent), count, name);
+  }
+  // No answer at all, as a lost request.
+  const { history, sent } = setup([]);
+  await history.apply({ ops: [move], label: 'Move' });
+  assert.equal(dropBacks(sent), 1, 'no answer');
+});
+
 test('a failed save keeps the stacks and the change list, says so, and the next answer clears it', async () => {
   const failure: Answer<EditOutcome> = { ok: false, status: 500, code: null };
   const { store, history } = setup([applied(), failure, failure, applied()]);

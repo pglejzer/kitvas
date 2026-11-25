@@ -147,6 +147,8 @@ export const SCALES = {
     '8': '8px',
     '10': '10px',
     '12': '12px',
+    // The side padding of a pane, its groups and its rows.
+    '14': '14px',
     '16': '16px',
     '24': '24px',
     '32': '32px',
@@ -157,7 +159,16 @@ export const SCALES = {
     mono: 'ui-monospace, "Cascadia Code", Consolas, monospace',
   },
   // `xs` is for meta lines only (a count, a size, a time), never for a sentence.
-  'font-size': { xs: '11px', sm: '12px', md: '13px', lg: '15px', xl: '18px', '2xl': '24px' },
+  // `label` is for the labels of a pane's rows and the headers of its groups.
+  'font-size': {
+    xs: '11px',
+    sm: '12px',
+    label: '12.5px',
+    md: '13px',
+    lg: '15px',
+    xl: '18px',
+    '2xl': '24px',
+  },
   'font-weight': { regular: '400', medium: '500', bold: '600' },
   'line-height': { tight: '1.2', normal: '1.4' },
   motion: { fast: '140ms', slow: '240ms', flash: '560ms' },
@@ -174,5 +185,9 @@ export const SCALES = {
     gap: '10px',
     // The least size of anything a pointer has to hit (WCAG 2.5.8).
     target: '24px',
+    // The label column of a row, the header of a group, the height of a chip.
+    label: '84px',
+    group: '34px',
+    chip: '18px',
   },
 } as const satisfies Record<string, Record<string, string>>;
