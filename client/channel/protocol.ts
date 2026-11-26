@@ -6,6 +6,12 @@
 
 import { isRecord as isObject } from '../../src/shared/values/guards.ts';
 import {
+  MAX_OPTIONS,
+  OPTION_ID,
+  OPTION_VALUE,
+  type OptionChoice,
+} from '../../src/shared/values/options.ts';
+import {
   CANVAS_FRAME_TYPES,
   CANVAS_STUDIO_TYPES,
   type CanvasFrameMessage,
@@ -69,10 +75,20 @@ export const SWAP_STEPS = ['held', 'free', 'failed'] as const;
 export type SwapStep = (typeof SWAP_STEPS)[number];
 
 export type FrameMessage =
-  /** `live`: the build a `swap` asked for is in the page now; absent after a load. */
-  | { kitvas: 1; channel: string; type: 'ready'; state: string; live?: number }
+  /**
+   * `live`: the build a `swap` asked for is in the page now; absent after a load. `choice`: the
+   * values of the version's options the page shows (`{}` for a version with none).
+   */
+  | {
+      kitvas: 1;
+      channel: string;
+      type: 'ready';
+      state: string;
+      choice: OptionChoice;
+      live?: number;
+    }
   | { kitvas: 1; channel: string; type: 'elements'; request: number; items: ElementSnapshot[] }
-  | { kitvas: 1; channel: string; type: 'shown'; state: string }
+  | { kitvas: 1; channel: string; type: 'shown'; state: string; choice: OptionChoice }
   | { kitvas: 1; channel: string; type: 'example'; shown: boolean; height: number }
   /**
    * The answer to a `swap` that did not end in `ready`. `scroll`: where the page is scrolled, sent
@@ -98,6 +114,8 @@ export type StudioMessage =
   /** A change was just applied to these elements: a ring flashes once on each (ADR 0057). */
   | { kitvas: 1; channel: string; type: 'flash'; ids: string[] }
   | { kitvas: 1; channel: string; type: 'state'; state: string }
+  /** Show these values of the options; the frame keeps the state it shows (plan 25). */
+  | { kitvas: 1; channel: string; type: 'options'; choice: OptionChoice }
   | { kitvas: 1; channel: string; type: 'marks'; marks: Mark[] }
   /**
    * Take the build on disk into the page as it is, without loading the page again (ADR 0058).
@@ -158,6 +176,24 @@ function ours(data: unknown, channel: string): Loose | undefined {
   return isObject(data) && data.kitvas === 1 && data.channel === channel ? data : undefined;
 }
 
+/**
+ * A choice as the channel carries it: option ids and value ids of the shared patterns, at most
+ * `MAX_OPTIONS` of them. An absent choice is none (`{}`); anything else that is no choice is
+ * `undefined`, and the message that holds it is refused.
+ */
+function choiceOf(value: unknown): OptionChoice | undefined {
+  if (value === undefined) return {};
+  if (!isObject(value)) return undefined;
+  const entries = Object.entries(value);
+  if (entries.length > MAX_OPTIONS) return undefined;
+  const clean: OptionChoice = {};
+  for (const [id, one] of entries) {
+    if (!OPTION_ID.test(id) || typeof one !== 'string' || !OPTION_VALUE.test(one)) return undefined;
+    clean[id] = one;
+  }
+  return clean;
+}
+
 function snapshot(value: unknown): ElementSnapshot | undefined {
   if (!isObject(value)) return undefined;
   const { id, width, height, text, style } = value;
@@ -191,11 +227,13 @@ export function parseFrameMessage(data: unknown, channel: string): FrameMessage 
   if (message.type === 'ready' || message.type === 'shown') {
     const { state, live } = message;
     if (typeof state !== 'string' || !STATE_ID.test(state)) return undefined;
+    const choice = choiceOf(message.choice);
+    if (!choice) return undefined;
     // Only a `ready` that answers a `swap` names a build.
     if (message.type === 'ready' && live !== undefined) {
-      return isCount(live) ? { kitvas: 1, channel, type: 'ready', state, live } : undefined;
+      return isCount(live) ? { kitvas: 1, channel, type: 'ready', state, choice, live } : undefined;
     }
-    return { kitvas: 1, channel, type: message.type, state };
+    return { kitvas: 1, channel, type: message.type, state, choice };
   }
   if (message.type === 'swap') {
     const { live } = message;
@@ -247,6 +285,10 @@ export function parseStudioMessage(data: unknown, channel: string): StudioMessag
     return typeof state === 'string' && STATE_ID.test(state)
       ? { kitvas: 1, channel, type: 'state', state }
       : undefined;
+  }
+  if (message.type === 'options') {
+    const choice = message.choice === undefined ? undefined : choiceOf(message.choice);
+    return choice ? { kitvas: 1, channel, type: 'options', choice } : undefined;
   }
   if (message.type === 'tones') {
     const theme = FRAME_THEMES.find((name) => name === message.theme);

@@ -27,6 +27,7 @@ test('gives one section everything it needs and nothing else', () => {
   ]);
   assert.match(context.brief, /^# Brief: Shop\n/);
   assert.equal(context.states.default, 'filled');
+  assert.deepEqual(context.options, []);
   assert.equal(context.kit.id, 'tiny');
   assert.deepEqual(
     context.kit.components.map((component) => component.name),
@@ -43,6 +44,28 @@ test('gives one section everything it needs and nothing else', () => {
     tsx: join(src, 'tsx', 'sections', 'OrderSummary.tsx'),
     scss: join(src, 'scss', 'sections', 'order-summary.scss'),
   });
+});
+
+test('the options of the version are in the context', () => {
+  const { store } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  const options = [
+    {
+      id: 'columns',
+      label: 'Columns',
+      default: '3',
+      values: [
+        { id: '3', label: 'Three' },
+        { id: '2', label: 'Two' },
+      ],
+    },
+  ];
+  store.writeText(
+    'shop',
+    'v1/src/json/options.json',
+    JSON.stringify({ schemaVersion: 1, options }),
+  );
+  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero').options, options);
 });
 
 test('tokens come with the value CSS reads and the group of their path', () => {

@@ -12,6 +12,7 @@ test('a bundle that runs in a document a runtime already runs only hands itself 
   let mounts = 0;
   const later: Bundle = {
     states: ['default', 'empty'],
+    options: [],
     initial: 'default',
     mount: () => {
       mounts += 1;

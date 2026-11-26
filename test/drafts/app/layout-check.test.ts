@@ -108,6 +108,53 @@ test('problems of the layout, the kit and the states are all reported', () => {
   assert.deepEqual(report.generated, []);
 });
 
+const OPTIONS_JSON = JSON.stringify({
+  schemaVersion: 1,
+  options: [
+    {
+      id: 'columns',
+      label: 'Columns',
+      default: '3',
+      values: [
+        { id: '3', label: 'Three' },
+        { id: '2', label: 'Two' },
+      ],
+    },
+  ],
+});
+
+test('options write the type file and an entry that passes them on; removing them undoes it', () => {
+  const { store } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  store.writeText('shop', 'v1/src/json/options.json', OPTIONS_JSON);
+  const report = checkLayout(store, kits, 'shop');
+  assert.deepEqual(report.generated, [
+    'v1/src/tsx/index.tsx',
+    'v1/src/scss/index.scss',
+    'v1/src/tsx/options.ts',
+  ]);
+  assert.match(store.readText('shop', 'v1/src/tsx/options.ts') ?? '', /"columns": "3" \| "2"/);
+  assert.match(
+    store.readText('shop', 'v1/src/tsx/index.tsx') ?? '',
+    /<Hero state=\{state\} options=\{options\} \/>/,
+  );
+
+  store.replaceAll('shop', [{ relPath: 'v1/src/json/options.json', text: null }]);
+  const without = checkLayout(store, kits, 'shop');
+  assert.deepEqual(without.generated, ['v1/src/tsx/index.tsx', 'v1/src/scss/index.scss']);
+  assert.equal(store.exists('shop', 'v1/src/tsx/options.ts'), false);
+  assert.match(store.readText('shop', 'v1/src/tsx/index.tsx') ?? '', /<Hero state=\{state\} \/>/);
+});
+
+test('the option theme is a problem while a kit has no themes', () => {
+  const { store } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  store.writeText('shop', 'v1/src/json/options.json', OPTIONS_JSON.replaceAll('columns', 'theme'));
+  const report = checkLayout(store, kits, 'shop');
+  assert.equal(report.valid, false);
+  assert.ok(report.issues.every((issue) => issue.key === 'draftIssue.optionsTheme'));
+});
+
 test('a missing layout.md is one issue; an unknown draft or kit is an error', () => {
   const { store, root } = shopDraft();
   rmSync(join(root, 'shop', 'v1', 'md', 'layout.md'));

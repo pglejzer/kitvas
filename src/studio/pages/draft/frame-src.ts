@@ -1,5 +1,6 @@
 // The address a studio page frames a version at, on the prototype origin.
 
+import type { OptionChoice } from '../../../shared/index.ts';
 import {
   catalogFrameUrl,
   catalogPreviewUrl,
@@ -43,7 +44,7 @@ export function catalogPreviewSrc(
 export function frameSrc(
   frame: FrameOrigin,
   host: string,
-  target: { slug: string; version: number; state: string },
+  target: { slug: string; version: number; state: string; choice?: OptionChoice | undefined },
 ): string {
   // The frame uses the host name of this request, so the two origins stay the same site.
   const hostname = host.slice(0, host.lastIndexOf(':'));

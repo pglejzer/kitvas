@@ -18,6 +18,7 @@ const settled = (): Promise<void> => new Promise((resolve) => setImmediate(resol
 
 const bundle = (fields: Partial<Bundle> = {}): Bundle => ({
   states: ['default'],
+  options: [],
   initial: 'default',
   mount: () => ({ render: () => undefined, unmount: () => undefined }),
   runtime: 'r1',

@@ -72,9 +72,15 @@ test('any other hash is no channel', () => {
 
 test('the studio takes ready and shown from its channel', () => {
   const ready = parseFrameMessage(sent({ type: 'ready', state: 'filled' }), CHANNEL);
-  assert.deepEqual(ready, { kitvas: 1, channel: CHANNEL, type: 'ready', state: 'filled' });
+  assert.deepEqual(ready, {
+    kitvas: 1,
+    channel: CHANNEL,
+    type: 'ready',
+    state: 'filled',
+    choice: {},
+  });
   const shown = parseFrameMessage(sent({ type: 'shown', state: 'a' }), CHANNEL);
-  assert.deepEqual(shown, { kitvas: 1, channel: CHANNEL, type: 'shown', state: 'a' });
+  assert.deepEqual(shown, { kitvas: 1, channel: CHANNEL, type: 'shown', state: 'a', choice: {} });
   const longState = `a${'b-1'.repeat(20)}xy`;
   assert.equal(longState.length, 63);
   assert.ok(parseFrameMessage(sent({ type: 'shown', state: longState }), CHANNEL));
@@ -82,12 +88,68 @@ test('the studio takes ready and shown from its channel', () => {
 
 test('the studio takes a ready that answers a swap, with the build it names', () => {
   const ready = parseFrameMessage(sent({ type: 'ready', state: 'filled', live: 4 }), CHANNEL);
-  assert.deepEqual(ready, { kitvas: 1, channel: CHANNEL, type: 'ready', state: 'filled', live: 4 });
+  assert.deepEqual(ready, {
+    kitvas: 1,
+    channel: CHANNEL,
+    type: 'ready',
+    state: 'filled',
+    choice: {},
+    live: 4,
+  });
   assert.ok(parseFrameMessage(sent({ type: 'ready', state: 'filled', live: 0 }), CHANNEL));
   assert.ok(parseFrameMessage(sent({ type: 'ready', state: 'filled', live: 1e9 }), CHANNEL));
   // `shown` names no build: the field goes like any other it does not know.
   const shown = parseFrameMessage(sent({ type: 'shown', state: 'a', live: 4 }), CHANNEL);
-  assert.deepEqual(shown, { kitvas: 1, channel: CHANNEL, type: 'shown', state: 'a' });
+  assert.deepEqual(shown, { kitvas: 1, channel: CHANNEL, type: 'shown', state: 'a', choice: {} });
+});
+
+test('ready and shown carry the choice, and refuse an id or a value outside the patterns', () => {
+  const choice = { columns: '2', 'card-style': 'filled' };
+  for (const type of ['ready', 'shown'] as const) {
+    assert.deepEqual(parseFrameMessage(sent({ type, state: 'a', choice }), CHANNEL), {
+      kitvas: 1,
+      channel: CHANNEL,
+      type,
+      state: 'a',
+      choice,
+    });
+    const refused: unknown[] = [
+      { Columns: '2' },
+      { '': '2' },
+      { columns: 'Two' },
+      { columns: '' },
+      { columns: 2 },
+      { columns: '2'.repeat(32) },
+      Object.fromEntries(Array.from({ length: 9 }, (_, index) => [`o${index}`, 'a'])),
+      'columns=2',
+      ['a'],
+      null,
+    ];
+    for (const bad of refused) {
+      assert.equal(parseFrameMessage(sent({ type, state: 'a', choice: bad }), CHANNEL), undefined);
+    }
+  }
+});
+
+test('the frame takes an options message with a good choice and refuses the rest', () => {
+  assert.deepEqual(
+    parseStudioMessage(sent({ type: 'options', choice: { columns: '2' } }), CHANNEL),
+    {
+      kitvas: 1,
+      channel: CHANNEL,
+      type: 'options',
+      choice: { columns: '2' },
+    },
+  );
+  assert.deepEqual(parseStudioMessage(sent({ type: 'options', choice: {} }), CHANNEL), {
+    kitvas: 1,
+    channel: CHANNEL,
+    type: 'options',
+    choice: {},
+  });
+  for (const choice of [undefined, { Columns: '2' }, { columns: 'x y' }, { columns: 2 }, 'x', []]) {
+    assert.equal(parseStudioMessage(sent({ type: 'options', choice }), CHANNEL), undefined);
+  }
 });
 
 test('the studio takes every step of a swap from its channel, and only its known fields', () => {

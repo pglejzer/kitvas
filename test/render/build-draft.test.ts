@@ -119,6 +119,37 @@ test('nothing changed: the build is skipped; a change builds again', async () =>
   }
 });
 
+test('the options of the version go into the bundle; none leaves the bundle without them', async () => {
+  const shop = workshop();
+  try {
+    await shop.build();
+    assert.ok(!shop.read('build', 'js', 'index.js').includes('"columns"'));
+
+    const options = [
+      {
+        id: 'columns',
+        label: 'Columns',
+        default: '3',
+        values: [
+          { id: '3', label: 'Three' },
+          { id: '2', label: 'Two' },
+        ],
+      },
+    ];
+    shop.store.writeText(
+      'shop',
+      'v1/src/json/options.json',
+      JSON.stringify({ schemaVersion: 1, options }),
+    );
+    const report = await shop.build();
+    assert.equal(report.cached, false, 'a new options file builds again');
+    assert.ok(shop.read('build', 'js', 'index.js').includes('"columns"'));
+    assert.ok(existsSync(join(shop.dir, 'v1', 'src', 'tsx', 'options.ts')));
+  } finally {
+    await shop.close();
+  }
+});
+
 test('a syntax error is reported with file and line and leaves the last build alone', async () => {
   const shop = workshop();
   try {

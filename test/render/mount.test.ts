@@ -10,6 +10,7 @@ test('the entry hands the frame runtime the states, its stamp and a way to mount
       providers: [],
       states: ['filled', 'empty'],
       defaultState: 'filled',
+      options: [],
       runtime: 'abc123',
     }),
     [
@@ -21,6 +22,7 @@ test('the entry hands the frame runtime the states, its stamp and a way to mount
       '',
       '(globalThis as { __KITVAS_KIT__?: unknown }).__KITVAS_KIT__ = Kit;',
       'const STATES: string[] = ["filled","empty"];',
+      'const OPTIONS = [];',
       'const RUNTIME = "abc123";',
       "const asked = new URLSearchParams(window.location.search).get('state');",
       'const state = asked !== null && STATES.includes(asked) ? asked : "filled";',
@@ -38,15 +40,48 @@ test('the entry hands the frame runtime the states, its stamp and a way to mount
       '      },',
       '    };',
       '  };',
-      '  startFrame({ states: STATES, initial: state, mount, runtime: RUNTIME });',
+      '  startFrame({ states: STATES, options: OPTIONS, initial: state, mount, runtime: RUNTIME });',
       '}',
       '',
     ].join('\n'),
   );
 });
 
+test('options go to the runtime as data and to the draft as the choice it is rendered with', () => {
+  const source = mountSource({
+    providers: [],
+    states: ['filled'],
+    defaultState: 'filled',
+    options: [
+      {
+        id: 'columns',
+        label: 'Columns "x"',
+        default: '3',
+        values: [
+          { id: '3', label: 'Three' },
+          { id: '2', label: 'Two' },
+        ],
+      },
+    ],
+    runtime: 'r',
+  });
+  assert.ok(source.includes('const OPTIONS = [{"id":"columns","label":"Columns \\"x\\"",'));
+  assert.ok(source.includes('render(shown: string, choice: Record<string, string>): void {'));
+  assert.ok(source.includes('root.render(<Draft state={shown} options={choice} />)'));
+  assert.ok(source.includes('startFrame({ states: STATES, options: OPTIONS,'));
+  // No second parser of the address: the runtime reads `opt-*` and sets the attributes.
+  assert.ok(!source.includes('opt-'));
+  assert.ok(!source.includes('data-opt'));
+});
+
 test('the entry makes no root itself: only `mount` does, when the runtime calls it', () => {
-  const source = mountSource({ providers: [], states: ['a'], defaultState: 'a', runtime: 'r' });
+  const source = mountSource({
+    providers: [],
+    states: ['a'],
+    defaultState: 'a',
+    options: [],
+    runtime: 'r',
+  });
   const body = source.slice(source.indexOf('if (element) {'));
   assert.equal(body.match(/createRoot\(/g)?.length, 1);
   assert.ok(body.indexOf('const mount = () => {') < body.indexOf('createRoot('));
@@ -54,7 +89,13 @@ test('the entry makes no root itself: only `mount` does, when the runtime calls 
 });
 
 test('the stamp of the runtime is written as a string, whatever it holds', () => {
-  const source = mountSource({ providers: [], states: ['a'], defaultState: 'a', runtime: '"x' });
+  const source = mountSource({
+    providers: [],
+    states: ['a'],
+    defaultState: 'a',
+    options: [],
+    runtime: '"x',
+  });
   assert.ok(source.includes('const RUNTIME = "\\"x";'));
 });
 
@@ -66,6 +107,7 @@ test('the providers of the kit wrap the draft, the first outermost', () => {
     ],
     states: ['filled'],
     defaultState: 'filled',
+    options: [],
     runtime: 'abc123',
   });
   assert.match(source, /^import \{ Theme as Provider0 \} from "@kit";$/m);
@@ -90,6 +132,7 @@ test('a provider bound to a theme export gets it as a prop, its import after the
     ],
     states: ['filled'],
     defaultState: 'filled',
+    options: [],
     runtime: 'abc123',
   });
   assert.ok(

@@ -6,6 +6,7 @@ import {
   DEFAULT_STATES,
   type DraftStore,
   inspectLayout,
+  readOptions,
   StatesSchema,
   serializeJson,
 } from '../../drafts/index.ts';
@@ -152,6 +153,7 @@ export async function buildDraft(deps: RenderDeps, slug: string): Promise<BuildR
         providers: mountProviders(fs, kit),
         states: states.states.map((state) => state.id),
         defaultState: states.default,
+        options: readOptions(drafts, slug, base),
         // A page takes a later build in place only from the runtime that runs it (ADR 0058).
         runtime: sourceHash(fs, {
           format: OUTPUT_FORMAT,
