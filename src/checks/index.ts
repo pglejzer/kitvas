@@ -32,6 +32,8 @@ export * from './domain/kit/match-scale.ts';
 export * from './domain/kit/previews.ts';
 export * from './domain/locks/guideline.ts';
 export * from './domain/locks/locked-changed.ts';
+export * from './domain/options/guideline.ts';
+export * from './domain/options/options-rules.ts';
 export * from './domain/page/craft-facts.ts';
 export * from './domain/page/facts.ts';
 export * from './domain/page/layers.ts';

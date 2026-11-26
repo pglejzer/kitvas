@@ -28,8 +28,11 @@ export type GuidelineSource = { name: string; url: string };
 export type Guideline = {
   /** `<check>/<name>`, the same as the rule id. */
   id: string;
-  /** `edit` (spec 4d): the editor's own rules, such as a locked element changed by another writer. */
-  check: 'a11y' | 'ui' | 'ux' | 'edit';
+  /**
+   * `edit` (spec 4d): the editor's own rules, such as a locked element changed by another writer.
+   * `options` (plan 25): the rules about a version's options, filed under `ui` and `ds` findings.
+   */
+  check: 'a11y' | 'ui' | 'ux' | 'edit' | 'options';
   chapter: Chapter;
   /** `auto`: every check; `deep`: `kitvas check --deep`; `manual`: the compose skill's checklist. */
   mode: 'auto' | 'deep' | 'manual';

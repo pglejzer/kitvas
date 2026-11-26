@@ -21,7 +21,7 @@ import { tempDir } from '../../helpers/tmp.ts';
 /** The fields of `check --json` these tests read. */
 type CheckData = {
   summary: { fix: number; review: number; waived?: number };
-  findings: { rule: string }[];
+  findings: { rule: string; options: { id: string; value: string }[] }[];
   waived?: { rule: string; reason: string }[];
   built: boolean;
   deep?: boolean;
@@ -251,6 +251,45 @@ test('check: deep in the decisions file makes the check deep; an option or the d
   assert.equal(savedDeep(h.draftDir), undefined);
   assert.equal(await h.run('check', 'shop', '--deep'), 0);
   assert.equal(savedDeep(h.draftDir), true);
+});
+
+test('a finding seen only with an option value names it in the text and carries it in --json', async () => {
+  const fake = fakeBrowser((visit) => ({
+    pageErrors: visit.options.columns === '2' ? ['two columns break it'] : [],
+  }));
+  const h = await harness(fake.browser);
+  writeFileSync(
+    join(h.draftDir, 'v1', 'src', 'json', 'options.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      options: [
+        {
+          id: 'columns',
+          label: 'Columns',
+          default: '3',
+          values: [
+            { id: '2', label: '2' },
+            { id: '3', label: '3' },
+          ],
+        },
+      ],
+    }),
+  );
+  assert.equal(await h.run('check', 'shop', '--json'), 0);
+  // The fixture's sections take no `options` prop, so the type check has findings of its own:
+  // those are of the default combination and name no value.
+  const { findings } = h.data();
+  const seen = findings.filter((one) => one.rule === 'runtime/page-error');
+  assert.deepEqual(
+    seen.map((one) => one.options),
+    [[{ id: 'columns', value: '2' }]],
+  );
+  const rest = findings.filter((one) => one.rule !== 'runtime/page-error');
+  assert.ok(rest.every((one) => one.options.length === 0));
+  assert.equal(await h.run('check', 'shop'), 0);
+  assert.ok((h.out.at(-1) ?? '').includes('columns=2'));
+  // Two runs, each visiting the other value at the two main widths.
+  assert.equal(fake.visits.filter((visit) => visit.options.columns === '2').length, 4);
 });
 
 test('--deep without a browser runs nothing deep and does not say so', async () => {

@@ -32,6 +32,7 @@ const words = (change: Partial<RawFinding> = {}): Finding => translateFinding(ra
 test('a finding is put into words; tool text is passed on', () => {
   assert.deepEqual(words(), {
     ...raw(),
+    options: [],
     message: 'checkRule.rawColor {"value":"#fff"}',
     hint: 'checkHint.rawColor {}',
   });

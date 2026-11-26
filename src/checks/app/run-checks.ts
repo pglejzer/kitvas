@@ -6,6 +6,7 @@ import {
   type DraftStore,
   inspectLayout,
   locksNow,
+  readOptions,
   StatesSchema,
   serializeJson,
   waiversFor,
@@ -36,6 +37,7 @@ import {
   lockedChangedFindings,
   lockStates,
 } from '../domain/locks/locked-changed.ts';
+import { noEffectFindings, unknownOptionFindings } from '../domain/options/options-rules.ts';
 import { FACTS_NODE_CAP } from '../domain/page/facts.ts';
 import { VIEWPORTS } from '../domain/page/page.ts';
 import type { Before } from '../domain/rework/before.ts';
@@ -44,7 +46,8 @@ import type { VisitInput } from '../domain/rules/index.ts';
 import type { Browser } from '../ports/browser.ts';
 import type { TypeChecker } from '../ports/type-checker.ts';
 import { readBefore, uncappedFindings } from './before.ts';
-import { type BrowserInput, browserChecks } from './browser-checks.ts';
+import { type BrowserInput, browserChecks, type OptionShot } from './browser-checks.ts';
+import { shotMatches } from './option-effect.ts';
 
 export type CheckDeps = {
   render: RenderDeps;
@@ -69,6 +72,8 @@ export type ChecksReport = ChecksFile & {
 type PageResult = {
   findings: RawFinding[];
   shots: Shot[];
+  /** The shots of the options' other values; empty when the browser checks did not run. */
+  optionShots: OptionShot[];
   browser: string | null;
   notes: string[];
   /** The visits that measured facts; empty when the browser checks did not run. */
@@ -236,19 +241,26 @@ async function pageChecks(
   built: boolean,
   input: BrowserInput,
 ): Promise<PageResult> {
-  const none: PageResult = { findings: [], shots: [], browser: null, notes: [], visits: [] };
+  const none: PageResult = {
+    findings: [],
+    shots: [],
+    optionShots: [],
+    browser: null,
+    notes: [],
+    visits: [],
+  };
   // Old screenshots would show a page that no longer exists.
   deps.render.fs.remove(join(input.versionDir, 'build', 'shots'));
   if (!deps.browser) return none;
   if (!built) return { ...none, notes: [deps.t('check.note.buildFailed')] };
   try {
-    const { findings, shots, browser, truncated, visits } = await browserChecks(
+    const { findings, shots, optionShots, browser, truncated, visits } = await browserChecks(
       deps.browser,
       input,
     );
     // The rules still ran on what was measured; the note says the rest was not.
     const notes = truncated ? [deps.t('check.note.factsTruncated', { cap: FACTS_NODE_CAP })] : [];
-    return { findings, shots, browser, notes, visits };
+    return { findings, shots, optionShots, browser, notes, visits };
   } catch (error) {
     if (!(error instanceof KitvasError && error.code === 'BROWSER_MISSING')) throw error;
     return { ...none, notes: [deps.t('check.note.noBrowser')] };
@@ -309,9 +321,19 @@ export async function runChecks(
   // Only with the build's ids: those of a failed build would be stale.
   if (build.built) raw.push(...lockFindings(drafts, { slug, version }, ids, sources));
 
+  // A selector of an option the file does not declare matches nothing; the version's own options.
+  const draftOptions = readOptions(drafts, slug, base);
+  raw.push(
+    ...unknownOptionFindings(
+      sources.sheets.filter((sheet) => sheet.name !== 'index.scss'),
+      draftOptions,
+    ),
+  );
+
   const deep = options.deep === true;
   const states = draftStates(drafts, slug, base);
   const page = await pageChecks(deps, build.built, {
+    options: draftOptions,
     versionDir,
     states: states.ids,
     ids,
@@ -322,6 +344,7 @@ export async function runChecks(
     kind: draft.kind,
   });
   raw.push(...page.findings);
+  raw.push(...noEffectFindings(states.baseline, shotMatches(fs, versionDir, page.optionShots)));
   const rework = before === null ? null : reworkChecks(before, page);
   if (rework !== null) raw.push(...rework.findings);
   const browserRan = page.browser === null ? 'skipped' : 'ran';

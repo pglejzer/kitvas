@@ -15,6 +15,7 @@ export function finding(over: Partial<Finding> = {}): Finding {
     hint: 'Give the Input a label.',
     states: [],
     widths: [],
+    options: [],
     ...over,
   };
 }

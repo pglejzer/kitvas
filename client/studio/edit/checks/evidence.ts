@@ -15,6 +15,8 @@ export type FindingFacts = {
   message: string;
   hint: string;
   element: string | null;
+  /** The option values it was seen with (plan 25); left out or empty: the default combination. */
+  options?: readonly { id: string; value: string }[];
 };
 
 export type Evidence =

@@ -8,6 +8,7 @@
 // for the full check the way Save version does. A swapped pane is decorated again; the store
 // redraws the cards when the kit, the mode or a running edit changes what they offer.
 
+import { choiceStoreOf } from '../../options/choice.ts';
 import type { EditorContext } from '../context.ts';
 import { requestFullCheck } from '../live/check.ts';
 import { el } from '../props/controls/controls.ts';
@@ -16,6 +17,7 @@ import { text } from '../texts.ts';
 import { actionsOf } from './actions.ts';
 import { evidenceOf, type FindingFacts, titleKey } from './evidence.ts';
 import { evidenceRow } from './evidence-view.ts';
+import { chipWords, parseFindingOptions } from './option-chip.ts';
 
 const REGION = '[data-shell="checks"]';
 /** The span of a card's own buttons, in front of the waiver's. */
@@ -40,12 +42,26 @@ function factsOf(row: HTMLElement): FindingFacts | null {
     message,
     hint: hint ?? '',
     element: row.dataset.element ?? row.dataset.waivedElement ?? null,
+    options: parseFindingOptions(row.dataset.options),
   };
+}
+
+/** "Columns: 2" under the card's words when the finding was seen with option values. */
+function drawOptionChip(ctx: EditorContext, row: HTMLElement, facts: FindingFacts): void {
+  row.querySelector('[data-checks-options]')?.remove();
+  const store = choiceStoreOf(ctx.main);
+  if (store === undefined) return;
+  const words = chipWords(store.options(), facts.options ?? [], text);
+  if (words === '') return;
+  const chip = el('span', 'k-chip', words);
+  chip.dataset.checksOptions = '';
+  row.querySelector('.checks-finding-text')?.append(chip);
 }
 
 function drawRow(ctx: EditorContext, row: HTMLElement): void {
   const facts = factsOf(row);
   if (facts === null) return;
+  drawOptionChip(ctx, row, facts);
   const tokens = ctx.store.get().edit?.tokens ?? [];
   const evidence = evidenceOf(facts, tokens);
   const slot = row.querySelector('[data-checks-evidence]');

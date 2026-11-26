@@ -29,6 +29,10 @@ Every command takes `--json` and answers `{"ok":true,"data":…}` or `{"ok":fals
 | `guidelines` | Shows the guideline book                                                                 |
 | `handoff`    | Writes a draft's Figma package or the fitter's brief; lists, compares and records hand-offs |
 
+## Checking a version with options
+
+A version with `src/json/options.json` (ADR 0082) is checked in its default combination as always, then once more for each value that is not its option's default: the baseline state at 390 and 1280 px with that one value and every other option at its default (two visits a value, never the product of the options). A finding seen only with a value names it: `kitvas check` prints `columns=2` on its line, and `--json` gives each finding an `options` list, `[{"id":"columns","value":"2"}]`, empty for the default combination and for the checks that read files. Two rules belong to options: `options/no-effect` (review: a value whose pages look the same as the default's at both widths) and `options/unknown` (fix: a `data-opt-` selector in the SCSS that names an option or value the file does not declare). The shots of a value are `build/shots/<state>-<width>.<option>-<value>.png`.
+
 ## Learning a whole package
 
 `/kitvas:learn` runs these two while it learns a kit from an npm package or a folder of the project (ADR 0081). They take the kit's id; without one, `kit exports` uses the project's kit.

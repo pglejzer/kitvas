@@ -56,8 +56,12 @@ export function createCheckCommand(deps: CheckCommandDeps): Command {
       for (const finding of data.findings) {
         const place = finding.file ? `${finding.file}:${finding.line}:${finding.column}` : '';
         const severity = t(`check.severity.${finding.severity}`).padEnd(6);
+        // The option values it was seen with, `columns=2`; none in the default combination.
+        const options = (finding.options ?? []).map((one) => `${one.id}=${one.value}`).join(' ');
         lines.push(
-          [`  ${severity}`, finding.rule, place, finding.element ?? ''].filter(Boolean).join('  '),
+          [`  ${severity}`, finding.rule, place, finding.element ?? '', options]
+            .filter(Boolean)
+            .join('  '),
           indent(finding.message),
           indent(finding.hint),
         );

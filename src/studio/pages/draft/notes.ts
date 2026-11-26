@@ -172,7 +172,12 @@ export function notesSection(input: NotesInput): Html {
     number += 1;
     // The studio's script marks the element on the prototype with this number.
     const element = finding.element === null ? '' : html` data-element="${finding.element}"`;
-    return html`<li class="note k-card checks-finding" data-tone="${finding.severity}" data-rule="${finding.rule}"${element} data-message="${finding.message}" data-hint="${finding.hint}"><div class="checks-finding-head"><span class="num checks-num" data-tone="${finding.severity}">${number}</span>${words(t, finding)}${tools(t)}</div>${EVIDENCE}${details(t, finding)}${ACTIONS}${DISMISS_ROW}</li>`;
+    // The option values it was seen with, for the chip and for "Show on canvas" (plan 25).
+    const options =
+      (finding.options ?? []).length === 0
+        ? ''
+        : html` data-options="${(finding.options ?? []).map((one) => `${one.id}=${one.value}`).join(' ')}"`;
+    return html`<li class="note k-card checks-finding" data-tone="${finding.severity}" data-rule="${finding.rule}"${element}${options} data-message="${finding.message}" data-hint="${finding.hint}"><div class="checks-finding-head"><span class="num checks-num" data-tone="${finding.severity}">${number}</span>${words(t, finding)}${tools(t)}</div>${EVIDENCE}${details(t, finding)}${ACTIONS}${DISMISS_ROW}</li>`;
   };
   const group = (severity: 'fix' | 'review'): Html | '' => {
     const items = input.shown.filter((finding) => finding.severity === severity);
