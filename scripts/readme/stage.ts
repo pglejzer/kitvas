@@ -1,7 +1,7 @@
 // The stage of a recording, from Node: it moves the real pointer together with the drawn one, and
 // says where on the page an element is, also one inside the prototype's scaled frame.
 
-import { type Card, install, type StageSetup } from './stage-page.ts';
+import { install, type StageSetup } from './stage-page.ts';
 
 type Page = import('playwright-core').Page;
 type Locator = import('playwright-core').Locator;
@@ -11,17 +11,14 @@ export type Point = { x: number; y: number };
 export type Target = Point | Locator | { frame: Locator; inner: string };
 
 export type Stage = {
-  /** Call after the page went to another address: the stage is drawn again where it was. */
-  restore(): Promise<void>;
   point(target: Target): Promise<Point>;
   move(target: Target, ms?: number): Promise<void>;
   click(target: Target): Promise<void>;
   wheel(delta: number, ms: number): Promise<void>;
   say(text: string, code?: string): Promise<void>;
-  card(card: Card | null, fade?: boolean): Promise<void>;
+  /** The opening card with the logo, `label` and a line to type into; `null` fades it out. */
+  card(label: string | null): Promise<void>;
   write(text: string, perLetter?: number): Promise<void>;
-  /** A play mark over the page, for the film's poster; an empty label takes it away. */
-  play(label: string): Promise<void>;
   rest(ms: number): Promise<void>;
 };
 
@@ -31,7 +28,6 @@ const rest = (ms: number): Promise<void> => new Promise((done) => setTimeout(don
 export async function createStage(page: Page, setup: StageSetup, pace = 1): Promise<Stage> {
   await page.addInitScript(install, setup);
   const at: Point = { x: -80, y: -80 };
-  const said = { text: '', code: '' };
 
   const point = async (target: Target): Promise<Point> => {
     if ('x' in target) return target;
@@ -55,16 +51,6 @@ export async function createStage(page: Page, setup: StageSetup, pace = 1): Prom
   };
 
   const stage: Stage = {
-    async restore() {
-      await page.evaluate(install, setup);
-      await page.evaluate(
-        ({ x, y, text, code }) => {
-          window.kitvasStage?.put(x, y);
-          if (text) window.kitvasStage?.say(text, code);
-        },
-        { ...at, ...said },
-      );
-    },
     point,
     async move(target, ms) {
       const to = await point(target);
@@ -106,30 +92,21 @@ export async function createStage(page: Page, setup: StageSetup, pace = 1): Prom
       }
     },
     async say(text, code = '') {
-      said.text = text;
-      said.code = code;
       await page.evaluate(install, setup);
       await page.evaluate(({ value, under }) => window.kitvasStage?.say(value, under), {
         value: text,
         under: code,
       });
     },
-    async card(card, fade = false) {
+    async card(label) {
       await page.evaluate(install, setup);
-      await page.evaluate(({ value, soft }) => window.kitvasStage?.card(value, soft), {
-        value: card,
-        soft: fade,
-      });
+      await page.evaluate((value) => window.kitvasStage?.card(value), label);
     },
     async write(text, perLetter = 34) {
       await page.evaluate(({ value, each }) => window.kitvasStage?.write(value, each), {
         value: text,
         each: perLetter * pace,
       });
-    },
-    async play(label) {
-      await page.evaluate(install, setup);
-      await page.evaluate((value) => window.kitvasStage?.play(value), label);
     },
     rest: (ms) => rest(ms * pace),
   };

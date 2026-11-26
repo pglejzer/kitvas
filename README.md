@@ -17,9 +17,7 @@ kitvas is a Claude Code plugin that builds UI prototypes from your project's own
 
 ![A request typed in Claude Code, then the generated dashboard in the local studio: the Checks tab with nothing to fix, the phone width, and in the editor a kit button's variant changed and written to the draft's file](docs/readme/demo.gif)
 
-[![The kitvas studio showing the generated revenue dashboard, with a play mark and the words "Watch the walk-through"](docs/readme/showcase-poster.png)](docs/readme/showcase.mp4)
-
-[Watch the 54-second walk-through](docs/readme/showcase.mp4). It has captions and no sound. The wait for the build is cut from both recordings, and the draft they show is version 3.
+The GIF leaves out the wait for the build; the draft it shows is version 3.
 
 ## Install
 
@@ -53,13 +51,13 @@ In your project folder, in Claude Code:
 
 ### Validate automatically
 
-- Every draft is checked in a real browser: build, types, the kit's rules, accessibility, layout and runtime errors, at several widths and in every state. Raw colours and sizes are flagged. [docs/checks.md](docs/checks.md) lists the widths and what `--deep` adds.
-- Every control is hovered with a real pointer and given keyboard focus, and the contrast of its text is measured in both. Each button, toggle group, select and search field is used once, and a control that changes nothing is reported.
+- Every draft is built, type-checked and held to the kit's rules, which flag raw colours and sizes. Then a real browser opens it at several widths and in every state and looks for accessibility, layout and runtime errors. [docs/checks.md](docs/checks.md) lists the widths and what `--deep` adds.
+- In the browser, every control is hovered with a real pointer and given keyboard focus, and the contrast of its text is measured in both. Each button, toggle group, select and search field is used once, and a control that changes nothing is reported.
 
 ### Edit visually
 
 - A change in the studio lands in the draft's own TSX and SCSS, or Tailwind classes, touching only the lines it changes. Kit tokens come first, every step can be undone, and a change that cannot be written is refused with the reason.
-- Columns, kinds of card or a theme are options of one version and one build, and the check visits each value. Values a person chooses on the page, such as a date range, can be shared between sections.
+- One version can hold options, such as the number of columns, a kind of card or a theme. They share one build, and the check visits each value. Values a person chooses on the page, such as a date range, can be shared between sections.
 - Each round is a version. Two versions open side by side, and the timeline shows any earlier one read-only.
 - The editor needs no model. To ask Claude from it, with a sentence about what you selected or with Improve, keep a `/kitvas:edit <draft>` session listening.
 
@@ -79,7 +77,7 @@ In your project folder, in Claude Code:
 
 - You describe a screen. Claude reads the kit and your project's decisions and writes a brief and a layout.
 - Agents write the sections, and kitvas builds the draft and checks it in a browser. Claude reads the screenshots and fixes findings in at most two rounds.
-- The studio opens on 127.0.0.1. There you edit with no model, or ask Claude from the editor.
+- The studio opens on 127.0.0.1, where you look at the draft, edit it or ask Claude from the editor.
 - Feedback in chat starts a new version and runs the same path again. When the draft is right, a hand-off puts it into your code or your Figma file.
 
 More in [How it works](docs/how-it-works.md).
@@ -100,7 +98,7 @@ More in [How it works](docs/how-it-works.md).
 - A new screen for a product that already has a design system.
 - A page you already have that needs a better version, with its content and purpose kept.
 - A component, icon or logo that your kit does not have yet.
-- A screen for a project with no design system: the built-in kit, Base, is used.
+- A screen for a project with no design system yet, built from the built-in kit, Base.
 - A finished draft that has to go into your project, in the project's own technology.
 
 ## Skills
@@ -135,7 +133,7 @@ The rest is in [docs/security.md](docs/security.md).
 - Node 24.22.3 or later in the 24 line, or 26.13.1 or later.
 - Access to the npm registry during the first session.
 - Chrome, Edge or Chromium for the browser checks. `kitvas browser` says which one is used; `kitvas browser install` downloads Chromium when none is found. Without a browser the browser checks are skipped with a note.
-- No MCP server is needed. Optional, and all your own: a Figma MCP to learn a kit from a Figma file or send a draft to one, any MCP of yours that can read a page behind a login, and Context7 if it is installed.
+- No MCP server is needed. kitvas can use ones you have: a Figma MCP to learn a kit from a Figma file or send a draft to one, an MCP that can read a page behind a login, and Context7.
 
 There is no global `kitvas` command. In these docs `kitvas <command>` means `node <plugin folder>/bin/kitvas.ts <command>`; [Commands](docs/commands.md) says where the plugin folder is.
 

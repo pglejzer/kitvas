@@ -1,6 +1,6 @@
-// Records the README's GIF, film and screenshots from a real studio:
+// Records the README's GIF and screenshots from a real studio:
 //
-//   node scripts/readme/record.ts --project <folder with .kitvas> [--only demo,showcase,shots]
+//   node scripts/readme/record.ts --project <folder with .kitvas> [--only demo,shots]
 //     [--draft saas-analytics] [--out docs/readme] [--ffmpeg <program>] [--work <folder>]
 //
 // The project's `.kitvas` is copied for each take, so a take changes nothing in the project. The
@@ -14,7 +14,7 @@ import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { defaultDepRoots, loadDep } from '../../src/shared/deps/deps.ts';
 import { PLUGIN_ROOT } from '../../src/shared/env/paths.ts';
-import { writeFilm, writeGif } from './capture.ts';
+import { writeGif } from './capture.ts';
 import { type Ctx, TAKES } from './scenes.ts';
 import { createStage } from './stage.ts';
 
@@ -103,7 +103,6 @@ async function main(): Promise<void> {
       };
       const film = await spec.run(ctx);
       await context.close();
-      if (film && spec.film) writeFilm(values.ffmpeg, film, join(out, spec.film.file), spec.film);
       if (film && spec.gif) writeGif(values.ffmpeg, film, join(out, spec.gif.file), spec.gif);
       const length = film ? `, ${film.seconds.toFixed(1)} s in ${film.pictures} pictures` : '';
       process.stdout.write(`${name}: done${length}\n`);
