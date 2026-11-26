@@ -9,7 +9,7 @@ import {
   loadKit,
   requireKit,
   summarizeKit,
-  tokensToCss,
+  tokenSheet,
 } from '../../src/kit/index.ts';
 import { KitvasError, projectKitsDir } from '../../src/shared/index.ts';
 import { copyKit, FIXTURE_KITS } from '../helpers/kit/kits.ts';
@@ -124,8 +124,8 @@ test('a project kit knows its project and its map; its generated entry need not 
   assert.equal(loaded.dir, join(projectKitsDir(project), 'acme'));
   assert.deepEqual(loaded.cssVarMap, ACME_MAP);
   assert.equal(
-    tokensToCss(loaded.tokens, ':root', loaded.cssVarMap),
-    ':root {\n  --kit-color-ink: var(--acme-color-ink);\n  --kit-space-sm: var(--acme-space-2);\n}\n',
+    tokenSheet(loaded),
+    ':root, body {\n  --kit-color-ink: var(--acme-color-ink);\n  --kit-space-sm: var(--acme-space-2);\n}\n',
   );
 });
 

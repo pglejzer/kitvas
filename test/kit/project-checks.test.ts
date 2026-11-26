@@ -37,6 +37,9 @@ const loadedOf = (raw: Json): LoadedKit => {
     additions: [],
     additionsDir: undefined,
     entry: 'kit/generated/kit.ts',
+    themes: { default: 'default', list: [] },
+    themeTokens: {},
+    addedTokens: [],
   };
 };
 

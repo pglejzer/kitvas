@@ -170,3 +170,40 @@ test('labels of options and values are escaped', () => {
   assert.ok(!text.includes('<i>soft</i>'));
   assert.ok(text.includes(escapeHtml('"Quiet" & <i>soft</i>')));
 });
+
+test('a theme value from the additions carries the mark; a base theme and another option do not', () => {
+  const themed: DraftOption[] = [
+    {
+      id: 'theme',
+      label: 'Theme',
+      default: 'light',
+      values: [
+        { id: 'light', label: 'Light' },
+        { id: 'sepia', label: 'Sepia' },
+      ],
+    },
+    {
+      id: 'columns',
+      label: 'Columns',
+      default: 'sepia',
+      values: [{ id: 'sepia', label: 'Sepia' }],
+    },
+  ];
+  const note = t('studio.edit.props.added', { source: '@mui/material' });
+  const shown = { ...CHOICE };
+  const text = pills({
+    t,
+    choice: shown,
+    states: STATES,
+    link: choiceLink(DRAFT, shown),
+    breakpoints: [768, 1280],
+    options: themed,
+    added: { themes: ['sepia'], note },
+  }).text;
+  const row = rowOf(text);
+  assert.equal(count(row, 'class="k-added"'), 1);
+  assert.ok(row.includes(`aria-label="${escapeHtml(note)}"`));
+  const sepia = /data-value="sepia"[^>]*>Sepia<span class="k-added"/.exec(row);
+  assert.ok(sepia !== null);
+  assert.ok(!/data-value="light"[^>]*>Light<span/.test(row));
+});

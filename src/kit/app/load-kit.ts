@@ -3,13 +3,14 @@
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { KitvasError } from '../../shared/index.ts';
-import { mergeAdditions, parseAdditions } from '../domain/additions.ts';
+import { ADDITIONS_DIR, mergeAdditions, parseAdditions } from '../domain/additions.ts';
 import { type Kit, parseKit } from '../domain/contract.ts';
 import { readCssVarMap } from '../domain/css-vars.ts';
 import { GENERATED_ENTRY } from '../domain/generated-entry.ts';
 import type { KitIssue } from '../domain/issues.ts';
 import { kitIssues } from '../domain/rules.ts';
 import { isProjectKit, isWrittenKit, sourceIssues } from '../domain/sources.ts';
+import { type KitThemes, layTokens } from '../domain/themes.ts';
 import { type FlatToken, flattenTokens } from '../domain/tokens.ts';
 import type { KitStore } from '../ports/kit-store.ts';
 
@@ -18,11 +19,12 @@ export type LoadedKit = {
   kit: Kit;
   /** Absolute path of the kit folder. */
   dir: string;
+  /** The kit's tokens, then the ones the project added (`addedTokens`). */
   tokens: FlatToken[];
   issues: KitIssue[];
   /**
-   * sha256 of kit.json, the token file and the cssVars map, and of the project's additions.json
-   * when there is one: changes when the kit's data changes.
+   * sha256 of kit.json, the token file, the cssVars map and the theme files, and of the project's
+   * additions.json and token files when there are some: changes when the kit's data changes.
    */
   hash: string;
   /** From KitFiles.project: the project folder of a kit in `.kitvas/kits/`; undefined for built-in kits. */
@@ -38,6 +40,12 @@ export type LoadedKit = {
    * built-in kit with additions the `generated/kit.ts` kitvas writes in its additions folder.
    */
   entry: string;
+  /** The kit's themes, then the ones the project added (ADR 0083); an empty list for none. */
+  themes: KitThemes;
+  /** Per theme id, the tokens whose values differ from `tokens`; `[]` for the default theme. */
+  themeTokens: Record<string, FlatToken[]>;
+  /** Dot paths of the tokens from the project's additions (`tokens.json`). */
+  addedTokens: string[];
 };
 
 const fileMissing = (path: string, file: string): KitIssue => ({
@@ -45,6 +53,16 @@ const fileMissing = (path: string, file: string): KitIssue => ({
   key: 'kitIssue.fileMissing',
   params: { file },
 });
+
+/** A theme's token file: `undefined` when it is missing, `null` when it is not JSON. */
+function readThemeFile(store: KitStore, id: string, file: string): unknown {
+  try {
+    return store.readJson(id, file);
+  } catch (error) {
+    if (error instanceof KitvasError) return null;
+    throw error;
+  }
+}
 
 /**
  * True when kitvas writes the kit's own `generated/kit.ts` (a kit of the project's `.kitvas/kits/`
@@ -70,7 +88,7 @@ export function loadKit(store: KitStore, id: string): LoadedKit {
   const added: KitIssue[] = [];
   let kit = own;
   let additions: string[] = [];
-  if (stored !== undefined) {
+  if (stored?.json !== undefined) {
     const parsed = parseAdditions(stored.json);
     if ('at' in parsed) {
       added.push({
@@ -106,12 +124,12 @@ export function loadKit(store: KitStore, id: string): LoadedKit {
   }
 
   const rawTokens = store.readJson(id, own.tokens.file);
-  let tokens: FlatToken[] = [];
+  let baseTokens: FlatToken[] = [];
   if (rawTokens === undefined) {
     issues.push(fileMissing('tokens.file', own.tokens.file));
   } else {
     const flat = flattenTokens(rawTokens);
-    tokens = flat.tokens;
+    baseTokens = flat.tokens;
     issues.push(...flat.issues);
   }
 
@@ -125,11 +143,29 @@ export function loadKit(store: KitStore, id: string): LoadedKit {
     if (rawMap === undefined) {
       issues.push(fileMissing('tokens.cssVars.map', mapFile));
     } else {
-      const read = readCssVarMap(rawMap, tokens);
+      // The map is the kit's: it names the kit's own tokens only.
+      const read = readCssVarMap(rawMap, baseTokens);
       cssVarMap = read.map;
       issues.push(...read.issues);
     }
   }
+
+  // The themes and the project's tokens (ADR 0083); a broken file of the additions is an issue
+  // that names it, and the rest of the kit loads.
+  const themeFiles = Object.fromEntries(
+    (own.tokens.themes?.list ?? []).flatMap((theme): [string, unknown][] =>
+      theme.file === undefined ? [] : [[theme.id, readThemeFile(store, id, theme.file)]],
+    ),
+  );
+  const laid = layTokens({
+    kit: own,
+    base: rawTokens,
+    baseTokens,
+    themeFiles,
+    additions: stored?.tokens ?? {},
+    additionsAt: `.kitvas/${ADDITIONS_DIR}/${id}`,
+  });
+  issues.push(...laid.issues);
 
   if (isWrittenKit(own)) {
     // The components are the kit's data: editing one makes verify.json stale. Pushed last, so the
@@ -138,8 +174,11 @@ export function loadKit(store: KitStore, id: string): LoadedKit {
     // `look` step of `kit verify` reports it at its example.
     hashed.push(store.readTree?.(id, 'components') ?? {});
   }
-  // The project's additions change the kit its drafts see; a kit without them keeps its hash.
-  if (stored !== undefined) hashed.push({ additions: stored.json });
+  // The project's additions change the kit its drafts see, and the theme files its sheet; a kit
+  // without them keeps its hash. A missing theme file is left out of the JSON.
+  if (stored?.json !== undefined) hashed.push({ additions: stored.json });
+  if (Object.keys(themeFiles).length > 0) hashed.push({ themes: themeFiles });
+  if (stored?.tokens !== undefined) hashed.push({ tokens: stored.tokens });
 
   const ownEntry = join(files.dir, ...own.runtime.entry.split('/'));
   const entry =
@@ -151,7 +190,7 @@ export function loadKit(store: KitStore, id: string): LoadedKit {
   return {
     kit,
     dir: files.dir,
-    tokens,
+    tokens: laid.tokens,
     issues,
     hash,
     project: files.project,
@@ -159,6 +198,9 @@ export function loadKit(store: KitStore, id: string): LoadedKit {
     additions,
     additionsDir: stored?.dir,
     entry,
+    themes: laid.themes,
+    themeTokens: laid.themeTokens,
+    addedTokens: laid.addedTokens,
   };
 }
 

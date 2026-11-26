@@ -53,7 +53,7 @@ export function stopLabel(token: Pick<TokenOption, 'path' | 'css'>): string {
   return css === '' ? name : `${name} · ${css}`;
 }
 
-export type Stop = { var: string; name: string; label: string; css: string };
+export type Stop = { var: string; name: string; label: string; css: string; added: boolean };
 
 /**
  * The stepper of a row: a stop for each of the kit's tokens of the property's type, in order;
@@ -74,6 +74,7 @@ export function stepperOf(
     name: tokenNameOf(token),
     label: stopLabel(token),
     css: token.css,
+    added: token.added === true,
   }));
   // Only a token is on a stop: a raw value equal to one is still off the kit.
   const named = held === null ? null : varOf(held);

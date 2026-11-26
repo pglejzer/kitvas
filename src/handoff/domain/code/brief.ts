@@ -3,6 +3,33 @@
 
 import type { WriteSet } from './listing.ts';
 
+/** A token the draft uses, with its uses. */
+export type UsedToken = {
+  var: string;
+  path: string;
+  css: string;
+  project: string | null;
+  uses: number;
+};
+
+/**
+ * The used tokens the kit has itself, and the ones the project added to it (`addedPaths`, dot
+ * paths): the project has no variable for an added token, it creates one, so the brief lists
+ * those apart, with no `project`.
+ */
+export function splitAddedTokens(
+  used: readonly UsedToken[],
+  addedPaths: readonly string[],
+): { tokens: UsedToken[]; added: { var: string; path: string; css: string; uses: number }[] } {
+  const added = new Set(addedPaths);
+  return {
+    tokens: used.filter((token) => !added.has(token.path)),
+    added: used
+      .filter((token) => added.has(token.path))
+      .map(({ var: name, path, css, uses }) => ({ var: name, path, css, uses })),
+  };
+}
+
 export type CodeBrief = {
   schemaVersion: 1;
   slug: string;
@@ -34,6 +61,11 @@ export type CodeBrief = {
     project: string | null;
     uses: number;
   }[];
+  /**
+   * The tokens the draft uses that the project added to the kit (`.kitvas/additions/<kit>/`): not
+   * part of the design system, so the project creates each one; absent when the draft uses none.
+   */
+  added?: { var: string; path: string; css: string; uses: number }[];
   write: WriteSet;
   /** The version's options with the value handed off (the default); absent when it has none. */
   options?: { id: string; default: string }[];

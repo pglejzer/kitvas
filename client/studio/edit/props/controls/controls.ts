@@ -290,7 +290,11 @@ export function tokenPicker(options: {
     });
   }
   items.push(
-    ...tokenItems(options.tokens, { colour, ...(options.warn ? { warn: options.warn } : {}) }),
+    ...tokenItems(options.tokens, {
+      colour,
+      note: text('props.added'),
+      ...(options.warn ? { warn: options.warn } : {}),
+    }),
   );
   const wanted =
     options.current === null ? null : 'token' in options.current ? options.current.token : RAW;

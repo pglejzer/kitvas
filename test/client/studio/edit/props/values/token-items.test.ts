@@ -39,6 +39,15 @@ test('colour rows get a swatch, others none', () => {
   assert.equal(tokenItems(tokens, { colour: false })[0]?.swatch, null);
 });
 
+test('a token the project added carries the mark note, the others none', () => {
+  const tokens = [{ ...token('color.brand', '#336'), added: true }, token('color.ink', '#111')];
+  const items = tokenItems(tokens, { colour: true, note: 'Added by this project.' });
+  assert.equal(items[0]?.added, 'Added by this project.');
+  assert.equal(items[1]?.added, undefined);
+  // Without a note nothing is marked.
+  assert.equal(tokenItems(tokens, { colour: true })[0]?.added, undefined);
+});
+
 test('a warning goes on its token only', () => {
   const tokens = [token('color.ink', '#111'), token('color.paper', '#fff')];
   const items = tokenItems(tokens, {

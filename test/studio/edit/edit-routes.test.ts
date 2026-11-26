@@ -107,7 +107,8 @@ test("the edit state names the version, the session, the files' ETags and the to
     });
     assert.deepEqual(
       state.tokens.find((token) => token.var === '--kit-space-md'),
-      { var: '--kit-space-md', path: 'space.md', type: 'dimension', css: '12px' },
+      // `added`: the kit's own token, not one the project added (plan 25, C8).
+      { var: '--kit-space-md', path: 'space.md', type: 'dimension', css: '12px', added: false },
     );
   } finally {
     await studio.close();

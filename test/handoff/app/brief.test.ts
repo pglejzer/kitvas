@@ -6,6 +6,7 @@ import {
   handoffDecisions,
   writeBrief,
 } from '../../../src/handoff/app/code/brief.ts';
+import { splitAddedTokens } from '../../../src/handoff/domain/code/brief.ts';
 import type { ProjectListing } from '../../../src/handoff/domain/code/listing.ts';
 import type { TargetFacts } from '../../../src/handoff/domain/code/target.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
@@ -288,6 +289,26 @@ test('each component and token is listed once, with its uses and where it comes 
     { var: '--kit-color-ink', path: 'color.ink', css: '#1d2025', project: null, uses: 2 },
     { var: '--kit-space-sm', path: 'space.sm', css: '8px', project: null, uses: 3 },
   ]);
+});
+
+test('a token the project added is listed apart, to create, and a draft with none has no such field', () => {
+  const used = [
+    { var: '--kit-color-ink', path: 'color.ink', css: '#1d2025', project: null, uses: 2 },
+    { var: '--kit-space-wide', path: 'space.wide', css: '48px', project: '--wide', uses: 1 },
+  ];
+  const split = splitAddedTokens(used, ['space.wide']);
+  assert.deepEqual(split.tokens, [used[0]]);
+  assert.deepEqual(split.added, [
+    { var: '--kit-space-wide', path: 'space.wide', css: '48px', uses: 1 },
+  ]);
+  assert.deepEqual(splitAddedTokens(used, []).added, []);
+  // The tiny kit has no additions: no field.
+  const { brief } = writeBrief(depsFor(screen({}), tiny()), {
+    slug: 'shop',
+    write: { to: 'src/app', scope: 'new', files: [] },
+    base: '',
+  });
+  assert.equal('added' in brief, false);
 });
 
 test('a component that is a project addition says so', () => {

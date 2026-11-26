@@ -13,6 +13,13 @@ const SIZES: SizeToken[] = [
 ];
 const FILE = 'src/scss/sections/hero.scss';
 
+test('a token from the project additions is on-kit: its name is in the kit set, no finding', () => {
+  // `kit.tokens` holds the kit's own and the added tokens alike (`run-checks.ts` builds the set).
+  const tokens = new Set([...TOKENS, '--kit-color-brand-accent']);
+  const text = '.hero {\n  color: var(--kit-color-brand-accent);\n}\n';
+  assert.deepEqual(styleFindings({ file: FILE, text, tokens, sizes: SIZES }), []);
+});
+
 const SHEET = [
   '// Hero styles: #000 in a comment is fine',
   '.hero {',

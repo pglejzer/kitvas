@@ -1,14 +1,17 @@
 // The values of the version's options a frame shows (plan 25). The root carries one attribute per
 // option (`data-opt-columns="2"`), which the draft's styles read; the render is handed the same
 // choice as a prop. A choice the studio sends is turned into one this build has, so an option the
-// build lost shows its own default.
+// build lost shows its own default. The value of the option `theme` also puts that theme's own
+// attributes on the body (`theme-body.ts`, ADR 0083).
 
 import {
   type DraftOption,
   type OptionChoice,
   optionAttribute,
   pickChoice,
+  THEME_OPTION,
 } from '../../../src/shared/values/options.ts';
+import type { ThemeBody } from './theme-body.ts';
 
 /** The part of the page's root element the choice is written to. */
 export type RootAttributes = {
@@ -32,11 +35,15 @@ export type Choices = {
   swap(next: readonly DraftOption[]): OptionChoice;
 };
 
-/** `first` is a choice `options` have; its attributes are put on `root` at once. */
+/**
+ * `first` is a choice `options` have; its attributes are put on `root` at once, and the theme it
+ * names puts its own on the body through `body`.
+ */
 export function createChoices(
   root: RootAttributes,
   options: readonly DraftOption[],
   first: OptionChoice,
+  body?: Pick<ThemeBody, 'show'>,
 ): Choices {
   let known = options;
   let shown = first;
@@ -45,6 +52,8 @@ export function createChoices(
       const value = shown[option.id];
       if (value !== undefined) root.setAttribute(optionAttribute(option.id), value);
     }
+    // A build without the option `theme` takes a theme's attributes off.
+    body?.show(shown[THEME_OPTION]);
   };
   write();
   return {

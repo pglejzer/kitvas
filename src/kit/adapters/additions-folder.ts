@@ -1,9 +1,10 @@
-// The project's additions to kits on disk: `<root>/<kit id>/additions.json` and the files under
-// `<root>/<kit id>/components/`, where `<root>` is `<project>/.kitvas/additions`. Also the plain
-// export of files to a folder the person names, which never overwrites.
+// The project's additions to kits on disk: `<root>/<kit id>/additions.json`, the files under
+// `<root>/<kit id>/components/` and the token files `tokens.json` and `tokens.<theme>.json` beside
+// them (ADR 0083), where `<root>` is `<project>/.kitvas/additions`. Also the plain export of files
+// to a folder the person names, which never overwrites.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve, sep } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve, sep } from 'node:path';
 import { KitvasError } from '../../shared/index.ts';
 import {
   ADDITION_FILES,
@@ -30,15 +31,38 @@ function readJson(file: string): unknown {
   }
 }
 
+/** A token file of an additions folder; which names mean something is the kit domain's rule. */
+const TOKEN_FILE = /^tokens(?:\..+)?\.json$/;
+
+/** The token files of an additions folder by name, sorted; `undefined` when it has none. */
+function readTokenFiles(dir: string): Record<string, unknown> | undefined {
+  let names: string[];
+  try {
+    names = readdirSync(dir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && TOKEN_FILE.test(entry.name))
+      .map((entry) => entry.name)
+      .sort();
+  } catch {
+    return undefined; // no folder
+  }
+  if (names.length === 0) return undefined;
+  return Object.fromEntries(
+    names.map((name): [string, unknown] => [name, readJson(join(dir, name)) ?? null]),
+  );
+}
+
 /** The additions of kit `id` under `root`, for `KitStore.readAdditions`. */
 export function readAdditionsFile(
   root: string,
   id: string,
-): { json: unknown; dir: string } | undefined {
+): { json: unknown; dir: string; tokens?: Record<string, unknown> } | undefined {
   const file = kitFile(root, id, ADDITIONS_FILE);
   if (file === undefined) return undefined;
+  const dir = resolve(kitDir(root, id));
   const json = readJson(file);
-  return json === undefined ? undefined : { json, dir: resolve(kitDir(root, id)) };
+  const tokens = readTokenFiles(dir);
+  if (json === undefined && tokens === undefined) return undefined;
+  return tokens === undefined ? { json, dir } : { json, dir, tokens };
 }
 
 /** `file` resolved inside `dir`, or `undefined` when it would leave it (or is `dir` itself). */
@@ -71,7 +95,8 @@ export function createAdditionsWriter({ root, kits }: AdditionsWriterOptions): A
   /** The additions already there; NO_ADDITIONS when the kit has none yet. */
   const current = (id: string, name: string): Additions => {
     const read = readAdditionsFile(root, id);
-    if (read === undefined) return NO_ADDITIONS;
+    // A folder with token files only has no components yet.
+    if (read === undefined || read.json === undefined) return NO_ADDITIONS;
     const parsed = parseAdditions(read.json);
     if ('at' in parsed) throw invalid(name, ADDITIONS_FILE);
     return parsed.additions;

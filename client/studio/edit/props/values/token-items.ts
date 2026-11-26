@@ -7,11 +7,17 @@ import type { SelectItem } from '../../../ui/select/model.ts';
 
 export function tokenItems(
   tokens: readonly TokenOption[],
-  options: { colour: boolean; warn?: (token: TokenOption) => string | null },
+  options: {
+    colour: boolean;
+    warn?: (token: TokenOption) => string | null;
+    /** The mark's words for a token the project added (`props.added`); left out: no mark. */
+    note?: string;
+  },
 ): SelectItem[] {
   return tokens.map((token) => {
     const cut = token.path.lastIndexOf('.');
     return {
+      ...(token.added === true && options.note !== undefined ? { added: options.note } : {}),
       value: token.var,
       name: cut < 0 ? token.path : token.path.slice(cut + 1),
       group: cut < 0 ? null : token.path.slice(0, cut),

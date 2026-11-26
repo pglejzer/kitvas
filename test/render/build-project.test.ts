@@ -104,7 +104,8 @@ test('a Tailwind draft: tokens onto the theme, utilities of the draft and the ki
     assert.deepEqual(report.errors, []);
     assert.equal(report.built, true);
     const css = shad.read('build', 'css', 'index.css');
-    assert.match(css, /^:root \{\n {2}--kit-/);
+    // Every token of this kit is mapped, so all of them are declared on the body too.
+    assert.match(css, /^:root, body \{\n {2}--kit-/);
     for (const part of [
       '--kit-color-primary: var(--primary);',
       '--primary: oklch(0.21 0.006 285.885)',

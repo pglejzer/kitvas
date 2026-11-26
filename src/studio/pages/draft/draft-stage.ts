@@ -34,7 +34,7 @@ import type { IconName } from '../icons/paths.ts';
 import { commandBox } from '../states/command.ts';
 import type { ChoiceLink } from './draft-links.ts';
 import { withChannel } from './frame-channel.ts';
-import { optionsPill, optionsRow } from './options-row.ts';
+import { type OptionsInput, optionsPill, optionsRow } from './options-row.ts';
 
 /**
  * The width a card's label names: "Desktop 1280" at a preset, "1000 px" at any other width. The
@@ -178,6 +178,8 @@ export type PillsInput = {
   breakpoints: readonly number[];
   /** The version's options (`readOptions`); left out or empty: no Options pill and no row. */
   options?: readonly DraftOption[];
+  /** The kit's themes from the project's additions, and the mark's text (`options-row.ts`). */
+  added?: OptionsInput['added'];
 };
 
 /** A link built by `ChoiceLink` names no custom width; the state links keep the one shown. */
@@ -349,6 +351,7 @@ export function pills(input: PillsInput): Html {
     t,
     options,
     differ: choice.options ?? {},
+    ...(input.added === undefined ? {} : { added: input.added }),
     hrefFor: (differ: OptionChoice): string =>
       withCards(withView(link({ options: differ }), choice.view), choice),
   };

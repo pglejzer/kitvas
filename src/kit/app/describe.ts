@@ -2,6 +2,7 @@
 
 import { KitvasError } from '../../shared/index.ts';
 import type { Kit, KitComponent } from '../domain/contract.ts';
+import type { KitThemes } from '../domain/themes.ts';
 import type { KitStore } from '../ports/kit-store.ts';
 import { type LoadedKit, loadKit } from './load-kit.ts';
 
@@ -17,6 +18,10 @@ export type KitSummary = {
   icons: number;
   gaps: Kit['gaps'];
   issues: number;
+  /** The kit's themes with their attributes, the project's marked `added` (ADR 0083). */
+  themes: KitThemes;
+  /** Dot paths of the tokens the project added. */
+  addedTokens: string[];
 };
 
 export type KitListItem = {
@@ -45,6 +50,8 @@ export function summarizeKit(loaded: LoadedKit): KitSummary {
     icons: kit.icons?.source === 'component' ? kit.icons.names.length : 0,
     gaps: kit.gaps,
     issues: loaded.issues.length,
+    themes: loaded.themes,
+    addedTokens: loaded.addedTokens,
   };
 }
 

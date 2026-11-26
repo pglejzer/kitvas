@@ -14,7 +14,7 @@ import {
   projectKitsDir,
 } from '../../../src/shared/index.ts';
 import { renderTools } from '../../helpers/draft/render.ts';
-import { copyKit, FIXTURE_KITS, tinyKitJson } from '../../helpers/kit/kits.ts';
+import { copyKit, FIXTURE_KITS, srgb, themedTiny, tinyKitJson } from '../../helpers/kit/kits.ts';
 import { fixtureProject, removeFixture } from '../../helpers/kit/projects.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 import {
@@ -130,6 +130,53 @@ test('show reports a kit by id', async () => {
   assert.match(h.out.at(-1) ?? '', /^Tiny 1\.0\.0 \(tiny\)\n2 components, 8 tokens, 2 icons\n/);
   assert.match(h.out.at(-1) ?? '', /Button\s+action\s+Starts an action\./);
   assert.match(h.out.at(-1) ?? '', /Gaps \(no data from the source\): 1/);
+});
+
+test('show lists the themes with their attributes and what the project added', async () => {
+  const cwd = tempProject();
+  const additions = join(cwd, '.kitvas', 'additions', 'tiny');
+  const brandSoft = { color: { brandSoft: { $value: '{color.ink}' } } };
+  writeText(join(additions, 'tokens.json'), JSON.stringify(brandSoft));
+  const sepia = { color: { ink: { $value: srgb(0.4, 0.2, 0) } } };
+  writeText(join(additions, 'tokens.sepia.json'), JSON.stringify(sepia));
+  const h = harness({ cwd, root: themedTiny() });
+  assert.equal(await h.run('show', 'tiny', '--json'), 0);
+  const { kit } = h.data('show');
+  assert.deepEqual(kit.themes, {
+    default: 'light',
+    list: [
+      { id: 'light', label: 'Light', added: false, attributes: {} },
+      { id: 'dark', label: 'Dark', added: false, attributes: { 'data-tiny-scheme': 'dark' } },
+      { id: 'sepia', label: 'Sepia', added: true, attributes: {} },
+    ],
+  });
+  assert.deepEqual(kit.addedTokens, ['color.brandSoft']);
+  assert.equal(kit.tokens, 9);
+  assert.equal(kit.issues, 0);
+
+  await h.run('show', 'tiny');
+  const text = h.out.at(-1) ?? '';
+  assert.ok(
+    text.includes(
+      [
+        'Themes (the default is light):',
+        '  light  Light',
+        '  dark   Dark   data-tiny-scheme="dark"',
+        '  sepia  Sepia  added by this project',
+        'Tokens added by this project: color.brandSoft',
+      ].join('\n'),
+    ),
+    text,
+  );
+});
+
+test('show of a kit without themes says nothing of them', async () => {
+  const h = harness();
+  await h.run('show', 'tiny', '--json');
+  assert.deepEqual(h.data('show').kit.themes, { default: 'default', list: [] });
+  assert.deepEqual(h.data('show').kit.addedTokens, []);
+  await h.run('show', 'tiny');
+  assert.ok(!(h.out.at(-1) ?? '').includes('Themes'));
 });
 
 test('without an id the project kit is used; an unknown kit is exit code 6', async () => {
@@ -252,7 +299,7 @@ test('css of a project kit points mapped tokens at the design system variables',
   assert.equal(await h.run('css', 'acme'), 0);
   assert.equal(
     h.out.at(-1),
-    ':root {\n  --kit-color-ink: var(--acme-color-ink);\n  --kit-space-sm: var(--acme-space-2);\n}\n',
+    ':root, body {\n  --kit-color-ink: var(--acme-color-ink);\n  --kit-space-sm: var(--acme-space-2);\n}\n',
   );
 });
 

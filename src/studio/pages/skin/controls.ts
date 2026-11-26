@@ -121,6 +121,20 @@ export const SKIN_CONTROLS = `
 .k-chip[data-tone="fix"] { background: var(--st-color-fix-soft); color: var(--st-color-fix); }
 .k-chip[data-tone="review"] { background: var(--st-color-review-soft); color: var(--st-color-review); }
 .k-chip[data-tone="good"] { background: var(--st-color-good-soft); color: var(--st-color-good); }
+/* The mark of what a project added to its kit (a theme, a token): a small plus whose tooltip says so.
+   It is as tall as a chip's text line, so it never changes a row's height. */
+.k-added {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  vertical-align: middle;
+  border-radius: var(--st-radius-full);
+  background: var(--st-color-accent-soft);
+  color: var(--st-color-accent);
+}
+.k-added > .k-icon { width: 10px; height: 10px; }
 /* A count beside a label. */
 .k-count {
   display: inline-grid;

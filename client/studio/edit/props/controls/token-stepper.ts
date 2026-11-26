@@ -3,6 +3,7 @@
 // End move to a stop and take it, as a radio group does; a click takes one; pointing at a stop
 // previews it on the canvas. The stops come from `stepperOf` (`stepper.ts`).
 
+import { addedMark } from '../../../ui/added-mark.ts';
 import type { Stop } from '../values/stepper.ts';
 import { el } from './controls.ts';
 
@@ -22,6 +23,8 @@ export function tokenStepper(options: {
   hint: number;
   /** The words of a live check a stop would fail; `null` for none. */
   warn?: (stop: Stop) => string | null;
+  /** The mark's words for a stop the project added (`props.added`); left out: no mark. */
+  note?: string;
   onPick(stop: Stop): void;
   onPreview?(stop: Stop | null): void;
 }): HTMLElement {
@@ -59,6 +62,7 @@ export function tokenStepper(options: {
       button.setAttribute('aria-description', warning);
     }
     if (index === options.hint) button.dataset.computed = '';
+    if (stop.added && options.note !== undefined) button.append(addedMark(options.note));
     button.addEventListener('click', () => {
       roam(index);
       take(index);

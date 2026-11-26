@@ -25,6 +25,7 @@ import {
   pickView,
   pickWidth,
 } from '../../views/draft-query.ts';
+import { sourceNoun } from '../../views/kit-status.ts';
 import {
   type DraftStatus,
   findingsFor,
@@ -32,6 +33,7 @@ import {
   passedCount,
   versionStatus,
 } from '../../views/status.ts';
+import { addedNote } from '../added-mark.ts';
 import { editMenu, editTexts } from '../editor/edit-panel.ts';
 import { editBlock, editorBar } from '../editor/editor-bar.ts';
 import { grip, leftSide, lockedNote, rail, rightSide } from '../editor/editor-side.ts';
@@ -62,6 +64,26 @@ function kitName(kits: KitStore, id: string): string {
     return loadKit(kits, id).kit.name;
   } catch (error) {
     if (error instanceof KitvasError) return id;
+    throw error;
+  }
+}
+
+/**
+ * What the project added to the draft's kit (plan 25, C8): the themes that come from the additions
+ * and the mark's text, which names where the kit comes from. Nothing when the kit cannot be read.
+ */
+function additionsOf(
+  t: Translate,
+  kits: KitStore,
+  id: string,
+): { themes: string[]; note: string; source: string } {
+  try {
+    const loaded = loadKit(kits, id);
+    const source = sourceNoun(t, loaded.kit.source);
+    const themes = loaded.themes.list.filter((theme) => theme.added).map((theme) => theme.id);
+    return { themes, note: addedNote(t, source), source };
+  } catch (error) {
+    if (error instanceof KitvasError) return { themes: [], note: '', source: '' };
     throw error;
   }
 }
@@ -229,6 +251,7 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   const block = editBlock({ built: info.built, version, latest, compare });
   const editable = block === null;
   const kit = kitName(deps.kits, draft.kit.id);
+  const additions = additionsOf(t, deps.kits, draft.kit.id);
 
   const status = shownStatus(info.built, checks, shown);
   const bar = editorBar({ t, draft, choice, link, latest, block, status });
@@ -241,8 +264,8 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   };
   // The row is open until the script, which keeps it open or folded per browser, says otherwise.
   const optioned = options.length > 0 && compare === null ? html` data-options="open"` : '';
-  const canvas = html`<section class="stage-canvas" data-shell="canvas"${optioned} aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link, breakpoints: breakpointsOf(deps.kits, draft.kit.id), options })}${canvasTools(t)}</section>`;
-  const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}${openingLayout(request.nonce)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce, kit })}${trashTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
+  const canvas = html`<section class="stage-canvas" data-shell="canvas"${optioned} aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link, breakpoints: breakpointsOf(deps.kits, draft.kit.id), options, added: { themes: additions.themes, note: additions.note } })}${canvasTools(t)}</section>`;
+  const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}${openingLayout(request.nonce)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce, kit, source: additions.source })}${trashTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
   return page({
     title: draft.title,
     nonce: request.nonce,

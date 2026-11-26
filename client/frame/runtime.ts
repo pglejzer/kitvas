@@ -38,6 +38,7 @@ import { measureElements, settle } from './page/measure.ts';
 import { createChoices } from './page/options.ts';
 import { createShow } from './page/show.ts';
 import { type Bundle, createSwap, pagePorts, register, running } from './page/swap.ts';
+import { createThemeBody } from './page/theme-body.ts';
 import { setTones } from './tones/tones.ts';
 
 export type { Mounted } from './page/swap.ts';
@@ -61,11 +62,13 @@ export function startFrame(input: FrameInput): void {
   const { initial, runtime } = input;
   let { states } = input;
   // The values of the options the address asks for (else the defaults) are on the root before the
-  // first render, which gets them as its prop.
+  // first render, which gets them as its prop; the theme's own attributes are on the body.
+  const themeBody = createThemeBody(document.body, input.themes ?? {});
   const choices = createChoices(
     document.documentElement,
     input.options,
     choiceFromQuery(input.options, new URLSearchParams(location.search)),
+    themeBody,
   );
   let mounted = input.mount();
   mounted.render(initial, choices.get());
@@ -160,6 +163,8 @@ export function startFrame(input: FrameInput): void {
       states = bundle.states;
       // A state the new build no longer has: the one its own page would open with.
       if (!states.includes(shown.current())) shown.reset(bundle.initial);
+      // The new build's themes; `choices.swap` writes the one that shows.
+      themeBody.use(bundle.themes ?? {});
       // An option or a value the new build no longer has shows its own default.
       mounted.render(shown.current(), choices.swap(bundle.options));
       // The page was empty for a moment, which took its scroll.

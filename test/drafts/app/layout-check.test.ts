@@ -6,7 +6,7 @@ import { addVersion, checkLayout } from '../../../src/drafts/index.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
 import { GOOD_LAYOUT, NOW, shopDraft } from '../../helpers/draft/drafts.ts';
-import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
+import { FIXTURE_KITS, themedTiny } from '../../helpers/kit/kits.ts';
 
 const kits = createFolderKitStore(FIXTURE_KITS);
 
@@ -153,6 +153,31 @@ test('the option theme is a problem while a kit has no themes', () => {
   const report = checkLayout(store, kits, 'shop');
   assert.equal(report.valid, false);
   assert.ok(report.issues.every((issue) => issue.key === 'draftIssue.optionsTheme'));
+});
+
+test("the option theme may name the kit's themes, and a value the kit lacks is a problem", () => {
+  const themed = createFolderKitStore(themedTiny());
+  const { store } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  const theme = (values: string[]) =>
+    JSON.stringify({
+      schemaVersion: 1,
+      options: [
+        {
+          id: 'theme',
+          label: 'Theme',
+          default: 'light',
+          values: values.map((id) => ({ id, label: id })),
+        },
+      ],
+    });
+  store.writeText('shop', 'v1/src/json/options.json', theme(['light', 'dark']));
+  assert.deepEqual(checkLayout(store, themed, 'shop').issues, []);
+
+  store.writeText('shop', 'v1/src/json/options.json', theme(['light', 'sepia']));
+  assert.deepEqual(checkLayout(store, themed, 'shop').issues, [
+    { path: 'options.theme.values', key: 'draftIssue.optionsTheme', params: { value: 'sepia' } },
+  ]);
 });
 
 test('a missing layout.md is one issue; an unknown draft or kit is an error', () => {

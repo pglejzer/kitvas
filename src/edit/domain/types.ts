@@ -334,6 +334,8 @@ export type TokenOption = {
   type: 'color' | 'dimension' | 'duration' | 'fontFamily' | 'fontWeight' | 'number';
   /** The value as CSS writes it: `12px`, `#1a1a1a`, `600`. */
   css: string;
+  /** The token comes from the project's additions, not from the design system (plan 25, C8). */
+  added?: boolean | undefined;
 };
 
 export type { PropValue, StyleValue };

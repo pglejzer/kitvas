@@ -74,11 +74,12 @@ export function inspectLayout(store: DraftStore, kits: KitStore, slug: string): 
   }
   const layout = parseLayout(text);
   const known = new Set(kit.kit.components.map((component) => component.name));
-  // A kit has no themes yet, so the option `theme` is not allowed.
+  // The option `theme` may name only the kit's themes, the project's added ones among them.
+  const themes = kit.themes.list.map((theme) => theme.id);
   const issues = [
     ...layoutIssues(layout, known),
     ...statesIssues(store.readJson(slug, `${base}/src/json/states.json`)),
-    ...checkOptions(store, slug, base, []),
+    ...checkOptions(store, slug, base, themes),
   ];
   return { draft, version, base, kit, layout, issues };
 }

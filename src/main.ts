@@ -172,6 +172,7 @@ export function main(argv: string[]): Promise<number> {
           'frame/drag/slots/slots.ts',
           'frame/page/snapshot.ts',
           'frame/page/swap.ts',
+          'frame/page/theme-body.ts',
           'frame/edit/structure.ts',
           'frame/edit/tree.ts',
         ].map((file) => join(PLUGIN_ROOT, 'client', file)),

@@ -5,6 +5,7 @@
 // controls.ts`), so a kit with more colours than are shown loses none of them.
 
 import type { TokenOption } from '../../../../../src/edit/index.ts';
+import { addedMark } from '../../../ui/added-mark.ts';
 import { text } from '../../texts.ts';
 import { tokenNameOf } from '../values/stepper.ts';
 import { varOf } from '../values/steps.ts';
@@ -19,6 +20,8 @@ export function swatchRow(options: {
   /** The value the source holds; a `var()` of a token marks that swatch. */
   current: string | null;
   warn?: (token: TokenOption) => string | null;
+  /** The mark's words for a token the project added (`props.added`); left out: no mark. */
+  note?: string;
   onPick(token: TokenOption): void;
   onPreview?(token: TokenOption | null): void;
 }): HTMLElement {
@@ -42,6 +45,7 @@ export function swatchRow(options: {
     const sample = el('span', 'k-swatch');
     sample.style.backgroundColor = token.css;
     button.append(sample);
+    if (token.added === true && options.note !== undefined) button.append(addedMark(options.note));
     button.addEventListener('click', () => {
       if (token.var !== named) options.onPick(token);
     });

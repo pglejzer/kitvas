@@ -20,6 +20,7 @@ export * from './domain/images.ts';
 export type * from './domain/issues.ts';
 export * from './domain/rules.ts';
 export * from './domain/sources.ts';
+export * from './domain/themes.ts';
 export * from './domain/tokens.ts';
 export type * from './ports/kit-store.ts';
 export type * from './ports/kit-writer.ts';

@@ -11,6 +11,7 @@
 import type { DraftOption, OptionChoice } from '../../../src/shared/values/options.ts';
 import type { Scroll, SwapStep } from '../../channel/protocol.ts';
 import { idle } from './busy.ts';
+import type { ThemeAttributes } from './theme-body.ts';
 
 /** A draft rendered into `#root` by one bundle's own React. */
 export type Mounted = {
@@ -25,6 +26,8 @@ export type Bundle = {
   states: string[];
   /** The version's options; `[]` for none. */
   options: DraftOption[];
+  /** What each theme sets on the body (ADR 0083); left out by a build that has no such theme. */
+  themes?: ThemeAttributes;
   initial: string;
   /** Makes a fresh root on `#root`. */
   mount(): Mounted;

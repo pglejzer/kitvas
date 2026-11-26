@@ -31,6 +31,13 @@ export function acmeKitJson(): Record<string, unknown> {
   return JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
 }
 
+/** The theme fields of a kit without themes or added tokens; a function, so no fake shares a list. */
+const noThemes = (): Pick<LoadedKit, 'themes' | 'themeTokens' | 'addedTokens'> => ({
+  themes: { default: 'default', list: [] },
+  themeTokens: {},
+  addedTokens: [],
+});
+
 export type LoadedOptions = {
   tokens?: FlatToken[];
   cssVarMap?: Record<string, string>;
@@ -55,6 +62,7 @@ export function acmeLoaded(
     additions: [],
     additionsDir: undefined,
     entry: join(dir, 'generated', 'kit.ts'),
+    ...noThemes(),
   };
 }
 
@@ -72,6 +80,7 @@ export function tinyLoaded(): LoadedKit {
     additions: [],
     additionsDir: undefined,
     entry: join(dir, 'tsx', 'index.ts'),
+    ...noThemes(),
   };
 }
 
@@ -97,6 +106,7 @@ export function writtenLoaded(reference: string | null = REFERENCE): LoadedKit {
     additions: [],
     additionsDir: undefined,
     entry: join(dir, 'tsx', 'index.ts'),
+    ...noThemes(),
   };
 }
 

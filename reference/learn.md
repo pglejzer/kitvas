@@ -4,7 +4,7 @@ Read by the `learner` agent before it writes a kit. Each rule has an id; reports
 
 ## Where you write
 
-- L1: Write only inside the kit folder given in your prompt: `kit.json`, `json/tokens.json`, `json/css-var-map.json`, and a fragment file when the prompt names one (L8b). Never write `generated/`: kitvas writes it. Never edit the project's own files or the packages.
+- L1: Write only inside the kit folder given in your prompt: `kit.json`, `json/tokens.json`, `json/css-var-map.json`, a theme's token file (L31c), `theme.ts` in the case of L31e, and a fragment file when the prompt names one (L8b). Never write `generated/`: kitvas writes it. Never edit the project's own files or the packages.
 - L2: Keep the fields `kit new` wrote (`id`, `source`, `runtime.entry`, `runtime.packages`). Change them only when a rule below says so.
 - L3: Never invent. Every component, prop, value, token and class name comes from a file you read (a `.d.ts`, a source file, a docs page, a token file). When you cannot read it, add it to `gaps`.
 - L4: Never paste long text from docs. Write one plain sentence per description, in your own words.
@@ -63,12 +63,24 @@ Read by the `learner` agent before it writes a kit. Each rule has an id; reports
 - L31: Style files the system needs globally go to `runtime.styles.imports` (`@acme/ui/styles.css`, or a project path such as `"src/ds/tokens.css"`). Never add a style file you did not see imported or documented.
 - L31a: An unscoped package (no `@scope/`) that a provider, a binding or `runtime.styles.imports` comes from goes into `runtime.packages` with its installed version (`react-day-picker`). Otherwise kitvas reads the name as a project path.
 
+## Themes
+
+A design system's own themes are the kit's themes: official, with no mark. The shape of `tokens.themes` is in `reference/kit.schema.json`; the rules here say what to put in it.
+
+- L31b: When the system has more than one theme (a light and a dark scheme, a Tailwind dark variant, the project's own variables behind a selector), write `tokens.themes` in `kit.json`: `default` is the id of the theme the base token file holds, `list` has one entry for each theme with an `id` and a `label`. The default theme has no `file`. Name a theme as the system does (`light`, `dark`). One scheme is not a list of themes: leave `themes` out.
+- L31c: Every other theme gets its own token file, `json/tokens.<id>.json`, named in the entry's `file`. It holds only the tokens whose values differ from the default theme, at the same paths and with the same types (L21, L22). A path the base file lacks is a kit issue. Write only values you read in the system's own scheme (L23), for MUI the palette in `theme.colorSchemes.dark.palette`; never a value you made up or derived by inversion.
+- L31d: When the system's own components take their colours from the system's theme and not from `--kit-*`, the theme entry needs `attributes`: what the system itself needs to switch its components. Names are `class` or `data-…`; kitvas puts them on `<body>` while that theme shows. They go on `<body>`, never on `<html>`, where the system's provider writes its own scheme attribute when it mounts. A system whose components follow `--kit-*` needs no `attributes`.
+- L31e: A package such as MUI has its dark scheme only for a theme created with CSS variables and both schemes: `createTheme({ cssVariables: { colorSchemeSelector: 'data-mui-color-scheme' }, colorSchemes: { light: true, dark: true } })`. With the package's default theme and no provider there is no dark to switch to. So: use the project's own theme module when it already has both schemes behind a selector (L30); otherwise write one small module, `<kit folder>/theme.ts`, with only that configuration call and no colour of its own, and name it in `runtime.providers`: `{ "import": { "from": "@mui/material/styles", "name": "ThemeProvider" }, "props": { "defaultMode": "light" }, "bindings": { "theme": { "from": ".kitvas/kits/<id>/theme.ts", "name": "theme" } } }`. `defaultMode` pins the root to the default theme, so the person's system preference never switches it. The theme entry then names the attribute that turns the scheme on: `"attributes": { "data-mui-color-scheme": "dark" }`.
+- L31f: Look up how the scheme switches in the package's documentation (the Context7 tools) and in its installed source, never from memory. When no selector-based switch exists, do not write `theme.ts` and do not learn the theme; say so in the report (L38).
+- L31g: Project variables behind a selector (`[data-theme="dark"] { --surface: … }`) are a theme: its `attributes` is that selector's attribute, its token file the values the selector sets for variables you mapped (L26).
+
 ## Tailwind
 
 - L32: A project with Tailwind v4 (`@import "tailwindcss"` in a CSS file) gets `runtime.styles.tailwind: { "entry": "<project path of that CSS file>" }`. Tailwind v3 (`tailwind.config.js`) is not supported yet: stop and tell the main agent.
 - L33: Theme variables (`--color-primary`, `--radius-md`, `--spacing`) are the variables to map in `css-var-map.json`.
 - L34: With `@theme inline { --color-primary: var(--primary); }` the theme variable is not written to the page. Map the token onto the variable it points at (`--primary`).
 - L35: In a Tailwind kit, `styling` is `className`, and examples use the component's own variants (`<Button variant="outline">`). Do not write utility classes in examples unless the component needs them.
+- L35a: A Tailwind v4 dark variant is a theme (L31b). Its `attributes` is the class or the attribute the project's `@custom-variant dark` or `.dark` block uses (`{ "class": "dark" }`), its token file the theme variables that block overrides.
 
 ## Findings from `kit verify`
 
@@ -77,4 +89,4 @@ Read by the `learner` agent before it writes a kit. Each rule has an id; reports
 
 ## Report
 
-- L38: Reply in a few lines: the files written, how many components by category, the number of tokens by group, what went to `gaps`, and any rule here that was missing, wrong or hard to follow. Do not paste the JSON.
+- L38: Reply in a few lines: the files written, how many components by category, the number of tokens by group, what went to `gaps`, the themes you learned and any theme you did not and why (L31f), and any rule here that was missing, wrong or hard to follow. Do not paste the JSON.

@@ -1,6 +1,6 @@
 # 0046. Project additions layer
 
-Date: 2026-11-23. Status: accepted, changed in part by ADR 0079. Adds to the kit contract (`src/kit/domain/contract.ts`) and to the layered kit store of stage 2. Spec: `docs/specs/2026-11-23-kitvas-stage-3b-rework-craft-design.md`, section 6.4.
+Date: 2026-11-23. Status: accepted, changed in part by ADR 0083. ADR 0079 changed it in part before. Adds to the kit contract (`src/kit/domain/contract.ts`) and to the layered kit store of stage 2. Spec: `docs/specs/2026-11-23-kitvas-stage-3b-rework-craft-design.md`, section 6.4.
 
 ## Context
 

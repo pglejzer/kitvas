@@ -29,6 +29,10 @@ Every command takes `--json` and answers `{"ok":true,"data":…}` or `{"ok":fals
 | `guidelines` | Shows the guideline book                                                                 |
 | `handoff`    | Writes a draft's Figma package or the fitter's brief; lists, compares and records hand-offs |
 
+## Showing a kit
+
+`kitvas kit show <id>` names the kit, counts its components, tokens and icons and lists the components. A kit with themes (ADR 0083) gets one line per theme: its id, its label, the attributes it puts on the page's body, and "added by this project" for a theme the project's additions brought or gave values to; then the tokens the project added. `--json` answers the same as `kit`: `themes` (`default` and `list`, each with `id`, `label`, `added` and `attributes`), `addedTokens` (dot paths) and `issues`, the number of problems; `kitvas kit check <id>` lists them, each at the file it is in. `kitvas kit css <id>` prints the token sheet the builds use: the base, then each theme under `[data-opt-theme="<id>"]`.
+
 ## Checking a version with options
 
 A version with `src/json/options.json` (ADR 0082) is checked in its default combination as always, then once more for each value that is not its option's default: the baseline state at 390 and 1280 px with that one value and every other option at its default (two visits a value, never the product of the options). A finding seen only with a value names it: `kitvas check` prints `columns=2` on its line, and `--json` gives each finding an `options` list, `[{"id":"columns","value":"2"}]`, empty for the default combination and for the checks that read files. Two rules belong to options: `options/no-effect` (review: a value whose pages look the same as the default's at both widths) and `options/unknown` (fix: a `data-opt-` selector in the SCSS that names an option or value the file does not declare). The shots of a value are `build/shots/<state>-<width>.<option>-<value>.png`.

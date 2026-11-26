@@ -160,6 +160,19 @@ export const SKIN_EDITOR_PROPS_CONTROLS = `
   height: var(--st-size-chip);
   border-radius: var(--st-radius-full);
 }
+/* The mark of an added token sits on the corner of its swatch or stop; it takes no room. */
+.props-swatch { position: relative; }
+.props-swatch > .k-added, .props-stepper > .k-stepper-stop > .k-added {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+}
+.props-swatch > .k-added > .k-icon, .props-stepper > .k-stepper-stop > .k-added > .k-icon {
+  width: 8px;
+  height: 8px;
+}
 .props-swatch:hover { background: var(--st-color-raised); }
 .props-swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--st-color-accent); }
 .props-swatch:focus-visible { outline-offset: 0; border-radius: var(--st-radius-full); }

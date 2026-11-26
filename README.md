@@ -17,7 +17,7 @@ It is for anyone who builds screens on a design system: a developer with no desi
 
 - **Generated UI ignores your design system.** kitvas builds only from a kit: the catalog of components, tokens and icons it learned from your project. Without one it uses a built-in kit, Base.
 - **Nobody checks the result.** kitvas builds the draft, type-checks it, applies the kit's rules, and opens the page in a real browser at 390 and 1280 px in every state, measures it at 768 px too, and adds a reflow check at 320 px. `kitvas check --deep` also measures 1024, 1440, 1920 and 2560.
-- **A choice between looks means a copy of the version.** A version can hold options (columns, kinds of card); the check visits each value, and hand-off takes the default.
+- **A choice between looks means a copy of the version.** A version can hold options (columns, kinds of card, a light and a dark theme when the kit has them, or when you let kitvas add the missing one to your project's additions, marked as yours); the check visits each value, and hand-off takes the default.
 - **Changing one detail means prompting again.** The studio's editor writes your change into the draft's own TSX or SCSS, touching only the lines it changes.
 - **Generated code lands in your application before anyone has looked at it.** Drafts stay in `.kitvas/`. When one is finished, `/kitvas:handoff code` puts it into your project in the project's own technology, only where you say, or `/kitvas:handoff figma` sends it to your Figma file as editable layers.
 

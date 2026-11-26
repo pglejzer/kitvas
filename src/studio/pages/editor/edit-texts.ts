@@ -293,6 +293,7 @@ const PANEL_TEXT_KEYS = [
   'canvas.everyTitle',
   'canvas.editing',
   'canvas.cardTitle',
+  'props.added',
   'props.tailwindWrites',
   'props.warn.contrast',
   'props.warn.target',

@@ -34,7 +34,7 @@ import {
   projectIssues,
   summarizeKit,
   syncGeneratedEntry,
-  tokensToCss,
+  tokenSheet,
 } from '../../../kit/index.ts';
 import { buildCatalog, type CatalogReport } from '../../../render/index.ts';
 import {
@@ -186,6 +186,20 @@ function renderView(data: KitView, t: Translate): string {
         }),
         ...columns(kit.components.map((c) => [`  ${c.name}`, c.category, c.description])),
       ];
+      if (kit.themes.list.length > 0) {
+        lines.push(t('kits.show.themes', { default: kit.themes.default }));
+        const rows = kit.themes.list.map((theme) => {
+          const attributes = Object.entries(theme.attributes)
+            .map(([name, value]) => `${name}="${value}"`)
+            .join(' ');
+          const rest = [attributes, theme.added ? t('kits.show.themeAdded') : ''].filter(Boolean);
+          return [`  ${theme.id}`, theme.label, ...(rest.length > 0 ? [rest.join('  ')] : [])];
+        });
+        lines.push(...columns(rows));
+      }
+      if (kit.addedTokens.length > 0) {
+        lines.push(t('kits.show.addedTokens', { paths: kit.addedTokens.join(', ') }));
+      }
       if (kit.gaps.length > 0) lines.push(t('kits.show.gaps', { count: kit.gaps.length }));
       if (kit.issues > 0) lines.push(t('kits.show.issues', { count: kit.issues, id: kit.id }));
       return lines.join('\n');
@@ -338,8 +352,7 @@ export function createKitCommand(deps: KitDeps): Command {
         }
         case 'css': {
           const id = idAt(ctx, 1);
-          const loaded = loadKit(deps.kits, id);
-          return { view: 'css', id, css: tokensToCss(loaded.tokens, ':root', loaded.cssVarMap) };
+          return { view: 'css', id, css: tokenSheet(loadKit(deps.kits, id)) };
         }
         case 'build': {
           const id = idAt(ctx, 1);

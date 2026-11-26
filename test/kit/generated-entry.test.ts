@@ -35,6 +35,9 @@ const loadedOf = (kit: Kit, project: string | undefined, folder = kit.id): Loade
     additions: [],
     additionsDir: undefined,
     entry: join(dir, ...kit.runtime.entry.split('/')),
+    themes: { default: 'default', list: [] },
+    themeTokens: {},
+    addedTokens: [],
   };
 };
 

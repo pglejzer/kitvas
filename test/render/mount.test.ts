@@ -11,6 +11,7 @@ test('the entry hands the frame runtime the states, its stamp and a way to mount
       states: ['filled', 'empty'],
       defaultState: 'filled',
       options: [],
+      themes: [],
       runtime: 'abc123',
     }),
     [
@@ -63,9 +64,12 @@ test('options go to the runtime as data and to the draft as the choice it is ren
         ],
       },
     ],
+    // Not the option `theme`: the themes stay out of the entry.
+    themes: [{ id: 'dark', attributes: { 'data-scheme': 'dark' } }],
     runtime: 'r',
   });
   assert.ok(source.includes('const OPTIONS = [{"id":"columns","label":"Columns \\"x\\"",'));
+  assert.ok(!source.includes('THEMES'));
   assert.ok(source.includes('render(shown: string, choice: Record<string, string>): void {'));
   assert.ok(source.includes('root.render(<Draft state={shown} options={choice} />)'));
   assert.ok(source.includes('startFrame({ states: STATES, options: OPTIONS,'));
@@ -74,12 +78,45 @@ test('options go to the runtime as data and to the draft as the choice it is ren
   assert.ok(!source.includes('data-opt'));
 });
 
+test('with the option theme, the attributes of the themes that have some go to the runtime', () => {
+  const source = mountSource({
+    providers: [],
+    states: ['filled'],
+    defaultState: 'filled',
+    options: [
+      {
+        id: 'theme',
+        label: 'Theme',
+        default: 'light',
+        values: [
+          { id: 'light', label: 'Light' },
+          { id: 'dark', label: 'Dark' },
+        ],
+      },
+    ],
+    themes: [
+      { id: 'light', attributes: {} },
+      { id: 'dark', attributes: { 'data-mui-color-scheme': 'dark' } },
+    ],
+    runtime: 'r',
+  });
+  assert.ok(source.includes('const THEMES = {"dark":{"data-mui-color-scheme":"dark"}};'));
+  assert.ok(
+    source.includes(
+      '  startFrame({ states: STATES, options: OPTIONS, initial: state, mount, runtime: RUNTIME, themes: THEMES });',
+    ),
+  );
+  // The entry sets nothing itself: the runtime puts the attributes on the body.
+  assert.ok(!source.includes('document.body'));
+});
+
 test('the entry makes no root itself: only `mount` does, when the runtime calls it', () => {
   const source = mountSource({
     providers: [],
     states: ['a'],
     defaultState: 'a',
     options: [],
+    themes: [],
     runtime: 'r',
   });
   const body = source.slice(source.indexOf('if (element) {'));
@@ -94,6 +131,7 @@ test('the stamp of the runtime is written as a string, whatever it holds', () =>
     states: ['a'],
     defaultState: 'a',
     options: [],
+    themes: [],
     runtime: '"x',
   });
   assert.ok(source.includes('const RUNTIME = "\\"x";'));
@@ -108,6 +146,7 @@ test('the providers of the kit wrap the draft, the first outermost', () => {
     states: ['filled'],
     defaultState: 'filled',
     options: [],
+    themes: [],
     runtime: 'abc123',
   });
   assert.match(source, /^import \{ Theme as Provider0 \} from "@kit";$/m);
@@ -133,6 +172,7 @@ test('a provider bound to a theme export gets it as a prop, its import after the
     states: ['filled'],
     defaultState: 'filled',
     options: [],
+    themes: [],
     runtime: 'abc123',
   });
   assert.ok(

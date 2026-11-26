@@ -1,5 +1,6 @@
 // Tokens as CSS custom properties. Prototype styles use these `--kit-*` names only.
 
+import { optionSelector, THEME_OPTION } from '../../shared/index.ts';
 import type { KitIssue } from './issues.ts';
 import type { FlatToken } from './tokens.ts';
 
@@ -38,25 +39,53 @@ export function formatTokenValue(token: FlatToken): string {
   }
 }
 
+/** What the token sheet is written from; `LoadedKit` has it. */
+export type SheetTokens = {
+  tokens: readonly FlatToken[];
+  /** Token path with dots -> native variable (`LoadedKit.cssVarMap`). */
+  cssVarMap: Readonly<Record<string, string>>;
+  /** Per theme id, the tokens whose values differ (`LoadedKit.themeTokens`). */
+  themeTokens: Readonly<Record<string, readonly FlatToken[]>>;
+};
+
+/** One rule of the sheet; none for no tokens. */
+const rule = (selector: string, lines: string[]): string[] =>
+  lines.length === 0 ? [] : [`${selector} {`, ...lines, '}'];
+
 /**
- * The token sheet. `map` (token path with dots -> native variable, `LoadedKit.cssVarMap`) makes a
- * token follow the design system's own variable: `--kit-color-ink: var(--acme-ink);`, so the
- * system's theme stays the one source of the value. A name that is not a custom property is ignored.
+ * The kit's token sheet, the one every build and `kit css` write: the base under `:root`, then each
+ * theme's tokens under its value of the option `theme` (`[data-opt-theme="dark"]`, ADR 0083).
+ *
+ * A token the map names follows the design system's own variable, `--kit-color-ink: var(--acme-ink);`,
+ * so the system's theme stays the one source of the value; a name that is not a custom property is
+ * ignored. Such a token is declared on the body too (`:root, body`): a `var()` is worked out on the
+ * element that declares it, and a theme's attributes, which switch the system's variables, are on
+ * the body. A theme's own value of a mapped token is declared on the body as well, or the body's
+ * declaration would hide it there.
  */
-export function tokensToCss(
-  tokens: FlatToken[],
-  selector = ':root',
-  map: Record<string, string> = {},
-): string {
-  const lines = tokens.map((token) => {
-    const native = map[token.path.join('.')];
-    const value =
-      native !== undefined && CSS_VAR_NAME.test(native)
-        ? `var(${native})`
-        : formatTokenValue(token);
-    return `  ${cssVarName(token.path)}: ${value};`;
-  });
-  return [`${selector} {`, ...lines, '}', ''].join('\n');
+export function tokenSheet(kit: SheetTokens): string {
+  const native = (token: FlatToken): string | undefined => {
+    const name = kit.cssVarMap[token.path.join('.')];
+    return name !== undefined && CSS_VAR_NAME.test(name) ? name : undefined;
+  };
+  const declare = (token: FlatToken, value: string): string =>
+    `  ${cssVarName(token.path)}: ${value};`;
+  const plain = (token: FlatToken): string => declare(token, formatTokenValue(token));
+  const free = (tokens: readonly FlatToken[]) => tokens.filter((token) => !native(token));
+  const mapped = (tokens: readonly FlatToken[]) => tokens.filter((token) => native(token));
+  const lines = [
+    ...rule(':root', free(kit.tokens).map(plain)),
+    ...rule(
+      ':root, body',
+      mapped(kit.tokens).map((token) => declare(token, `var(${native(token)})`)),
+    ),
+  ];
+  for (const [id, tokens] of Object.entries(kit.themeTokens)) {
+    const at = optionSelector(THEME_OPTION, id);
+    lines.push(...rule(at, free(tokens).map(plain)));
+    lines.push(...rule(`${at}, ${at} body`, mapped(tokens).map(plain)));
+  }
+  return lines.length === 0 ? '' : [...lines, ''].join('\n');
 }
 
 /**

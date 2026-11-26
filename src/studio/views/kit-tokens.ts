@@ -36,6 +36,27 @@ export function contrastLine(value: string): ContrastLine | null {
   return { white: ratioText(white), black: ratioText(black) };
 }
 
+/**
+ * The kit's own tokens and the ones the project added (`LoadedKit.addedTokens`, dot paths): the
+ * page shows the added ones in a group of their own, marked as not part of the design system.
+ */
+export function partitionAdded(
+  tokens: FlatToken[],
+  addedPaths: readonly string[],
+): { own: FlatToken[]; added: ValueRow[] } {
+  const added = new Set(addedPaths);
+  const own: FlatToken[] = [];
+  const rows: ValueRow[] = [];
+  for (const token of tokens) {
+    if (added.has(token.path.join('.'))) {
+      rows.push({ name: cssVarName(token.path), value: formatTokenValue(token) });
+    } else {
+      own.push(token);
+    }
+  }
+  return { own, added: rows };
+}
+
 export function splitTokens(tokens: FlatToken[]): KitTokens {
   const split: KitTokens = {
     colors: [],

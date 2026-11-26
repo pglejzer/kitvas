@@ -77,6 +77,13 @@ function resolve(start: RawToken, byPath: Map<string, RawToken>): Resolved {
   return { ok: true, value: current.value, type: current.type, aliased: current !== start };
 }
 
+/** The paths of the tokens in a parsed token file, with dots, in its order; none are checked. */
+export function tokenPaths(raw: unknown): string[] {
+  const found: RawToken[] = [];
+  collect(raw, [], undefined, found);
+  return found.map((token) => token.path.join('.'));
+}
+
 /** Reads a token file. Tokens with a problem are left out and reported in `issues`. */
 export function flattenTokens(raw: unknown): { tokens: FlatToken[]; issues: KitIssue[] } {
   const found: RawToken[] = [];

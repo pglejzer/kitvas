@@ -22,13 +22,14 @@ Your prompt holds the kit folder (`.kitvas/kits/<id>/`), the project folder, the
 
 ## Write
 
-Write only inside the kit folder: `kit.json`, `json/tokens.json`, `components/<Name>.tsx`, `components/<Name>.module.css` and, for images, `source/images/boxes.json`. Never write `generated/`, `source/web/` or `source/figma/`. Never edit the project's files. Nothing outside the kit folder.
+Write only inside the kit folder: `kit.json`, `json/tokens.json`, a theme's `json/tokens.<id>.json`, `components/<Name>.tsx`, `components/<Name>.module.css` and, for images, `source/images/boxes.json`. Never write `generated/`, `source/web/` or `source/figma/`. Never edit the project's files. Nothing outside the kit folder.
 
 ## Rules in short
 
 - Write only what you read. Never invent a colour, size, prop or state. What you cannot read goes to `gaps`.
 - Styles use only `var(--kit-*)` tokens. Components import only `react` and their own CSS Module. Never copy fonts, images or logos.
 - Every example names its `reference`, an image that exists.
+- Themes: a Figma file's variable modes, or the other theme's pages or images when the person gave them (W22a). Never derive a theme.
 - Cover the core set first, or only the components you were asked for.
 - The full rules are in the write-kit rules file; follow it when it is stricter than this list.
 

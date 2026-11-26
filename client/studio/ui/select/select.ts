@@ -3,6 +3,7 @@
 // It holds no text of its own: every word comes in through the options. The list lives in the
 // body so no panel clips it; the trigger carries `data-open-list` while it is open.
 
+import { addedMark } from '../added-mark.ts';
 import { icon } from '../icon.ts';
 import type { MoveKey, SelectItem } from './model.ts';
 import { filterItems, groupItems, moveActive, SEARCH_FROM } from './model.ts';
@@ -91,6 +92,7 @@ export function studioSelect(options: StudioSelectOptions): StudioSelect {
     const name = part('k-select-name', item ? item.name : options.placeholder);
     if (!item) name.dataset.placeholder = '';
     parts.push(name);
+    if (item?.added) parts.push(addedMark(item.added));
     if (item?.detail) parts.push(part('k-select-detail', item.detail));
     parts.push(icon('chevron-down'));
     trigger.replaceChildren(...parts);
@@ -123,6 +125,7 @@ export function studioSelect(options: StudioSelectOptions): StudioSelect {
     node.setAttribute('aria-selected', String(isCurrent));
     if (item.swatch) node.append(swatchOf(item.swatch));
     node.append(part('k-select-name', item.name));
+    if (item.added) node.append(addedMark(item.added));
     if (item.warn) {
       const warn = part('k-select-warn');
       warn.title = item.warn;

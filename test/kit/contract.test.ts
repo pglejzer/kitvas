@@ -68,6 +68,47 @@ test('rejects bad names, paths and frameworks', () => {
   );
 });
 
+test('themes: ids are option values, attributes are class or data-…, and tokens.modes is gone', () => {
+  const themes = {
+    default: 'light',
+    list: [
+      { id: 'light', label: 'Light' },
+      {
+        id: 'dark',
+        label: 'Dark',
+        file: 'json/tokens.dark.json',
+        attributes: { 'data-mui-color-scheme': 'dark', class: 'dark' },
+      },
+    ],
+  };
+  const raw = tinyKitJson();
+  (raw.tokens as Record<string, unknown>).themes = themes;
+  assert.deepEqual(parseKit(raw, 'tiny').tokens.themes, themes);
+
+  const tokens = (json: Record<string, unknown>) => json.tokens as Record<string, unknown>;
+  assert.match(
+    invalid((raw) => {
+      tokens(raw).modes = { theme: ['light'], default: 'light' };
+    }),
+    /^tokens: .*modes/,
+  );
+  assert.match(
+    invalid((raw) => {
+      tokens(raw).themes = { ...themes, list: [{ id: 'Dark', label: 'Dark' }] };
+    }),
+    /^tokens\.themes\.list\.0\.id:/,
+  );
+  assert.match(
+    invalid((raw) => {
+      tokens(raw).themes = {
+        ...themes,
+        list: [{ id: 'dark', label: 'Dark', attributes: { style: 'color: red' } }],
+      };
+    }),
+    /^tokens\.themes\.list\.0\.attributes/,
+  );
+});
+
 test('accepts the package shape of icons and a provider', () => {
   const raw = tinyKitJson();
   raw.icons = {

@@ -5,7 +5,13 @@
 // `data-option`, `data-value`, `data-default`, `id="options-row"`) is the contract with it: change
 // both together.
 
-import type { DraftOption, OptionChoice, Translate } from '../../../shared/index.ts';
+import {
+  type DraftOption,
+  type OptionChoice,
+  THEME_OPTION,
+  type Translate,
+} from '../../../shared/index.ts';
+import { addedMark } from '../added-mark.ts';
 import { type Html, html } from '../html.ts';
 import { icon } from '../icons/icon.ts';
 
@@ -17,6 +23,8 @@ export type OptionsInput = {
   differ: OptionChoice;
   /** The link to this view with these values that differ (`draft-stage.ts` adds the width). */
   hrefFor: (differ: OptionChoice) => string;
+  /** The kit's themes that come from the project's additions, and the mark's text (`added-mark.ts`). */
+  added?: { themes: readonly string[]; note: string };
 };
 
 /** The value an option shows now. */
@@ -59,7 +67,11 @@ function axis(input: OptionsInput, option: DraftOption): Html {
   const values = option.values.map((value) => {
     const href = hrefFor(withValue(options, differ, option, value.id));
     const pressed = value.id === shown ? 'true' : 'false';
-    return html`<a class="k-btn opt-value" href="${href}" data-value="${value.id}" aria-pressed="${pressed}">${value.label}</a>`;
+    const marked =
+      option.id === THEME_OPTION && input.added?.themes.includes(value.id) === true
+        ? addedMark(input.added.note)
+        : '';
+    return html`<a class="k-btn opt-value" href="${href}" data-value="${value.id}" aria-pressed="${pressed}">${value.label}${marked}</a>`;
   });
   return html`<div class="opt-axis" data-option="${option.id}" data-default="${option.default}" role="group" aria-labelledby="${name}"><span class="opt-name" id="${name}">${option.label}</span>${values}</div>`;
 }

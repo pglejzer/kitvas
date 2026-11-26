@@ -54,6 +54,7 @@ export const TokenOptionSchema = z.strictObject({
   path: z.string(),
   type: z.enum(['color', 'dimension', 'duration', 'fontFamily', 'fontWeight', 'number']),
   css: z.string(),
+  added: z.boolean().optional(),
 });
 
 export const StyleSourceSchema = z.discriminatedUnion('kind', [

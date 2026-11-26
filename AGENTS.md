@@ -36,7 +36,7 @@ claude plugin eval . --allow-tools Bash Write Edit --tag smoke   # skill evals (
 - Error codes and exit codes: `src/shared/errors/errors.ts`.
 - Paths and the data folder: `src/shared/env/paths.ts`.
 - Adding a command: a file in the folder of what it acts on under `src/cli/commands/` (`draft`, `kit`, `handoff`, `studio`, `project`), exported from `src/cli/index.ts`, listed in `src/main.ts`, messages in `locales/en.json`.
-- Kits (contract, tokens, loading): `src/kit/`, rules in `src/kit/AGENTS.md`.
+- Kits (contract, tokens, loading): `src/kit/`, rules in `src/kit/AGENTS.md`. Themes (`tokens.themes`, a token file each, `attributes` on the body, the option `theme`) and the project's tokens and theme values (`.kitvas/additions/<kit>/tokens.json`, `tokens.<theme>.json`, marked "Added by this project"): ADR 0083; what a skill asks before it adds one: `skills/compose/`.
 - The built-in kit: `kits/base/`, rules in `kits/base/AGENTS.md`.
 - The project's decisions file (`.kitvas/decisions.md`: front matter `kit`, `copy`, `check`, then dated decisions; `kitvas decisions [add | set | replace]`; `loadSettings` reads it): `src/shared/settings/{decisions,project-file,config}.ts`, `src/cli/commands/project/decisions.ts`, the doctor's `decisions` check. ADR 0076.
 - Project kits (`.kitvas/kits/<id>/`, sources `npm` and `repo`, `kit new | verify | use | exports | merge`): `src/kit/`; verified by `src/checks/app/verify-kit.ts`; learned by `/kitvas:learn` (`skills/learn/`, `agents/learner.md`, `reference/learn.md`, the contract as a file in `reference/kit.schema.json`). ADRs 0030 to 0034, 0081.

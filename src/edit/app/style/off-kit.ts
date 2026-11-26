@@ -8,7 +8,7 @@ import {
   parseLayout,
   versionFolder,
 } from '../../../drafts/index.ts';
-import { cssVarName, formatTokenValue, type KitStore, loadKit } from '../../../kit/index.ts';
+import { type KitStore, loadKit } from '../../../kit/index.ts';
 import { KitvasError } from '../../../shared/index.ts';
 import { readRules } from '../../domain/style/scss-rules.ts';
 import {
@@ -21,6 +21,7 @@ import { answerFor, varKindOf } from '../../domain/style/shorthand-source.ts';
 import { tokenGroupsOf } from '../../domain/style/source.ts';
 import { nearestToken } from '../../domain/tsx/nearest.ts';
 import { kindOf, type TokenOption, tokenTypeOf } from '../../domain/types.ts';
+import { tokenOptions } from '../edit-state.ts';
 
 export type OffKitDeps = { drafts: DraftStore; kits: KitStore };
 
@@ -33,12 +34,7 @@ const neverOffKit = (property: string): boolean => {
 /** The kit's tokens as the editor offers them; none when the kit cannot be read. */
 function kitTokens(kits: KitStore, kitId: string): TokenOption[] {
   try {
-    return loadKit(kits, kitId).tokens.map((token) => ({
-      var: cssVarName(token.path),
-      path: token.path.join('.'),
-      type: token.type,
-      css: formatTokenValue(token),
-    }));
+    return tokenOptions(loadKit(kits, kitId));
   } catch (error) {
     if (error instanceof KitvasError) return [];
     throw error;
