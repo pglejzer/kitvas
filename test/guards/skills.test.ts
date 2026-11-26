@@ -51,6 +51,8 @@ test('skills: size, name and a "Use when" description', () => {
       problems.push(`${path} description must start with "Use when"`);
     }
     if (description.length > 500) problems.push(`${path} description is over 500 characters`);
+    // Claude Code shows a description escaped: `<slug>` reads "&lt;slug&gt;" in the menu.
+    if (/[<>]/.test(description)) problems.push(`${path} description holds < or >`);
   }
   assert.deepEqual(problems, []);
 });

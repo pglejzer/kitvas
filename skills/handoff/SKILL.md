@@ -1,7 +1,7 @@
 ---
 
 name: handoff
-description: "Use when the user wants a finished draft sent to Figma as editable layers, or put into their own project in that project's own technology (React, Vue, Svelte, a server-rendered site, anything), or runs /kitvas:handoff figma|code <slug>."
+description: "Use when the user wants a finished draft sent to Figma as editable layers, or put into their own project in that project's own technology (React, Vue, Svelte, a server-rendered site, anything), or runs /kitvas:handoff figma or /kitvas:handoff code with a draft's slug."
 ---
 
 # kitvas: hand a draft over
