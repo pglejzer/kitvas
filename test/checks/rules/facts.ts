@@ -81,6 +81,8 @@ export function page(nodes: FactNode[], part: Partial<PageFacts> = {}): PageFact
     focus: [],
     reflow: null,
     spacing: null,
+    states: [],
+    press: [],
     ...part,
   };
 }

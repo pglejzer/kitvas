@@ -84,8 +84,8 @@ export const BROWSER_RULES: BrowserRules = {
 export type VisitPlan = { width: number; height: number; passes: Pass[]; shot: boolean };
 
 /**
- * A phone and a laptop with their passes, a tablet measured only (ADR 0074), and with `deep` the
- * deep widths, measured only. A craft
+ * A phone and a laptop with their passes (both `states`, only the laptop `press`), a tablet
+ * measured only (ADR 0074), and with `deep` the deep widths, measured only. A craft
  * board gets the phone and the laptop with the `craft` pass alone, `deep` or not: it is a board of
  * sketches, not a screen to stress.
  */
@@ -99,8 +99,8 @@ export function visitPlan(deep: boolean, kind: BrowserInput['kind'] = 'screen'):
     ];
   }
   const plan: VisitPlan[] = [
-    { ...phone, passes: ['reflow', 'focus', 'spacing', ...extra], shot: true },
-    { ...laptop, passes: ['focus', 'spacing', ...extra], shot: true },
+    { ...phone, passes: ['reflow', 'focus', 'states', 'spacing', ...extra], shot: true },
+    { ...laptop, passes: ['focus', 'states', 'spacing', 'press', ...extra], shot: true },
     { ...TABLET_VIEWPORT, passes: [], shot: false },
   ];
   if (!deep) return plan;
@@ -202,8 +202,10 @@ export async function browserChecks(
     // never the product of the options (plan 25, C7). A craft board has no options.
     const others = input.kind === 'craft' ? [] : otherValues(input.options ?? []);
     for (const other of others) {
-      for (const { width, height, passes, shot } of visitPlan(input.deep, input.kind)) {
+      for (const { width, height, passes: planned, shot } of visitPlan(input.deep, input.kind)) {
         if (!shot) continue;
+        // The controls are used once per state; another value of an option keeps `states` only.
+        const passes = planned.filter((pass) => pass !== 'press');
         const stem = `build/shots/${input.baseline}-${width}`;
         const file = `${stem}.${other.id}-${other.value}.png`;
         const screenshot = join(input.versionDir, ...file.split('/'));

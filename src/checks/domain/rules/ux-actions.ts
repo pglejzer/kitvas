@@ -4,6 +4,7 @@ import type { RawFinding } from '../findings/finding.ts';
 import {
   UX_BUTTON_TEXT,
   UX_DANGER_PRIMARY,
+  UX_DEAD_CONTROL,
   UX_FLOW_WORDS,
   UX_LINK_TEXT,
   UX_ONE_PRIMARY,
@@ -222,10 +223,44 @@ const sameTextLinks: VisitRule = {
   },
 };
 
+const DEAD_KEY = {
+  button: 'checkRule.uxDeadControl',
+  choice: 'checkRule.uxDeadControlChoice',
+  select: 'checkRule.uxDeadControlSelect',
+  search: 'checkRule.uxDeadControlSearch',
+} as const;
+
+const deadControl: VisitRule = {
+  id: UX_DEAD_CONTROL.id,
+  run(input) {
+    const findings: RawFinding[] = [];
+    // In an empty, loading or error state what a filter governs is not on the page: only a
+    // button is asked to answer there.
+    const filled = input.stateKind === 'baseline' || input.stateKind === 'other';
+    for (const read of input.facts.press) {
+      if (read.kind !== 'button' && !filled) continue;
+      const dead = read.kind === 'button' ? read.effect === 'none' : read.effect !== 'page';
+      if (!dead || !input.facts.nodes[read.node]) continue;
+      findings.push(
+        ruleFinding(input, {
+          rule: UX_DEAD_CONTROL.id,
+          severity: 'review',
+          node: read.node,
+          message: { key: DEAD_KEY[read.kind], params: { name: read.name } },
+          hint: { key: 'checkHint.uxDeadControl', params: {} },
+          kit: 'keep',
+        }),
+      );
+    }
+    return findings;
+  },
+};
+
 export const UX_ACTION_RULES: VisitRule[] = [
   onePrimary,
   dangerPrimary,
   buttonText,
+  deadControl,
   linkText,
   sameTextLinks,
 ];

@@ -314,6 +314,7 @@ test('nested-frame fires on a card inside a card, to any depth', () => {
     card([10, 10, 350, 400], 'a:div/outer'),
     node({ parent: 1, box: [10, 10, 350, 300] }),
     node({ parent: 2, box: [20, 20, 100, 100], ks: 'a:div/inner', style: bordered }),
+    node({ parent: 3, box: [24, 24, 80, 20], text: text('Inner') }),
   ];
   assert.deepEqual(run('ui/nested-frame', nodes).map(brief), [
     {
@@ -338,10 +339,58 @@ test('nested-frame counts a fill as a frame cue', () => {
       ks: 'a:div/inner',
       style: { background: '#e0f2feff', ground: '#e0f2feff' },
     }),
+    node({ parent: 2, box: [24, 24, 80, 20], text: text('Inner') }),
   ];
   assert.deepEqual(
     run('ui/nested-frame', nodes).map((finding) => finding.element),
     ['a:div/inner'],
+  );
+});
+
+test('nested-frame ignores filled marks with nothing in them (chart bars, skeleton lines)', () => {
+  const fill = { background: '#e0f2feff', ground: '#e0f2feff' };
+  const marks = [
+    node({ parent: 1, box: [20, 20, 90, 200], style: fill }),
+    node({ parent: 1, box: [120, 20, 120, 32], style: fill }),
+  ];
+  assert.deepEqual(run('ui/nested-frame', [root(), card([10, 10, 350, 400]), ...marks]), []);
+  // The same mark holding a control or a picture is a frame again.
+  const holder = node({ parent: 1, box: [20, 20, 90, 200], style: fill });
+  const picture = node({ parent: 2, tag: 'img', box: [24, 24, 40, 40] });
+  assert.equal(
+    run('ui/nested-frame', [root(), card([10, 10, 350, 400]), holder, picture]).length,
+    1,
+  );
+});
+
+test('nested-frame ignores a mark whose label sits outside its box (a bar with a callout)', () => {
+  const fill = { background: '#e0f2feff', ground: '#e0f2feff' };
+  const bar = node({ parent: 1, box: [20, 120, 90, 200], style: fill });
+  // The callout is the bar's child, drawn above it.
+  const callout = node({ parent: 2, box: [20, 90, 90, 20], text: text('Nov $84.2k') });
+  assert.deepEqual(run('ui/nested-frame', [root(), card([10, 10, 350, 400]), bar, callout]), []);
+  // The same text inside the box makes it a frame.
+  const inside = node({ parent: 2, box: [24, 130, 80, 20], text: text('Nov $84.2k') });
+  assert.equal(run('ui/nested-frame', [root(), card([10, 10, 350, 400]), bar, inside]).length, 1);
+});
+
+test('edge-gap skips text a sideways scroller cuts off, and still fires on a plain page', () => {
+  const scroller = node({
+    box: [16, 100, 358, 300],
+    style: { overflowX: 'auto' },
+  });
+  const cell = (x: number): FactNode =>
+    node({ parent: 0, ks: `a:td/${x}`, box: [x, 120, 80, 20], text: text('Cell') });
+  // Both cells reach past the scroller's right edge, as columns of a wide table do at 390.
+  const cut = [scroller, cell(300), cell(372 + 10)];
+  assert.deepEqual(
+    run('ui/edge-gap', cut).map((finding) => finding.element),
+    [],
+  );
+  const plain = [node({ box: [16, 100, 358, 300] }), cell(300), cell(372 + 10)];
+  assert.deepEqual(
+    run('ui/edge-gap', plain).map((finding) => finding.element),
+    ['a:td/300', 'a:td/382'],
   );
 });
 

@@ -308,3 +308,67 @@ test('a text node does not count as an action', () => {
   const input = visit(page([node({ text: text('Read more') })]));
   assert.deepEqual(run('ux/link-text', input), []);
 });
+
+const press = (
+  kind: 'button' | 'choice' | 'select' | 'search',
+  effect: 'none' | 'own' | 'page',
+) => ({
+  node: 0,
+  kind,
+  name: 'Weekly',
+  effect,
+});
+
+test('dead-control: a button that changes nothing, and a choice, select or search that stays inside itself', () => {
+  const cases = [
+    ['button', 'none', 'checkRule.uxDeadControl'],
+    ['choice', 'none', 'checkRule.uxDeadControlChoice'],
+    ['choice', 'own', 'checkRule.uxDeadControlChoice'],
+    ['select', 'own', 'checkRule.uxDeadControlSelect'],
+    ['search', 'none', 'checkRule.uxDeadControlSearch'],
+  ] as const;
+  for (const [kind, effect, key] of cases) {
+    const facts = page([node({ ks: 's/Plans:button' })], { press: [press(kind, effect)] });
+    const found = run('ux/dead-control', visit(facts));
+    assert.equal(found.length, 1, `${kind} ${effect}`);
+    assert.equal(found[0]?.severity, 'review');
+    assert.equal(found[0]?.element, 's/Plans:button');
+    assert.deepEqual(found[0]?.message, { key, params: { name: 'Weekly' } });
+    assert.deepEqual(found[0]?.hint, { key: 'checkHint.uxDeadControl', params: {} });
+  }
+});
+
+test('dead-control: a button that changed its own scope, a page effect and no reads are silent', () => {
+  const silent = [
+    press('button', 'own'),
+    press('button', 'page'),
+    press('choice', 'page'),
+    press('select', 'page'),
+    press('search', 'page'),
+  ];
+  for (const read of silent) {
+    const facts = page([node()], { press: [read] });
+    assert.deepEqual(run('ux/dead-control', visit(facts)), [], `${read.kind} ${read.effect}`);
+  }
+  assert.deepEqual(run('ux/dead-control', visit(page([node()]))), []);
+});
+
+test('dead-control: where the page has nothing to change, only a button is asked to answer', () => {
+  // In an empty, loading or error state what a filter governs is not on the page.
+  for (const stateKind of ['empty', 'loading', 'error'] as const) {
+    for (const kind of ['choice', 'select', 'search'] as const) {
+      const facts = page([node()], { press: [press(kind, 'own'), press(kind, 'none')] });
+      const found = run('ux/dead-control', visit(facts, { stateKind }));
+      assert.deepEqual(found, [], `${kind} ${stateKind}`);
+    }
+    const facts = page([node()], { press: [press('button', 'none')] });
+    assert.equal(run('ux/dead-control', visit(facts, { stateKind })).length, 1, stateKind);
+  }
+});
+
+test('dead-control: inside a kit component the finding stays review with its own hint', () => {
+  const ks = 's/Plans:Button';
+  const facts = page([node({ ks })], { press: [press('button', 'none')] });
+  const input = visit(facts, { seen: { components: new Map([[ks, 'Button']]) } });
+  assert.equal(run('ux/dead-control', input)[0]?.hint.key, 'checkHint.uxDeadControl');
+});

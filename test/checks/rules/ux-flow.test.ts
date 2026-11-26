@@ -369,3 +369,35 @@ test('state-shift: a move of one pixel, a missing element and a baseline-only dr
   assert.deepEqual(runStates('ux/state-shift', baseline, []), []);
   assert.deepEqual(runStates('ux/state-shift', inState([], 'baseline', 'filled'), []), []);
 });
+
+/** A navigation of mapped links: every link has the same own element id. */
+const mappedNav = (moves: number[]) => [
+  node({ ks: 's/Nav:nav', ownKs: true, tag: 'nav', landmark: 'navigation', box: [0, 0, 390, 40] }),
+  ...moves.map((dx, at) =>
+    node({
+      parent: 0,
+      ks: 's/Nav:nav/a',
+      ownKs: true,
+      tag: 'a',
+      landmark: 'navigation',
+      box: [at * 100 + dx, 0, 80, 40],
+    }),
+  ),
+];
+
+test('state-shift: the links of a mapped list are measured against their own item, not item one', () => {
+  const baseline = inState(mappedNav([0, 0, 0]), 'baseline', 'filled');
+  const same = inState(mappedNav([0, 0, 0]), 'empty', 'empty');
+  assert.deepEqual(runStates('ux/state-shift', baseline, [same]), []);
+});
+
+test('state-shift: a mapped link that moves is still reported, and a missing n-th link is silent', () => {
+  const baseline = inState(mappedNav([0, 0, 0]), 'baseline', 'filled');
+  const moved = inState(mappedNav([0, 0, 30]), 'loading', 'loading');
+  const found = runStates('ux/state-shift', baseline, [moved]);
+  assert.equal(found.length, 1);
+  assert.equal(found[0]?.element, 's/Nav:nav/a');
+  assert.deepEqual(found[0]?.hint.params, { landmark: 'navigation', dx: 30, dy: 0 });
+  const fewer = inState(mappedNav([0]), 'error', 'error');
+  assert.deepEqual(runStates('ux/state-shift', baseline, [fewer]), []);
+});

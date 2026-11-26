@@ -22,8 +22,12 @@ export type Visit = {
   options: OptionChoice;
 };
 
-/** `reflow` runs only at 390: the page resized to 320×568. `deep` only with `kitvas check --deep`. */
-export type Pass = 'focus' | 'reflow' | 'spacing' | 'deep' | 'craft';
+/**
+ * `reflow` runs only at 390: the page resized to 320×568. `deep` only with `kitvas check --deep`.
+ * `states` puts each control under the pointer and gives it focus; `press` uses each control and
+ * runs only at 1280, last, because it changes the page for good (ADR 0085).
+ */
+export type Pass = 'focus' | 'reflow' | 'spacing' | 'deep' | 'craft' | 'states' | 'press';
 
 /** A look at one example page of a kit's catalog, for `kit verify`. */
 export type Inspect = {

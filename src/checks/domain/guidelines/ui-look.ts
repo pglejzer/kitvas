@@ -75,6 +75,10 @@ export const UI_PLACEHOLDER_MEDIA = {
     maxRatio: 2.5,
     minBoxes: 2,
     maxReported: 6,
+    // A run of `barRun` or more boxes of one parent that share an edge (within `barTolerance` px)
+    // and differ along it is a chart's bars, not placeholders.
+    barRun: 3,
+    barTolerance: 2,
   },
   sources: [],
   screens: null,

@@ -14,12 +14,16 @@ import {
   UI_STRAY_EDGE,
   UI_TRIPLE_FRAME,
 } from '../guidelines/ui-layout.ts';
+import type { Box } from '../page/facts.ts';
 import {
   ancestorsOf,
   childrenOf,
   cuesOf,
+  cutByScroller,
   frameOf,
   frameRows,
+  isControl,
+  MEDIA_TAGS,
   subtreeHas,
   textNodes,
 } from './geometry.ts';
@@ -27,6 +31,10 @@ import type { VisitInput, VisitRule } from './types.ts';
 import { ruleFinding } from './types.ts';
 
 const msg = (key: string, params: Record<string, string | number> = {}) => ({ key, params });
+
+/** The point lies in the box. */
+const inBox = ([x, y, width, height]: Box, [px, py]: [number, number]): boolean =>
+  px >= x && px <= x + width && py >= y && py <= y + height;
 
 /**
  * Rules about where the draft puts things (gaps, edges, rows, nesting). The draft decides the
@@ -186,6 +194,7 @@ const edgeGap: VisitRule = {
     if (facts.scrollWidth > facts.viewport[0] + UI_PAGE_OVERFLOW.thresholds.tolerance) return [];
     const found: RawFinding[] = [];
     for (const index of textNodes(facts)) {
+      if (cutByScroller(facts, index)) continue;
       const box = facts.nodes[index]?.box ?? [0, 0, 0, 0];
       const gap = Math.min(box[0], facts.viewport[0] - (box[0] + box[2]));
       if (gap >= minGap) continue;
@@ -277,9 +286,27 @@ const nestedFrame: VisitRule = {
   id: UI_NESTED_FRAME.id,
   run(input) {
     const { facts } = input;
+    // A filled mark with nothing in it (a chart bar, a skeleton line) is not a frame, and neither
+    // is one whose only content is drawn outside its box (a bar's callout).
+    const holds = facts.nodes.map(() => false);
+    facts.nodes.forEach((node, index) => {
+      const content =
+        node.text !== null ||
+        node.image !== null ||
+        MEDIA_TAGS.has(node.tag) ||
+        node.style.backgroundImage ||
+        isControl(node);
+      if (node.hidden || !content) return;
+      const [x, y, width, height] = node.box;
+      const middle: [number, number] = [x + width / 2, y + height / 2];
+      for (const holder of [index, ...ancestorsOf(facts, index)]) {
+        const box = facts.nodes[holder]?.box;
+        if (box && inBox(box, middle)) holds[holder] = true;
+      }
+    });
     const found: RawFinding[] = [];
     facts.nodes.forEach((_node, index) => {
-      if (frameOf(facts, index) === null) return;
+      if (frameOf(facts, index) === null || !holds[index]) return;
       const outer = ancestorsOf(facts, index).find((parent) => frameOf(facts, parent) !== null);
       if (outer === undefined) return;
       found.push(at(input, UI_NESTED_FRAME.id, index, UI_NESTED_FRAME.key, {}, {}));

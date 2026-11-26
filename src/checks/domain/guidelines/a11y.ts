@@ -136,6 +136,23 @@ export const A11Y_CONTRAST_UNSURE = {
   key: 'a11yContrastUnsure',
 } as const satisfies Guideline;
 
+export const A11Y_STATE_CONTRAST = {
+  id: 'a11y/state-contrast',
+  check: 'a11y',
+  chapter: 'contrast',
+  mode: 'auto',
+  severity: 'fix',
+  basis: 'source',
+  // `ratio` is the minimum for text, `large` for large text.
+  thresholds: { ratio: 4.5, large: 3 },
+  sources: [
+    { name: 'WCAG 1.4.3 Contrast (Minimum)', url: `${WCAG}/contrast-minimum.html` },
+    { name: 'WCAG 1.4.11 Non-text Contrast', url: `${WCAG}/non-text-contrast.html` },
+  ],
+  screens: null,
+  key: 'a11yStateContrast',
+} as const satisfies Guideline;
+
 export const A11Y_ERROR_TEXT = {
   id: 'a11y/error-text',
   check: 'a11y',
@@ -196,6 +213,7 @@ export const A11Y_GUIDELINES: readonly Guideline[] = [
   A11Y_ICON_CONTRAST,
   A11Y_FOCUS_CONTRAST,
   A11Y_CONTRAST_UNSURE,
+  A11Y_STATE_CONTRAST,
   A11Y_ERROR_TEXT,
   A11Y_AUTOCOMPLETE,
 ];

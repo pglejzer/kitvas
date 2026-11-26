@@ -400,6 +400,81 @@ test('contrast-unsure reports each entry, page-level when the node is -1', () =>
   );
 });
 
+test('contrast-unsure skips text a sideways scroller cuts off, and keeps the rest', () => {
+  const nodes = [
+    node({ ks: 'a', box: [16, 0, 358, 200], style: { overflowX: 'auto' } }),
+    node({ parent: 0, ks: 'b', box: [300, 10, 80, 20] }),
+    node({ parent: 0, ks: 'c', box: [20, 10, 80, 20] }),
+  ];
+  const input = visit(page(nodes), {
+    report: {
+      contrastUnsure: [
+        { node: 1, element: 'b' },
+        { node: 2, element: 'c' },
+      ],
+    },
+  });
+  assert.deepEqual(
+    run('a11y/contrast-unsure', input).map((f) => f.element),
+    ['c'],
+  );
+});
+
+const read = (part: Record<string, unknown> = {}, texts: Record<string, unknown>[] = [{}]) => ({
+  node: 0,
+  state: 'hover' as const,
+  on: false,
+  name: 'Weekly',
+  texts: texts.map((text) => ({
+    node: 0,
+    ink: '#ffffffff',
+    ground: '#ffffffff',
+    large: false,
+    unsure: false,
+    ...text,
+  })),
+  ...part,
+});
+
+test('state-contrast fires once per read, at the lowest text under its minimum', () => {
+  const facts = page([node({ ks: 'k' })], {
+    states: [
+      read({}, [{ ink: '#777777ff' }, { ink: '#ffffffff' }]),
+      read({ state: 'focus' }, [{ ink: '#ccccccff' }]),
+    ],
+  });
+  const found = run('a11y/state-contrast', visit(facts));
+  assert.equal(found.length, 2);
+  assert.deepEqual(found[0]?.message, {
+    key: 'checkRule.a11yStateContrast',
+    params: { name: 'Weekly', ratio: '1.0' },
+  });
+  assert.deepEqual(found[0]?.hint, { key: 'checkHint.a11yStateContrast', params: { min: 4.5 } });
+  assert.equal(found[0]?.severity, 'fix');
+  assert.equal(found[0]?.element, 'k');
+  assert.equal(found[1]?.message.key, 'checkRule.a11yStateContrastFocus');
+});
+
+test('state-contrast is silent for enough contrast, large text at 3, unsure ground and no reads', () => {
+  const facts = page([node()], {
+    states: [
+      read({}, [{ ink: '#000000ff' }]),
+      // #888888 is 3.5:1, under 4.5 for small text but over 3 for large text.
+      read({}, [{ ink: '#888888ff', large: true, ground: '#ffffffff' }]),
+      read({}, [{ ink: '#ffffffff', unsure: true }]),
+    ],
+  });
+  assert.deepEqual(run('a11y/state-contrast', visit(facts)), []);
+  assert.deepEqual(run('a11y/state-contrast', visit(page([node()]))), []);
+});
+
+test('state-contrast keeps fix inside a kit component, because the draft owns the state style', () => {
+  const ks = 'sections/Plans:Button';
+  const facts = page([node({ ks })], { states: [read()] });
+  const input = visit(facts, { seen: { components: new Map([[ks, 'Button']]) } });
+  assert.equal(run('a11y/state-contrast', input)[0]?.severity, 'fix');
+});
+
 test('error-text reports an invalid field with no linked text, in an error state only', () => {
   const bare = node({ ks: 'e', field: field({ invalid: true }) });
   const blank = node({

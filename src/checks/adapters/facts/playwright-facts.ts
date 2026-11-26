@@ -75,5 +75,5 @@ export async function measureFacts(page: Page, options?: FactsOptions): Promise<
   }
   // The bars are a part of the facts a page can do without; they never cost the rest.
   const fixed = await page.evaluate(readFixed).catch((): FixedBar[] => []);
-  return { ...walked, fixed, focus: [], reflow: null, spacing: null };
+  return { ...walked, fixed, focus: [], reflow: null, spacing: null, states: [], press: [] };
 }

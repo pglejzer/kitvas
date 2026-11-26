@@ -167,6 +167,48 @@ export type FocusStop = {
   covered: 'none' | 'partly' | 'fully';
 };
 
+/** One text of a control, read while the control is under the pointer or has keyboard focus. */
+export type StateText = {
+  /** The element that holds the text; the control's own index when the holder is outside the walk. */
+  node: number;
+  /** The text as painted: its colour, with its alpha and the opacity of its ancestors, laid over `ground`. Opaque. */
+  ink: Colour;
+  /** What is painted behind the text: the backgrounds composited over white, opaque (as `NodeStyle.ground`). */
+  ground: Colour;
+  /** 24 px and up, or 18.66 px and up at weight 700 and up (WCAG large text). */
+  large: boolean;
+  /** A background image lies behind the text, so `ground` is a guess. */
+  unsure: boolean;
+};
+
+/** A control whose text is painted differently in a state than at rest (the `states` pass, ADR 0085). */
+export type StateRead = {
+  /** The control. */
+  node: number;
+  /** Under a real pointer, or with keyboard focus (`:focus-visible`). */
+  state: 'hover' | 'focus';
+  /** aria-pressed, aria-selected or aria-checked is "true", or aria-current is set and not "false". */
+  on: boolean;
+  /** The control's accessible name or text, at most 40 characters. */
+  name: string;
+  /** Only the texts whose ink or ground differs from rest; never empty. */
+  texts: StateText[];
+};
+
+/** What using a control did to the page (the `press` pass, ADR 0085). */
+export type PressRead = {
+  node: number;
+  /**
+   * `button`: pressed. `choice`: one of a group of toggles, tabs or radios, pressed. `select`:
+   * another value chosen. `search`: text typed.
+   */
+  kind: 'button' | 'choice' | 'select' | 'search';
+  /** The control's accessible name or text, at most 40 characters. */
+  name: string;
+  /** `none`: nothing changed. `own`: only the control, or its group, changed. `page`: something else changed. */
+  effect: 'none' | 'own' | 'page';
+};
+
 export type FixedBar = { node: number; edge: 'top' | 'bottom' | 'other'; height: number };
 
 export type PageFacts = {
@@ -184,6 +226,10 @@ export type PageFacts = {
   reflow: { scrollWidth: number; over: number[] } | null;
   /** Nodes newly clipped or overlapping after SPACING_OVERRIDE; null when the pass did not run or failed. */
   spacing: { clipped: number[]; overlapping: number[] } | null;
+  /** Controls whose text changes under the pointer or with focus; empty when the pass did not run or failed. */
+  states: StateRead[];
+  /** What using each control did; empty when the pass did not run or failed. */
+  press: PressRead[];
 };
 
 export type DeepFacts = {
@@ -201,6 +247,10 @@ export type DeepFacts = {
 
 export const FACTS_NODE_CAP = 3000;
 export const FOCUS_STOP_CAP = 60;
+/** The most controls the `states` pass puts under the pointer and focuses. */
+export const STATE_CONTROL_CAP = 60;
+/** The most controls the `press` pass uses. */
+export const PRESS_CONTROL_CAP = 40;
 export const REFLOW_VIEWPORT = { width: 320, height: 568 } as const;
 export const LANDSCAPE_VIEWPORT = { width: 844, height: 390 } as const;
 /** The tablet width every check visits besides the phone and the laptop (ADR 0074): measured only. */

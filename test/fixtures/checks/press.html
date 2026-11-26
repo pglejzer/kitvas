@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Controls that are used</title>
+    <style>
+      body { margin: 0; font: 16px/1.5 Arial, Helvetica, sans-serif; color: #1a1a1a; }
+      main { padding: 16px; }
+      button, select, input { font: inherit; margin: 4px; padding: 4px 8px; }
+      .row { margin: 12px 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <main data-ks="sections/Press:main">
+        <h1 id="heading" data-ks="sections/Press:main/heading">Heading</h1>
+        <p id="out" data-ks="sections/Press:main/out">Output</p>
+        <p id="para" data-ks="sections/Press:main/para">Paragraph</p>
+
+        <div class="row">
+          <button id="nohandler" type="button" data-ks="sections/Press:main/nohandler">No handler</button>
+          <button id="own" type="button" data-ks="sections/Press:main/own">Own label</button>
+          <button id="elsewhere" type="button" data-ks="sections/Press:main/elsewhere">Elsewhere</button>
+          <button id="alerts" type="button" data-ks="sections/Press:main/alerts">Alerts</button>
+        </div>
+
+        <div class="row" id="group-own">
+          <button type="button" aria-pressed="true" data-ks="sections/Press:main/own-a">Own A</button>
+          <button type="button" aria-pressed="false" data-ks="sections/Press:main/own-b">Own B</button>
+          <button type="button" aria-pressed="false" data-ks="sections/Press:main/own-c">Own C</button>
+        </div>
+        <div class="row" id="group-page">
+          <button type="button" aria-pressed="true" data-ks="sections/Press:main/page-a">Page A</button>
+          <button type="button" aria-pressed="false" data-ks="sections/Press:main/page-b">Page B</button>
+          <button type="button" aria-pressed="false" data-ks="sections/Press:main/page-c">Page C</button>
+        </div>
+
+        <div class="row">
+          <select id="sel-none" aria-label="Plain select" data-ks="sections/Press:main/sel-none">
+            <option>One</option><option>Two</option>
+          </select>
+          <select id="sel-page" aria-label="Live select" data-ks="sections/Press:main/sel-page">
+            <option>One</option><option>Two</option>
+          </select>
+        </div>
+
+        <form id="form" onsubmit="return false" data-ks="sections/Press:main/form">
+          <select id="sel-form" aria-label="Form select" data-ks="sections/Press:main/sel-form">
+            <option>One</option><option>Two</option>
+          </select>
+          <button type="submit" data-ks="sections/Press:main/submit">Send</button>
+        </form>
+        <p><a id="link" href="#elsewhere" data-ks="sections/Press:main/link">Read the billing guide</a></p>
+
+        <div class="row">
+          <input id="search" type="search" aria-label="Search items" data-ks="sections/Press:main/search" />
+          <ul>
+            <li data-ks="sections/Press:main/item-1">Alpha</li>
+            <li data-ks="sections/Press:main/item-2">Beta</li>
+          </ul>
+        </div>
+      </main>
+    </div>
+    <script>
+      const byId = (id) => document.getElementById(id);
+      byId('own').addEventListener('click', (event) => {
+        event.currentTarget.textContent = 'Done';
+      });
+      byId('elsewhere').addEventListener('click', () => {
+        byId('out').textContent = 'Changed';
+      });
+      byId('alerts').addEventListener('click', () => {
+        alert('hello');
+      });
+      const flip = (button) => {
+        button.setAttribute('aria-pressed', button.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+      };
+      for (const button of byId('group-own').querySelectorAll('button')) {
+        button.addEventListener('click', () => flip(button));
+      }
+      for (const button of byId('group-page').querySelectorAll('button')) {
+        button.addEventListener('click', () => {
+          flip(button);
+          byId('heading').textContent = 'Changed heading';
+        });
+      }
+      byId('sel-page').addEventListener('change', () => {
+        byId('para').textContent = 'Rewritten';
+      });
+      byId('search').addEventListener('input', (event) => {
+        for (const item of document.querySelectorAll('li')) {
+          item.hidden = !item.textContent.toLowerCase().includes(event.target.value);
+        }
+      });
+    </script>
+  </body>
+</html>

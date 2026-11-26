@@ -199,6 +199,42 @@ test('placeholder-media is silent for one box, text, an image, a small box, a od
   assert.deepEqual(run('ui/placeholder-media', []), []);
 });
 
+/** An ol of bars: each a neutral li in the same parent, `heights` tall, bottoms on one line. */
+function bars(heights: number[], bottoms: number[] = heights.map(() => 500)): FactNode[] {
+  return [
+    node({ tag: 'ol', box: [10, 200, 1300, 300] }),
+    ...heights.map((height, at) =>
+      node({
+        parent: 0,
+        tag: 'li',
+        box: [10 + at * 110, (bottoms[at] ?? 500) - height, 100, height],
+        style: GREY,
+      }),
+    ),
+  ];
+}
+
+test('placeholder-media takes the bars of a chart for data, not for pictures', () => {
+  // Same bottoms, heights apart: a column chart.
+  assert.deepEqual(run('ui/placeholder-media', bars([180, 190, 200, 185, 195, 200])), []);
+  // Same lefts, widths apart: a bar chart on its side.
+  const sideways = [
+    node({ tag: 'ol', box: [10, 10, 400, 600] }),
+    ...[150, 180, 220, 160].map((width, at) =>
+      node({ parent: 0, tag: 'li', box: [10, 10 + at * 110, width, 100], style: GREY }),
+    ),
+  ];
+  assert.deepEqual(run('ui/placeholder-media', sideways), []);
+});
+
+test('placeholder-media still fires on equal boxes of one parent, and on two bars', () => {
+  assert.equal(run('ui/placeholder-media', bars([180, 180, 180])).length, 3);
+  // Three boxes whose bottoms differ are not a run.
+  assert.equal(run('ui/placeholder-media', bars([180, 180, 180], [500, 560, 620])).length, 3);
+  // Two bars are below the run length.
+  assert.equal(run('ui/placeholder-media', bars([180, 200])).length, 2);
+});
+
 const copy = (sample: string, fontSize: number): FactNode =>
   node({ text: text(sample), style: { fontSize, fontWeight: 400 } });
 

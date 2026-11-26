@@ -12,6 +12,7 @@ import {
 } from '../guidelines/a11y.ts';
 import type { FactNode, PageFacts } from '../page/facts.ts';
 import { contrast, parseColour } from './colour.ts';
+import { cutByScroller } from './geometry.ts';
 import { type At, ruleFinding, type VisitRule } from './types.ts';
 
 /** Elements that may scroll sideways at 320 px: data tables, code, media. */
@@ -269,17 +270,19 @@ const focusContrast: VisitRule = {
 const contrastUnsure: VisitRule = {
   id: 'a11y/contrast-unsure',
   run(input) {
-    return input.report.contrastUnsure.map((entry) =>
-      ruleFinding(
-        input,
-        at(
-          'a11y/contrast-unsure',
-          'review',
-          entry.node >= 0 && input.facts.nodes[entry.node] ? entry.node : null,
-          'a11yContrastUnsure',
+    return input.report.contrastUnsure
+      .filter((entry) => !cutByScroller(input.facts, entry.node))
+      .map((entry) =>
+        ruleFinding(
+          input,
+          at(
+            'a11y/contrast-unsure',
+            'review',
+            entry.node >= 0 && input.facts.nodes[entry.node] ? entry.node : null,
+            'a11yContrastUnsure',
+          ),
         ),
-      ),
-    );
+      );
   },
 };
 
