@@ -10,6 +10,7 @@
 // loaded again, or a build its page took in place, ADR 0058) gets what the others were told last,
 // so every card shows the same editor.
 
+import type { CanvasStudioMessage } from '../../channel/canvas-protocol.ts';
 import type {
   EditFrameMessage,
   EditStudioBody,
@@ -18,7 +19,13 @@ import type {
 import type { LiveFrameMessage, LiveStudioBody } from '../../channel/live-protocol.ts';
 import { type CardSource, cardsOf } from '../canvas/card-list.ts';
 import { type Frame, frameMessage, sendEdit, sendFlash, sendLive } from '../frames.ts';
+import { REVEAL_REQUEST } from './seltools/anchor.ts';
 import { previewApplies } from './style/context-rules.ts';
+
+/** The `locate` that scrolls an element into view: no `scroll` field, so the frame scrolls. */
+export function revealMessage(frame: Pick<Frame, 'channel'>, id: string): CanvasStudioMessage {
+  return { kitvas: 1, channel: frame.channel, type: 'locate', request: REVEAL_REQUEST, id };
+}
 
 export type FrameListener = (message: EditFrameMessage) => void;
 export type LiveListener = (frame: Frame, message: LiveFrameMessage) => void;
@@ -53,6 +60,11 @@ export type Bridge = {
    * or a key (a variant, a suggestion, an undo, a redo), not by the person's hand on the element.
    */
   flash?(ids: readonly string[]): void;
+  /**
+   * Scrolls `id` into view in every card (the frame's `scrollIntoView({ block: 'nearest' })`), with
+   * the reserved request number whose answer no listener takes (`REVEAL_REQUEST`).
+   */
+  reveal?(id: string): void;
   /**
    * Hears every body `send` sends (plan 19, task 4: the tools on the selection step aside while
    * an inline text edit is open). Returns the way to stop.
@@ -203,6 +215,12 @@ export function createBridge(lead: Frame, cards: CardSource = cardsOf(lead)): Br
     },
     flash(ids) {
       for (const frame of cards.frames()) sendFlash(frame, ids);
+    },
+    reveal(id) {
+      // A sandboxed frame has an opaque origin, so the target is `*`; nothing secret is sent.
+      for (const frame of cards.frames()) {
+        frame.element.contentWindow?.postMessage(revealMessage(frame, id), '*');
+      }
     },
     onSend(listener) {
       sent.add(listener);

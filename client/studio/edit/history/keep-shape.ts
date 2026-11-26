@@ -5,15 +5,12 @@
 // `test/client/studio/edit/history/keep.test.ts` holds the table to every op kind.
 
 import type { EditOp } from '../../../../src/edit/index.ts';
+import { isRecord as isObject } from '../../../../src/shared/values/guards.ts';
 import type { Gesture } from '../store.ts';
 import type { ChangeChip, StepEntry } from './chips.ts';
 
-type Loose = Record<string, unknown>;
 type Check = (value: unknown) => boolean;
 type Fields = Readonly<Record<string, Check>>;
-
-const isObject = (value: unknown): value is Loose =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const text: Check = (value) => typeof value === 'string';
 /** An element id: what `ElementIdSchema` takes, at its length. */

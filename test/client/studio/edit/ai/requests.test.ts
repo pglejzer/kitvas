@@ -1,6 +1,6 @@
 // The AI tab's requests as data (spec 4d, goals 1 and 2; plan 17, task B): the GET answer read
 // with care, the `requests` event, the order of the list, and the bodies the tab posts. The
-// client keeps copies of the server's lists and limits; the first test holds them together.
+// lists and limits are the server's own (ADR 0080).
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -9,12 +9,7 @@ import {
   improveRequest,
   MAX_REQUEST_ELEMENTS,
   MAX_REQUEST_TEXT,
-  MAX_VARIANT_CHANGES,
-  MAX_VARIANT_LABEL,
-  MAX_VARIANTS,
   orderRequests,
-  REQUEST_KIND_LIST,
-  REQUEST_STATUS_LIST,
   readRequest,
   readRequests,
   requestsSlugOf,
@@ -25,16 +20,9 @@ import {
 import type { StyleContext } from '../../../../../src/edit/index.ts';
 import {
   NewRequestSchema,
-  REQUEST_KINDS,
-  REQUEST_STATUSES,
   type RequestAnswer,
   RequestsSchema,
   type RequestView,
-  MAX_VARIANT_CHANGES as SERVER_CHANGES,
-  MAX_REQUEST_ELEMENTS as SERVER_ELEMENTS,
-  MAX_VARIANT_LABEL as SERVER_LABEL,
-  MAX_REQUEST_TEXT as SERVER_TEXT,
-  MAX_VARIANTS as SERVER_VARIANTS,
 } from '../../../../../src/studio/api/requests/request-schemas.ts';
 
 const ID = 'sections/Hero:section/Stack/Button';
@@ -72,16 +60,6 @@ const VARIANTS: RequestAnswer = {
     },
   ],
 };
-
-test("the client's lists and limits are the server's", () => {
-  assert.deepEqual(REQUEST_KIND_LIST, REQUEST_KINDS);
-  assert.deepEqual(REQUEST_STATUS_LIST, REQUEST_STATUSES);
-  assert.equal(MAX_REQUEST_TEXT, SERVER_TEXT);
-  assert.equal(MAX_REQUEST_ELEMENTS, SERVER_ELEMENTS);
-  assert.equal(MAX_VARIANTS, SERVER_VARIANTS);
-  assert.equal(MAX_VARIANT_CHANGES, SERVER_CHANGES);
-  assert.equal(MAX_VARIANT_LABEL, SERVER_LABEL);
-});
 
 test('a good answer is read as it is, and what it reads is what the server sends', () => {
   const answered = request({ status: 'answered', answer: VARIANTS });

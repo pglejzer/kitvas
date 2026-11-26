@@ -1,5 +1,7 @@
 // Colours as the facts carry them (`#rrggbbaa`): contrast, neutral greys and hue buckets.
 
+import { luminance } from '../../../shared/index.ts';
+
 export type Rgba = { r: number; g: number; b: number; a: number };
 
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
@@ -27,14 +29,7 @@ export function over(top: Rgba, bottom: Rgba): Rgba {
   return { r: mix(top.r, bottom.r), g: mix(top.g, bottom.g), b: mix(top.b, bottom.b), a: 1 };
 }
 
-/** WCAG relative luminance of an opaque colour. */
-export function luminance({ r, g, b }: Rgba): number {
-  const linear = (value: number): number => {
-    const channel = value / 255;
-    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
-}
+export { luminance };
 
 const WHITE: Rgba = { r: 255, g: 255, b: 255, a: 1 };
 

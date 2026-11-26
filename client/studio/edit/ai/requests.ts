@@ -3,17 +3,32 @@
 // event, the order the AI tab lists them in, the bodies the tab posts, and the variants the pill
 // on the canvas offers (plan 19, task 4). No DOM.
 //
-// The client may not import values from `src/`, so the lists and limits are copies of those in
-// `src/studio/api/requests/request-schemas.ts`; `test/client/studio/edit/ai/requests.test.ts`
-// keeps them equal.
+// The lists and limits are the server's own (`src/studio/api/requests/request-limits.ts` and
+// `src/edit/domain/op-limits.ts`, ADR 0080), so what the page reads is what the server sends.
 
+import {
+  MAX_RAW,
+  MAX_TEXT,
+  STYLE_STATES,
+  TOKEN_VAR,
+  UTILITY,
+} from '../../../../src/edit/domain/op-limits.ts';
 import type { PropValue, StyleContext, StyleValue } from '../../../../src/edit/index.ts';
+import { isRecord as isObject } from '../../../../src/shared/values/guards.ts';
+import {
+  LISTENING_STATES,
+  MAX_REQUEST_ELEMENTS,
+  MAX_REQUEST_TEXT,
+  MAX_VARIANT_CHANGES,
+  MAX_VARIANT_LABEL,
+  MAX_VARIANTS,
+  REQUEST_KINDS,
+  REQUEST_STATUSES,
+} from '../../../../src/studio/api/requests/request-limits.ts';
 import type {
   Listening,
   NewRequest,
   RequestAnswer,
-  RequestKind,
-  RequestStatus,
   Requests,
   RequestView,
   Variant,
@@ -23,31 +38,12 @@ import type { StreamEvent } from '../../live/sse.ts';
 import { PROPERTIES } from '../props/steps.ts';
 import type { VariantRef } from './control.ts';
 
-export const REQUEST_KIND_LIST: readonly RequestKind[] = ['say', 'improve', 'ask', 'note', 'why'];
-export const REQUEST_STATUS_LIST: readonly RequestStatus[] = [
-  'waiting',
-  'taken',
-  'answered',
-  'failed',
-  'dropped',
-];
-export const MAX_REQUEST_TEXT = 1_000;
-export const MAX_REQUEST_ELEMENTS = 20;
-export const MAX_VARIANTS = 3;
-export const MAX_VARIANT_CHANGES = 40;
-export const MAX_VARIANT_LABEL = 60;
+export {
+  MAX_REQUEST_ELEMENTS,
+  MAX_REQUEST_TEXT,
+  MAX_VARIANT_CHANGES,
+} from '../../../../src/studio/api/requests/request-limits.ts';
 
-const STATES = ['hover', 'focus-visible', 'active'] as const;
-const LISTENING_STATES: readonly Listening['state'][] = ['listening', 'working', 'off'];
-/** Copies of `TOKEN_VAR` and `UTILITY` in `src/edit/domain/ops.ts`. */
-const TOKEN_VAR = /^--kit-[A-Za-z0-9_-]{1,80}$/;
-const UTILITY = /^[A-Za-z0-9:_\-[\]/.#%(),]{1,120}$/;
-const MAX_TEXT = 2_000;
-
-type Loose = Record<string, unknown>;
-
-const isObject = (value: unknown): value is Loose =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 const isText = (value: unknown, max = 100_000): value is string =>
   typeof value === 'string' && value.length <= max;
 const isId = (value: unknown): value is string => isText(value, 200) && value.length > 0;
@@ -62,7 +58,7 @@ function readContext(value: unknown): StyleContext | undefined {
   const raw = value.width;
   const width =
     raw === null ? null : typeof raw === 'number' && Number.isInteger(raw) && raw >= 1 ? raw : -1;
-  const state = value.state === null ? null : oneOf(STATES, value.state);
+  const state = value.state === null ? null : oneOf(STYLE_STATES, value.state);
   if (width === -1 || state === undefined) return undefined;
   return { width, state };
 }
@@ -73,7 +69,7 @@ function readStyleValue(value: unknown): StyleValue | undefined {
     return TOKEN_VAR.test(value.token) ? { token: value.token } : undefined;
   }
   const { raw } = value;
-  if (!isText(raw, 200) || raw.trim() === '') return undefined;
+  if (!isText(raw, MAX_RAW) || raw.trim() === '') return undefined;
   return value.mark === false ? { raw, mark: false } : { raw };
 }
 
@@ -150,8 +146,8 @@ function readAnswer(value: unknown): RequestAnswer | null | undefined {
 export function readRequest(value: unknown): RequestView | undefined {
   if (!isObject(value)) return undefined;
   const { id, text, version, at, note, stale, elements } = value;
-  const kind = oneOf(REQUEST_KIND_LIST, value.kind);
-  const status = oneOf(REQUEST_STATUS_LIST, value.status);
+  const kind = oneOf(REQUEST_KINDS, value.kind);
+  const status = oneOf(REQUEST_STATUSES, value.status);
   const context = readContext(value.context);
   const answer = readAnswer(value.answer);
   if (!isId(id) || !kind || !status || !context || answer === undefined) return undefined;

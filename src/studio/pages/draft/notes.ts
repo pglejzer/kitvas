@@ -2,7 +2,8 @@
 // Plan 18f, task 4 (mock v10, Checks): summary tiles (to fix, to review, passed), "Full check ran
 // <time> ago" with Run again, and a card per finding. A card has its number, its words, "<element>
 // in <section>", an evidence slot and its actions; a script fills the evidence and the buttons
-// (`client/studio/edit/checks/`) and puts the waiver's Accept beside them. The hooks stay:
+// (`client/studio/edit/checks/`); the head ends in the Dismiss icon button, whose row (the waiver's
+// reasons) a script opens under the card (`[data-checks-dismiss]`). The hooks stay:
 // `li.note` with `data-element`, `data-tone` and `.num` (the canvas marks read them),
 // `li.accepted-note` and `data-rule` (the waivers), `[data-checks-actions]` (where a script puts
 // a finding's controls). `data-message` and `data-hint` hand the script what the finding says,
@@ -18,6 +19,7 @@ import {
 import type { Translate } from '../../../shared/index.ts';
 import type { Line } from '../../views/status.ts';
 import { type Html, html, trusted } from '../html.ts';
+import { icon } from '../icons/icon.ts';
 
 /** What the pane knows of the check beyond its findings. */
 export type RunInput = {
@@ -112,6 +114,17 @@ function words(t: Translate, finding: Finding): Html {
 }
 
 const ACTIONS = trusted('<div class="checks-actions" data-checks-actions></div>');
+/** Where a script puts the dismissal's row: the reasons, the form, the dismissed line. */
+const DISMISS_ROW = trusted('<div class="checks-dismiss-slot" data-checks-dismiss></div>');
+
+/**
+ * The head's tools: "Dismiss this finding", an icon button at the head's end. A script puts Ask
+ * Claude in front of it when the card has a fix, and opens the dismissal's row from it.
+ */
+function tools(t: Translate): Html {
+  const label = t('studio.edit.waiver.accept');
+  return html`<span class="checks-finding-tools" data-checks-tools><button type="button" class="k-icon-btn" data-checks-dismiss-toggle aria-label="${label}" title="${label}" aria-expanded="false">${icon('eye-off')}</button></span>`;
+}
 const EVIDENCE = trusted('<div class="checks-evidence-slot" data-checks-evidence></div>');
 const NOT_PRESSED = trusted(' aria-pressed="false"');
 const DISABLED = trusted(' disabled');
@@ -159,7 +172,7 @@ export function notesSection(input: NotesInput): Html {
     number += 1;
     // The studio's script marks the element on the prototype with this number.
     const element = finding.element === null ? '' : html` data-element="${finding.element}"`;
-    return html`<li class="note k-card checks-finding" data-tone="${finding.severity}" data-rule="${finding.rule}"${element} data-message="${finding.message}" data-hint="${finding.hint}"><div class="checks-finding-head"><span class="num checks-num" data-tone="${finding.severity}">${number}</span>${words(t, finding)}</div>${EVIDENCE}${details(t, finding)}${ACTIONS}</li>`;
+    return html`<li class="note k-card checks-finding" data-tone="${finding.severity}" data-rule="${finding.rule}"${element} data-message="${finding.message}" data-hint="${finding.hint}"><div class="checks-finding-head"><span class="num checks-num" data-tone="${finding.severity}">${number}</span>${words(t, finding)}${tools(t)}</div>${EVIDENCE}${details(t, finding)}${ACTIONS}${DISMISS_ROW}</li>`;
   };
   const group = (severity: 'fix' | 'review'): Html | '' => {
     const items = input.shown.filter((finding) => finding.severity === severity);
@@ -168,7 +181,8 @@ export function notesSection(input: NotesInput): Html {
     return html`<div class="checks-group" data-checks-group="${severity}"><h2 class="checks-group-title">${heading}</h2><ol class="k-stack" role="list">${items.map((finding) => note(finding))}</ol></div>`;
   };
   // An accepted finding has no number and no `data-element`: the canvas never marks it. Its rule
-  // and element stay on the row so "Withdraw" (client/studio/edit/live/waivers.ts) can name them.
+  // and element stay on the row so "Restore" (client/studio/edit/live/dismiss.ts) can name them.
+  // It has no Dismiss icon: it is dismissed already.
   const accepted = (finding: WaivedFinding): Html => {
     const element = finding.element === null ? '' : html` data-waived-element="${finding.element}"`;
     return html`<li class="accepted-note k-card checks-finding" data-rule="${finding.rule}"${element}><div class="checks-finding-head"><span class="k-dot" data-state="good" aria-hidden="true"></span>${words(t, finding)}</div><p class="k-meta checks-reason">${t('studio.notes.reason', { reason: finding.reason })}</p>${details(t, finding)}${ACTIONS}</li>`;

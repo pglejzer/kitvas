@@ -181,6 +181,11 @@ test('placeholder-media is silent for one box, text, an image, a small box, a od
   assert.deepEqual(run('ui/placeholder-media', withText), []);
   const withImage = [slab(), node({ parent: 0, tag: 'img', box: [10, 10, 50, 50] }), slab()];
   assert.deepEqual(run('ui/placeholder-media', withImage), []);
+  // A picture shown through the styles (a background image) is no empty box, nor is its wrapper.
+  const painted = { style: { ...STYLE, ...GREY, backgroundImage: true } };
+  assert.deepEqual(run('ui/placeholder-media', [slab(null, painted), slab(null, painted)]), []);
+  const wrapped = [slab(), node({ parent: 0, box: [10, 10, 50, 50], ...painted }), slab()];
+  assert.deepEqual(run('ui/placeholder-media', wrapped), []);
   const small = [slab(), slab(null, { box: [10, 10, 70, 50] })];
   assert.deepEqual(run('ui/placeholder-media', small), []);
   const wide = [slab(), slab(null, { box: [10, 10, 300, 100] })];

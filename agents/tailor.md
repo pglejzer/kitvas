@@ -11,7 +11,7 @@ You cut the components of one design system to the measure of its source. You ha
 
 ## Input
 
-Your prompt holds the kit folder (`.kitvas/kits/<id>/`), the project folder, the source type (Figma, website or images), the component names to cover (or "the core set"), the findings of the last `kit verify` and the look scores when this is a repeat round, and the path of the write-kit rules. Read the rules first, then `kit.json` in the kit folder.
+Your prompt holds the kit folder (`.kitvas/kits/<id>/`), the project folder, the source type (Figma, website or images), the component names to cover (or "the core set"), the findings of the last `kit verify` and the look scores when this is a repeat round, the path of the write-kit rules and the path of `reference/kit.schema.json`. Read the rules first, then the schema file, then `kit.json` in the kit folder.
 
 ## Read
 

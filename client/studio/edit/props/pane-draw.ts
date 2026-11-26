@@ -82,6 +82,10 @@ export function restoreFocus(section: HTMLElement, kept: Kept | null): void {
  */
 export function focusCustom(section: HTMLElement, row: string): void {
   const entry = section.querySelector<HTMLElement>(`[data-row="${CSS.escape(row)}"]`);
+  // The editor comes in once, now that it was opened: the draws that put a new one in its place
+  // (after every write, after every answer of the live checks) show it still, so it never bobs.
+  const editor = entry?.querySelector<HTMLElement>('[data-custom-editor]');
+  if (editor && !editor.closest('[hidden]')) editor.dataset.entering = '';
   const target = entry?.querySelector<HTMLElement>('[data-editor-focus]:not(:disabled)');
   if (!target || target.closest('[hidden]')) return;
   target.focus();

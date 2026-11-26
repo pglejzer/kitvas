@@ -126,6 +126,8 @@ body.screen { height: 100vh; height: 100dvh; margin: 0; padding: 0; overflow: hi
 /* Four tabs with their counts and the fold button fit the panel's 312 px: the tabs a little
    tighter than the shared ones, the fold button at the 24 px a pointer target needs. */
 .side-tabs > .k-tab { flex: none; padding: 0 var(--st-space-6); }
+/* A tab's icon: the set's small size, in the tab's own text colour. */
+.side-tabs > .k-tab > .k-icon { width: 14px; height: 14px; color: inherit; }
 /* The row clips what is under it, so the line of the tab picked sits on its edge, not below. */
 .side-tabs > .k-tab[aria-selected="true"]::after { right: var(--st-space-6); bottom: 0; left: var(--st-space-6); }
 .side-fold { align-self: center; width: 24px; height: 24px; margin: 0 var(--st-space-2); }

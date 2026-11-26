@@ -4,7 +4,7 @@
 // the editor showed another, a value and the nearest token, a heading level; for anything else,
 // the finding's own message. Pure: the view words it (`view.ts`).
 
-import { MIN_TARGET } from './colour.ts';
+import { MIN_TARGET } from '../../../../src/shared/values/colour.ts';
 
 /** What a finding measured, by name (`LiveFact['values']`). */
 export type Values = Readonly<Record<string, string | number>>;

@@ -2,6 +2,9 @@
 // in layout order with the state of each (written, missing, asked), and the body of a `why`
 // request. The DOM is in `why.ts`.
 
+import { isRecord } from '../../../../src/shared/values/guards.ts';
+import { pascal } from '../../../../src/shared/values/names.ts';
+
 export type WhySection = {
   section: string;
   element: string | null;
@@ -18,9 +21,6 @@ export type WhyItem = WhySection & { state: 'written' | 'missing' | 'asked' };
 
 /** What the tab needs of a request: its kind, its status and its text. */
 export type WhyRequest = { kind: string; status: string; text: string };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** The strings of an array; `null` when it is no array or holds anything else. */
 function strings(value: unknown): string[] | null {
@@ -56,15 +56,6 @@ export function parseWhy(raw: unknown): WhyReport | null {
     sections.push(read);
   }
   return { sections, missing };
-}
-
-/** `order-summary` is `OrderSummary`, as the section's component and file are named. */
-function pascal(id: string): string {
-  return id
-    .split('-')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
 }
 
 /** A `why` request for this section is waiting for Claude or being worked on. */

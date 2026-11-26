@@ -46,6 +46,21 @@ test('a colour equal to the one held is not written', () => {
   assert.equal(previews.at(-1), null);
 });
 
+test('2: a close by a press outside after the release already wrote writes nothing more', () => {
+  const { gesture, writes } = setup();
+  gesture.move('#445566');
+  gesture.end();
+  gesture.end();
+  assert.deepEqual(writes, ['#445566']);
+});
+
+test('2: a close by a press outside with a colour moved and not yet released writes it once', () => {
+  const { gesture, writes } = setup();
+  gesture.move('#778899');
+  gesture.end();
+  assert.deepEqual(writes, ['#778899']);
+});
+
 test('two gestures are two writes', () => {
   const { gesture, writes } = setup(null);
   gesture.move('#111111');
@@ -54,4 +69,26 @@ test('two gestures are two writes', () => {
   gesture.end();
   assert.deepEqual(writes, ['#111111', '#222222']);
   assert.equal(gesture.held(), '#222222');
+});
+
+test('a release on the colour the element shows already writes nothing when the source holds none', () => {
+  const previews: (string | null)[] = [];
+  const writes: string[] = [];
+  const gesture = createGesture({
+    value: null,
+    shown: 'rgb(0 0 0 / 0.87)',
+    preview: (css) => void previews.push(css),
+    write: (css) => void writes.push(css),
+  });
+  // The hue moved on black: the colour is the same one.
+  gesture.move('rgb(0 0 0 / 0.87)');
+  gesture.end();
+  assert.deepEqual(writes, []);
+  assert.equal(previews.at(-1), null);
+  // Another colour is written, and then the shown one is a change back, so it is written too.
+  gesture.move('#336699');
+  gesture.end();
+  gesture.move('rgb(0 0 0 / 0.87)');
+  gesture.end();
+  assert.deepEqual(writes, ['#336699', 'rgb(0 0 0 / 0.87)']);
 });

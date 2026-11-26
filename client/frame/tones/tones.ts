@@ -1,53 +1,59 @@
 // The studio's tones for what the frame draws over a draft (ADR 0057): the selection, the tags,
 // the handles and the marks. The studio page sends the names of its theme and accent (`tones` of
-// `client/channel/protocol.ts`); the colours come from the fixed table here, never from the
-// message, so nothing a page sends becomes CSS. The table repeats `src/studio/theme/tokens.ts`
-// (the frame bundle imports no value from `src/`); a test holds the two together.
+// `client/channel/protocol.ts`); the colours come from the studio theme's own table
+// (`src/studio/theme/tokens.ts`, which imports nothing: ADR 0080), never from the message, so
+// nothing a page sends becomes CSS.
 //
 // An overlay calls `toned(host)` once for its host. The values are custom properties on that
 // host only, read inside its closed shadow root as `var(--kv-select, Highlight)`: until a studio
 // says its tones (a prototype opened on its own, an older studio) the sheet's system colour
 // shows. Nothing is set on the draft's own elements, and nothing reaches a build.
 
+import {
+  ACCENT_COLORS,
+  ON_SELECT,
+  ON_TONE,
+  THEME_COLORS,
+  THEME_SHADOWS,
+} from '../../../src/studio/theme/tokens.ts';
 import type { FrameAccent, FrameTheme } from '../../channel/protocol.ts';
 
 export type Tones = { theme: FrameTheme; accent: FrameAccent };
 
+type MarkTones = Record<'fix' | 'review' | 'good' | 'on', string>;
+type PopTones = Record<'pop' | 'ink' | 'inkMid' | 'shadow', string>;
+
 /** The selection colour of each accent. It shows on a white draft and on a dark one. */
 export const SELECT: Record<FrameAccent, string> = {
-  copper: '#b75d1d',
-  teal: '#0c8571',
-  coral: '#d04715',
-  rose: '#de2474',
+  copper: ACCENT_COLORS.copper.select,
+  teal: ACCENT_COLORS.teal.select,
+  coral: ACCENT_COLORS.coral.select,
+  rose: ACCENT_COLORS.rose.select,
 };
 
-/** Text on the selection colour: a draft is not themed, so it is the same in both themes. */
-export const ON_SELECT = '#ffffff';
-
-/** The tones of a mark in each theme, and the text on a mark filled with one (`on`). */
-export const MARK_TONES: Record<FrameTheme, Record<'fix' | 'review' | 'good' | 'on', string>> = {
-  dark: { fix: '#ea755c', review: '#e3c04b', good: '#4cba7a', on: '#1d2025' },
-  light: { fix: '#b3331f', review: '#7d6500', good: '#1f6b3a', on: '#ffffff' },
-};
+/** The tones of a mark in a theme, and the text on a mark filled with one (`on`). */
+function marksOf(theme: FrameTheme): MarkTones {
+  const colors = THEME_COLORS[theme];
+  return { fix: colors.fix, review: colors.review, good: colors.good, on: ON_TONE[theme] };
+}
 
 /**
- * The popover look of each theme, for the lens pins (plan 19): the surface, its ink, and the
- * pop shadow. The light theme's ring is the line colour itself: the frame has no `--st-*`.
+ * The popover look of a theme, for the lens pins (plan 19): the surface, its ink, and the pop
+ * shadow. The light theme's ring is the line colour itself: the frame has no `--st-*`.
  */
-export const POP_TONES: Record<FrameTheme, Record<'pop' | 'ink' | 'inkMid' | 'shadow', string>> = {
-  dark: {
-    pop: '#26292f',
-    ink: '#eef0f3',
-    inkMid: '#a6abb6',
-    shadow: '0 12px 32px rgb(0 0 0 / 0.5), 0 2px 6px rgb(0 0 0 / 0.35)',
-  },
-  light: {
-    pop: '#ffffff',
-    ink: '#1d2025',
-    inkMid: '#5f6570',
-    shadow: '0 0 0 1px #e1e4e8, 0 12px 32px rgb(29 32 37 / 0.16), 0 2px 6px rgb(29 32 37 / 0.1)',
-  },
+function popOf(theme: FrameTheme): PopTones {
+  const colors = THEME_COLORS[theme];
+  const shadow = THEME_SHADOWS[theme].pop.replace('var(--st-color-line)', colors.line);
+  return { pop: colors.pop, ink: colors.ink, inkMid: colors['ink-mid'], shadow };
+}
+
+/** The tones of a mark in each theme. */
+export const MARK_TONES: Record<FrameTheme, MarkTones> = {
+  dark: marksOf('dark'),
+  light: marksOf('light'),
 };
+
+const POP_TONES: Record<FrameTheme, PopTones> = { dark: popOf('dark'), light: popOf('light') };
 
 /** The custom properties an overlay's sheet may read. */
 export const TONE_NAMES = [

@@ -30,6 +30,21 @@ export const SKIN_CONTROLS = `
   color: var(--st-color-ink-mid);
 }
 .k-btn-line { color: var(--st-color-ink); box-shadow: inset 0 0 0 1px var(--st-color-line-strong); }
+/* The small button of a card's foot (the small button of mock v10): the target size, a snug padding, the
+   small type. A label inside a \`.k-clip\` is cut with an ellipsis before the button wraps. */
+.k-btn-sm {
+  min-height: var(--st-size-target);
+  padding: 0 var(--st-space-8);
+  font-size: var(--st-font-size-sm);
+}
+/* Filled quiet (the quiet button of mock v10): the lead action of a card, a step above the card's own
+   colour. */
+.k-btn-soft, .k-btn-soft:hover {
+  background: var(--st-color-raised-strong);
+  color: var(--st-color-ink);
+}
+.k-btn-soft:hover { box-shadow: inset 0 0 0 1px var(--st-color-line-strong); }
+.k-btn-soft:disabled, .k-btn-soft:disabled:hover { background: var(--st-color-raised-strong); color: var(--st-color-ink-mid); box-shadow: none; }
 .k-btn-primary, .k-btn-primary:hover, .k-btn-primary:active {
   background: var(--st-color-accent);
   color: var(--st-color-on-accent);
@@ -289,10 +304,17 @@ textarea.k-field { min-height: 64px; padding: var(--st-space-6) var(--st-space-8
 }
 .k-select-trigger:disabled { opacity: 0.45; }
 .k-item .k-select-trigger { background: var(--st-color-raised-strong); }
-.k-select-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.k-select-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .k-select-trigger > .k-icon { flex: none; color: var(--st-color-ink-mid); }
 .k-select-name[data-placeholder] { color: var(--st-color-ink-mid); }
+/* A long detail (a value written by hand) gives way first, so the trigger never grows wider than
+   its pane. Its share of the shrinking is so large that the name loses no part of a pixel (the
+   smallest loss would cut the name with an ellipsis) until the detail is gone. */
 .k-select-detail {
+  flex: 0 99999 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--st-color-ink-mid);
   font-family: var(--st-font-mono);
   font-size: var(--st-font-size-sm);

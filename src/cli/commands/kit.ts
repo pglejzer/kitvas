@@ -1,5 +1,6 @@
 // `kitvas kit …`: list kits, show one, check it, read one component, print its token sheet, build
-// its rendered examples; for project kits also start one, verify it and use it in this project.
+// its rendered examples; for project kits also start one, verify it and use it in this project,
+// list what its source exports and merge its fragments (`kit-exports.ts`, `kit-merge.ts`).
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -47,6 +48,8 @@ import {
 import { columns } from '../output/columns.ts';
 import { type Command, type CommandContext, defineCommand } from '../registry.ts';
 import type { RenderTools } from './build.ts';
+import { exportsView, type KitExportsView, renderExports } from './kit-exports.ts';
+import { type KitMergeView, mergeView, renderMerge } from './kit-merge.ts';
 import { projectKitId } from './project-kit.ts';
 
 type IssueLine = { path: string; message: string };
@@ -83,7 +86,9 @@ export type KitView =
   | ({ view: 'crop' } & CropResult)
   | { view: 'use'; id: string }
   | ({ view: 'detect' } & Detected)
-  | KitVerifyView;
+  | KitVerifyView
+  | KitExportsView
+  | KitMergeView;
 
 const problems = (title: string, issues: IssueLine[]): string[] => [
   title,
@@ -245,6 +250,10 @@ function renderView(data: KitView, t: Translate): string {
       return renderDetect(data, t);
     case 'verify':
       return renderVerify(data, t);
+    case 'exports':
+      return renderExports(data, t);
+    case 'merge':
+      return renderMerge(data, t);
   }
 }
 
@@ -428,6 +437,10 @@ export function createKitCommand(deps: KitDeps): Command {
             })),
           };
         }
+        case 'exports':
+          return exportsView(deps, idAt(ctx, 1));
+        case 'merge':
+          return mergeView(deps, ctx, requiredId(ctx, 'merge'));
         default:
           throw new KitvasError('USAGE', { detail: ctx.t('kits.usage.unknown', { name: sub }) });
       }

@@ -1,6 +1,8 @@
-// The page's copy of the live checks' colour maths (`client/frame/live/colour.ts`), for the picker
-// warnings and the accessibility card's verdicts: the frame bundle and the page bundle share only
-// `client/channel/`. A test holds the two copies to the same answers; change both together.
+// The colour maths of the live checks (spec 4c, goals 5 and 7; plan 16, task C): colours as the
+// browser computes them, compositing, and the WCAG 2.2 contrast ratio with its thresholds. No DOM
+// here. The frame bundle and the page bundle both import this file (ADR 0080).
+
+import { clamp } from './numbers.ts';
 
 /** A colour in sRGB: channels 0 to 255, alpha 0 to 1. */
 export type Rgba = { r: number; g: number; b: number; a: number };
@@ -8,6 +10,10 @@ export type Rgba = { r: number; g: number; b: number; a: number };
 /** WCAG 2.2, 1.4.3 (AA) and 1.4.6 (AAA): the ratio normal and large text need. */
 export const AA = { normal: 4.5, large: 3 } as const;
 export const AAA = { normal: 7, large: 4.5 } as const;
+/** Large text: 24 px, or 18.66 px (14 pt) at a bold weight. */
+export const LARGE_PX = 24;
+export const LARGE_BOLD_PX = 18.66;
+export const BOLD = 700;
 /** WCAG 2.2, 2.5.8: a target is at least 24 by 24 CSS pixels. */
 export const MIN_TARGET = 24;
 
@@ -18,9 +24,7 @@ const HEX = /^#([0-9a-f]{3,8})$/;
 const RGB = /^rgba?\(([^()]*)\)$/;
 const SRGB = /^color\(\s*srgb\s+([^()]*)\)$/;
 
-const clamp = (value: number, low: number, high: number): number =>
-  Math.min(high, Math.max(low, value));
-
+/** One channel: a number on `scale` (255 for `rgb()`, 1 for `color(srgb …)`) or a percentage. */
 function channel(text: string, scale: number): number | null {
   const value = text.trim();
   const percent = value.endsWith('%');
@@ -38,6 +42,7 @@ function alphaOf(text: string | undefined): number | null {
   return clamp(percent ? number / 100 : number, 0, 1);
 }
 
+/** The inside of `rgb(…)` or `color(srgb …)`, with commas or spaces and an optional `/ alpha`. */
 function fromParts(body: string, scale: number): Rgba | null {
   const halves = body.split('/');
   if (halves.length > 2) return null;
@@ -61,7 +66,10 @@ function fromHex(digits: string): Rgba | null {
   return { r, g, b, a: a / 255 };
 }
 
-/** A colour as the browser resolves it (`rgb(…)`, `color(srgb …)`) or hex; else `null`. */
+/**
+ * A colour as `getComputedStyle` writes it (`rgb(…)`, `rgba(…)`, `color(srgb …)`), or as hex;
+ * `null` for anything else (the frame paints those on a canvas to read them).
+ */
 export function parseColour(text: string): Rgba | null {
   const value = text.trim().toLowerCase();
   if (value === 'transparent') return { r: 0, g: 0, b: 0, a: 0 };
@@ -106,7 +114,25 @@ export function textContrast(text: Rgba, background: Rgba): number {
   return contrastRatio(over(text, behind), behind);
 }
 
+export function isLargeText(px: number, weight: number): boolean {
+  return px >= LARGE_PX || (px >= LARGE_BOLD_PX && weight >= BOLD);
+}
+
 /** The AA ratio text needs. */
 export const neededRatio = (large: boolean): number => (large ? AA.large : AA.normal);
 /** The AAA ratio text needs. */
 export const enhancedRatio = (large: boolean): number => (large ? AAA.large : AAA.normal);
+
+/** A ratio cut (never rounded up) to two decimals, so 4.499 never shows as a passing 4.5. */
+export const shownRatio = (ratio: number): number => Math.floor(ratio * 100) / 100;
+
+/** A box meets the minimum target size; a hundredth of a pixel of layout rounding is forgiven. */
+export const targetOk = (width: number, height: number): boolean =>
+  width + 0.01 >= MIN_TARGET && height + 0.01 >= MIN_TARGET;
+
+/** `rgb(r, g, b)`, or `rgba(r, g, b, a)` when it is not opaque. */
+export function formatRgb(colour: Rgba): string {
+  const [r, g, b] = [colour.r, colour.g, colour.b].map((value) => Math.round(value));
+  if (colour.a >= 1) return `rgb(${r}, ${g}, ${b})`;
+  return `rgba(${r}, ${g}, ${b}, ${Math.round(colour.a * 1000) / 1000})`;
+}

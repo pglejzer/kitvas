@@ -270,6 +270,7 @@ function tailwindShop() {
 const bundler: Bundler = {
   transform: async () => undefined,
   bundle: async () => ({ js: '', css: '', errors: [] }),
+  exportNames: async () => ({ names: [], errors: [] }),
   dispose: async () => {},
 };
 const styles: StylePipeline = {

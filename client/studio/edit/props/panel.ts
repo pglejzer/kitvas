@@ -22,6 +22,7 @@ import { previewContext, previewOf } from '../style/preview-of.ts';
 import { text } from '../texts.ts';
 import { BOX_START, type BoxState, ruleLink, pickSide as withSide } from './box.ts';
 import { el } from './controls.ts';
+import { holdDrawsWhileEditing } from './custom/hold-draws.ts';
 import { createCustomMemory } from './custom/memory.ts';
 import { createDrawScheduler } from './draw.ts';
 import { readFolds, toggleFold, viewerStorage, writeFolds } from './groups.ts';
@@ -102,6 +103,8 @@ export function mountProps(ctx: EditorContext): void {
     draw: () => draw(),
   });
   const render = (): void => scheduler.request();
+  // A drag in an open "Custom..." editor is never cut by a draw (`custom/hold-draws.ts`).
+  holdDrawsWhileEditing(scrollBox, scheduler);
 
   /** The hover preview: the ops' changes in the cards; `item` is the copy a list scope names. */
   function sendPreview(ops: readonly EditOp[] | null, item?: number): void {

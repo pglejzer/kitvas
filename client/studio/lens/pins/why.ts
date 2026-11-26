@@ -4,6 +4,7 @@
 // element and no reasons yet gets "No reasons yet"; a section the reasons name no element for gets
 // no pin. Pure.
 
+import { pascal } from '../../../../src/shared/values/names.ts';
 import {
   fit,
   isPinKey,
@@ -17,14 +18,6 @@ import { splitLead } from '../../edit/why/lead.ts';
 
 /** A section of the layout (`structure.sections`): its id and the element that renders it. */
 export type SectionRef = { id: string; element: string | null };
-
-/** `order-summary` is `OrderSummary`, as the reasons name the section (`why/entries.ts`). */
-const pascal = (id: string): string =>
-  id
-    .split('-')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
 
 /** `why:<Section>`: a click finds the section's card by it; `why#<n>` for a name no key can carry. */
 export function whyKey(section: string, index: number): string {

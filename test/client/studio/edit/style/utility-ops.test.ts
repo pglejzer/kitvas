@@ -1,30 +1,17 @@
 // The utility classes the studio builds for a Tailwind draft (spec 4c, goal 2; plan 16, task A).
-// The client keeps copies of the server's tables, so the tests hold the two together: the tables
-// are equal, and every class the client builds is one the server knows and reads back.
+// The client builds them from the server's own tables (ADR 0080); the tests hold that every class
+// it builds is one the server knows and reads back.
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { plainValue } from '../../../../../client/studio/edit/props/kinds.ts';
-import {
-  isOwn,
-  KEYWORD_CLASS,
-  OWN_PREFIXES,
-  SCREENS,
-  splitUtility,
-  tokenName,
-  utilityFor,
-  variantPrefix,
-} from '../../../../../client/studio/edit/style/utility-ops.ts';
+import { isOwn, utilityFor } from '../../../../../client/studio/edit/style/utility-ops.ts';
 import {
   contextOfVariants,
   KEYWORD_UTILITY,
   knownUtility,
-  ownPrefixes,
   ownProperties,
-  variantPrefix as serverPrefix,
   splitUtility as serverSplit,
-  tokenName as serverTokenName,
-  TAILWIND_SCREENS,
   utilityOverrides,
 } from '../../../../../src/edit/domain/style/utilities.ts';
 import {
@@ -59,40 +46,14 @@ const TOKENS: TokenOption[] = [
 const token = (name: string): StyleValue => ({ token: `--kit-${name}` });
 const raw = (value: string): StyleValue => ({ raw: value });
 
-test("the client's tables are the server's", () => {
-  assert.deepEqual(SCREENS, TAILWIND_SCREENS);
-  assert.deepEqual(KEYWORD_CLASS, KEYWORD_UTILITY);
+test("a keyword's class is the property's own on both sides", () => {
+  const table: Partial<Record<StyleProperty, Readonly<Record<string, string>>>> = KEYWORD_UTILITY;
   for (const property of STYLE_PROPERTIES) {
-    const table: Partial<Record<StyleProperty, Readonly<Record<string, string>>>> = KEYWORD_CLASS;
     const words: string[] = Object.values(table[property] ?? {});
-    if (words.length === 0) {
-      assert.deepEqual(OWN_PREFIXES[property], ownPrefixes(property), property);
-      continue;
-    }
-    // A keyword's class is the property's own on both sides.
-    assert.equal(OWN_PREFIXES[property], undefined, property);
     for (const word of words) {
       assert.ok(ownProperties(word).includes(property), `${property}: ${word}`);
       assert.equal(isOwn(property, word), true, `${property}: ${word}`);
     }
-  }
-});
-
-test('the prefixes, the split and a token name are the same on both sides', () => {
-  for (const context of [BASE, AT_768, HOVER, FOCUS_1280, ACTIVE_900]) {
-    assert.equal(variantPrefix(context), serverPrefix(context));
-  }
-  assert.equal(variantPrefix(ACTIVE_900), 'min-[900px]:active:');
-  for (const name of [
-    'p-4',
-    'md:hover:p-6',
-    'min-[900px]:text-[color:var(--x)]',
-    '[&:hover]:p-2',
-  ]) {
-    assert.deepEqual(splitUtility(name), serverSplit(name), name);
-  }
-  for (const path of ['color.primaryForeground', 'color.brand.500', 'radius.md', 'alone']) {
-    assert.equal(tokenName(path), serverTokenName(path), path);
   }
 });
 

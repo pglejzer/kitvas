@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { layerFacts } from '../../domain/page/layer-parse.ts';
 import { LAYER_SVG_MAX, LAYER_TEXT_MAX, LAYERS_NODE_CAP } from '../../domain/page/layers.ts';
 import type { LayerReport, LayerVisit } from '../../ports/browser.ts';
+import { settle } from '../browser/settle.ts';
 import { walkNodes } from '../facts/playwright-facts-walk.ts';
 import { firstLine } from '../images/playwright-images.ts';
 import { installLayerTools } from './playwright-layers-text.ts';
@@ -24,13 +25,6 @@ const SAY = {
   empty: 'the page rendered nothing',
   tools: 'the page tools could not be set up',
 };
-
-/** Runs in the page: two frames, so React has painted. */
-function settle(): Promise<null> {
-  return new Promise((done) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => done(null))),
-  );
-}
 
 /** Runs in the page: the fonts the page asked for, loaded, so lines break as they will. */
 function fontsReady(): Promise<null> {

@@ -23,6 +23,7 @@ import { shootExamples } from '../images/playwright-shoot.ts';
 import { walkLayers } from '../layers/playwright-layers.ts';
 import { scanPage } from '../scan/playwright-scan.ts';
 import { surveyPage } from '../scan/playwright-survey.ts';
+import { settle } from './settle.ts';
 
 type Playwright = typeof import('playwright-core');
 type PlaywrightBrowser = import('playwright-core').Browser;
@@ -93,13 +94,6 @@ async function runAxe(tags: string[]): Promise<AxeRead> {
 function readUsage(): unknown[] {
   const store = (globalThis as { __KITVAS_USAGE__?: Map<string, unknown> }).__KITVAS_USAGE__;
   return store ? [...store.values()] : [];
-}
-
-/** Runs in the page: two frames, so React has painted. */
-function settle(): Promise<null> {
-  return new Promise((done) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => done(null))),
-  );
 }
 
 /** Runs in the page. */

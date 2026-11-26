@@ -88,3 +88,15 @@ export function takenBy(items: readonly RectItem[], rect: Box, limit: number): T
   }
   return { taken, boxes };
 }
+
+/** The element's box in the frame's viewport pixels, as `getBoundingClientRect` answers. */
+export const boxOf = (element: Element): Box => {
+  const { left, top, width, height } = element.getBoundingClientRect();
+  return { left, top, width, height };
+};
+
+/** The element's box in page coordinates: the viewport box moved by the scroll. */
+export const pageRect = (element: Element): Box => {
+  const { left, top, width, height } = element.getBoundingClientRect();
+  return { left: left + scrollX, top: top + scrollY, width, height };
+};

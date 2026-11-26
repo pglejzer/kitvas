@@ -5,14 +5,6 @@
 // synchronous read and puts the element's own style back before anything can paint.
 
 import {
-  type Expected,
-  type LiveFact,
-  MAX_FACTS,
-  parseLiveFrame,
-} from '../../channel/live-protocol.ts';
-import { elementsWith } from '../edit/tree.ts';
-import { cut } from '../page/snapshot.ts';
-import {
   CANVAS,
   formatRgb,
   isLargeText,
@@ -23,7 +15,15 @@ import {
   shownRatio,
   targetOk,
   textContrast,
-} from './colour.ts';
+} from '../../../src/shared/values/colour.ts';
+import {
+  type Expected,
+  type LiveFact,
+  MAX_FACTS,
+  parseLiveFrame,
+} from '../../channel/live-protocol.ts';
+import { elementsWith } from '../edit/tree.ts';
+import { cut } from '../page/snapshot.ts';
 
 /** At most this many elements are measured for one answer: a long list stays cheap. */
 const MAX_WALK = 3000;

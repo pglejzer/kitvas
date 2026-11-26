@@ -56,11 +56,17 @@ function isFlat(facts: PageFacts): boolean {
   return total > 0 && Math.max(...pairs.values()) / total > maxShare;
 }
 
-/** Boxes with a flat neutral fill and nothing in them: text, image, svg, video, picture or canvas. */
+/**
+ * Boxes with a flat neutral fill and nothing in them: text, image, svg, video, picture or canvas.
+ * A box that paints a background image is a picture too: a draft shows its images that way.
+ */
 function placeholderBoxes(facts: PageFacts): number[] {
   const t = UI_PLACEHOLDER_MEDIA.thresholds;
   const hasText = subtreeHas(facts, (node) => node.text !== null);
-  const hasMedia = subtreeHas(facts, (node) => MEDIA_TAGS.has(node.tag) || node.image !== null);
+  const hasMedia = subtreeHas(
+    facts,
+    (node) => MEDIA_TAGS.has(node.tag) || node.image !== null || node.style.backgroundImage,
+  );
   const found: number[] = [];
   facts.nodes.forEach((node, index) => {
     if (node.hidden || hasText[index] || hasMedia[index]) return;

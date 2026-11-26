@@ -1,174 +1,29 @@
-// Waivers (spec 4c, goal 6; plan 16, task E): accept a finding on purpose, with a reason, and take
-// it back. `store.waivers` holds the draft's waivers (`GET …/waivers`). Every finding row has a
-// `waiverControl`: the Checks list's rows get one from `mountWaivers`, and the Live section (task
-// C) puts its own on each live finding. Accepted findings show as accepted and are never marked.
+// Waivers (spec 4c, goal 6; plan 16, task E): dismiss a finding on purpose, with a reason, and
+// restore it. `store.waivers` holds the draft's waivers (`GET …/waivers`). Every finding row has a
+// dismissal (`dismiss.ts`): the Checks list's rows get one from `mountWaivers`, and the Live
+// section (task C) puts its own on each live finding. A dismissed finding shows as dismissed and is
+// never marked. The rules with no page in them are in `waiver-rules.ts`.
 
-import type { Waiver } from '../../../../src/studio/api/waivers/waiver-schemas.ts';
-import { getWaivers, postWaiver, postWithdraw } from '../api.ts';
+import { getWaivers } from '../api.ts';
+import { applyDismissals } from '../checks/dismissed-view.ts';
 import type { EditorContext } from '../context.ts';
-import { text } from '../texts.ts';
+import { CONTROL, dismissControl } from './dismiss.ts';
 import { mountChecksFilter } from './filter.ts';
+import { noteKey, type WaiverKey, waiverOf } from './waiver-rules.ts';
 
-/** Copy of `MAX_REASON` in `src/studio/api/waivers/waiver-schemas.ts`. */
-export const MAX_REASON = 300;
+export {
+  MAX_REASON,
+  noteKey,
+  QUICK_REASON_KEYS,
+  type ReasonProblem,
+  type ReasonRequest,
+  reasonProblem,
+  reasonRequest,
+  type WaiverKey,
+  waiverOf,
+} from './waiver-rules.ts';
 
-/** What a waiver is about: the rule that fired and the element it fired on. */
-export type WaiverKey = { rule: string; element: string | null };
-
-export type ReasonProblem = 'empty' | 'long';
-
-/** Why a reason is not taken; the server trims it too, so spaces alone are empty. */
-export function reasonProblem(reason: string): ReasonProblem | null {
-  const trimmed = reason.trim();
-  if (trimmed === '') return 'empty';
-  return trimmed.length > MAX_REASON ? 'long' : null;
-}
-
-/** The waiver of this rule on this element, if there is one. */
-export function waiverOf(waivers: readonly Waiver[], key: WaiverKey): Waiver | undefined {
-  return waivers.find((waiver) => waiver.rule === key.rule && waiver.element === key.element);
-}
-
-/**
- * The rule and element of a row of the Checks list. The rule is the row's `<code>` (the server
- * writes it inside the details); the element is `data-element`, or `data-waived-element` once the
- * row is accepted. `null` for a row with no rule.
- */
-export function noteKey(row: {
-  rule: string | null;
-  element: string | undefined;
-  waivedElement: string | undefined;
-}): WaiverKey | null {
-  const rule = row.rule?.trim() ?? '';
-  if (rule === '') return null;
-  return { rule, element: row.element ?? row.waivedElement ?? null };
-}
-
-/** The class every control has: a row of the Checks list gets one only once. */
-const CONTROL = 'checks-waiver';
-
-function button(label: string, onClick: () => void, line = false): HTMLButtonElement {
-  const element = document.createElement('button');
-  element.type = 'button';
-  element.className = line ? 'k-btn k-btn-line' : 'k-btn';
-  element.textContent = label;
-  element.addEventListener('click', onClick);
-  return element;
-}
-
-/**
- * "Accept…" for one finding, or "Accepted: <reason>" with Withdraw when `store.waivers` has it.
- * The element follows the store: it draws itself again when the waivers change. `quiet`: a live
- * finding's Accept… sits beside its Apply or Ask Claude, so it is the quiet button (ADR 0061).
- */
-export function waiverControl(
-  ctx: EditorContext,
-  finding: WaiverKey,
-  options: { quiet?: boolean } = {},
-): HTMLElement {
-  const { store, slug } = ctx;
-  const root = document.createElement('span');
-  root.className = CONTROL;
-  let asking = false;
-  let connected = false;
-
-  const failed = (code: string | null): string =>
-    text(code === 'WAIVER_LIMIT' ? 'waiver.full' : 'waiver.failed');
-
-  function form(): HTMLFormElement {
-    const element = document.createElement('form');
-    element.className = 'checks-waiver-form';
-    const label = document.createElement('label');
-    label.className = 'checks-waiver-label';
-    label.append(text('waiver.reasonLabel'));
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'k-field';
-    input.required = true;
-    input.maxLength = MAX_REASON;
-    label.append(input);
-    const error = document.createElement('span');
-    error.className = 'k-fix checks-waiver-error';
-    error.setAttribute('role', 'alert');
-    const save = document.createElement('button');
-    save.type = 'submit';
-    save.className = 'k-btn k-btn-line';
-    save.textContent = text('waiver.save');
-    const cancel = button(text('waiver.cancel'), () => {
-      asking = false;
-      render();
-    });
-    const actions = document.createElement('span');
-    actions.className = 'checks-waiver-actions';
-    actions.append(save, cancel);
-    element.append(label, actions, error);
-    element.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const problem = reasonProblem(input.value);
-      if (problem !== null) {
-        error.textContent = text(problem === 'empty' ? 'waiver.reasonEmpty' : 'waiver.reasonLong');
-        return;
-      }
-      save.disabled = true;
-      void postWaiver(slug, { ...finding, reason: input.value.trim() }).then((answer) => {
-        if (answer.ok) {
-          asking = false;
-          store.set({ waivers: answer.body.waivers });
-          return;
-        }
-        save.disabled = false;
-        error.textContent = failed(answer.code);
-      });
-    });
-    queueMicrotask(() => input.focus());
-    return element;
-  }
-
-  function render(): void {
-    root.replaceChildren();
-    const waiver = waiverOf(store.get().waivers, finding);
-    if (waiver) {
-      const note = document.createElement('span');
-      note.className = 'k-meta checks-waiver-state';
-      note.textContent = text('waiver.accepted', { reason: waiver.reason });
-      root.append(
-        note,
-        button(text('waiver.withdraw'), () => {
-          void postWithdraw(slug, finding).then((answer) => {
-            if (answer.ok) store.set({ waivers: answer.body.waivers });
-          });
-        }),
-      );
-      return;
-    }
-    root.append(
-      asking
-        ? form()
-        : button(
-            text('waiver.accept'),
-            () => {
-              asking = true;
-              render();
-            },
-            options.quiet !== true,
-          ),
-    );
-  }
-
-  // A control that was on the page and left it stops listening, so rebuilt lists leak nothing.
-  const stop = store.subscribe((state, previous) => {
-    if (root.isConnected) connected = true;
-    else if (connected) {
-      stop();
-      return;
-    }
-    if (state.waivers !== previous.waivers) render();
-  });
-  render();
-  return root;
-}
-
-/** The rows of the Checks list the controls go on: the numbered notes and the accepted ones. */
+/** The rows of the Checks list the controls go on: the numbered notes and the dismissed ones. */
 const ROWS = 'li.note, li.accepted-note';
 
 /** The rule is the row's `data-rule` (plan 18), else the first `<code>` of its details. */
@@ -181,9 +36,10 @@ function rowKey(row: HTMLElement): WaiverKey | null {
 }
 
 /**
- * Puts a control on each row that has none, and marks the rows the store accepts: `data-waived`,
+ * Puts a dismissal on each row that has none, and marks the rows the store dismisses: `data-waived`,
  * and the element id moved to `data-waived-element`, so the canvas marks (read from `data-element`)
- * leave it out the next time they are read.
+ * leave it out the next time they are read. A numbered card has its icon button in the head and its
+ * row in `[data-checks-dismiss]`; a dismissed card has only Restore, in its actions.
  */
 export function decorateRows(ctx: EditorContext, region: HTMLElement): void {
   const { waivers } = ctx.store.get();
@@ -191,20 +47,31 @@ export function decorateRows(ctx: EditorContext, region: HTMLElement): void {
     const key = rowKey(row);
     if (!key) continue;
     if (row.classList.contains('note')) {
-      const accepted = waiverOf(waivers, key) !== undefined;
-      row.toggleAttribute('data-waived', accepted);
-      if (accepted && row.dataset.element !== undefined) {
+      const dismissed = waiverOf(waivers, key) !== undefined;
+      row.toggleAttribute('data-waived', dismissed);
+      if (dismissed && row.dataset.element !== undefined) {
         row.dataset.waivedElement = row.dataset.element;
         delete row.dataset.element;
-      } else if (!accepted && row.dataset.waivedElement !== undefined) {
+      } else if (!dismissed && row.dataset.waivedElement !== undefined) {
         row.dataset.element = row.dataset.waivedElement;
         delete row.dataset.waivedElement;
       }
     }
     if (row.querySelector(`.${CONTROL}`)) continue;
-    const place = row.querySelector('[data-checks-actions]') ?? row.querySelector(':scope > div');
-    (place ?? row).append(waiverControl(ctx, key));
+    const trigger = row.querySelector<HTMLButtonElement>('[data-checks-dismiss-toggle]');
+    // A card has its own reason line (the server's, or `dismissed-view.ts`'s): only Restore here.
+    const { panel } = dismissControl(ctx, key, {
+      ...(trigger ? { trigger } : {}),
+      showReason: false,
+    });
+    const place =
+      row.querySelector('[data-checks-dismiss]') ??
+      row.querySelector('[data-checks-actions]') ??
+      row.querySelector(':scope > div');
+    (place ?? row).append(panel);
   }
+  // The same picture whether the server drew these waivers or they were made since.
+  applyDismissals(region, waivers);
 }
 
 export function mountWaivers(ctx: EditorContext): void {

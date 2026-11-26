@@ -1,29 +1,14 @@
 // The canvas width's rules (plan 15, task B), pure so they are tested without a DOM. A draft is
 // shown at one of three presets (the widths the checks run at, so their marks show) or at any
-// other width from 320 to 2560, where the marks are hidden.
+// other width from 320 to 2560, where the marks are hidden. The presets, the range and the sizes
+// of the width pill's menu are the server's own (`src/studio/views/widths.ts`, ADR 0080).
 
-import type { SizeGroup, Width } from '../../../src/studio/views/draft-query.ts';
+import { MAX_VIEW, MIN_VIEW, SIZES, WIDTHS, type Width } from '../../../src/studio/views/widths.ts';
 
-/**
- * A copy of `WIDTHS`, `MIN_VIEW` and `MAX_VIEW` in `src/studio/views/draft-query.ts`: the page
- * bundle imports no value from `src/`. A test keeps them equal.
- */
-export const PRESETS: readonly Width[] = [390, 768, 1280];
-export const MIN_VIEW = 320;
-export const MAX_VIEW = 2560;
+export { MAX_VIEW, MIN_VIEW, SIZES } from '../../../src/studio/views/widths.ts';
 
-/** A copy of `SIZES` in `src/studio/views/draft-query.ts` (the width pill's menu); a test keeps it equal. */
-export const SIZES: readonly { width: number; group: SizeGroup; name: string }[] = [
-  { width: 320, group: 'phone', name: 'small' },
-  { width: 390, group: 'phone', name: 'phone' },
-  { width: 430, group: 'phone', name: 'large' },
-  { width: 768, group: 'tablet', name: 'tablet' },
-  { width: 1024, group: 'tablet', name: 'wide' },
-  { width: 1280, group: 'desktop', name: 'laptop' },
-  { width: 1440, group: 'desktop', name: 'laptopLarge' },
-  { width: 1920, group: 'desktop', name: 'desktop' },
-  { width: 2560, group: 'desktop', name: 'wide' },
-];
+/** The three presets, phone first: the widths the checks run at. */
+export const PRESETS: readonly Width[] = WIDTHS;
 
 /** The width a menu row stands for (`data-dock-size`); `null` for anything that is not a size. */
 export function sizeOf(text: string | null | undefined): number | null {

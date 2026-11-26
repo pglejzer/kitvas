@@ -11,7 +11,7 @@ You write the kit of one design system. You have no shell: you cannot run comman
 
 ## Input
 
-Your prompt holds the kit folder (`.kitvas/kits/<id>/`), the project folder, the source (an npm package or a project folder), the component names to cover (or "the core set"), the findings of the last `kit verify` when this is a repeat round, and the path of the learner rules. Read the learner rules first, then `kit.json` in the kit folder.
+Your prompt holds the kit folder (`.kitvas/kits/<id>/`), the project folder, the source (an npm package or a project folder), the component names to cover (or "the core set"), the findings of the last `kit verify` when this is a repeat round, the path of the learner rules and the path of `reference/kit.schema.json`. It may also name a fragment file (`<kit>/parts/<name>.json`) to write instead of `kit.json`, with the names to cover. Read the learner rules first, then the schema file, then `kit.json` in the kit folder.
 
 ## Read
 
@@ -21,12 +21,13 @@ Your prompt holds the kit folder (`.kitvas/kits/<id>/`), the project folder, the
 
 ## Write
 
-Write only these files inside the kit folder: `kit.json`, `json/tokens.json`, `json/css-var-map.json`. Never write `generated/`: kitvas writes it. Never edit the project's files or anything in `node_modules`. Nothing outside the kit folder.
+Write only these files inside the kit folder: `kit.json`, `json/tokens.json`, `json/css-var-map.json`. When your prompt names a fragment file, write only that file (rule L8b) and never `kit.json`. Never write `generated/`: kitvas writes it. Never edit the project's files or anything in `node_modules`. Nothing outside the kit folder.
 
 ## Rules in short
 
 - Write only what you read. Never invent a component, prop, value or token. What you cannot read goes to `gaps`.
 - Cover the core set first, or only the components you were asked for.
+- The shapes are in the schema file (L8a); it wins over any prose.
 - Colours are DTCG srgb values; dimensions are `{ value, unit }`.
 - Keep `id`, `source`, `runtime.entry` and `runtime.packages` as `kit new` wrote them.
 - The full rules are in the learner rules file; follow it when it is stricter than this list.

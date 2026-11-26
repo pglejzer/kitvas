@@ -11,6 +11,7 @@ import { type SelectItem, studioSelect } from '../../ui/select/select.ts';
 import { text } from '../texts.ts';
 import { el, field } from './custom/dom.ts';
 import { listChoice } from './custom/memory.ts';
+import { watchOutside } from './custom/outside.ts';
 import { customEditor, type EditorKind } from './custom/raw-editors.ts';
 import { segmentIcons } from './keyword-icons.ts';
 import { MAX_SEGMENTS } from './kinds.ts';
@@ -259,7 +260,14 @@ export function tokenPicker(options: {
    * is what it holds now; the list's "Custom..." and a token pick tell it through `show` and
    * `hide`, so the redraw the list's close asks for draws the editor open.
    */
-  custom?: { open: boolean; show(): void; hide(): void; cancel(): boolean };
+  custom?: {
+    open: boolean;
+    show(): void;
+    hide(): void;
+    cancel(): boolean;
+    /** A press outside closed it: the memory forgets the row, no draw; `false` if not held. */
+    drop(): boolean;
+  };
   /** The editor goes into this element (the row, for the colour panel) instead of under the list. */
   dock?: HTMLElement;
   onPick(value: StyleValue): void;
@@ -300,6 +308,7 @@ export function tokenPicker(options: {
     editorShown = false;
     memoryOpen = false;
     editor.hidden(true);
+    watch.sync(false);
     options.custom?.hide();
   };
   const pick = (value: StyleValue): void => {
@@ -326,10 +335,24 @@ export function tokenPicker(options: {
       editorShown = false;
       memoryOpen = false;
       editor.hidden(true);
+      watch.sync(false);
       if (options.custom?.cancel() !== true) picker.trigger.focus();
     },
   });
   editor.hidden(!editorShown);
+  // A press outside (or the window losing the pointer to the canvas) closes an editor the memory
+  // holds: the value on show is kept, the editor hides in place and nothing else is touched, so the
+  // press still works its own control. Only while the memory holds it: a raw value's field stays.
+  const watch = watchOutside({
+    editor,
+    close: () => {
+      if (options.custom?.drop() !== true) return;
+      editor.release();
+      editorShown = false;
+      memoryOpen = false;
+      editor.hidden(true);
+    },
+  });
 
   const picker = studioSelect({
     label: options.label,
@@ -351,6 +374,7 @@ export function tokenPicker(options: {
         if (value === CUSTOM) {
           memoryOpen = true;
           options.custom?.show();
+          watch.sync(true);
         }
         editor.focus();
       } else {
@@ -384,5 +408,6 @@ export function tokenPicker(options: {
   root.append(line);
   if (options.dock) options.dock.append(editor.root);
   else root.append(editor.root);
+  watch.sync(editorShown && memoryOpen);
   return root;
 }

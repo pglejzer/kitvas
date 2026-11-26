@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { agoOf, byChange, startChoices } from '../../../src/studio/views/start.ts';
+import { agoOf, byChange, groupByKit, startChoices } from '../../../src/studio/views/start.ts';
 
 /** Local time, so the calendar-day rule reads the same in any zone the tests run in. */
 const NOW = new Date(2026, 10, 25, 15, 0, 0);
@@ -101,4 +101,59 @@ test('the newest change comes first, and an entry with no time last, by slug', (
     ['new', 'twin-a', 'twin-b', 'old', 'alpha', 'zeta'],
   );
   assert.equal(items[0]?.slug, 'zeta', 'the list given is left as it was');
+});
+
+type Item = { slug: string; kitId: string | null; changed: Date | null };
+const item = (slug: string, kitId: string | null, changed: Date | null): Item => ({
+  slug,
+  kitId,
+  changed,
+});
+const idsOf = (items: Item[], project: string): (string | null)[] =>
+  groupByKit(items, project).map((group) => group.id);
+
+test('the project kit comes first, then the groups by their latest change', () => {
+  const items = [
+    item('a', 'mui', new Date(2026, 5, 1)),
+    item('b', 'tiny', new Date(2026, 0, 1)),
+    item('c', 'ant', new Date(2026, 8, 1)),
+    item('d', 'mui', new Date(2026, 6, 1)),
+  ];
+  assert.deepEqual(idsOf(items, 'tiny'), ['tiny', 'ant', 'mui']);
+  assert.deepEqual(idsOf(items, 'base'), ['ant', 'mui', 'tiny']);
+});
+
+test('a group keeps the order of its cards and counts the latest change of any of them', () => {
+  const items = [
+    item('first', 'mui', new Date(2026, 1, 1)),
+    item('second', 'mui', new Date(2026, 4, 1)),
+    item('third', 'mui', null),
+  ];
+  const groups = groupByKit(items, 'tiny');
+  assert.equal(groups.length, 1);
+  assert.deepEqual(
+    groups[0]?.items.map((entry) => entry.slug),
+    ['first', 'second', 'third'],
+  );
+  assert.deepEqual(groups[0]?.changed, new Date(2026, 4, 1));
+});
+
+test('a kit that is not in the project still has its group, and one kit makes one group', () => {
+  const gone = groupByKit([item('x', 'ghost', new Date(2026, 1, 1))], 'tiny');
+  assert.deepEqual(
+    gone.map((group) => group.id),
+    ['ghost'],
+  );
+  assert.equal(groupByKit([], 'tiny').length, 0);
+});
+
+test('drafts that cannot be read are the last group, and a group with no time follows the dated', () => {
+  const items = [
+    item('bad', null, null),
+    item('undated-b', 'zed', null),
+    item('undated-a', 'abc', null),
+    item('dated', 'mui', new Date(2026, 1, 1)),
+  ];
+  assert.deepEqual(idsOf(items, 'tiny'), ['mui', 'abc', 'zed', null]);
+  assert.equal(items[0]?.slug, 'bad', 'the list given is left as it was');
 });

@@ -1,6 +1,8 @@
 // WCAG 2 contrast between two `#rrggbb` colours, and a colour laid over another with an alpha.
 // Pure: the theme's tests use it, and the kit page shows a colour token's contrast with it.
 
+import { luminance as wcagLuminance } from '../../shared/index.ts';
+
 type Rgb = readonly [number, number, number];
 
 /** `#rgb` or `#rrggbb` as 0 to 255 channels; `null` when it is neither. */
@@ -16,14 +18,9 @@ export function rgbOf(hex: string): Rgb | null {
   return [Number.parseInt(r, 16), Number.parseInt(g, 16), Number.parseInt(b, 16)];
 }
 
-const linear = (channel: number): number => {
-  const value = channel / 255;
-  return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-};
-
 /** Relative luminance, 0 (black) to 1 (white). */
 export function luminance([r, g, b]: Rgb): number {
-  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+  return wcagLuminance({ r, g, b, a: 1 });
 }
 
 /** The contrast ratio of two colours, 1 to 21; `null` when one is no hex colour. */

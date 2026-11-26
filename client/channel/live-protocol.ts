@@ -2,6 +2,9 @@
 // card, between the draft page and a prototype frame. `protocol.ts` hands these types to its
 // parsers, as it does the canvas messages. They work in Edit only; the frame drops them otherwise.
 
+import { isRecord as isObject } from '../../src/shared/values/guards.ts';
+import { isCount, isId, isText as isTextUpTo, itemUpTo } from './guards.ts';
+
 /** The states the page can force on elements: Focus forces `:focus` and `:focus-visible`. */
 export const FORCE_STATES = ['hover', 'focus', 'active'] as const;
 export type ForceState = (typeof FORCE_STATES)[number];
@@ -111,18 +114,10 @@ const MAX_TEXT = 200;
 
 type Loose = Record<string, unknown>;
 
-const ELEMENT_ID = /^[A-Za-z0-9_.:/$-]{1,200}$/;
-const isObject = (value: unknown): value is Loose =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-const isId = (value: unknown): value is string =>
-  typeof value === 'string' && ELEMENT_ID.test(value);
-const isText = (value: unknown, max = MAX_TEXT): value is string =>
-  typeof value === 'string' && value.length <= max;
-const isRequest = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 1e9;
+const isText = (value: unknown, max = MAX_TEXT): value is string => isTextUpTo(value, max);
+const isRequest = isCount;
 /** A list item's place: the same bound as the edit protocol's `item`. */
-const isItem = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 10_000;
+const isItem = itemUpTo(10_000);
 const isNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= 1e6;
 const isIds = (value: unknown, max: number): value is string[] =>

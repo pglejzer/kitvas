@@ -100,8 +100,28 @@ test('accepted findings are listed apart: no number, never marked, with their re
   assert.equal(text.split('data-element=').length - 1, 1);
   assert.equal(text.split('class="num checks-num"').length - 1, 1);
   assert.ok(text.includes('<p class="k-meta checks-reason">[studio.notes.reason]</p>'));
-  // A script puts each finding's controls in its actions (the waivers' Accept and Withdraw).
+  // A script puts each finding's controls in its actions (Restore on a dismissed one).
   assert.equal(text.split('data-checks-actions').length - 1, 2);
+});
+
+test('every numbered finding has a Dismiss icon button with its label; a dismissed one has none', () => {
+  const shown = [
+    finding({ rule: 'a11y/label', element: 'Draft:main/Input.0' }),
+    finding({ rule: 'ui/line-length', severity: 'review' }),
+  ];
+  const dismissed = { ...finding({ rule: 'ds/raw-color' }), reason: 'brand' };
+  const text = notesSection({ t, shown, elsewhere: 0, next: NEXT, waived: [dismissed] }).text;
+  const button =
+    '<button type="button" class="k-icon-btn" data-checks-dismiss-toggle ' +
+    'aria-label="Dismiss this finding" title="Dismiss this finding" aria-expanded="false">';
+  assert.equal(text.split(button).length - 1, 2);
+  // The icon sits at the end of each head, and the row it opens has a slot under each card.
+  assert.equal(text.split('<span class="checks-finding-tools" data-checks-tools>').length - 1, 2);
+  assert.equal(text.split('data-checks-dismiss></div>').length - 1, 2);
+  const [, afterDismissedStart = ''] = text.split('<li class="accepted-note');
+  assert.ok(!afterDismissedStart.includes('data-checks-dismiss-toggle'));
+  assert.ok(!afterDismissedStart.includes('data-checks-tools'));
+  assert.ok(text.includes('<h2 class="checks-group-title">Dismissed (1)</h2>'));
 });
 
 test('each finding has its number, its words, and the check and element it comes from', () => {

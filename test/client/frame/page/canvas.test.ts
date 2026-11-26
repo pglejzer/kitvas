@@ -5,6 +5,7 @@ import { parseFrameMessage } from '../../../../client/channel/protocol.ts';
 import {
   boxOf,
   isField,
+  revealBlock,
   type SpaceLike,
   scrollRatio,
   scrollTopOf,
@@ -139,4 +140,17 @@ test('compare scrolls both sides to the same place of each page', () => {
   assert.equal(scrollTopOf(0.5, 2000, 800), 600);
   assert.equal(scrollTopOf(2, 2000, 800), 1200);
   assert.equal(scrollTopOf(0.5, 500, 800), 0);
+});
+
+test('an element brought into view lands in the middle, a tall one at its start, a shown one stays', () => {
+  // All of it shows: the page does not move.
+  assert.equal(revealBlock(100, 300, 800), null);
+  assert.equal(revealBlock(0, 800, 800), null);
+  // Below or above the view, or cut by its edge: the middle of the view.
+  assert.equal(revealBlock(1200, 1260, 800), 'center');
+  assert.equal(revealBlock(-300, -240, 800), 'center');
+  assert.equal(revealBlock(760, 840, 800), 'center');
+  // Taller than the view: its start.
+  assert.equal(revealBlock(900, 2400, 800), 'start');
+  assert.equal(revealBlock(-100, 1200, 800), 'start');
 });

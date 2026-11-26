@@ -10,7 +10,7 @@ import {
   statSync,
 } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
-import { packageDirFrom } from '../../shared/index.ts';
+import { isRecord, packageDirFrom } from '../../shared/index.ts';
 import { PACKAGE_SPECIFIER, PROJECT_PATH } from '../domain/contract.ts';
 import { packageOf } from '../domain/sources.ts';
 import type { ProjectSetup } from '../ports/project-files.ts';
@@ -29,9 +29,6 @@ function statOf(path: string): Stats | undefined {
 
 const isFile = (path: string): boolean => statOf(path)?.isFile() === true;
 const isFolder = (path: string): boolean => statOf(path)?.isDirectory() === true;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 export function createProjectFiles(project: string): ProjectSetup {
   const root = resolve(project);

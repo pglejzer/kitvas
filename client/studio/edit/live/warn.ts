@@ -3,8 +3,14 @@
 // The rows (task B) call it with the option's resolved value and the element's accessibility card
 // (`store.a11y`), which carries the element's text colour, what is behind it, and its target.
 
+import {
+  MIN_TARGET,
+  neededRatio,
+  over,
+  parseColour,
+  textContrast,
+} from '../../../../src/shared/values/colour.ts';
 import type { A11yCard } from '../../../channel/live-protocol.ts';
-import { MIN_TARGET, neededRatio, over, parseColour, textContrast } from './colour.ts';
 
 export type PickerWarning = 'contrast' | 'target';
 

@@ -4,6 +4,7 @@
 // it shows. Never outside the stage, never over a pill on the canvas or the ask bar (`keepOut`).
 // Pixels are the stage's (`section.stage-canvas`), its top left corner at 0, 0. Pure.
 
+import { clamp } from '../../../../src/shared/values/numbers.ts';
 import { type Box, type Size, unionBox } from '../../canvas/zoom.ts';
 
 export type PageBox = Box;
@@ -38,9 +39,6 @@ export function clipBox(box: PageBox, to: PageBox): PageBox | null {
 
 const overlaps = (a: PageBox, b: PageBox): boolean =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
-
-const clamp = (value: number, least: number, most: number): number =>
-  Math.min(most, Math.max(least, value));
 
 /** A box grown by `by` on every side. */
 const grown = (box: PageBox, by: number): PageBox => ({

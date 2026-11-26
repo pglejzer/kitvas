@@ -5,6 +5,8 @@
 // message with the reader of its direction, which answers `undefined` for anything odd, as
 // `live-protocol.ts` does.
 
+import { isRecord as isObject } from '../../src/shared/values/guards.ts';
+
 export const PIN_KINDS = ['kit', 'check', 'why', 'change'] as const;
 export type PinKind = (typeof PIN_KINDS)[number];
 
@@ -52,8 +54,6 @@ const ELEMENT_ID = /^[A-Za-z0-9_.:/$-]{1,200}$/;
 /** A key is a short name made by the page: an element id's characters and `#`. */
 const PIN_KEY = new RegExp(`^[A-Za-z0-9_.:/$#-]{1,${MAX_PIN_KEY}}$`);
 
-const isObject = (value: unknown): value is Loose =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 /** A text of one to `max` characters. */
 const isWords = (value: unknown, max: number): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= max;

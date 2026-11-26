@@ -169,7 +169,9 @@ export type StyleSource =
  * The style properties the panel shows for any element (R9). The first seventeen are stage 4a's,
  * in their order; plan 15 adds each side of padding and margin, the layout keywords, the outline
  * and the background image; ADR 0067 the minimum width and height, the size a "target too small"
- * fix writes. `client/frame/edit/tree.ts` keeps a copy in the same order.
+ * fix writes. The frame reads the computed styles of this list (`client/frame/edit/tree.ts`) and
+ * the panel shows its rows (`client/studio/edit/props/steps.ts`): this file imports types only,
+ * so both take it as it is (ADR 0080).
  */
 export const STYLE_PROPERTIES = [
   'padding',

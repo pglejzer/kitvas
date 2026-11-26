@@ -4,12 +4,14 @@ import { initialState } from '../../../../../client/studio/edit/store.ts';
 import {
   afterOtherChange,
   exactPairs,
-  MATCH_THRESHOLD,
   matchIds,
+} from '../../../../../client/studio/edit/sync/match.ts';
+import {
+  MATCH_THRESHOLD,
   pathCloseness,
   propLikeness,
   textLikeness,
-} from '../../../../../client/studio/edit/sync/match.ts';
+} from '../../../../../src/edit/domain/identity/match.ts';
 import type { EditOp } from '../../../../../src/edit/index.ts';
 import type { StructureEntry } from '../../../../../src/studio/api/edit/structure-schemas.ts';
 

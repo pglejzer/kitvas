@@ -126,7 +126,7 @@ test('the right panel keeps its tabs, the fold, the conflict note and the rail',
 
 test('the Claude tab keeps its hooks: the tab is ai, and so is the region', () => {
   const text = rightSide(sides()).text;
-  const tab = /<button [^>]*data-tab="ai"[^>]*>([^<]*)<\/button>/.exec(text);
+  const tab = /<button [^>]*data-tab="ai"[^>]*>(?:<svg.*?<\/svg>)?([^<]*)<\/button>/.exec(text);
   assert.equal(tab?.[1], t('studio.edit.shell.tab.ai'));
   assert.equal(t('studio.edit.shell.tab.ai'), 'Claude');
   assert.ok(tag(text, 'data-pane="ai"').includes('data-edit="ai"'));
@@ -152,6 +152,28 @@ test('the right panes are tabpanels with their regions; Checks is shown, with it
   // Properties says how to fill it while Edit is off.
   const empty = escapeHtml(t('studio.edit.shell.propsOff'));
   assert.ok(tag(text, 'data-pane="properties"').includes(`data-empty="${empty}"`));
+});
+
+test('every right tab has its own icon before its label, hidden from assistive technology', () => {
+  const text = rightSide(sides({ sketches: html`<section>pick</section>` })).text;
+  const icons = {
+    properties: 'tab-properties',
+    changes: 'tab-changes',
+    checks: 'tab-checks',
+    ai: 'tab-claude',
+    sketches: 'tab-sketches',
+  };
+  for (const [id, name] of Object.entries(icons)) {
+    const button =
+      new RegExp(`<button [^>]*data-tab="${id}"[^>]*>(.*?)</button>`).exec(text)?.[1] ?? '';
+    assert.ok(button.startsWith('<svg class="k-icon"'), id);
+    assert.ok(button.includes('aria-hidden="true"'), id);
+    assert.ok(button.includes(`<use href="#i-${name}">`), id);
+    // The label stays the button's text: what follows the icon.
+    const label = button.replace(/<svg.*?<\/svg>/, '').replace(/<span.*?<\/span>/, '');
+    assert.equal(label, t(`studio.edit.shell.tab.${id}`), id);
+  }
+  assert.equal(new Set(Object.values(icons)).size, 5);
 });
 
 test('a craft draft has the Sketches tab and pane', () => {

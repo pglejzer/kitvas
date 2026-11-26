@@ -14,3 +14,8 @@ export * from './settings/decision-warnings.ts';
 export * from './settings/decisions.ts';
 export * from './settings/project-file.ts';
 export * from './settings/workspace.ts';
+export * from './values/colour.ts';
+export * from './values/guards.ts';
+export * from './values/names.ts';
+export * from './values/numbers.ts';
+export * from './values/paths.ts';

@@ -3,6 +3,8 @@
 // not saved" for now, "Saved HH:MM · All good | N to fix | Not checked" for a saved version. Pure,
 // so a version with no build, no shot or no check is tested without a DOM.
 
+import { isRecord } from '../../../../src/shared/values/guards.ts';
+
 /** What the studio knows of one version: `GET /api/v1/drafts/{slug}/versions/{n}` (`VersionSchema`). */
 export type VersionFacts = {
   number: number;
@@ -12,9 +14,6 @@ export type VersionFacts = {
   /** The last full check's counts; `null` when the version was never checked. */
   check: { fix: number; review: number } | null;
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const isCount = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0;

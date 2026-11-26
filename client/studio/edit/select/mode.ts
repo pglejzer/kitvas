@@ -7,6 +7,7 @@
 // A double click edits a text in place: a plain one here, one through its source in
 // `source-text.ts` (ADR 0060). The session's controls are `session.ts`.
 
+import { samePath as samePathOf } from '../../../../src/shared/values/paths.ts';
 import { type EditFrameMessage, textEditOf } from '../../../channel/edit-protocol.ts';
 import type { Mode } from '../../shell/layout.ts';
 import { inspect } from '../api.ts';
@@ -22,9 +23,7 @@ const sameIds = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((id, index) => id === b[index]);
 
 const samePath = (a: readonly number[] | undefined, b: readonly number[] | undefined): boolean =>
-  a === undefined || b === undefined
-    ? a === b
-    : a.length === b.length && a.every((place, index) => place === b[index]);
+  a === undefined || b === undefined ? a === b : samePathOf(a, b);
 
 /** The path of the one chosen copy of the one selected element: what its list is read for. */
 export const inspectPath = (

@@ -7,11 +7,6 @@
 // here. The colour maths is `colour.ts`; the ops are the properties panel's (`style/ops.ts`).
 
 import type { EditOp, Refusal, StyleValue, TokenOption } from '../../../../src/edit/index.ts';
-import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import type { NewRequest } from '../../../../src/studio/api/requests/request-schemas.ts';
-import { MAX_REQUEST_ELEMENTS, MAX_REQUEST_TEXT } from '../ai/requests.ts';
-import { PROPERTIES, styleValueOf } from '../props/steps.ts';
-import { type Format, opsForStyle, readOnlyReason, ruleHeld } from '../style/ops.ts';
 import {
   CANVAS,
   luminance,
@@ -20,7 +15,12 @@ import {
   parseColour,
   type Rgba,
   textContrast,
-} from './colour.ts';
+} from '../../../../src/shared/values/colour.ts';
+import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
+import type { NewRequest } from '../../../../src/studio/api/requests/request-schemas.ts';
+import { MAX_REQUEST_ELEMENTS, MAX_REQUEST_TEXT } from '../ai/requests.ts';
+import { PROPERTIES, styleValueOf } from '../props/steps.ts';
+import { type Format, opsForStyle, readOnlyReason, ruleHeld } from '../style/ops.ts';
 import type { Values } from './evidence.ts';
 import { LIVE_RULE_IDS } from './items.ts';
 

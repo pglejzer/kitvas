@@ -4,19 +4,24 @@
 // of its own beside its pane, never inside it (the pane's own script redraws its content, and a
 // state switch swaps the Checks pane's), shown with the pane's tab through `data-pane`. A finding
 // is a `.k-item` with its short name, the evidence it carries and its actions (plan 18, task D):
-// Apply when kitvas can make the fix, else Ask Claude, beside Accept… (ADR 0061, `fix-view.ts`).
+// Apply when kitvas can make the fix, else Ask Claude, and the Dismiss icon at the head (ADR 0061,
+// `fix-view.ts`, `dismiss.ts`).
 
-import { icon } from '../../ui/icon.ts';
+import { codeRow, measuredRow } from '../checks/evidence-view.ts';
 import { setRunState } from '../checks/run.ts';
 import type { EditorContext } from '../context.ts';
 import { elementName } from '../history/changes.ts';
 import { el } from '../props/controls.ts';
+import { viewerStorage } from '../props/groups.ts';
 import { text } from '../texts.ts';
 import type { FullCheckStatus } from './check.ts';
-import { type Evidence, evidenceName, ratioWords } from './evidence.ts';
+import { dismissControl } from './dismiss.ts';
 import { createFixes, type Fixes, fixControl } from './fix-view.ts';
-import type { LiveGroup, LiveRow } from './items.ts';
-import { waiverControl } from './waivers.ts';
+import { barWords, hereBar, readOpen, writeOpen } from './here-bar.ts';
+import { type LiveGroup, type LiveRow, openCount } from './items.ts';
+import { rowNameKey, whereWords } from './row-words.ts';
+import { keepSteady } from './steady.ts';
+import { tokenButton } from './use-token.ts';
 
 export type LiveModel = {
   on: boolean;
@@ -26,6 +31,9 @@ export type LiveModel = {
 };
 
 export type LiveView = { render(model: LiveModel): void };
+
+/** The box of the cards the line above Properties opens. */
+const HERE_CARDS = 'live-here-cards';
 
 /** A row of a finding; the Accessibility group of Properties links its problems to them. */
 export const LIVE_ROW = 'checks-live-row';
@@ -49,60 +57,16 @@ function blockBefore(pane: Element | null, region: string, label: string): HTMLE
   return block;
 }
 
-function whereOf(row: LiveRow): string {
-  if (row.widths.length === 0) return text('live.inCode');
-  return text('live.at', { widths: row.widths.join(', ') });
-}
-
-/** The measured part of a finding: the number in its tone, and what it is held against. */
-export function evidenceLine(evidence: Evidence, tone: 'fix' | 'review'): HTMLElement | null {
-  const line = el('p', 'checks-evidence');
-  const strong = (words: string): HTMLElement => el('strong', `k-${tone}`, words);
-  const quiet = (words: string): HTMLElement => el('span', 'k-meta', words);
-  const code = (words: string): HTMLElement => el('code', 'k-mono', words);
-  const arrow = (): Node[] => [icon('arrow-right'), el('span', 'k-sr', text('changes.chip.to'))];
-  switch (evidence.kind) {
-    case 'contrast':
-      line.append(
-        strong(text('checks.ratio', { ratio: ratioWords(evidence.ratio) })),
-        quiet(text('checks.needs', { needed: ratioWords(evidence.needed) })),
-      );
-      break;
-    case 'target':
-      line.append(
-        strong(text('checks.size', { width: evidence.width, height: evidence.height })),
-        quiet(text('checks.needsSize', { min: evidence.min })),
-      );
-      break;
-    case 'overflow':
-      line.append(
-        strong(text('checks.px', { value: evidence.content })),
-        quiet(text('checks.inBox', { width: evidence.width })),
-      );
-      break;
-    case 'mismatch':
-      line.append(
-        code(evidence.property),
-        code(evidence.expected),
-        ...arrow(),
-        strong(evidence.actual),
-      );
-      break;
-    case 'token':
-      line.append(
-        code(evidence.value),
-        ...arrow(),
-        code(evidence.token),
-        quiet(text('checks.nearest')),
-      );
-      break;
-    case 'heading':
-      line.append(strong(text('checks.level', { level: evidence.level })));
-      break;
-    case 'message':
-      return null;
-  }
-  return line;
+/** The evidence row of a finding, in the box the Checks cards use (`checks/evidence-view.ts`). */
+function evidenceOfRow(
+  ctx: EditorContext,
+  element: string | null,
+  row: LiveRow,
+): HTMLElement | null {
+  if (row.evidence.kind !== 'message') return measuredRow(row.evidence, row.severity);
+  if (row.source !== 'code') return null;
+  const tokens = ctx.store.get().edit?.tokens ?? [];
+  return codeRow({ rule: row.rule, raw: row.raw ?? row.message, element }, tokens);
 }
 
 function rowOf(
@@ -121,17 +85,33 @@ function rowOf(
   const dot = el('span', 'k-dot');
   dot.dataset.state = row.waived ? 'good' : row.severity;
   dot.setAttribute('aria-hidden', 'true');
-  const name = evidenceName(row.evidence);
-  head.append(dot, el('span', 'checks-finding-title', name === null ? row.message : text(name)));
+  // A short name in plain words; the finding's own message is the name's tooltip.
+  const name = rowNameKey(row);
+  const title = el('span', 'checks-finding-title', name === null ? row.message : text(name));
+  if (name !== null) title.title = row.raw ?? row.message;
+  // Dismiss is an icon button at the head's end; its row opens at the foot of the item.
+  const dismissal = dismissControl(ctx, { rule: row.rule, element });
+  const tools = el('span', 'checks-finding-tools');
+  tools.append(dismissal.trigger);
+  head.append(dot, title, tools);
   item.append(head);
-  const evidence = evidenceLine(row.evidence, row.severity);
+  const evidence = evidenceOfRow(ctx, element, row);
   if (evidence) item.append(evidence);
-  item.append(el('small', 'k-meta', whereOf(row)));
-  // What Apply will do (or why there is none) in one quiet line, then the buttons on one line.
-  const fix = fixControl(ctx, fixes, element, row);
+  item.append(
+    el(
+      'small',
+      'k-meta',
+      whereWords(row, (key, params) => text(key, params)),
+    ),
+  );
+  // What Apply will do (or why there is none) in one quiet line, then the button.
+  // A colour written by hand gets the kit colour nearest to it; Ask Claude is then the second.
+  const use = tokenButton(ctx, element, row);
+  const fix = fixControl(ctx, fixes, element, row, use === null);
   const actions = el('div', 'checks-actions');
-  actions.append(fix.button, waiverControl(ctx, { rule: row.rule, element }, { quiet: true }));
-  item.append(fix.line, actions);
+  if (use) actions.append(use);
+  actions.append(fix.button);
+  item.append(fix.line, actions, dismissal.panel);
   return item;
 }
 
@@ -181,9 +161,19 @@ export function mountLiveView(ctx: EditorContext): LiveView {
   const fixes = createFixes(ctx);
   let shownChecks = '';
   let shownProps = '';
+  // The cards above Properties open only when the person asks (`here-bar.ts`); a height the block
+  // changes by itself never moves the pane's rows (`steady.ts`).
+  let hereOpen = readOpen(viewerStorage());
+  let hereElement: string | null = null;
+  let lastModel: LiveModel | null = null;
+  const steady = props
+    ? keepSteady(props, () => propsPane?.querySelector<HTMLElement>('.props-scroll') ?? null)
+    : null;
 
   // The title and the status line stay, so a screen reader hears the status change.
-  const title = el('h2', 'checks-live-title', text('live.title'));
+  const title = el('h2', 'checks-live-title');
+  const count = el('span', 'k-count');
+  title.append(el('span', undefined, text('live.title')), count);
   const status = el('p', 'k-meta checks-live-status');
   status.setAttribute('role', 'status');
   const head = el('div', 'checks-live-head');
@@ -199,6 +189,9 @@ export function mountLiveView(ctx: EditorContext): LiveView {
     const key = STATUS_KEYS[model.status];
     const said = key === null ? '' : text(key);
     if (status.textContent !== said) status.textContent = said;
+    const open = model.on ? openCount(model.groups) : 0;
+    count.textContent = String(open);
+    count.hidden = open === 0;
     const next = keyOf([model.on, model.groups]);
     if (next === shownChecks) return;
     shownChecks = next;
@@ -217,26 +210,40 @@ export function mountLiveView(ctx: EditorContext): LiveView {
 
   function renderProps(model: LiveModel): void {
     if (!props) return;
+    lastModel = model;
     const group = model.groups.find((one) => one.id !== null && one.id === model.selected);
-    const shown = model.on && model.selected !== null && group !== undefined;
+    const shown = model.on && model.selected !== null;
     props.toggleAttribute('data-off', !shown);
-    const next = keyOf([shown, model.selected, group]);
+    const next = keyOf([shown, model.selected, group, hereOpen]);
     if (next === shownProps) return;
     shownProps = next;
+    // Another element: the pane under the block is drawn anew, so it is not held in place.
+    if (model.selected !== hereElement) steady?.own();
+    hereElement = model.selected;
     if (!shown) {
       props.replaceChildren();
       return;
     }
-    const parts: HTMLElement[] = [];
+    const words = barWords(group);
+    const open = hereOpen && words.cards;
+    const bar = hereBar({
+      words,
+      open,
+      tag: group ? labelOf(group) : null,
+      cards: HERE_CARDS,
+      text,
+      onToggle() {
+        hereOpen = !hereOpen;
+        writeOpen(viewerStorage(), hereOpen);
+        steady?.own();
+        if (lastModel) renderProps(lastModel);
+      },
+    });
     const findings = el('div', 'checks-here-findings');
-    if (group) {
-      const heading = el('h3', 'checks-live-title', text('live.here'));
-      const tag = labelOf(group);
-      if (tag) heading.prepend(tag);
-      findings.append(heading, rowsOf(ctx, fixes, group));
-      parts.push(findings);
-    }
-    props.replaceChildren(...parts);
+    findings.id = HERE_CARDS;
+    findings.hidden = !open;
+    if (group && open) findings.append(rowsOf(ctx, fixes, group));
+    props.replaceChildren(bar, findings);
   }
 
   return {

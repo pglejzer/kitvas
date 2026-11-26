@@ -7,6 +7,7 @@
 
 import { THEME_COLORS } from '../../theme/tokens.ts';
 import { type Html, html, trusted } from '../html.ts';
+import { POINTER_PLACE, V } from './pointer.ts';
 
 export type LogoKind = 'full' | 'mark';
 export type LogoOptions = {
@@ -21,10 +22,6 @@ export type LogoOptions = {
 };
 
 const BLOCK = 'M0 0H44V33.46L27.2 27.2L33.46 44H0Z';
-/** The "v": a letter of the word, and the pointer of the mark. */
-const V = 'M0 0H9L16 15.3L23 0H32L16 35Z';
-/** The pointer's place on the block; `skin/logo.ts` says the same as a rule, where its motion ends. */
-const POINTER_PLACE = 'translate(34 34) rotate(135) scale(0.83) translate(-16 -35)';
 /** The word's place beside the mark. */
 const WORD_PLACE = 'translate(76 1)';
 

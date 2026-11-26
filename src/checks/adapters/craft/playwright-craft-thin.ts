@@ -5,6 +5,7 @@
 // The functions passed to `page.evaluate` use nothing from this module.
 
 import type { Pixels } from '../../domain/kit/look-score.ts';
+import { settle } from '../browser/settle.ts';
 import { decodeIn } from '../images/playwright-images.ts';
 import { type CraftWindow, PAINT_PROPS } from './playwright-craft-svg.ts';
 
@@ -32,13 +33,6 @@ const PAINT_MIN = 0.05;
  * line and the soft edge of a bar's end cross it short, and are not its width.
  */
 const REACH = 2;
-
-/** Runs in the page: two frames, so the page has painted what changed. */
-function settle(): Promise<null> {
-  return new Promise((done) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => done(null))),
-  );
-}
 
 /**
  * Runs in the page: the listed svgs drawn again at `size` px, each in its cell of a box fixed over

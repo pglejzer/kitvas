@@ -2,8 +2,9 @@
 // full check as a card with its words (`src/studio/pages/draft/notes.ts`): the number the canvas
 // marks, the title, "<element> in <section>", the details and an empty evidence slot and actions
 // slot. This fills them: the evidence row (`evidence.ts`), the short title when the evidence says
-// the rest, and the actions Use <token>, Ask Claude and Show on canvas (`actions.ts`), beside the
-// waiver's Accept (`../live/waivers.ts`) that follows them. Run again and Run the full check ask
+// the rest, and the actions (`actions.ts`, `action-plan.ts`): two small buttons at most in the foot,
+// Ask Claude as an icon in the head beside a fix; the Dismiss icon and its row are the dismissal's
+// (`../live/dismiss.ts`). Run again and Run the full check ask
 // for the full check the way Save version does. A swapped pane is decorated again; the store
 // redraws the cards when the kit, the mode or a running edit changes what they offer.
 
@@ -65,7 +66,12 @@ function drawRow(ctx: EditorContext, row: HTMLElement): void {
     own = el('span', OWN);
     place.prepend(own);
   }
-  own.replaceChildren(...actionsOf(ctx, facts, () => drawRow(ctx, row)));
+  const { foot, tools } = actionsOf(ctx, facts, () => drawRow(ctx, row));
+  own.replaceChildren(...foot);
+  // Ask Claude beside a fix is an icon in the head, in front of Dismiss.
+  const head = row.querySelector('[data-checks-tools]');
+  head?.querySelector('[data-checks-ask]')?.remove();
+  head?.prepend(...tools);
 }
 
 export function mountCheckCards(ctx: EditorContext): void {
@@ -74,9 +80,11 @@ export function mountCheckCards(ctx: EditorContext): void {
   if (!region) return;
   const draw = (): void => {
     for (const row of region.querySelectorAll<HTMLElement>('li.note')) {
-      // A finding the person accepted offers nothing but its Withdraw.
-      if (row.hasAttribute('data-waived')) row.querySelector(`.${OWN}`)?.remove();
-      else drawRow(ctx, row);
+      // A finding the person dismissed offers nothing but its Restore.
+      if (row.hasAttribute('data-waived')) {
+        row.querySelector(`.${OWN}`)?.remove();
+        row.querySelector('[data-checks-ask]')?.remove();
+      } else drawRow(ctx, row);
     }
   };
   region.addEventListener('click', (event) => {

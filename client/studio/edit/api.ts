@@ -23,36 +23,11 @@ import type {
   ImageUploadRequest,
 } from '../../../src/studio/api/images/image-schemas.ts';
 import type { Waiver } from '../../../src/studio/api/waivers/waiver-schemas.ts';
+import { type Answer, call, draftPath } from '../api/request.ts';
 
-export type Answer<T> =
-  | { ok: true; status: number; body: T }
-  | { ok: false; status: number; code: string | null };
+export type { Answer };
 
-async function call<T>(
-  method: 'GET' | 'POST' | 'DELETE',
-  path: string,
-  body?: unknown,
-): Promise<Answer<T>> {
-  try {
-    const response = await fetch(path, {
-      method,
-      credentials: 'same-origin',
-      headers: body === undefined ? {} : { 'content-type': 'application/json' },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
-    const read: unknown = await response.json().catch(() => undefined);
-    if (response.ok) return { ok: true, status: response.status, body: read as T };
-    const code =
-      typeof read === 'object' && read !== null && 'code' in read && typeof read.code === 'string'
-        ? read.code
-        : null;
-    return { ok: false, status: response.status, code };
-  } catch {
-    return { ok: false, status: 0, code: null };
-  }
-}
-
-const base = (slug: string): string => `/api/v1/drafts/${encodeURIComponent(slug)}`;
+const base = draftPath;
 
 export const getEditState = (slug: string): Promise<Answer<EditState>> =>
   call('GET', `${base(slug)}/edits`);

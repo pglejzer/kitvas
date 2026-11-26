@@ -3,9 +3,9 @@
 // also found links to that finding. `cardRows` is pure; `renderCard` builds the markup with
 // `textContent` only.
 
+import { enhancedRatio, MIN_TARGET, neededRatio } from '../../../../src/shared/values/colour.ts';
 import type { A11yCard } from '../../../channel/live-protocol.ts';
 import { text } from '../texts.ts';
-import { enhancedRatio, MIN_TARGET, neededRatio } from './colour.ts';
 import { LIVE_RULE_IDS } from './items.ts';
 
 /** Roles a person must be able to tell apart by name: without one, the card says so. */

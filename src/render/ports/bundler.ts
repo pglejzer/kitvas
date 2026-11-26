@@ -29,10 +29,31 @@ export type BundleOutput = {
   errors: BuildError[];
 };
 
+export type ExportsInput = {
+  /** Absolute folder the modules are resolved from (the project); nothing is written there. */
+  workingDir: string;
+  /** Package specifiers or absolute files with forward slashes; each is read on its own. */
+  modules: string[];
+  /** As in BundleInput: the project whose `react` and `react-dom` the modules get. */
+  project?: string | undefined;
+};
+
+export type ExportsOutput = {
+  /** The names the modules export at run time, each once, sorted; types are not among them. */
+  names: string[];
+  /** Why the modules did not bundle; `names` is then empty. */
+  errors: BuildError[];
+};
+
 export interface Bundler {
   /** One file compiled alone with JSX as dev calls. `undefined` when it does not parse. */
   transform(source: string, file: string): Promise<string | undefined>;
   bundle(input: BundleInput): Promise<BundleOutput>;
+  /**
+   * What modules export (`kit exports`, ADR 0081): each is bundled behind a probe that re-exports
+   * it, and the names are read from the bundler's account of the probe. No code of a module runs.
+   */
+  exportNames(input: ExportsInput): Promise<ExportsOutput>;
   /** Stops whatever the bundler keeps running. Safe to call when nothing was started. */
   dispose(): Promise<void>;
 }

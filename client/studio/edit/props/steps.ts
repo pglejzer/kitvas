@@ -1,89 +1,23 @@
 // Token scales for the properties panel (plan 13, task G): which tokens a property takes, how a
 // stepper moves along them, what counts as a raw value the person typed. Pure: no DOM.
 //
-// The client may not import values from `src/`, so the property list and the token type table are
-// copies of `STYLE_PROPERTIES` and `PROPERTY_TOKEN_TYPE` in `src/edit/domain/types.ts`;
-// `test/client/studio/steps.test.ts` compares them. Keyword and image properties (plan 15) take
-// no token: `props-kinds.ts` has their lists.
+// The property list and the token type table are the server's own, `STYLE_PROPERTIES` and
+// `PROPERTY_TOKEN_TYPE` of `src/edit/domain/types.ts` (ADR 0080). Keyword and image properties
+// (plan 15) take no token: `kinds.ts` has their lists.
 
+import {
+  PROPERTY_TOKEN_TYPE,
+  STYLE_PROPERTIES,
+  type StyleTokenType,
+} from '../../../../src/edit/domain/types.ts';
 import type { StyleProperty, StyleValue, TokenOption } from '../../../../src/edit/index.ts';
 
-export type TokenType = 'dimension' | 'color' | 'fontWeight' | 'number';
+/** The style rows the panel shows, in the server's order. */
+export const PROPERTIES: readonly StyleProperty[] = STYLE_PROPERTIES;
 
-export const PROPERTIES: readonly StyleProperty[] = [
-  'padding',
-  'padding-block',
-  'padding-inline',
-  'margin',
-  'margin-block',
-  'margin-inline',
-  'gap',
-  'color',
-  'background-color',
-  'border-color',
-  'font-size',
-  'font-weight',
-  'line-height',
-  'border-radius',
-  'border-width',
-  'width',
-  'height',
-  'padding-top',
-  'padding-right',
-  'padding-bottom',
-  'padding-left',
-  'margin-top',
-  'margin-right',
-  'margin-bottom',
-  'margin-left',
-  'display',
-  'flex-direction',
-  'flex-wrap',
-  'justify-content',
-  'align-items',
-  'align-self',
-  'text-align',
-  'border-style',
-  'outline-color',
-  'outline-width',
-  'outline-style',
-  'background-image',
-  'background-size',
-  'min-width',
-  'min-height',
-];
-
-export const TOKEN_TYPE: Readonly<Partial<Record<StyleProperty, TokenType>>> = {
-  padding: 'dimension',
-  'padding-block': 'dimension',
-  'padding-inline': 'dimension',
-  margin: 'dimension',
-  'margin-block': 'dimension',
-  'margin-inline': 'dimension',
-  gap: 'dimension',
-  color: 'color',
-  'background-color': 'color',
-  'border-color': 'color',
-  'font-size': 'dimension',
-  'font-weight': 'fontWeight',
-  'line-height': 'number',
-  'border-radius': 'dimension',
-  'border-width': 'dimension',
-  width: 'dimension',
-  height: 'dimension',
-  'padding-top': 'dimension',
-  'padding-right': 'dimension',
-  'padding-bottom': 'dimension',
-  'padding-left': 'dimension',
-  'margin-top': 'dimension',
-  'margin-right': 'dimension',
-  'margin-bottom': 'dimension',
-  'margin-left': 'dimension',
-  'outline-color': 'color',
-  'outline-width': 'dimension',
-  'min-width': 'dimension',
-  'min-height': 'dimension',
-};
+/** The token type each token property takes; a keyword or an image property has none. */
+export const TOKEN_TYPE: Readonly<Partial<Record<StyleProperty, StyleTokenType>>> =
+  PROPERTY_TOKEN_TYPE;
 
 const SPACE = ['space', 'spacing'];
 

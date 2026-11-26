@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { parseCanvasStudio } from '../../../client/channel/canvas-protocol.ts';
 import type { EditFrameMessage } from '../../../client/channel/edit-protocol.ts';
 import { createCardList } from '../../../client/studio/canvas/card-list.ts';
-import { createBridge, heardFrom, targetsOf } from '../../../client/studio/edit/bridge.ts';
+import {
+  createBridge,
+  heardFrom,
+  revealMessage,
+  targetsOf,
+} from '../../../client/studio/edit/bridge.ts';
+import { FIRST_REQUEST, REVEAL_REQUEST } from '../../../client/studio/edit/seltools/anchor.ts';
 import type { Frame } from '../../../client/studio/frames.ts';
 
 type Posted = { channel: string; type: string; [key: string]: unknown };
@@ -143,6 +150,31 @@ test('a flash goes to every card, each element once, and nothing when none is na
       },
     ]);
   }
+});
+
+test('reveal asks every card to bring the element into view: a locate that does scroll', () => {
+  const { phone, tablet, desk, bridge } = setup();
+  bridge.reveal?.('sections/Hero:a');
+  for (const one of [phone, tablet, desk]) {
+    assert.deepEqual(one.posted, [
+      {
+        kitvas: 1,
+        channel: one.frame.channel,
+        type: 'locate',
+        request: REVEAL_REQUEST,
+        id: 'sections/Hero:a',
+      },
+    ]);
+    assert.ok(!('scroll' in (one.posted[0] ?? {})), 'no scroll: false, so the frame scrolls');
+  }
+});
+
+test('the reveal request is a valid one and outside the anchor and the canvas ranges', () => {
+  const message = revealMessage({ channel: 'c'.repeat(20) }, 'sections/Hero:a');
+  assert.deepEqual(parseCanvasStudio({ ...message }, message.channel), message);
+  // The anchor counts up from FIRST_REQUEST; the canvas counts up from 1.
+  assert.ok(REVEAL_REQUEST < FIRST_REQUEST);
+  assert.ok(REVEAL_REQUEST > 10_000_000, 'far above any count the canvas reaches');
 });
 
 test('without cards the bridge is the one frame, as before', () => {

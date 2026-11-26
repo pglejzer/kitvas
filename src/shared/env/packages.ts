@@ -5,10 +5,7 @@
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+import { isRecord } from '../values/guards.ts';
 
 /** A folder that ends a workspace: a repository root or a package.json that declares workspaces. */
 function isWorkspaceRoot(dir: string): boolean {

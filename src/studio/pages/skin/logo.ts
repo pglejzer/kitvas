@@ -12,6 +12,9 @@
 // SVG parts take their transform origin at the drawing's top left, so the places below are in the
 // drawing's own units. The pointer's place is the same as the `transform` its path carries.
 
+/** The period of the working sign, in ms; the frame's mark of Claude moves with it (ADR 0068). */
+export const LOGO_TAP_MS = 1200;
+
 export const SKIN_LOGO = `
 .k-logo { display: block; width: auto; height: 20px; overflow: visible; fill: currentColor; }
 .k-logo-pointer { transform: translate(34px, 34px) rotate(135deg) scale(0.83) translate(-16px, -35px); }
@@ -54,7 +57,7 @@ export const SKIN_LOGO = `
    and back, for as long as the state lasts. */
 :root[data-claude="working"] .k-logo[data-claude] .k-logo-pointer {
   fill: var(--st-color-accent);
-  animation: k-logo-tap 1.2s ease-in-out infinite;
+  animation: k-logo-tap ${LOGO_TAP_MS / 1000}s ease-in-out infinite;
 }
 @keyframes k-logo-tap {
   50% { transform: translate(30.5px, 30.5px) rotate(135deg) scale(0.83) translate(-16px, -35px); }

@@ -17,6 +17,7 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "adr": "node scripts/adr-index.ts",
+    "kit-schema": "node scripts/kit-schema.ts",
     "types": "tsc --noEmit",
     "check": "npm run lint && npm run types && npm run test:coverage && npm audit --audit-level=high"
   },

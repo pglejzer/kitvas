@@ -1,6 +1,7 @@
 // `/`, the start page: the logo block, then every draft as a live thumbnail of its latest version
-// with its name, version, status and when it changed, newest first. Only the "All" view folds its
-// list to two rows (`start/fold.ts`); with no draft the first steps stand in its place.
+// with its name, version, status and when it changed, newest first, in one group a kit
+// (`start/groups.ts`) and with a search in the head row (`start/search.ts`). Only the "All" view
+// folds each group to two rows (`start/fold.ts`); with no draft the first steps stand in its place.
 
 import { readChecks } from '../../checks/index.ts';
 import {
@@ -21,8 +22,10 @@ import { type Html, html } from './html.ts';
 import { page } from './shell.ts';
 import type { Skin } from './skin.ts';
 import { kitLabel, startBlock } from './start/block.ts';
-import { foldedGrid, foldState } from './start/fold.ts';
+import { foldState } from './start/fold.ts';
 import { startFoot } from './start/foot.ts';
+import { kitGroups, kitWords } from './start/groups.ts';
+import { searchField } from './start/search.ts';
 import { firstSteps, stepsTitle } from './start/steps.ts';
 import { cardDelete, deletedList, utcText } from './trash/trash-list.ts';
 import { trashTexts } from './trash/trash-texts.ts';
@@ -56,6 +59,11 @@ type Card = {
   thumb: string | null;
   /** When the draft last changed; null when that cannot be read. */
   changed: Date | null;
+  /** The kit the draft names, with its version; null for a draft that cannot be read. */
+  kitId: string | null;
+  kitVersion: string | null;
+  /** What the search looks in: title, slug, kit name and id, kind. */
+  words: string;
 };
 
 /** A draft whose time cannot be read is shown without one, never left off the page. */
@@ -78,19 +86,33 @@ function cardsOf(deps: GalleryDeps, host: string): Card[] {
         status: { kind: 'unreadable' },
         thumb: null,
         changed: null,
+        kitId: null,
+        kitVersion: null,
+        words: item.slug,
       };
     }
     const info = versionInfo(deps.drafts, item.slug, item.version);
     const checks = info.built ? readChecks(deps.drafts, item.slug, item.version) : undefined;
     const target = { slug: item.slug, version: item.version, state: info.states.default };
+    const draft = loadDraft(deps.drafts, item.slug);
+    const title = item.title ?? item.slug;
     return {
       slug: item.slug,
-      title: item.title ?? item.slug,
-      kind: loadDraft(deps.drafts, item.slug).kind,
+      title,
+      kind: draft.kind,
       version: item.version,
       status: versionStatus(info.built, checks),
       thumb: info.built ? frameSrc(deps.frame, host, target) : null,
       changed: changedOf(deps.drafts, item.slug),
+      kitId: draft.kit.id,
+      kitVersion: draft.kit.version,
+      words: [
+        title,
+        item.slug,
+        kitWords(deps.kits, draft.kit.id),
+        draft.kind,
+        deps.t(`studio.kind.${draft.kind}`),
+      ].join(' '),
     };
   });
   return byChange(cards);
@@ -148,7 +170,7 @@ function card(t: Translate, item: Card, now: Date): Html {
     item.version > 0
       ? html`<span>${t('studio.page.version', { version: item.version })}</span>`
       : '';
-  return html`<li class="gallery-card">${thumb}<h3>${name}</h3><p class="gallery-meta k-meta">${kind}${version}${changedMark(t, item.changed, now)}</p>${statusMark(t, item.status)}${cardDelete(t, item.slug, item.title)}</li>`;
+  return html`<li class="gallery-card" data-search="${item.words}">${thumb}<h3>${name}</h3><p class="gallery-meta k-meta">${kind}${version}${changedMark(t, item.changed, now)}</p>${statusMark(t, item.status)}${cardDelete(t, item.slug, item.title)}</li>`;
 }
 
 type Shown = 'all' | 'attention' | 'deleted';
@@ -198,7 +220,7 @@ export function galleryPage(deps: GalleryDeps, request: PageRequest): string {
         ? 'attention'
         : 'all';
   const attention = cards.filter((item) => needsAttention(item.status));
-  const controls =
+  const segments =
     cards.length === 0 && deleted.length === 0
       ? ''
       : filter(
@@ -207,17 +229,30 @@ export function galleryPage(deps: GalleryDeps, request: PageRequest): string {
           shown,
         );
   const firstRun = shown === 'all' && cards.length === 0;
+  const list = shown === 'attention' ? attention : cards;
+  // The search has cards to look in only on the list of drafts.
+  const searchable = shown !== 'deleted' && !firstRun && list.length > 0;
+  const controls =
+    segments === '' && !searchable
+      ? ''
+      : html`<div class="gallery-tools">${searchable ? searchField(t) : ''}${segments}</div>`;
   let content: Html;
   if (shown === 'deleted') {
     content = deletedList(t, deleted);
   } else if (firstRun) {
     content = firstSteps(t);
+  } else if (list.length === 0) {
+    content = html`<p class="k-quiet">${t('studio.gallery.calm')}</p>`;
   } else {
-    const list = shown === 'attention' ? attention : cards;
-    const items = list.map((item) => card(t, item, now));
-    if (list.length === 0) content = html`<p class="k-quiet">${t('studio.gallery.calm')}</p>`;
-    else if (shown === 'all') content = foldedGrid(t, items);
-    else content = html`<ul class="gallery-grid" role="list">${items}</ul>`;
+    const groups = kitGroups({
+      t,
+      kits: deps.kits,
+      projectKit: deps.projectKit(),
+      items: list,
+      card: (item) => card(t, item, now),
+      fold: shown === 'all',
+    });
+    content = html`${groups}<p class="k-quiet" data-search-empty hidden>${t('studio.gallery.noMatch')}</p>`;
   }
   const count = cards.length === 0 ? '' : html`<span class="k-count">${cards.length}</span>`;
   const heading = firstRun ? stepsTitle(t) : html`${title}${count}`;

@@ -1,6 +1,6 @@
 // Design tokens in the DTCG 2025.10 format: nested groups, `$value`, inherited `$type`, `{alias}`.
 
-import { z } from '../../shared/index.ts';
+import { isRecord, z } from '../../shared/index.ts';
 import type { KitIssue } from './issues.ts';
 
 const channel = z.number().min(0).max(1);
@@ -48,9 +48,6 @@ type Resolved =
   | { ok: false; key: string; params: KitIssue['params'] };
 
 const ALIAS = /^\{([^{}]+)\}$/;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 function collect(node: unknown, path: string[], inherited: string | undefined, out: RawToken[]) {
   if (!isRecord(node)) return;

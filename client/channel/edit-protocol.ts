@@ -6,6 +6,8 @@
 // The page owns the selection and the history; the frame only reports what the person did in it
 // (a click, a key, a finished inline text) and draws what the page tells it (outlines, previews).
 
+import { isRecord as isObject } from '../../src/shared/values/guards.ts';
+import { isCount, isId, isText, itemUpTo } from './guards.ts';
 import {
   parseStructureFrame,
   parseStructureStudio,
@@ -15,7 +17,6 @@ import {
   type StructureStudioMessage,
 } from './structure-protocol.ts';
 
-const ELEMENT_ID = /^[A-Za-z0-9_.:/$-]{1,200}$/;
 const PROPERTY = /^[a-z][a-z-]{0,47}$/;
 /** `CLASS_NAME` of `src/edit/domain/ops.ts`: BEM names such as `plans__card` too. */
 const CLASS = /^[a-z][a-z0-9_-]{0,63}$/;
@@ -229,18 +230,9 @@ export const EDIT_STUDIO_TYPES = new Set([
 
 type Loose = Record<string, unknown>;
 
-const isObject = (value: unknown): value is Loose =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-const isId = (value: unknown): value is string =>
-  typeof value === 'string' && ELEMENT_ID.test(value);
 const isIdOrNull = (value: unknown): value is string | null => value === null || isId(value);
 /** A list item's place (spec 4c): the same bound as the edit ops' `item`. */
-const isItem = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 10_000;
-const isText = (value: unknown, max: number): value is string =>
-  typeof value === 'string' && value.length <= max;
-const isCount = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 1e9;
+const isItem = itemUpTo(10_000);
 /** A copy's place in each list around an element (ADR 0060): list item places, outer first. */
 const isPath = (value: unknown): value is number[] =>
   Array.isArray(value) && value.length <= MAX_LIST_DEPTH && value.every(isItem);

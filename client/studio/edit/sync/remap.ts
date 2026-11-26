@@ -9,6 +9,7 @@
 // - After Claude's change (`structure.ts`) nothing puts the ids back, so every part follows
 //   (`remapIds`), and the steps that name an element no longer found are dropped (`forgetIds`).
 
+import { idsOf } from '../../../../src/edit/domain/op-kinds.ts';
 import type { EditOp } from '../../../../src/edit/index.ts';
 import type { ChangeEntry, EditorState, Gesture } from '../store.ts';
 
@@ -24,26 +25,6 @@ export function invertRenames(renames: Renames): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [from, to] of Object.entries(renames)) out[to] = from;
   return out;
-}
-
-/** Every element id `op` names (the same rule as `idsOf` in `src/edit/domain/ops.ts`). */
-export function opIds(op: EditOp): string[] {
-  switch (op.op) {
-    case 'moveElement':
-      return [op.id, op.anchor];
-    case 'insertElement':
-      return [op.anchor];
-    case 'wrapElements':
-      return [op.first, op.last];
-    case 'moveSection':
-    case 'insertSection':
-    case 'removeSection':
-    case 'patch':
-    case 'file':
-      return [];
-    default:
-      return [op.id];
-  }
 }
 
 /** `op` with each id it names renamed; the same object when none is. */
@@ -191,7 +172,7 @@ export function remapIds(
 }
 
 const stepNames = (step: Gesture, gone: ReadonlySet<string>): boolean =>
-  [...step.ops, ...(step.undoOps ?? [])].some((op) => opIds(op).some((id) => gone.has(id)));
+  [...step.ops, ...(step.undoOps ?? [])].some((op) => idsOf(op).some((id) => gone.has(id)));
 
 /**
  * Elements no longer found after Claude's change: they leave the selection, the hover, the hidden
@@ -219,7 +200,7 @@ export function heldIds(state: EditorState): string[] {
   if (state.refused) gestures.push(state.refused.gesture);
   for (const gesture of gestures) {
     for (const op of [...gesture.ops, ...(gesture.undoOps ?? [])]) {
-      for (const id of opIds(op)) ids.add(id);
+      for (const id of idsOf(op)) ids.add(id);
     }
   }
   return [...ids];

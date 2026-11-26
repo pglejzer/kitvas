@@ -2,7 +2,7 @@
 
 Reads kits and checks them against the kit contract.
 
-- The contract is the zod schema in `domain/contract.ts`. Change the schema, never a hand-written type.
+- The contract is the zod schema in `domain/contract.ts`. Change the schema, never a hand-written type. Agents read it as `reference/kit.schema.json`: after a change, run `npm run kit-schema` (a guard fails on a stale file); a part a rule points at is an exported schema named under `$defs` in `scripts/kit-schema.ts`.
 - A problem inside a kit is a `KitIssue` with a message key (`kitIssue.<name>` in `locales/en.json`), not thrown text. Only a kit.json that fails the schema, or is not JSON, throws `KIT_INVALID`.
 - `loadKit` returns the kit with its issues; `requireKit` refuses a kit that has any. Code that builds from a kit uses `requireKit`.
 - Tokens are DTCG 2025.10. `domain/tokens.ts` reads six types; a new type needs a shape there and a case in `domain/css-vars.ts`.
@@ -17,6 +17,7 @@ Reads kits and checks them against the kit contract.
 - `generated/kit.ts` (`GENERATED_ENTRY`) is written only by kitvas: `generatedEntry` builds it, `syncGeneratedEntry` writes it through the `KitWriter` port. Every string from kit.json is quoted with `JSON.stringify`; bare names must match a strict pattern.
 - Written kits (`figma`, `web`, `images`; `isWrittenKit`): components are files of `<kit>/components/`, and `import.from` is a `KIT_PATH`, never a package or a project path. The kit's hash also covers those files, so an edit makes `verify.json` stale; other kits keep their hash. An example's `reference` must exist (`REFERENCE_PATH`). `domain/crop-boxes.ts` is the shape of `boxes.json`. kitvas parses no Figma data and copies no fonts, images or logos into a kit.
 - `kit new` (`app/new-kit.ts`) writes a skeleton and never validates it; the learner fills it, `kit verify` checks it.
+- Learners working at once write fragments to `<kit>/parts/` (`domain/fragments.ts`, ADR 0081); `kit merge` checks all of them before it writes kit.json, then removes the folder. `parts/` is no part of the kit: `loadKit` and the kit's hash never read it.
 
 ## Additions
 

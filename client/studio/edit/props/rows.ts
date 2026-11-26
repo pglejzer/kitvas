@@ -75,6 +75,8 @@ export type Env = {
     close(row: string): void;
     /** Escape: closes it, and the cursor goes back to its opener after the draw. */
     cancel(row: string): boolean;
+    /** A press outside: forgets the row with no draw and no cursor; `false` if it was not held. */
+    drop(row: string): boolean;
   };
 };
 

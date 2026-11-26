@@ -5,7 +5,7 @@
 // the same one found live are fixed the same way. Pure; the card applies it (`actions.ts`).
 
 import type { TokenOption } from '../../../../src/edit/index.ts';
-import { parseColour } from '../live/colour.ts';
+import { parseColour } from '../../../../src/shared/values/colour.ts';
 import { contrastToken, type FixChange, type FixPlan } from '../live/fix.ts';
 import { evidenceOf, type FindingFacts } from './evidence.ts';
 import { nearestColourToken, tokenLabel } from './nearest.ts';

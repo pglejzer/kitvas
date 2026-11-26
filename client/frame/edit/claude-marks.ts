@@ -10,21 +10,17 @@
 // it is hidden from assistive technology. It is placed again once per animation frame on scroll,
 // resize, size change and any change of the page (a build swapped in). No new colour: the
 // selection tone the studio says (`toned`), the system's until then.
+//
+// The period and the pointer are the studio's own: `LOGO_TAP_MS` of `skin/logo.ts`, and `V` (the
+// "v" of the logo) with its place `POINTER_PLACE` of `brand/pointer.ts` (ADR 0080).
 
+import { POINTER_PLACE, V } from '../../../src/studio/pages/brand/pointer.ts';
+import { LOGO_TAP_MS } from '../../../src/studio/pages/skin/logo.ts';
 import type { ClaudeMark } from '../../channel/edit-protocol.ts';
 import { type Point, placeRing, type Rect } from '../drag/place.ts';
+import { overlayHostStyle } from '../page/overlay-host.ts';
+import { pageRect } from '../page/rect.ts';
 import { toned } from '../tones/tones.ts';
-
-/**
- * The period of the working motion, in ms: the bar logo's `k-logo-tap` in `skin/logo.ts` (a test
- * holds the two together; the frame bundle may not import from `src/`).
- */
-export const CLAUDE_MARK_MS = 1200;
-
-/** The pointer: the "v" of the logo, `V` of `src/studio/pages/brand/logo.ts` (a test holds them). */
-export const POINTER_PATH = 'M0 0H9L16 15.3L23 0H32L16 35Z';
-/** Where the logo puts the pointer on its block (a test holds it equal). */
-export const POINTER_PLACE = 'translate(34 34) rotate(135) scale(0.83) translate(-16 -35)';
 
 /** Between the element's box and the ring's outer edge, in CSS pixels. */
 const REACH = 2;
@@ -51,8 +47,8 @@ const SHEET = `
 }
 .tag svg { display: block; width: ${POINTER_SIZE}px; height: ${POINTER_SIZE}px; fill: currentColor; }
 .off { display: none; }
-.ring[data-motion] rect { animation: dash ${CLAUDE_MARK_MS}ms linear infinite; }
-.tag[data-motion] svg { animation: tap ${CLAUDE_MARK_MS}ms ease-in-out infinite; }
+.ring[data-motion] rect { animation: dash ${LOGO_TAP_MS}ms linear infinite; }
+.tag[data-motion] svg { animation: tap ${LOGO_TAP_MS}ms ease-in-out infinite; }
 @keyframes dash { to { stroke-dashoffset: -${DASH_PERIOD}; } }
 @keyframes tap { 50% { transform: translate(-1.5px, -1.5px); } }
 @media (prefers-reduced-motion: reduce) {
@@ -64,19 +60,7 @@ const SHEET = `
 }
 `;
 
-const HOST_RULES = [
-  'all: initial',
-  'position: absolute',
-  'left: 0',
-  'top: 0',
-  'width: 0',
-  'height: 0',
-  'overflow: visible',
-  'pointer-events: none',
-  'z-index: 2147483645',
-];
-/** Inline and important, so no rule of the prototype moves or hides the overlay itself. */
-const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
+const HOST_STYLE = overlayHostStyle(2147483645);
 
 /** More marks than this are not drawn: a mapped list of thousands stays cheap to follow. */
 const MAX_DRAWN = 200;
@@ -109,11 +93,6 @@ type Drawn = { ring: SVGSVGElement; rect: SVGRectElement; tag: HTMLElement };
 type Layer = { host: HTMLElement; root: HTMLElement };
 type Target = { element: Element; motion: boolean };
 
-const pageRect = (element: Element): Rect => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left: left + scrollX, top: top + scrollY, width, height };
-};
-
 /** The elements the marks go on, in the marks' order: every copy of an id, or the one copy. */
 function resolve(marks: readonly ClaudeMark[]): Target[] {
   const wanted = new Set(marks.map((mark) => mark.id));
@@ -140,7 +119,7 @@ function pointer(): SVGSVGElement {
   svg.setAttribute('viewBox', '-1 -1 32 32');
   const path = document.createElementNS(SVG, 'path');
   path.setAttribute('transform', POINTER_PLACE);
-  path.setAttribute('d', POINTER_PATH);
+  path.setAttribute('d', V);
   svg.append(path);
   return svg;
 }

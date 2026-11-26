@@ -4,32 +4,16 @@
 
 import type { Zod } from '../../../../src/shared/index.ts';
 import type { RestorePreviewSchema } from '../../../../src/studio/api/history/history-schemas.ts';
-import type { Answer } from '../api.ts';
+import { type Answer, draftPath, call as send } from '../../api/request.ts';
 import { readView, type ViewAnswer } from './model.ts';
 
 export type LockRestore = Zod.infer<typeof RestorePreviewSchema>;
 
-const base = (slug: string): string => `/api/v1/drafts/${encodeURIComponent(slug)}/view`;
+const base = (slug: string): string => `${draftPath(slug)}/view`;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-async function call(path: string, body?: unknown): Promise<Answer<unknown>> {
-  try {
-    const response = await fetch(path, {
-      method: body === undefined ? 'GET' : 'POST',
-      credentials: 'same-origin',
-      headers: body === undefined ? {} : { 'content-type': 'application/json' },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
-    const read: unknown = await response.json().catch(() => undefined);
-    if (response.ok) return { ok: true, status: response.status, body: read };
-    const code = isRecord(read) && typeof read.code === 'string' ? read.code : null;
-    return { ok: false, status: response.status, code };
-  } catch {
-    return { ok: false, status: 0, code: null };
-  }
-}
+/** A GET without a body, a POST with one. */
+const call = (path: string, body?: unknown): Promise<Answer<unknown>> =>
+  send(body === undefined ? 'GET' : 'POST', path, body);
 
 export async function getView(slug: string): Promise<ViewAnswer | null> {
   const answer = await call(base(slug));

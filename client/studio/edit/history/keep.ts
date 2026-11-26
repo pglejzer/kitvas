@@ -6,6 +6,7 @@
 // goes. The rules are pure over an injected storage; `mountKeep` reads once when the edit state is
 // known and writes after every change of the lists.
 
+import { isRecord as isObject } from '../../../../src/shared/values/guards.ts';
 import type { EditState } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import type { EditorContext } from '../context.ts';
 import type { Gesture } from '../store.ts';
@@ -80,9 +81,6 @@ export function packKept(slug: string, session: Session | null, kept: Kept): str
     changes: items(changes),
   });
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const bounded = <T>(list: T[] | null): T[] | null =>
   list !== null && list.length <= MAX_KEPT_STEPS ? list : null;

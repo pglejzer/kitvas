@@ -1,5 +1,5 @@
 // What the start page decides: how long ago a draft changed, which commands the start switch
-// offers, and the order of the cards. Pure; `pages/start/` renders it.
+// offers, the order of the cards and the groups a kit. Pure; `pages/start/` renders it.
 
 /** A message key and its values; the page puts it into words. */
 export type Ago = { key: string; params?: Record<string, number | string> };
@@ -64,6 +64,50 @@ export function startChoices(lastSlug: string | null): StartChoice[] {
   return lastSlug === null
     ? choices
     : [...choices, { id: 'edit', command: `/kitvas:edit ${lastSlug}` }];
+}
+
+/** The drafts that share one kit; `id` is `null` for drafts that cannot be read, so have no kit. */
+export type KitGroup<T> = { id: string | null; items: T[]; changed: Date | null };
+
+/**
+ * The cards in one group a kit, `items` already in the order they are to stand in. The project's
+ * kit comes first, then the groups by their most recently changed draft (a group with no readable
+ * time after those, by id); the drafts that cannot be read, which name no kit, are the last group.
+ * Inside a group the order of `items` is kept.
+ */
+export function groupByKit<T extends { kitId: string | null; changed: Date | null }>(
+  items: readonly T[],
+  projectKit: string,
+): KitGroup<T>[] {
+  const groups = new Map<string | null, KitGroup<T>>();
+  for (const item of items) {
+    let group = groups.get(item.kitId);
+    if (!group) {
+      group = { id: item.kitId, items: [], changed: null };
+      groups.set(item.kitId, group);
+    }
+    group.items.push(item);
+    if (item.changed !== null && (group.changed === null || item.changed > group.changed)) {
+      group.changed = item.changed;
+    }
+  }
+  const rank = (group: KitGroup<T>): number =>
+    group.id === null ? 2 : group.id === projectKit ? 0 : 1;
+  return [...groups.values()].sort((a, b) => {
+    if (rank(a) !== rank(b)) return rank(a) - rank(b);
+    if (a.changed !== null && b.changed !== null) {
+      const later = b.changed.getTime() - a.changed.getTime();
+      if (later !== 0) return later;
+    } else if (a.changed !== null) {
+      return -1;
+    } else if (b.changed !== null) {
+      return 1;
+    }
+    const left = a.id ?? '';
+    const right = b.id ?? '';
+    if (left === right) return 0;
+    return left < right ? -1 : 1;
+  });
 }
 
 /** Newest change first; an entry with no time (an unreadable draft) last, by slug. */

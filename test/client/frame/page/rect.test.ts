@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Box, Point } from '../../../../client/frame/drag/slots.ts';
 import {
+  boxOf,
   contains,
+  pageRect,
   type RectItem,
   rectOf,
   takenBy,
@@ -181,4 +183,28 @@ test('a hidden element is not taken, and hides nothing of what the rectangle tou
     { id: 'A:main/Stack/gone', box: box(0, 0, 0, 0), parent: 1 },
   ];
   assert.deepEqual(ids(empty, box(50, 50, 20, 20)), ['A:main/Stack']);
+});
+
+/** An element that answers only what the readers ask of it. */
+const elementAt = (left: number, top: number, width: number, height: number): Element =>
+  ({
+    getBoundingClientRect: () => ({ left, top, width, height, right: 0, bottom: 0, x: 0, y: 0 }),
+  }) as unknown as Element;
+
+test('boxOf reads the viewport box, pageRect adds the scroll to the corner only', () => {
+  const element = elementAt(10, 20, 30, 40);
+  assert.deepEqual(boxOf(element), box(10, 20, 30, 40));
+  const had = { x: Object.getOwnPropertyDescriptor(globalThis, 'scrollX') };
+  const hadY = Object.getOwnPropertyDescriptor(globalThis, 'scrollY');
+  Object.defineProperty(globalThis, 'scrollX', { value: 5, configurable: true });
+  Object.defineProperty(globalThis, 'scrollY', { value: 100, configurable: true });
+  try {
+    assert.deepEqual(pageRect(element), box(15, 120, 30, 40));
+    assert.deepEqual(boxOf(element), box(10, 20, 30, 40));
+  } finally {
+    if (had.x) Object.defineProperty(globalThis, 'scrollX', had.x);
+    else Reflect.deleteProperty(globalThis, 'scrollX');
+    if (hadY) Object.defineProperty(globalThis, 'scrollY', hadY);
+    else Reflect.deleteProperty(globalThis, 'scrollY');
+  }
 });

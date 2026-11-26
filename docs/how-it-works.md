@@ -34,7 +34,7 @@ Claude Code runs the skills and the commands. The plugin's agents only write fil
 | ----------------- | ----------------------------------------------------------- |
 | `kitvas:maker`    | The TSX and SCSS of one section of a draft                  |
 | `kitvas:patcher`  | Fixes for check findings in a draft's files                 |
-| `kitvas:learner`  | A kit's files from an npm package or a folder of components |
+| `kitvas:learner`  | A kit's files from an npm package or a folder of components (several at once for a whole package) |
 | `kitvas:tailor`   | A kit from a Figma file, a website scan or screenshots      |
 | `kitvas:sketcher` | Three sketches of a component, icon or logo for craft       |
 | `kitvas:scout`    | A research note from the public web                         |

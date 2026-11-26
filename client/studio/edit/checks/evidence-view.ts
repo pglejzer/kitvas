@@ -4,10 +4,13 @@
 // `textContent` only; the colours of a sample are values the checks read from the page, set as
 // style properties.
 
+import type { TokenOption } from '../../../../src/edit/index.ts';
 import { icon } from '../../ui/icon.ts';
+import type { Evidence as LiveEvidence } from '../live/evidence.ts';
+import { isColourValue, quotedValue } from '../live/row-words.ts';
 import { el } from '../props/controls.ts';
 import { text } from '../texts.ts';
-import { BAR_MARK, barFill, type Evidence } from './evidence.ts';
+import { BAR_MARK, barFill, type Evidence, evidenceOf } from './evidence.ts';
 
 /** A ratio as the row shows it: at most two decimals, no trailing zeros. */
 export const ratioWords = (ratio: number): string => String(Math.round(ratio * 100) / 100);
@@ -71,6 +74,83 @@ function levels(row: HTMLElement, evidence: Extract<Evidence, { kind: 'levels' }
     row.append(chip);
   });
   row.append(el('small', undefined, text('checks.missing', { level: evidence.missing })));
+}
+
+/** A value in the code font; a colour has its swatch in front. */
+export function valueChip(value: string): HTMLElement {
+  const chip = el('span', 'checks-ev-value');
+  if (isColourValue(value)) chip.append(swatch(value));
+  chip.append(el('span', 'k-mono', value));
+  return chip;
+}
+
+/**
+ * The evidence row of a live finding, from what its card measured (the same box, `.checks-ev`):
+ * the number in its tone against its limit, or `from → to` of a value on one line. `null` for a
+ * finding shown by its words.
+ */
+export function measuredRow(evidence: LiveEvidence, tone: 'fix' | 'review'): HTMLElement | null {
+  if (evidence.kind === 'message') return null;
+  const row = el('div', 'checks-ev');
+  const strong = (words: string): HTMLElement => el('strong', `k-${tone}`, words);
+  const quiet = (words: string): HTMLElement => el('small', undefined, words);
+  const to = (): Node[] => [icon('arrow-right'), el('span', 'k-sr', text('changes.chip.to'))];
+  switch (evidence.kind) {
+    case 'contrast':
+      row.append(
+        strong(text('checks.ratio', { ratio: ratioWords(evidence.ratio) })),
+        quiet(text('checks.needs', { needed: ratioWords(evidence.needed) })),
+      );
+      break;
+    case 'target':
+      row.append(
+        strong(text('checks.size', { width: evidence.width, height: evidence.height })),
+        quiet(text('checks.needsSize', { min: evidence.min })),
+      );
+      break;
+    case 'overflow':
+      row.append(
+        strong(text('checks.px', { value: evidence.content })),
+        quiet(text('checks.inBox', { width: evidence.width })),
+      );
+      break;
+    case 'mismatch': {
+      const change = el('span', 'checks-ev-change');
+      change.append(valueChip(evidence.expected), ...to(), valueChip(evidence.actual));
+      row.append(el('span', 'k-meta', evidence.property), change);
+      break;
+    }
+    case 'token':
+      row.append(
+        valueChip(evidence.value),
+        ...to(),
+        valueChip(evidence.token),
+        quiet(text('checks.nearest')),
+      );
+      break;
+    case 'heading':
+      row.append(strong(text('checks.level', { level: evidence.level })));
+      break;
+  }
+  return row;
+}
+
+/**
+ * The evidence row of a code finding: a colour written by hand with its nearest kit token, a
+ * measure written by hand, or the value its words quote (an import, a tag); `null` when none.
+ */
+export function codeRow(
+  finding: { rule: string; raw: string; element: string | null },
+  tokens: readonly TokenOption[],
+): HTMLElement | null {
+  const facts = { rule: finding.rule, message: finding.raw, hint: '', element: finding.element };
+  const found = evidenceOf(facts, tokens);
+  if (found.kind !== 'value' || found.text !== null) return evidenceRow(found);
+  const quoted = quotedValue(finding.raw);
+  if (quoted === null) return null;
+  const row = el('div', 'checks-ev');
+  row.append(valueChip(quoted));
+  return row;
 }
 
 /** The row of a finding's evidence; `null` when it measured nothing to show. */

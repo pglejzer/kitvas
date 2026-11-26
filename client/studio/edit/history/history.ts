@@ -5,7 +5,8 @@
 // Every applied answer carries its exact inverse (spec 4b, decision 4), and the step a stack keeps
 // holds it as `undoOps`. Undo sends the top step's `undoOps` and puts `{ops: sent, undoOps: the
 // answer's inverse}` on the redo stack; redo does the same back. A 4a step without one (a grouped
-// stepper drag) is undone by the client inverse.
+// stepper drag) is undone by the client inverse: `inverseAll` of the server's ops module itself
+// (`src/edit/domain/op-kinds.ts`, ADR 0080).
 //
 // Ids: an answer's `renames` move the selection, the hover, hidden elements, the menu and the change
 // list (`remapCurrent`). The steps keep the ids of their own time: a step is sent only after every
@@ -16,6 +17,7 @@
 // `failed` tells the person (ADR 0061). The stacks and the change list are kept across a reload by
 // `keep.ts`, so a step carries its own renames.
 
+import { inverseAll, isSimpleOp } from '../../../../src/edit/domain/op-kinds.ts';
 import type { EditOp, SimpleOp } from '../../../../src/edit/index.ts';
 import type {
   EditOutcome,
@@ -53,80 +55,6 @@ export type HistoryIo = {
 };
 
 const realIo: HistoryIo = { post: postEdits, now: () => Date.now(), state: getEditState };
-
-const SIMPLE: ReadonlySet<EditOp['op']> = new Set([
-  'setProp',
-  'removeProp',
-  'setText',
-  'setStyle',
-  'removeStyle',
-  'addClass',
-  'removeClass',
-  'setUtility',
-]);
-
-/** A 4a op: its inverse is made here. Structural ops get theirs from the server. */
-export const isSimpleOp = (op: EditOp): op is SimpleOp => SIMPLE.has(op.op);
-
-/**
- * The operation that undoes `op`. The same rules as `inverse` in `src/edit/domain/ops.ts`; the
- * client may not import values from `src/`, and a test keeps the two in step.
- */
-export function inverse(op: SimpleOp): SimpleOp {
-  switch (op.op) {
-    case 'setProp':
-      return op.before === null
-        ? { op: 'removeProp', id: op.id, name: op.name, before: op.value, after: op.after }
-        : { ...op, value: op.before, before: op.value };
-    case 'removeProp':
-      return {
-        op: 'setProp',
-        id: op.id,
-        name: op.name,
-        value: op.before,
-        before: null,
-        after: op.after,
-      };
-    case 'setText':
-      return { ...op, value: op.before, before: op.value };
-    case 'setStyle':
-      return op.before === null
-        ? {
-            op: 'removeStyle',
-            id: op.id,
-            className: op.className,
-            property: op.property,
-            before: op.value,
-            dropRule: op.newRule,
-            ...(op.context === undefined
-              ? {}
-              : { context: op.context, dropBlock: op.newBlock === true }),
-          }
-        : { ...op, value: op.before, before: op.value };
-    case 'removeStyle':
-      return {
-        op: 'setStyle',
-        id: op.id,
-        className: op.className,
-        property: op.property,
-        value: op.before,
-        before: null,
-        newRule: op.dropRule,
-        ...(op.context === undefined
-          ? {}
-          : { context: op.context, newBlock: op.dropBlock === true }),
-      };
-    case 'addClass':
-      return { op: 'removeClass', id: op.id, className: op.className };
-    case 'removeClass':
-      return { op: 'addClass', id: op.id, className: op.className };
-    case 'setUtility':
-      return { ...op, value: op.before, before: op.value };
-  }
-}
-
-/** The inverse of a gesture: the inverses in reverse order. */
-export const inverseAll = (ops: readonly SimpleOp[]): SimpleOp[] => [...ops].reverse().map(inverse);
 
 /** The client inverse of a gesture of 4a ops; `null` when only the server knows one op's. */
 export function clientInverse(ops: readonly EditOp[]): SimpleOp[] | null {

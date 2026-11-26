@@ -133,6 +133,16 @@ export function scrollTopOf(ratio: number, height: number, view: number): number
 }
 
 /** After a `scroll-to`, the scrolls it causes are not reported back for this long. */
+/**
+ * Where an element lands when the canvas brings it into view: `null` when all of it shows already
+ * (the page does not move), the middle of the view when it fits, its start when it is taller.
+ * An element at the very edge of the view is easy to miss, so one out of view is never left there.
+ */
+export function revealBlock(top: number, bottom: number, view: number): 'center' | 'start' | null {
+  if (top >= 0 && bottom <= view) return null;
+  return bottom - top > view ? 'start' : 'center';
+}
+
 export const FOLLOW_QUIET_MS = 120;
 
 export function createCanvas({ channel, post }: CanvasDeps): Canvas {
@@ -225,7 +235,13 @@ export function createCanvas({ channel, post }: CanvasDeps): Canvas {
       if (element) {
         // The tools on the selection only read the box: they must not fight the person's scroll.
         if (message.scroll !== false) {
-          element.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+          const rect = element.getBoundingClientRect();
+          const block = revealBlock(rect.top, rect.bottom, window.innerHeight);
+          element.scrollIntoView({
+            block: block ?? 'nearest',
+            inline: 'nearest',
+            behavior: 'instant',
+          });
         }
         box = boxOf(element.getBoundingClientRect());
       }

@@ -5,7 +5,10 @@
 // line "Off kit · nearest <token>". The skin may hold no gradient and no literal colour, so the
 // square and both sliders are canvases painted here: colours are data. The canvas shows the colour
 // while the pointer or a key moves (`onPreview`); a release, Enter or a blur writes it once;
-// Escape puts the old value back and writes nothing (`gesture.ts`).
+// Escape puts the old value back and writes nothing (`gesture.ts`). The panel closes on Escape, when
+// a token is picked, when "Custom..." is pressed again, when the selection changes, and on a press
+// outside it or a blur of the window (`outside.ts`), which `release`s: the colour is written once.
+// While the eyedropper picks (`busy`), neither a blur nor a press closes it.
 
 import type { TokenOption } from '../../../../../src/edit/index.ts';
 import { iconButton } from '../../../ui/icon.ts';
@@ -14,6 +17,7 @@ import { nearestToken } from '../kit-value.ts';
 import { formatColour, type Hsva, hsvOf, readColour, rgbaOf } from './colour-math.ts';
 import { el, field } from './dom.ts';
 import { createGesture } from './gesture.ts';
+import { recallHue, rememberHue, startOf } from './hue-memory.ts';
 import { type Editor, offKitLine } from './number-field.ts';
 
 export type ColourPickerOptions = {
@@ -99,46 +103,60 @@ function paintAlpha(canvas: HTMLCanvasElement, rgb: string, tones: [string, stri
   ctx.fillRect(0, 0, width, height);
 }
 
-/** A part of the panel that is a slider: named, with a value in words, focusable. */
-function slider(className: string, label: string): HTMLElement {
+/**
+ * A part of the panel that is a slider: named, with a value in words, focusable. `control` is the
+ * name the pane finds it by after a draw, so the cursor stays on it when a write draws the panel
+ * again (the arrow keys go on, Escape still closes).
+ */
+function slider(className: string, label: string, control: string): HTMLElement {
   const node = el('div', className);
   node.setAttribute('role', 'slider');
   node.setAttribute('aria-label', label);
   node.tabIndex = 0;
+  node.dataset.control = control;
   return node;
 }
 
 export function colourPicker(options: ColourPickerOptions): Editor {
   const start = readColour(options.value ?? '');
-  const origin: Hsva = start === null ? FALLBACK : hsvOf(start);
+  const shown = start === null ? null : formatColour(start);
+  // A grey has no hue: the one the person set last on this colour is kept (`hue-memory.ts`).
+  const origin: Hsva =
+    start === null || shown === null ? FALLBACK : startOf(hsvOf(start), recallHue(shown));
   const heldRgba = options.held === null ? null : readColour(options.held);
   /** The picker's own state: a grey keeps its hue while the person drags. */
   let hsva: Hsva = { ...origin };
   let touched = options.held !== null;
+  /** The eyedropper is picking: a blur or a press must not close the panel now. */
+  let picking = false;
 
   const gesture = createGesture({
     value: heldRgba === null ? null : formatColour(heldRgba),
+    shown,
     preview: options.onPreview,
     write: options.onPick,
   });
 
   const root = el('div', 'props-colour k-pop');
   root.dataset.customEditor = '';
+  // A press on the panel's own ground keeps the keyboard in the panel: Escape still closes it.
+  root.tabIndex = -1;
+  root.dataset.control = 'custom-panel';
 
   const squareCanvas = canvasOf('props-cp-canvas', SQUARE);
-  const square = slider('props-cp-square', text('props.colour.square'));
+  const square = slider('props-cp-square', text('props.colour.square'), 'custom-square');
   const squareKnob = el('i', 'props-cp-knob');
   square.append(squareCanvas, squareKnob);
 
   const hueCanvas = canvasOf('props-cp-canvas', TRACK);
-  const hue = slider('props-cp-track', text('props.colour.hue'));
+  const hue = slider('props-cp-track', text('props.colour.hue'), 'custom-hue');
   const hueKnob = el('i', 'props-cp-knob');
   hue.append(hueCanvas, hueKnob);
   hue.setAttribute('aria-valuemin', '0');
   hue.setAttribute('aria-valuemax', '360');
 
   const alphaCanvas = canvasOf('props-cp-canvas', TRACK);
-  const alpha = slider('props-cp-track', text('props.colour.alpha'));
+  const alpha = slider('props-cp-track', text('props.colour.alpha'), 'custom-opacity');
   const alphaKnob = el('i', 'props-cp-knob');
   alpha.append(alphaCanvas, alphaKnob);
   alpha.setAttribute('aria-valuemin', '0');
@@ -151,6 +169,8 @@ export function colourPicker(options: ColourPickerOptions): Editor {
   if ('EyeDropper' in window && dropper !== undefined) {
     const button = iconButton('pipette', text('props.colour.eyedropper'));
     button.addEventListener('click', () => {
+      // The dropper picks outside the page: the blur it causes must not close the panel.
+      picking = true;
       void new dropper()
         .open()
         .then((result) => {
@@ -159,7 +179,10 @@ export function colourPicker(options: ColourPickerOptions): Editor {
           move({ ...hsvOf(picked, hsva.h), a: hsva.a });
           gesture.end();
         })
-        .catch(() => undefined);
+        .catch(() => undefined)
+        .finally(() => {
+          picking = false;
+        });
     });
     tools.append(button);
   }
@@ -247,7 +270,9 @@ export function colourPicker(options: ColourPickerOptions): Editor {
     touched = true;
     problem.hidden = true;
     value.setAttribute('aria-invalid', 'false');
-    gesture.move(formatColour(rgbaOf(hsva)));
+    const css = formatColour(rgbaOf(hsva));
+    rememberHue(css, hsva);
+    gesture.move(css);
     draw(typing);
   }
 
@@ -401,5 +426,8 @@ export function colourPicker(options: ColourPickerOptions): Editor {
       root.hidden = on;
       if (!on) draw();
     },
+    // A close by a press outside keeps the colour: written once if it differs, as a blur writes.
+    release: () => gesture.end(),
+    busy: () => picking,
   };
 }

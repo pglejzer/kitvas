@@ -2,6 +2,7 @@
 // here, and so does the builder (`targetFacts`). Nothing in the facts is derived from a table of
 // frameworks: a name appears only when it is a file's or a package's own.
 
+import { isRecord } from '../../../shared/index.ts';
 import { ignoredNames, isIgnoredPath } from './ignore.ts';
 import { isProtectedPath, normalizeFolder } from './scope.ts';
 
@@ -104,9 +105,6 @@ export type TargetInput = {
 };
 
 const byText = (a: string, b: string): number => (a < b ? -1 : Number(a > b));
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 function extensionOf(path: string): string {
   const name = path.slice(path.lastIndexOf('/') + 1);

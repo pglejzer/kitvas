@@ -329,3 +329,99 @@ test('a draft that cannot be read has no link, and a page with no drafts has no 
   assert.ok(text.includes(filter));
   assert.ok(!home(tempDrafts().store).includes(filter), 'no filter without drafts');
 });
+
+const GHOST = { id: 'ghost', version: '2.1.0', hash: 'b'.repeat(64) };
+
+/** The group sections of a page, in order, each as its markup. */
+const groupsOf = (text: string): string[] =>
+  [...mainOf(text).matchAll(/<section class="gallery-group"[\s\S]*?<\/section>/g)].map(
+    (found) => found[0],
+  );
+
+test('the drafts stand in a group a kit, with its name, version and count, even for one kit', () => {
+  const { store } = shopDraft();
+  createDraft(store, { slug: 'second', title: 'Second', kit: TINY, now: NOW });
+  const groups = groupsOf(home(store));
+  assert.equal(groups.length, 1);
+  const only = groups[0] ?? '';
+  assert.ok(only.includes('<h3 id="gallery-group-0">Tiny</h3>'));
+  assert.ok(only.includes('<span class="gallery-group-version k-meta">v1.0.0</span>'));
+  assert.ok(only.includes('<span class="k-count" data-group-count>2</span>'));
+  assert.ok(only.includes('href="/drafts/shop"') && only.includes('href="/drafts/second"'));
+  assert.ok(!only.includes('Not in this project'));
+});
+
+test('the project kit has the first group, and a kit that is gone is named by its id with a note', () => {
+  const { store } = tempDrafts();
+  const older = new Date('2097-01-01T00:00:00Z');
+  const newer = new Date('2098-01-01T00:00:00Z');
+  createDraft(store, { slug: 'old-tiny', title: 'Old tiny', kit: TINY, now: older });
+  createDraft(store, { slug: 'newer-ghost', title: 'Newer ghost', kit: GHOST, now: newer });
+  const groups = groupsOf(home(store, { now: newer }));
+  assert.equal(groups.length, 2);
+  assert.ok((groups[0] ?? '').includes('>Tiny</h3>'), 'the project kit first, though older');
+  const ghost = groups[1] ?? '';
+  assert.ok(ghost.includes('>ghost</h3>'));
+  assert.ok(ghost.includes('v2.1.0'));
+  assert.ok(ghost.includes('<span class="gallery-group-note k-meta">Not in this project</span>'));
+  assert.ok(ghost.includes('href="/drafts/newer-ghost"'));
+});
+
+test('a draft that cannot be read stands in the last group', () => {
+  const { store } = shopDraft();
+  store.writeText('aaa-bad', 'draft.json', '{ "schemaVersion": 2 }');
+  const groups = groupsOf(home(store));
+  assert.equal(groups.length, 2);
+  assert.ok((groups[1] ?? '').includes('Kit unknown'));
+  assert.ok((groups[1] ?? '').includes('<h3>aaa-bad</h3>'));
+});
+
+test('the filter leaves out a group with no card under it, and the totals stay', () => {
+  const { store } = shopDraft();
+  createDraft(store, { slug: 'calm-ghost', title: 'Calm ghost', kit: GHOST, now: NOW });
+  build(store);
+  build(store, 'calm-ghost');
+  check(store, checksOf([finding()]));
+  check(store, checksOf([], { slug: 'calm-ghost' }));
+  const all = home(store);
+  assert.equal(groupsOf(all).length, 2);
+  const attention = home(store, { query: 'show=attention' });
+  const groups = groupsOf(attention);
+  assert.equal(groups.length, 1);
+  assert.ok((groups[0] ?? '').includes('href="/drafts/shop"'));
+  assert.ok(attention.includes('>All 2</a>'));
+  assert.ok(attention.includes('>Needs attention 1</a>'));
+  assert.ok(!(groups[0] ?? '').includes('data-fold'), 'only the All view folds');
+});
+
+test('each group folds on its own in the All view', () => {
+  const { store } = shopDraft();
+  createDraft(store, { slug: 'ghost-one', title: 'Ghost one', kit: GHOST, now: NOW });
+  const text = home(store);
+  assert.equal(text.match(/<ul class="gallery-grid" data-fold role="list">/g)?.length, 2);
+  assert.equal(text.match(/data-fold-toggle/g)?.length, 2);
+  assert.ok(text.includes('data-text-all="Show all 1 drafts"'));
+});
+
+test('the search field has its label, and a card carries the words the search reads', () => {
+  const text = home(shopDraft().store);
+  assert.ok(text.includes('<label class="k-search gallery-search"><svg class="k-icon"'));
+  assert.ok(text.includes('<input class="k-field" type="search" data-gallery-search'));
+  assert.ok(text.includes('aria-label="Search drafts"'));
+  assert.ok(text.indexOf('data-gallery-search') < text.indexOf('<nav class="k-seg"'));
+  const words = 'Shop shop Tiny tiny screen Screen';
+  assert.ok(text.includes(`<li class="gallery-card" data-search="${words}">`));
+  const none = '<p class="k-quiet" data-search-empty hidden>No draft matches your search.</p>';
+  assert.ok(text.includes(none));
+});
+
+test('there is no search with no draft or on the Deleted list', () => {
+  assert.ok(!home(tempDrafts().store).includes('data-gallery-search'));
+  const { store } = shopDraft();
+  createDraft(store, { slug: 'gone', title: 'Gone', kit: TINY, now: NOW });
+  deleteDraft(store, 'gone', NOW);
+  assert.ok(home(store).includes('data-gallery-search'));
+  const deleted = home(store, { query: 'show=deleted' });
+  assert.ok(!deleted.includes('data-gallery-search'));
+  assert.ok(!deleted.includes('data-group'));
+});

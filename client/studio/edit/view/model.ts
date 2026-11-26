@@ -2,6 +2,7 @@
 // they are tested without a DOM: the view answer read, the lists to save, the Live items of the
 // locks another writer changed, and what the locks box shows for the selection.
 
+import { isRecord } from '../../../../src/shared/values/guards.ts';
 import type { StreamEvent } from '../../live/sse.ts';
 import { elementName } from '../history/changes.ts';
 import type { EditorState, LiveItem } from '../store.ts';
@@ -14,9 +15,6 @@ export const MAX_VIEW_IDS = 500;
 
 /** `GET …/view`: ids as the latest version names them. */
 export type ViewAnswer = { locked: string[]; hidden: string[]; changed: string[]; lost: string[] };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const ids = (value: unknown): string[] | null =>
   Array.isArray(value) && value.every((one) => typeof one === 'string') ? [...value] : null;

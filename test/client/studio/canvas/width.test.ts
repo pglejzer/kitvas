@@ -7,7 +7,6 @@ import {
   frameHeight,
   MAX_VIEW,
   MIN_VIEW,
-  PRESETS,
   parseView,
   presetOf,
   readShown,
@@ -21,25 +20,10 @@ import {
   stepView,
   widthAddress,
 } from '../../../../client/studio/canvas/width.ts';
-import {
-  MAX_VIEW as SERVER_MAX,
-  MIN_VIEW as SERVER_MIN,
-  SIZES as SERVER_SIZES,
-  WIDTHS,
-} from '../../../../src/studio/views/draft-query.ts';
+import { WIDTHS } from '../../../../src/studio/views/draft-query.ts';
 
 const PHONE: Shown = { width: 390, view: null };
 const PAGE = 'http://127.0.0.1:5000/drafts/shop?version=3&state=empty&width=390';
-
-test('the page keeps the same presets and range as the server', () => {
-  assert.deepEqual([...PRESETS], [...WIDTHS]);
-  assert.equal(MIN_VIEW, SERVER_MIN);
-  assert.equal(MAX_VIEW, SERVER_MAX);
-});
-
-test('the page keeps the same sizes as the server', () => {
-  assert.deepEqual([...SIZES], [...SERVER_SIZES]);
-});
 
 test('a menu row stands for a size of the list and nothing else', () => {
   for (const size of SIZES) assert.equal(sizeOf(String(size.width)), size.width);

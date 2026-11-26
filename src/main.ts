@@ -112,6 +112,7 @@ export function main(argv: string[]): Promise<number> {
           'channel/canvas-protocol.ts',
           'channel/edit-protocol.ts',
           'channel/gesture-protocol.ts',
+          'channel/guards.ts',
           'channel/lens-protocol.ts',
           'channel/live-protocol.ts',
           'channel/protocol.ts',
@@ -147,7 +148,6 @@ export function main(argv: string[]): Promise<number> {
           'frame/edit/label.ts',
           'frame/live/live.ts',
           'frame/live/a11y.ts',
-          'frame/live/colour.ts',
           'frame/live/measure.ts',
           'frame/live/specificity.ts',
           'frame/live/pins.ts',
@@ -160,6 +160,7 @@ export function main(argv: string[]): Promise<number> {
           'frame/edit/keys.ts',
           'frame/page/marks.ts',
           'frame/page/measure.ts',
+          'frame/page/overlay-host.ts',
           'frame/drag/motion.ts',
           'frame/drag/place.ts',
           'frame/edit/preview.ts',
@@ -172,6 +173,17 @@ export function main(argv: string[]): Promise<number> {
           'frame/edit/structure.ts',
           'frame/edit/tree.ts',
         ].map((file) => join(PLUGIN_ROOT, 'client', file)),
+        // The package-free `src/` files the frame imports (ADR 0080).
+        ...[
+          'edit/domain/types.ts',
+          'shared/values/colour.ts',
+          'shared/values/guards.ts',
+          'shared/values/numbers.ts',
+          'shared/values/paths.ts',
+          'studio/pages/brand/pointer.ts',
+          'studio/pages/skin/logo.ts',
+          'studio/theme/tokens.ts',
+        ].map((file) => join(PLUGIN_ROOT, 'src', file)),
       ],
     };
   };

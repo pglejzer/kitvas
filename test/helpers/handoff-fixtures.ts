@@ -18,6 +18,9 @@ export const fakeBundler: Bundler = {
   async bundle() {
     return { js: 'var B={};', css: '', errors: [] };
   },
+  async exportNames() {
+    return { names: [], errors: [] };
+  },
   async dispose() {},
 };
 

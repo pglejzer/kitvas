@@ -2,6 +2,7 @@
 // it becomes a drag, what a release posts. `drag.ts` gives it the pointer and the page; a test
 // gives it fakes. Points, boxes and slots are viewport pixels of the frame.
 
+import { samePath } from '../../../src/shared/values/paths.ts';
 import type { CopyRef, EditFrameMessage } from '../../channel/edit-protocol.ts';
 import type { DragSource } from '../../channel/structure-protocol.ts';
 import { rectOf } from '../page/rect.ts';
@@ -137,11 +138,6 @@ export function samePlace(
   if (slot.place === 'after') return from > 0 && row[from - 1] === slot.anchor;
   if (parent !== slot.anchor) return false;
   return slot.place === 'first' ? from === 0 : to === row.length - 1;
-}
-
-/** Two paths name the same item. */
-export function samePath(a: readonly number[], b: readonly number[]): boolean {
-  return a.length === b.length && a.every((place, index) => place === b[index]);
 }
 
 /**

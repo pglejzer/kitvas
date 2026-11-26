@@ -1,6 +1,8 @@
 // The trash's calls to the studio API, with the page cookie (`src/studio/api/trash/`). A network
 // error answers as status 0.
 
+import { draftPath, call as send } from '../api/request.ts';
+
 export type Answer = { ok: true } | { ok: false; status: number; code: string | null };
 
 /** Why a call failed, in the words the page has a text for. */
@@ -14,27 +16,12 @@ export function failureOf(answer: { status: number; code: string | null }): Fail
   return 'failed';
 }
 
+/** Every call here sends an empty JSON body and needs no answer body, only whether it worked. */
 async function call(method: 'DELETE' | 'POST', path: string): Promise<Answer> {
-  try {
-    const response = await fetch(path, {
-      method,
-      credentials: 'same-origin',
-      headers: { 'content-type': 'application/json' },
-      body: '{}',
-    });
-    if (response.ok) return { ok: true };
-    const read: unknown = await response.json().catch(() => undefined);
-    const code =
-      typeof read === 'object' && read !== null && 'code' in read && typeof read.code === 'string'
-        ? read.code
-        : null;
-    return { ok: false, status: response.status, code };
-  } catch {
-    return { ok: false, status: 0, code: null };
-  }
+  const answer = await send(method, path, {});
+  return answer.ok ? { ok: true } : answer;
 }
 
-const draftPath = (slug: string): string => `/api/v1/drafts/${encodeURIComponent(slug)}`;
 const trashPath = (slug: string): string => `/api/v1/trash/${encodeURIComponent(slug)}`;
 
 /** Moves the draft to the trash. */

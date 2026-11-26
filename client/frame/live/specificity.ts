@@ -10,7 +10,8 @@ export const EDITOR_STATE: Specificity = [0, 2, 0];
 
 const IDENT = /[A-Za-z0-9_-]/;
 
-function identEnd(text: string, from: number): number {
+/** Where the identifier starting at `from` ends (escapes and non-ASCII letters belong to it). */
+export function identEnd(text: string, from: number): number {
   let at = from;
   while (at < text.length) {
     const char = text[at] ?? '';

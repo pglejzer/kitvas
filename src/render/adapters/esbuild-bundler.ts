@@ -7,6 +7,7 @@ import type { Loader, Message } from 'esbuild';
 import { loadDep, nodeModulesFrom, packageDirFrom, resolveDep } from '../../shared/index.ts';
 import type { BuildError } from '../domain/report.ts';
 import type { Bundler } from '../ports/bundler.ts';
+import { exportedNames, exportsProbe, probeEntries } from './exports-probe.ts';
 import type { ScssCompile } from './sass-pipeline.ts';
 import { SCSS_PLUGIN, scssPlugin } from './scss-plugin.ts';
 
@@ -162,6 +163,39 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
         return { js: output('.js'), css: output('.css'), errors: [] };
       } catch (cause) {
         return { js: '', css: '', errors: toErrors(cause) };
+      }
+    },
+
+    async exportNames({ workingDir, modules, project }) {
+      if (modules.length === 0) return { names: [], errors: [] };
+      const { build } = await esbuild();
+      const loadPaths = project === undefined ? [] : nodeModulesFrom(project);
+      try {
+        // ESM, so the metafile names each entry's exports. The project's own tsconfig.json is
+        // found by esbuild for its files (its `paths`); nothing is written, not even kitvas's.
+        const result = await build({
+          absWorkingDir: workingDir,
+          entryPoints: probeEntries(modules),
+          bundle: true,
+          format: 'esm',
+          write: false,
+          metafile: true,
+          outdir: 'kitvas-exports',
+          jsx: 'automatic',
+          jsxDev: true,
+          jsxImportSource: JSX_SOURCE,
+          alias: { [`${JSX_SOURCE}/jsx-dev-runtime`]: jsxRuntime, ...reactDirs(project) },
+          loader: LOADERS,
+          plugins: [
+            exportsProbe(modules, workingDir),
+            ...(scss ? [scssPlugin({ compile: scss, loadPaths, workingDir })] : []),
+          ],
+          define: { ...DEFINE, __KITVAS_IDS__: '{}' },
+          logLevel: 'silent',
+        });
+        return { names: exportedNames(result.metafile), errors: [] };
+      } catch (cause) {
+        return { names: [], errors: toErrors(cause) };
       }
     },
 

@@ -63,6 +63,10 @@ export type LiveItem = {
   width: number | null;
   message: string;
   source: 'frame' | 'code';
+  /** A code finding's file (its last part) and line (0: none), as the server gave them. */
+  place?: { file: string; line: number };
+  /** A code finding's own message, without its place. */
+  raw?: string;
 };
 
 export type ChangeEntry = {

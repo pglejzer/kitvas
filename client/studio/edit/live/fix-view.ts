@@ -124,6 +124,7 @@ export function fixControl(
   fixes: Fixes,
   element: string | null,
   row: LiveRow,
+  lead = true,
 ): FixParts {
   const line = el('p', 'k-meta checks-fix-line');
   const slot = el('span', 'checks-fix');
@@ -136,7 +137,8 @@ export function fixControl(
   }
 
   function askButton(why: FixReason | 'no-token' | null): HTMLButtonElement {
-    const ask = button(text('ask.button'), 'k-btn k-btn-line');
+    // Beside a fix of the row ("Use <token>") Ask Claude is the plain second button.
+    const ask = button(text('ask.button'), lead ? 'k-btn k-btn-sm k-btn-soft' : 'k-btn k-btn-sm');
     const sent = fixes.asked(key);
     if (sent !== undefined) line.textContent = text(sent ? 'ask.sent' : 'ask.requestFailed');
     ask.disabled = sent === true;
@@ -174,7 +176,7 @@ export function fixControl(
   }
 
   function applyButton(plan: FixPlan | null): HTMLButtonElement {
-    const apply = button(text('live.fix.apply'), 'k-btn k-btn-primary');
+    const apply = button(text('live.fix.apply'), 'k-btn k-btn-sm k-btn-soft');
     const state = ctx.store.get();
     apply.disabled = plan === null || state.busy || state.viewing !== null;
     if (plan !== null) apply.addEventListener('click', () => void run(plan));

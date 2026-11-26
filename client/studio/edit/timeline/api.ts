@@ -3,35 +3,12 @@
 // request to Claude when kitvas cannot. A network error answers as status 0, as in `../api.ts`.
 
 import type { StyleContext } from '../../../../src/edit/index.ts';
-import type { Answer } from '../api.ts';
+import { isRecord } from '../../../../src/shared/values/guards.ts';
+import { type Answer, call, draftPath } from '../../api/request.ts';
 import { factsOf, type VersionFacts } from './facts.ts';
 import type { ElementHistory, RestorePreview } from './points.ts';
 
-async function call(
-  method: 'GET' | 'POST',
-  path: string,
-  body?: unknown,
-): Promise<Answer<unknown>> {
-  try {
-    const response = await fetch(path, {
-      method,
-      credentials: 'same-origin',
-      headers: body === undefined ? {} : { 'content-type': 'application/json' },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
-    const read: unknown = await response.json().catch(() => undefined);
-    if (response.ok) return { ok: true, status: response.status, body: read };
-    const code = isRecord(read) && typeof read.code === 'string' ? read.code : null;
-    return { ok: false, status: response.status, code };
-  } catch {
-    return { ok: false, status: 0, code: null };
-  }
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const base = (slug: string): string => `/api/v1/drafts/${encodeURIComponent(slug)}`;
+const base = draftPath;
 
 /** The version numbers of a draft as `GET /api/v1/drafts/{slug}` lists them; none for bad data. */
 export function versionsOf(draft: unknown): number[] {
