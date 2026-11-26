@@ -53,7 +53,7 @@ Guard tests in `test/guards/` enforce most of these, so `npm run check` tells yo
 2. Add tests for what you change. A bug fix starts with a test that fails without the fix.
 3. Run `npm run check` and `claude plugin validate . --strict`. The `check` workflow does not run on pull requests at the moment, so the run on your machine is the check: say in the pull request that both passed.
 4. A changed skill, agent or `reference/` file: run the evals of that skill, as [evals/README.md](evals/README.md) says.
-5. A change in the studio: look at it in a browser, in light and in dark.
+5. A change in the studio: look at it in a browser, in light and in dark. When the README's GIF, film or screenshots show what you changed, record them again with `scripts/readme/record.ts`; its first lines say how.
 6. Add an entry to [CHANGELOG.md](CHANGELOG.md) under `[Unreleased]`, in the words of a person using kitvas.
 7. A changed decision needs a new record in `docs/adr/`, not an edit of the old one; then run `npm run adr`. A feature alone needs no record.
 8. Fill in every heading of the pull request form.

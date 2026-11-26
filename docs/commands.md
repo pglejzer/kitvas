@@ -12,7 +12,8 @@ Every command takes `--json` and answers `{"ok":true,"data":…}` or `{"ok":fals
 | ------------ | ---------------------------------------------------------------------------------------- |
 | `status`     | Shows the version, settings and workspace                                                |
 | `init`       | Creates the `.kitvas` folder in this project                                             |
-| `kit`        | Lists, shows, checks, learns, verifies and selects kits; `exports`, `merge` (below)      |
+| `kit`        | Lists, shows, checks, learns, verifies and selects kits; sub-commands below              |
+| `decisions`  | Reads the project's decisions file, or adds, sets and replaces a decision in it          |
 | `draft`      | Creates, lists and shows drafts, starts a new version; `delete`, `restore` and `purge`   |
 | `craft`      | Makes sketches of a component, icon or logo, picks one, adds it to the kit or exports it |
 | `rework`     | Starts a better version of a page from a URL or images                                   |
@@ -28,6 +29,26 @@ Every command takes `--json` and answers `{"ok":true,"data":…}` or `{"ok":fals
 | `request`    | Reads or answers a request from the editor                                               |
 | `guidelines` | Shows the guideline book                                                                 |
 | `handoff`    | Writes a draft's Figma package or the fitter's brief; lists, compares and records hand-offs |
+
+## Kit sub-commands
+
+`kitvas kit` without a sub-command is `kit show`. A kit id is optional where the sub-command says `[id]`; the project's kit is used without one.
+
+| Sub-command                                          | What it does                                                                                  |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `list`, `show [id]`, `check [id]`                    | Lists the kits, shows one, lists the problems of one                                          |
+| `component <Name> [id]`, `css [id]`                  | Shows one component; prints the kit's token sheet                                             |
+| `build [id]`, `previews [id]`                        | Builds the kit's catalog for the kit page; makes the previews the editor's Insert pane shows  |
+| `new <id> --from <source>`                           | Starts a project kit from `npm:<package>`, `repo:<folder>`, `figma:<URL>`, `web:<URL>` or `images:<folder>` |
+| `scan <id> --url <address>`, `crop <id>`             | For a kit from a website: reads its pages in the browser; for one from images: cuts the references |
+| `verify [id]`                                        | Verifies the kit: schema, imports, types, render, tokens and, for a written kit, the look     |
+| `use <id>`                                           | Makes the kit the project's kit in `.kitvas/decisions.md`                                     |
+| `detect`                                             | Looks for signs of a design system in the project and lists the project's kits               |
+| `exports [id]`, `merge <id>`                         | Learning a whole package (below)                                                              |
+
+## Decisions
+
+`kitvas decisions` prints the project's `.kitvas/decisions.md`: its settings (`kit`, `copy`, `check`) and its dated decisions, with a warning for each line it cannot read. `decisions add --section <name> --text <line>` adds a decision, `decisions set <kit|copy|check> <value>` changes a setting, and `decisions replace --section <name> --old <line> --text <line>` swaps one decision's text. A text is one line.
 
 ## Showing a kit
 

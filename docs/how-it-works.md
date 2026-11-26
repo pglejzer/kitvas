@@ -27,7 +27,7 @@ One screen takes this path:
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.kitvas/` in your project       | `decisions.md` (the project's settings and decisions, shared through git), `kits/` (kits you learned), `additions/` (what craft added), `drafts/<slug>/v<N>/` (md, src, build, handoff) |
 | `~/.kitvas/` in your home folder | `config.json` (the studio's look), `data/` (the plugin's npm packages, Chromium in `data/browsers/`, the studio's state files), `data-dir` (where the data folder is) |
-| The studio                       | A local process that serves pages and prototypes on 127.0.0.1 until it is stopped                                                                                     |
+| The studio                       | A local process that serves pages and prototypes on 127.0.0.1 until it is stopped, or until 240 minutes pass without use (`studioIdleMinutes` in `config.json`; 0 never stops it)                                                                                     |
 
 ## Agents
 

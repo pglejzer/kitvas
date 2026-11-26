@@ -11,7 +11,7 @@ Open an issue at https://github.com/pglejzer/kitvas/issues. Report a vulnerabili
 ## Limits
 
 - Prototypes are React only.
-- kitvas will not write into your application's code. Everything goes to `.kitvas/`, or to a folder you name when you export.
+- kitvas writes into your application's code only through `/kitvas:handoff code`, inside the folder and the scope you give it. Everything else goes to `.kitvas/`, or to a folder you name when you export.
 - kitvas will not open a local or private address you give it, unless you allow it with `--allow-private`.
 - kitvas will not copy an example. A page, screenshot or logo you show gives the idea and the style, never a traced copy.
 - The editor refuses a change it cannot write safely, such as a text from a prop or a call, and hands it to Claude with the reason. See [the editor guide](editor.md).
