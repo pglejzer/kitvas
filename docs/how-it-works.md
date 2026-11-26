@@ -10,6 +10,8 @@ One screen takes this path:
 4. `kitvas check` runs the build, types, the kit's rules and the browser checks, and a fix round follows when there are findings.
 5. The studio shows the version at every width, state and version, with the findings marked on the page.
    A version may also hold options, declared in `src/json/options.json`. Each section takes them as a prop beside `state`, and the page's root carries `data-opt-<id>="<value>"`. A value is a condition in the one source, so there is one build and the studio switches by drawing again. The check visits each other value, one at a time, at two widths; hand-off takes the default combination. Adding or dropping an option is a new version.
+
+   A version may hold shared values too, declared in `src/json/shared.json`: what a person chooses while using the page, such as a date range or a search text. Every section takes `shared` and `setShared` as props, so a control in one section changes what another shows. The values live in the page, not in a section, and stay when the studio brings in a new build.
 6. Your feedback, in chat, as notes in the studio or as edits in the editor, goes into the next version.
 
 ```text

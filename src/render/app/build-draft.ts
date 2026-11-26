@@ -7,6 +7,7 @@ import {
   type DraftStore,
   inspectLayout,
   readOptions,
+  readSharedValues,
   StatesSchema,
   serializeJson,
 } from '../../drafts/index.ts';
@@ -154,6 +155,7 @@ export async function buildDraft(deps: RenderDeps, slug: string): Promise<BuildR
         states: states.states.map((state) => state.id),
         defaultState: states.default,
         options: readOptions(drafts, slug, base),
+        shared: readSharedValues(drafts, slug, base),
         themes: kit.themes.list,
         // A page takes a later build in place only from the runtime that runs it (ADR 0058).
         runtime: sourceHash(fs, {

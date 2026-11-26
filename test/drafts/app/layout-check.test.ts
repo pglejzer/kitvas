@@ -143,6 +143,57 @@ test('options write the type file and an entry that passes them on; removing the
   assert.match(store.readText('shop', 'v1/src/tsx/index.tsx') ?? '', /<Hero state=\{state\} \/>/);
 });
 
+const SHARED_JSON = JSON.stringify({
+  schemaVersion: 1,
+  values: [
+    {
+      id: 'range',
+      label: 'Range',
+      default: '30d',
+      values: [
+        { id: '30d', label: '30 days' },
+        { id: '90d', label: '90 days' },
+      ],
+    },
+    { id: 'query', label: 'Search' },
+  ],
+});
+
+test('shared values write the type file and an entry that passes them on; removing them undoes it', () => {
+  const { store } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  store.writeText('shop', 'v1/src/json/shared.json', SHARED_JSON);
+  const report = checkLayout(store, kits, 'shop');
+  assert.deepEqual(report.generated, [
+    'v1/src/tsx/index.tsx',
+    'v1/src/scss/index.scss',
+    'v1/src/tsx/shared.ts',
+  ]);
+  const types = store.readText('shop', 'v1/src/tsx/shared.ts') ?? '';
+  assert.match(types, /"range": "30d" \| "90d"; "query": string/);
+  assert.match(store.readText('shop', 'v1/src/tsx/index.tsx') ?? '', /<Hero \{\.\.\.props\} \/>/);
+
+  store.replaceAll('shop', [{ relPath: 'v1/src/json/shared.json', text: null }]);
+  const without = checkLayout(store, kits, 'shop');
+  assert.deepEqual(without.generated, ['v1/src/tsx/index.tsx', 'v1/src/scss/index.scss']);
+  assert.equal(store.exists('shop', 'v1/src/tsx/shared.ts'), false);
+  assert.match(store.readText('shop', 'v1/src/tsx/index.tsx') ?? '', /<Hero state=\{state\} \/>/);
+});
+
+test('a shared values file that does not read is reported and nothing is written', () => {
+  const { store } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  store.writeText('shop', 'v1/src/json/shared.json', '{ not json');
+  const report = checkLayout(store, kits, 'shop');
+  assert.equal(report.valid, false);
+  assert.deepEqual(
+    report.issues.map((issue) => issue.key),
+    ['draftIssue.sharedInvalid'],
+  );
+  assert.deepEqual(report.generated, []);
+  assert.equal(store.exists('shop', 'v1/src/tsx/index.tsx'), false);
+});
+
 test('the option theme is a problem while a kit has no themes', () => {
   const { store } = shopDraft();
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Controls under the pointer and with focus</title>
+    <style>
+      body { margin: 0; font: 16px/1.5 Arial, Helvetica, sans-serif; color: #1a1a1a; }
+      main { padding: 16px; }
+      button {
+        appearance: none; display: block; margin: 12px 0; padding: 8px 12px; font: inherit;
+        color: #111111; background: #ffffff; border: 1px solid #888888; border-radius: 0;
+      }
+      /* On: a dark fill with white text. Hover sets the background only, so the text vanishes. */
+      #toggle { background: #111111; color: #ffffff; }
+      #toggle:hover { background: #ffffff; }
+      /* Hover changes the colours of the text and of what is behind it. */
+      #recolour:hover { background: #1d4ed8; color: #ffffff; }
+      /* Hover changes the border only: no text is painted differently. */
+      #still:hover { border-color: #ff0000; }
+      /* The focus ring is not the only thing: the text colour changes with it. */
+      #focusy:focus-visible { color: #eeeeee; }
+      /* A disabled and a hidden control that would change if they could be reached. */
+      #off:hover, #gone:hover { background: #000000; color: #000000; }
+      #gone { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <main data-ks="sections/States:main">
+        <button id="toggle" type="button" aria-pressed="true" data-ks="sections/States:main/toggle">Weekly</button>
+        <button id="recolour" type="button" data-ks="sections/States:main/recolour">Recolour</button>
+        <button id="still" type="button" data-ks="sections/States:main/still">Still</button>
+        <button id="focusy" type="button" data-ks="sections/States:main/focusy">Focusy</button>
+        <button id="off" type="button" disabled data-ks="sections/States:main/off">Off</button>
+        <button id="gone" type="button" data-ks="sections/States:main/gone">Gone</button>
+      </main>
+    </div>
+  </body>
+</html>

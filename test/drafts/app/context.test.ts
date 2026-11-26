@@ -68,6 +68,20 @@ test('the options of the version are in the context', () => {
   assert.deepEqual(sectionContext(store, kits, 'shop', 'hero').options, options);
 });
 
+test('the shared values of the version are in the context, and none read as an empty list', () => {
+  const { store } = shopDraft();
+  store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
+  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero').sharedValues, []);
+  store.writeText(
+    'shop',
+    'v1/src/json/shared.json',
+    JSON.stringify({ schemaVersion: 1, values: [{ id: 'query', label: 'Search' }] }),
+  );
+  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero').sharedValues, [
+    { id: 'query', label: 'Search', default: '', values: null },
+  ]);
+});
+
 test('tokens come with the value CSS reads and the group of their path', () => {
   const { store } = shopDraft();
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);

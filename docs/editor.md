@@ -28,7 +28,7 @@ Switch to Edit in the bar to change the draft.
 
 - Drag the edge of a panel to resize it. The arrow keys step 16 px and a double click resets it.
 - Zoom runs from 10 % to 400 % with Ctrl and the wheel (also over the prototype), the buttons or a typed percent.
-- Hold Space and drag, or drag with the middle button, to pan.
+- Hold Space and drag with the left or the right button, or drag with the middle button, to pan. This works in Preview too; there Space still presses a button you reached with the Tab key.
 - The width has the presets 390, 768 and 1280, where the checks' marks show, and any width from 320 to 2560 px. Zooming never changes the prototype's real width.
 - Press `?` for every shortcut, searchable.
 

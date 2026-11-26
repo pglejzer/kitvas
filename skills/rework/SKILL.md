@@ -79,7 +79,7 @@ Keep the ids from the proposal; give a new item a new unique id. After this, edi
 
 Work in the draft's latest version folder, `v<N>` (new draft: `v1`). Run `KITVAS draft show <slug> --json` if you need the path; `data.draft` of step 3 holds it.
 
-Write `v<N>/md/brief.md`, filling the scaffold from the original, not from questions: the goal is what the page is for, the audience is who it speaks to, the content is the original's real content (its headings, texts, prices, field labels, calls to action), the states are the ones the original has plus the ones it lacks: a form gets `error`, a list gets `empty` and `loading`. Say in the brief that this is a rework: same content and purpose, layout and order free.
+Write `v<N>/md/brief.md`, filling the scaffold from the original, not from questions: the goal is what the page is for, the audience is who it speaks to, the content is the original's real content (its headings, texts, prices, field labels, calls to action), the controls are the original's, each with what it changes there (R-CONTROL-22 of `reference/controls.md`), the states are the ones the original has plus the ones it lacks: a form gets `error`, a list gets `empty` and `loading`. Say in the brief that this is a rework: same content and purpose, layout and order free.
 
 Write `v<N>/md/layout.md` as in the compose skill: a `Screen: <kind>` line under the title (`landing`, `form`, `sign-in`, `sign-up`, `checkout`, `dashboard`, `list`, `detail`, `article`, `settings`, `other`), one `## <section-id>` heading per section with `Purpose:` and `Components:` lines (choose components with `KITVAS kit show --json`), and a `## shared` heading when sections share something. Name extra states with the prefixes `empty`, `loading` or `error`, and list them in `v<N>/src/json/states.json`. The rules for the layout:
 
@@ -87,6 +87,7 @@ Write `v<N>/md/layout.md` as in the compose skill: a `Screen: <kind>` line under
 - No content of the original is dropped. A section may be merged, split, reordered or shortened in layout; its words stay. If something truly has no place (a duplicate footer link, a cookie banner), say so in the report.
 - The order serves the purpose: the main action in the first screen, the reading order a person needs. This is a design choice from the kit and the guideline book, not from taste: run `KITVAS guidelines --mode manual --screen <kind> --json` and let its entries steer the order.
 - When the original has problems, `before/problems.json` lists the rules that fired. Read it (it is JSON, `counts` by rule id) and plan the layout so those problems are gone from the start. They are the first thing to fix.
+- A control that changes another section than its own needs a shared value in `v<N>/src/json/shared.json`, with the section that sets it and the sections that read it named in the `## shared` part (R-CONTROL-24 of `reference/controls.md`).
 
 When the layout needs what the kit lacks (a theme, tokens), follow "What the kit lacks" in step 3 of `${CLAUDE_PLUGIN_ROOT}/skills/compose/SKILL.md`: ask once before the makers, add nothing without a yes.
 

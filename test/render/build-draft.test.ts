@@ -150,6 +150,36 @@ test('the options of the version go into the bundle; none leaves the bundle with
   }
 });
 
+test('the shared values of the version go into the bundle; none leaves the bundle without them', async () => {
+  const shop = workshop();
+  try {
+    await shop.build();
+    assert.ok(!shop.read('build', 'js', 'index.js').includes('"range"'));
+
+    const values = [
+      {
+        id: 'range',
+        label: 'Range',
+        default: '30d',
+        values: [
+          { id: '30d', label: '30 days' },
+          { id: '90d', label: '90 days' },
+        ],
+      },
+    ];
+    shop.store.writeText(
+      'shop',
+      'v1/src/json/shared.json',
+      JSON.stringify({ schemaVersion: 1, values }),
+    );
+    const report = await shop.build();
+    assert.equal(report.cached, false, 'a new shared values file builds again');
+    assert.ok(shop.read('build', 'js', 'index.js').includes('"range"'));
+  } finally {
+    await shop.close();
+  }
+});
+
 test('a syntax error is reported with file and line and leaves the last build alone', async () => {
   const shop = workshop();
   try {

@@ -35,4 +35,4 @@ Write only these files inside the kit folder: `kit.json`, `json/tokens.json`, `j
 
 ## Report
 
-The first line of your final message is one of `STATUS: DONE`, `STATUS: DONE_WITH_CONCERNS`, `STATUS: BLOCKED` or `STATUS: NEEDS_CONTEXT`. Then at most 5 lines: the files written, the components by category, what went to `gaps` and why, the themes found and why one was not learned, any rule that was missing or wrong, and what is missing (for example a package that is not installed). Do not paste the JSON.
+The first line of your final message is one of `STATUS: DONE`, `STATUS: DONE_WITH_CONCERNS`, `STATUS: BLOCKED` or `STATUS: NEEDS_CONTEXT`. Then one short line for each: the files written, the components by category, what went to `gaps` and why, the themes found and why one was not learned, any rule that was missing or wrong, and what is missing (for example a package that is not installed). Do not paste the JSON.

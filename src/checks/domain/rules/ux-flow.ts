@@ -240,6 +240,19 @@ function byOwnKs(input: VisitInput, ks: string): number {
   return input.facts.nodes.findIndex((node) => node.ownKs && node.ks === ks);
 }
 
+/** The n-th node (from 0) with this own element id; -1 when there are fewer. */
+function nthOwnKs(input: VisitInput, ks: string, n: number): number {
+  let seen = 0;
+  const { nodes } = input.facts;
+  for (let index = 0; index < nodes.length; index += 1) {
+    const node = nodes[index];
+    if (!node?.ownKs || node.ks !== ks) continue;
+    if (seen === n) return index;
+    seen += 1;
+  }
+  return -1;
+}
+
 const emptyRegion: StatesRule = {
   id: UX_EMPTY_REGION.id,
   run({ baseline, visits }) {
@@ -283,12 +296,16 @@ const stateShift: StatesRule = {
     for (const visit of visits) {
       if (visit.stateKind === 'baseline') continue;
       const reported = new Set<string>();
+      const seenKs = new Map<string, number>();
       baseline.facts.nodes.forEach((node) => {
         const landmark = node.landmark;
-        if (!node.ownKs || node.ks === null || landmark === null || !CHROME.includes(landmark))
-          return;
+        if (!node.ownKs || node.ks === null) return;
+        // A mapped list has one element id on every item: the n-th item is compared with the n-th.
+        const occurrence = seenKs.get(node.ks) ?? 0;
+        seenKs.set(node.ks, occurrence + 1);
+        if (landmark === null || !CHROME.includes(landmark)) return;
         if (reported.has(landmark)) return;
-        const match = byOwnKs(visit, node.ks);
+        const match = nthOwnKs(visit, node.ks, occurrence);
         const moved = visit.facts.nodes[match];
         if (!moved) return;
         const dx = Math.round(moved.box[0] - node.box[0]);

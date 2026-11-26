@@ -91,7 +91,7 @@
     {
       "name": "Select",
       "category": "input",
-      "description": "A native select with its label, hint and error.",
+      "description": "A native select with its label, hint and error. Its list is drawn in the page from the kit's tokens where the browser can do that; elsewhere the system's own list opens.",
       "import": { "from": "@kit", "name": "Select" },
       "styling": ["className"],
       "props": [

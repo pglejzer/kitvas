@@ -5,6 +5,7 @@ import { parseFrameMessage } from '../../../../client/channel/protocol.ts';
 import {
   boxOf,
   isField,
+  pressedBySpace,
   revealBlock,
   type SpaceLike,
   scrollRatio,
@@ -35,7 +36,7 @@ const key = (type: string, fields: Partial<SpaceLike> = {}): SpaceLike => ({
   ...fields,
 });
 
-const EDITING = { edit: true, down: false, field: false };
+const EDITING = { edit: true, down: false, field: false, keyed: false };
 
 test('a plain wheel stays in the frame: it scrolls the page there', () => {
   assert.equal(wheelOf(wheel()), null);
@@ -80,10 +81,37 @@ test('in Edit mode Space goes down once and is kept from the page', () => {
   assert.deepEqual(spaceStep(key('keyup'), held), { send: false, prevent: true });
 });
 
-test('in Preview Space belongs to the prototype', () => {
-  const preview = { edit: false, down: false, field: false };
-  assert.deepEqual(spaceStep(key('keydown'), preview), { send: null, prevent: false });
-  assert.deepEqual(spaceStep(key('keyup'), preview), { send: null, prevent: false });
+test('in Preview Space pans too', () => {
+  const preview = { edit: false, down: false, field: false, keyed: false };
+  assert.deepEqual(spaceStep(key('keydown'), preview), { send: true, prevent: true });
+  const held = { ...preview, down: true };
+  assert.deepEqual(spaceStep(key('keydown'), held), { send: null, prevent: true });
+  assert.deepEqual(spaceStep(key('keyup'), held), { send: false, prevent: true });
+});
+
+test('in Preview Space presses the control that keyboard focus is on', () => {
+  const nothing = { send: null, prevent: false };
+  const keyed = { edit: false, down: false, field: false, keyed: true };
+  assert.deepEqual(spaceStep(key('keydown'), keyed), nothing);
+  assert.deepEqual(spaceStep(key('keyup'), keyed), nothing);
+  // In Edit the prototype's controls do not act, so Space is the canvas's there.
+  assert.deepEqual(spaceStep(key('keydown'), { ...keyed, edit: true }), {
+    send: true,
+    prevent: true,
+  });
+});
+
+test('Space presses buttons, summaries and elements with a pressing role', () => {
+  assert.ok(pressedBySpace({ tagName: 'BUTTON', role: null }));
+  assert.ok(pressedBySpace({ tagName: 'summary', role: null }));
+  for (const role of ['button', 'checkbox', 'switch', 'radio', 'tab', 'option', 'menuitem']) {
+    assert.ok(pressedBySpace({ tagName: 'DIV', role }), role);
+  }
+  // Space scrolls past a link; it does not follow it.
+  assert.ok(!pressedBySpace({ tagName: 'A', role: null }));
+  assert.ok(!pressedBySpace({ tagName: 'DIV', role: 'region' }));
+  assert.ok(!pressedBySpace({ tagName: 'BODY', role: null }));
+  assert.ok(!pressedBySpace(null));
 });
 
 test('Space typed into a field, or with Ctrl, Cmd or Alt, is not a pan', () => {
@@ -97,8 +125,12 @@ test('Space typed into a field, or with Ctrl, Cmd or Alt, is not a pan', () => {
 test('a Space that went down always comes up, whatever happened meanwhile', () => {
   // Edit mode went off, or focus moved into a field, while the key was held.
   const up = { send: false, prevent: true };
-  assert.deepEqual(spaceStep(key('keyup'), { edit: false, down: true, field: false }), up);
-  assert.deepEqual(spaceStep(key('keyup'), { edit: true, down: true, field: true }), up);
+  assert.deepEqual(spaceStep(key('keyup'), { ...EDITING, edit: false, down: true }), up);
+  assert.deepEqual(spaceStep(key('keyup'), { ...EDITING, down: true, field: true }), up);
+  assert.deepEqual(
+    spaceStep(key('keyup'), { ...EDITING, edit: false, down: true, keyed: true }),
+    up,
+  );
   assert.deepEqual(spaceStep(key('keyup', { ctrlKey: true }), { ...EDITING, down: true }), up);
 });
 

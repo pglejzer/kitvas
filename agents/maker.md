@@ -26,10 +26,11 @@ The context's `locked` ids are elements the person locked: never change them (R-
 - Import only from `@kit`, `react` and the draft's own files. Never import a style file: `index.scss` already includes your SCSS.
 - Use only components, props and values the context lists. If the design needs something missing, use the nearest listed component, or plain HTML that is not a control (`<details>`, `<table>`, lists), and say so in your report.
 - Styles use `var(--kit-…)` names from `kit.tokens`. Each token has a `type`, a `value` and a `group`: pick by the value and the group (a `color` token for a colour, a `space` token for a gap), never by the name alone. No raw colours, no raw sizes where a token exists.
-- The component takes `{ state: string }` (`{ state, options }` when the context has `options`) and shows every state named in `states`. Write real text from the brief, no lorem ipsum.
+- The component takes `{ state: string }`, with `options` when the context has `options`, and with `shared` and `setShared` when the section reads or sets one of the context's `sharedValues` (R-COMPOSE-2). It shows every state named in `states`. Write real text from the brief, no lorem ipsum.
 - Options: the default value is the base; another value is a block `[data-opt-<id>="<value>"] &` or a branch on the prop. Rules R-COMPOSE-49 to 53.
 - The full rules are in the maker rules file; follow it when it is stricter than this list.
 - Read `reference/anti-slop.md` (next to the maker rules) before you write: it lists the generic look to avoid and what to do instead.
+- Read `reference/controls.md` (next to the maker rules) when the section has a control or the context has `sharedValues`. Every control changes something a person can see: in your own section through `useState`, in another section through a shared value (`setShared({ <id>: … })` at the control, `shared.<id>` where the result shows). Its text stays readable under the pointer, with focus and when it is on. A control you cannot make work is named in your report, never left dead.
 
 ## Report
 

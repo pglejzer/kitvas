@@ -11,7 +11,7 @@ import {
 } from '../guidelines/ui-look.ts';
 import type { PageFacts } from '../page/facts.ts';
 import { hueBucket, isNeutral, parseColour } from './colour.ts';
-import { subtreeHas, textNodes } from './geometry.ts';
+import { MEDIA_TAGS, subtreeHas, textNodes } from './geometry.ts';
 import type { VisitInput, VisitRule } from './types.ts';
 import {
   kitComponentOf,
@@ -20,8 +20,6 @@ import {
   ruleFinding,
   sectionKey,
 } from './types.ts';
-
-const MEDIA_TAGS = new Set(['img', 'svg', 'video', 'picture', 'canvas']);
 
 function report(
   input: VisitInput,
@@ -78,7 +76,42 @@ function placeholderBoxes(facts: PageFacts): number[] {
     if (ratio < t.minRatio || ratio > t.maxRatio) return;
     found.push(index);
   });
-  return found;
+  const bars = barsOf(facts, found);
+  return found.filter((index) => !bars.has(index));
+}
+
+/**
+ * The boxes of a chart's bars: `barRun` or more candidates of one parent that share an edge (the
+ * bottoms or the lefts within `barTolerance`) and differ along it (heights or widths apart by more
+ * than the tolerance). A chart's bars are data, not pictures to come.
+ */
+function barsOf(facts: PageFacts, candidates: readonly number[]): Set<number> {
+  const { barRun, barTolerance } = UI_PLACEHOLDER_MEDIA.thresholds;
+  const byParent = new Map<number, number[]>();
+  for (const index of candidates) {
+    const parent = facts.nodes[index]?.parent ?? -1;
+    byParent.set(parent, [...(byParent.get(parent) ?? []), index]);
+  }
+  const bars = new Set<number>();
+  const boxOf = (index: number) => facts.nodes[index]?.box ?? [0, 0, 0, 0];
+  for (const members of byParent.values()) {
+    if (members.length < barRun) continue;
+    // `edge` reads the shared edge, `size` the measure along it.
+    const axes = [
+      { edge: (i: number) => boxOf(i)[1] + boxOf(i)[3], size: (i: number) => boxOf(i)[3] },
+      { edge: (i: number) => boxOf(i)[0], size: (i: number) => boxOf(i)[2] },
+    ];
+    for (const { edge, size } of axes) {
+      for (const member of members) {
+        const run = members.filter((other) => Math.abs(edge(other) - edge(member)) <= barTolerance);
+        const sizes = run.map(size);
+        if (run.length >= barRun && Math.max(...sizes) - Math.min(...sizes) > barTolerance) {
+          bars.add(member);
+        }
+      }
+    }
+  }
+  return bars;
 }
 
 /** All visible text blocks share one font weight. */

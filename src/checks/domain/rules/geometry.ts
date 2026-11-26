@@ -8,9 +8,39 @@ const FRAME = UI_NESTED_FRAME.thresholds;
 const WHITE = '#ffffffff';
 const CONTROL_TAGS = new Set(['input', 'select', 'textarea', 'button']);
 
+export const MEDIA_TAGS: ReadonlySet<string> = new Set([
+  'img',
+  'svg',
+  'video',
+  'picture',
+  'canvas',
+]);
+
 /** A form control or an action: a card is never one of these. */
 export function isControl(node: FactNode): boolean {
   return node.field !== null || node.action !== null || CONTROL_TAGS.has(node.tag);
+}
+
+const SCROLLS = new Set(['auto', 'scroll']);
+
+/**
+ * The node's box lies partly outside an ancestor that scrolls (`overflow` auto or scroll) on that
+ * axis, by more than 1 px: a person scrolls to it, so the page edge and the ground behind it do
+ * not decide how it reads.
+ */
+export function cutByScroller(facts: PageFacts, index: number): boolean {
+  const box = facts.nodes[index]?.box;
+  if (!box) return false;
+  return ancestorsOf(facts, index).some((position) => {
+    const scroller = facts.nodes[position];
+    if (!scroller) return false;
+    const [x, y, width, height] = scroller.box;
+    const sideways =
+      SCROLLS.has(scroller.style.overflowX) && (box[0] < x - 1 || box[0] + box[2] > x + width + 1);
+    const down =
+      SCROLLS.has(scroller.style.overflowY) && (box[1] < y - 1 || box[1] + box[3] > y + height + 1);
+    return sideways || down;
+  });
 }
 
 /** Visible children of every node, in document order. */

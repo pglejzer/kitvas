@@ -46,5 +46,7 @@ export * from './domain/rework/rework.ts';
 export * from './domain/rules/index.ts';
 export * from './domain/scan/addresses.ts';
 export * from './domain/scan/scan-facts.ts';
+export * from './domain/shared-values/guideline.ts';
+export * from './domain/shared-values/shared-values-rules.ts';
 export type * from './ports/browser.ts';
 export type * from './ports/type-checker.ts';

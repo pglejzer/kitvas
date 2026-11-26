@@ -84,11 +84,11 @@ test('every state is visited at 390 with reflow and at 1280 with a screenshot, a
   assert.deepEqual(
     fake.visits.map((one) => [one.state, one.width, one.height, one.passes]),
     [
-      ['filled', 390, 844, ['reflow', 'focus', 'spacing']],
-      ['filled', 1280, 900, ['focus', 'spacing']],
+      ['filled', 390, 844, ['reflow', 'focus', 'states', 'spacing']],
+      ['filled', 1280, 900, ['focus', 'states', 'spacing', 'press']],
       ['filled', 768, 1024, []],
-      ['empty', 390, 844, ['reflow', 'focus', 'spacing']],
-      ['empty', 1280, 900, ['focus', 'spacing']],
+      ['empty', 390, 844, ['reflow', 'focus', 'states', 'spacing']],
+      ['empty', 1280, 900, ['focus', 'states', 'spacing', 'press']],
       ['empty', 768, 1024, []],
     ],
   );
@@ -111,8 +111,8 @@ test('deep adds its pass at 390 and 1280, and the deep widths with no pass and n
   assert.deepEqual(
     visitPlan(true).map((plan) => [plan.width, plan.height, plan.passes, plan.shot]),
     [
-      [390, 844, ['reflow', 'focus', 'spacing', 'deep'], true],
-      [1280, 900, ['focus', 'spacing', 'deep'], true],
+      [390, 844, ['reflow', 'focus', 'states', 'spacing', 'deep'], true],
+      [1280, 900, ['focus', 'states', 'spacing', 'press', 'deep'], true],
       [768, 1024, [], false],
       [1024, 768, [], false],
       [1440, 900, [], false],

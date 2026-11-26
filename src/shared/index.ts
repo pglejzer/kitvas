@@ -20,3 +20,4 @@ export * from './values/names.ts';
 export * from './values/numbers.ts';
 export * from './values/options.ts';
 export * from './values/paths.ts';
+export * from './values/shared-values.ts';

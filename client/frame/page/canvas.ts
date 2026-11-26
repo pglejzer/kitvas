@@ -1,12 +1,14 @@
 // The frame's side of the editor screen's canvas (plan 15, task B). A frame takes the pointer and
 // the keys while the person is over it, so it forwards what belongs to the screen, in Preview and
 // in Edit: the zoom wheel (Ctrl or Cmd with the wheel; a pinch arrives as one) and the screen's
-// keys. In Edit it also forwards Space, which pans the canvas; in Preview Space is the page's. It
-// answers `locate` with an element's box, for "zoom to selection".
+// keys. It also forwards Space, which pans the canvas: always in Edit, and in Preview unless a
+// control has keyboard focus, which Space presses. It answers `locate` with an element's box, for
+// "zoom to selection".
 //
 // Keys typed into a field stay with the field. The editor's own keys (`keys.ts`) are other keys,
 // and its inline text editor is a field, so no key is handled twice.
-// `wheelOf`, `spaceStep`, `isField` and `boxOf` are pure; the rest is the DOM around them.
+// `wheelOf`, `spaceStep`, `isField`, `pressedBySpace` and `boxOf` are pure; the rest is the DOM
+// around them.
 
 import {
   type CanvasStudioMessage,
@@ -27,7 +29,7 @@ export type CanvasDeps = {
 export type Canvas = {
   /** A canvas message from the page (`locate`). */
   handle(message: CanvasStudioMessage): void;
-  /** Edit mode went on or off: Space is forwarded only while it is on. */
+  /** Edit mode went on or off: in Edit, Space is the canvas's even on a focused control. */
   edit(on: boolean): void;
 };
 
@@ -74,6 +76,18 @@ export function isField(target: FieldLike): boolean {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 }
 
+/** The parts of a key event's target the pressing check reads. */
+export type PressLike = { tagName?: string; role?: string | null } | null;
+
+const PRESSING_ROLES = ['button', 'checkbox', 'switch', 'radio', 'tab', 'option', 'menuitem'];
+
+/** Space presses it: a button, a summary, or an element with a pressing role. Not a link. */
+export function pressedBySpace(target: PressLike): boolean {
+  if (!target) return false;
+  const tag = (target.tagName ?? '').toUpperCase();
+  return tag === 'BUTTON' || tag === 'SUMMARY' || PRESSING_ROLES.includes(target.role ?? '');
+}
+
 /** The parts of a key event the Space rule reads. */
 export type SpaceLike = {
   type: string;
@@ -87,19 +101,21 @@ export type SpaceLike = {
  * What a key event means for panning.
  * - `send`: tell the page Space went down (`true`) or up (`false`); `null` to say nothing.
  * - `prevent`: the page in the frame must not get the key (it would scroll or press a button).
- * Space is the canvas's only in Edit mode and outside a field; a repeat of a held Space is kept
- * from the page without being sent again. A key that comes up is always told, so the canvas
- * never stays in pan.
+ * Space is the canvas's outside a field. In Preview it stays the page's when `keyed`: a control
+ * that Space presses has keyboard focus (a control a mouse click left focused is not `keyed`, so
+ * a person who uses the mouse can still pan). A repeat of a held Space is kept from the page
+ * without being sent again. A key that comes up is always told, so the canvas never stays in pan.
  */
 export function spaceStep(
   event: SpaceLike,
-  state: { edit: boolean; down: boolean; field: boolean },
+  state: { edit: boolean; down: boolean; field: boolean; keyed: boolean },
 ): { send: boolean | null; prevent: boolean } {
   const nothing = { send: null, prevent: false };
   if (event.code !== 'Space') return nothing;
   if (event.type === 'keyup') return state.down ? { send: false, prevent: true } : nothing;
   if (event.type !== 'keydown') return nothing;
-  if (!state.edit || state.field || event.ctrlKey || event.metaKey || event.altKey) return nothing;
+  if (state.field || event.ctrlKey || event.metaKey || event.altKey) return nothing;
+  if (!state.edit && state.keyed) return nothing;
   return { send: state.down ? null : true, prevent: true };
 }
 
@@ -168,8 +184,15 @@ export function createCanvas({ channel, post }: CanvasDeps): Canvas {
     post({ ...head, type: 'zoom-wheel', ...wheel });
   }
 
+  /** A control that Space presses, with the focus a keyboard gives. */
+  const keyedOf = (target: EventTarget | null): boolean =>
+    target instanceof HTMLElement &&
+    pressedBySpace({ tagName: target.tagName, role: target.getAttribute('role') }) &&
+    target.matches(':focus-visible');
+
   function onSpace(event: KeyboardEvent): boolean {
-    const step = spaceStep(event, { edit, down, field: fieldOf(event.target) });
+    const { target } = event;
+    const step = spaceStep(event, { edit, down, field: fieldOf(target), keyed: keyedOf(target) });
     if (step.prevent) event.preventDefault();
     if (step.send !== null) {
       down = step.send;

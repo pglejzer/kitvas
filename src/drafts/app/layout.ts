@@ -4,13 +4,14 @@ import { type KitStore, type LoadedKit, requireKit } from '../../kit/index.ts';
 import type { Issue } from '../../shared/index.ts';
 import { craftEntryScss, craftEntryTsx } from '../domain/craft-entry.ts';
 import { type Draft, latestVersion } from '../domain/draft.ts';
-import { entryScss, entryTsx, optionsTs } from '../domain/entry.ts';
+import { entryScss, entryTsx, optionsTs, sharedTs } from '../domain/entry.ts';
 import { type Layout, layoutIssues, parseLayout } from '../domain/layout.ts';
 import { pascalCase, versionFolder } from '../domain/names.ts';
 import { statesIssues } from '../domain/states.ts';
 import type { DraftStore } from '../ports/draft-store.ts';
 import { loadDraft } from './load-draft.ts';
 import { checkOptions, readOptions } from './options.ts';
+import { checkSharedValues, readSharedValues } from './shared-values.ts';
 
 export type SectionFiles = {
   id: string;
@@ -80,6 +81,7 @@ export function inspectLayout(store: DraftStore, kits: KitStore, slug: string): 
     ...layoutIssues(layout, known),
     ...statesIssues(store.readJson(slug, `${base}/src/json/states.json`)),
     ...checkOptions(store, slug, base, themes),
+    ...checkSharedValues(store, slug, base),
   ];
   return { draft, version, base, kit, layout, issues };
 }
@@ -125,11 +127,14 @@ export function checkLayout(store: DraftStore, kits: KitStore, slug: string): La
   const generated: string[] = [];
   if (issues.length === 0) {
     const options = readOptions(store, slug, base);
+    const shared = readSharedValues(store, slug, base);
     const optionsFile = `${base}/src/tsx/options.ts`;
+    const sharedFile = `${base}/src/tsx/shared.ts`;
     const files: [string, string][] = [
-      [`${base}/src/tsx/index.tsx`, entryTsx(layout.sections, options)],
+      [`${base}/src/tsx/index.tsx`, entryTsx(layout.sections, options, shared)],
       [`${base}/src/scss/index.scss`, entryScss(layout.sections)],
       ...(options.length > 0 ? [[optionsFile, optionsTs(options)] as [string, string]] : []),
+      ...(shared.length > 0 ? [[sharedFile, sharedTs(shared)] as [string, string]] : []),
     ];
     for (const [relPath, text] of files) {
       writeGenerated(store, slug, relPath, text);
@@ -138,6 +143,9 @@ export function checkLayout(store: DraftStore, kits: KitStore, slug: string): La
     // Options that were taken away leave their type file behind: remove it.
     if (options.length === 0 && store.exists(slug, optionsFile)) {
       store.replaceAll(slug, [{ relPath: optionsFile, text: null }]);
+    }
+    if (shared.length === 0 && store.exists(slug, sharedFile)) {
+      store.replaceAll(slug, [{ relPath: sharedFile, text: null }]);
     }
   }
   return { slug, version, valid: issues.length === 0, issues, sections, generated };

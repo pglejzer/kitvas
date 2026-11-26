@@ -41,6 +41,8 @@ import { type Bundle, createSwap, pagePorts, register, running } from './page/sw
 import { createThemeBody } from './page/theme-body.ts';
 import { setTones } from './tones/tones.ts';
 
+/** The entry of a draft with shared values holds them with this. */
+export { holdShared } from './page/shared-values.ts';
 export type { Mounted } from './page/swap.ts';
 
 /** What the generated entry hands over (`src/render/domain/mount.ts`). */
@@ -79,6 +81,10 @@ export function startFrame(input: FrameInput): void {
   }
   // Not framed, or no channel asked for: nothing more to do.
   if (!link || window.parent === window) return;
+
+  // In the studio the page keeps the card's whole width, as in a check and on a phone: its own
+  // scrollbar takes no room. The wheel, the keys and a drag still scroll it.
+  document.documentElement.style.setProperty('scrollbar-width', 'none');
 
   const { channel } = link;
   const studio = window.parent;

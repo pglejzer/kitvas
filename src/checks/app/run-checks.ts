@@ -7,6 +7,7 @@ import {
   inspectLayout,
   locksNow,
   readOptions,
+  readSharedValues,
   StatesSchema,
   serializeJson,
   waiversFor,
@@ -43,6 +44,7 @@ import { VIEWPORTS } from '../domain/page/page.ts';
 import type { Before } from '../domain/rework/before.ts';
 import { beforeProblemFindings, protectedFindings, reworkScore } from '../domain/rework/rework.ts';
 import type { VisitInput } from '../domain/rules/index.ts';
+import { sharedUnusedFindings } from '../domain/shared-values/shared-values-rules.ts';
 import type { Browser } from '../ports/browser.ts';
 import type { TypeChecker } from '../ports/type-checker.ts';
 import { readBefore, uncappedFindings } from './before.ts';
@@ -329,6 +331,8 @@ export async function runChecks(
       draftOptions,
     ),
   );
+  // A shared value is set by one section and read by another (ADR 0086); the sections' own files.
+  raw.push(...sharedUnusedFindings(sources.code, readSharedValues(drafts, slug, base)));
 
   const deep = options.deep === true;
   const states = draftStates(drafts, slug, base);

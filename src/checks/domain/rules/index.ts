@@ -1,6 +1,7 @@
 // Every rule of the ui, ux and a11y checks, for the browser checks to run.
 
 import { A11Y_RULES } from './a11y.ts';
+import { A11Y_STATE_RULES } from './a11y-states.ts';
 import type { StatesRule, VisitRule } from './types.ts';
 import { UI_LAYOUT_RULES } from './ui-layout.ts';
 import { UI_LOOK_RULES } from './ui-look.ts';
@@ -17,6 +18,7 @@ export * from './types.ts';
 
 export const VISIT_RULES: readonly VisitRule[] = [
   ...A11Y_RULES,
+  ...A11Y_STATE_RULES,
   ...UI_TYPE_RULES,
   ...UI_LAYOUT_RULES,
   ...UI_WIDE_RULES,

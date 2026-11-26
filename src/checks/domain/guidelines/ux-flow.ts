@@ -172,6 +172,22 @@ export const UX_BUTTON_TEXT = {
   key: 'uxButtonText',
 } as const satisfies Guideline;
 
+export const UX_DEAD_CONTROL = {
+  id: 'ux/dead-control',
+  check: 'ux',
+  chapter: 'actions',
+  mode: 'auto',
+  severity: 'review',
+  basis: 'heuristic',
+  thresholds: {},
+  sources: [
+    { name: 'NN/g: Beyond Blue Links', url: `${NNG}/clickable-elements/` },
+    { name: 'NN/g: Button States', url: `${NNG}/button-states-communicate-interaction/` },
+  ],
+  screens: null,
+  key: 'uxDeadControl',
+} as const satisfies Guideline;
+
 export const UX_LINK_TEXT = {
   id: 'ux/link-text',
   check: 'ux',
@@ -247,6 +263,7 @@ export const UX_FLOW_GUIDELINES: readonly Guideline[] = [
   UX_ONE_PRIMARY,
   UX_DANGER_PRIMARY,
   UX_BUTTON_TEXT,
+  UX_DEAD_CONTROL,
   UX_LINK_TEXT,
   UX_SAME_TEXT_LINKS,
   UX_HIDDEN_NAV,

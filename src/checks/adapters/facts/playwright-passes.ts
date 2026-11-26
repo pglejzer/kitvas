@@ -1,7 +1,8 @@
 // The passes of a visit after its screenshot, in the order of ADR 0044: `reflow` (the page resized
-// to REFLOW_VIEWPORT and back), `focus` (`playwright-facts-focus.ts`), `deep`
-// (`playwright-deep.ts`) and `spacing` last, because its override changes the layout of every
-// text. Each pass names nodes by the indexes of the facts walk (`window.__KITVAS_NODES__`). A pass
+// to REFLOW_VIEWPORT and back), `focus` (`playwright-facts-focus.ts`), `states` (a control under the
+// pointer and with focus, `playwright-states.ts`), `deep` (`playwright-deep.ts`), `spacing`, because
+// its override changes the layout of every text, and `press` last, because using the controls
+// (`playwright-press.ts`) changes the page for good. Each pass names nodes by the indexes of the facts walk (`window.__KITVAS_NODES__`). A pass
 // that throws leaves its field empty or null, and the next one still runs.
 //
 // The functions passed to `page.evaluate` use nothing from this module.
@@ -13,6 +14,8 @@ import { settle } from '../browser/settle.ts';
 import { deepPasses } from './playwright-deep.ts';
 import { focusWalk } from './playwright-facts-focus.ts';
 import type { FactsWindow } from './playwright-facts-walk.ts';
+import { pressPass } from './playwright-press.ts';
+import { statesPass } from './playwright-states.ts';
 
 type Page = import('playwright-core').Page;
 
@@ -272,11 +275,17 @@ export async function runPasses(page: Page, visit: PassVisit, report: PageReport
   if (visit.passes.includes('focus')) {
     facts.focus = await attempt(() => focusWalk(page), []);
   }
+  if (visit.passes.includes('states')) {
+    facts.states = await attempt(() => statesPass(page), []);
+  }
   if (visit.passes.includes('deep')) {
     const unsure = report.contrastUnsure.map((entry) => entry.node);
     report.deep = await attempt(() => deepPasses(page, { ...back, unsure }), null);
   }
   if (visit.passes.includes('spacing')) {
     facts.spacing = await attempt(() => spacingPass(page, facts), null);
+  }
+  if (visit.passes.includes('press')) {
+    facts.press = await attempt(() => pressPass(page), []);
   }
 }
