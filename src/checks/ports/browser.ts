@@ -2,6 +2,7 @@
 
 import type { Pixels } from '../domain/kit/look-score.ts';
 import type { PageFacts } from '../domain/page/facts.ts';
+import type { LayerFacts } from '../domain/page/layers.ts';
 import type { PageReport } from '../domain/page/page.ts';
 import type { InventoryItem } from '../domain/rework/inventory.ts';
 import type { ScanFacts } from '../domain/scan/scan-facts.ts';
@@ -82,6 +83,32 @@ export type SurveyReport =
   | { state: 'blocked'; url: string }
   | { state: 'failed'; error: string };
 
+/**
+ * A page at the person's address shot at one width and set beside a reference, for
+ * `kitvas handoff compare` (plan 22, task 3).
+ */
+export type Match = {
+  url: string;
+  width: number;
+  height: number;
+  /** The region to shoot; null: the full page. */
+  selector: string | null;
+  /** Absolute paths: the shot to write, the reference to read. */
+  shot: string;
+  reference: string;
+  /** Both images are scaled by one factor until neither has more pixels than this. */
+  maxPixels: number;
+  policy: ScanPolicy;
+};
+
+export type MatchReport =
+  | { state: 'matched'; rendered: Pixels; reference: Pixels; scale: number }
+  /** The page, or a redirect of it, was refused by the policy. */
+  | { state: 'blocked'; url: string }
+  /** No element matches the selector. */
+  | { state: 'missing'; selector: string }
+  | { state: 'failed'; error: string };
+
 export type ScanReport =
   | { state: 'scanned'; facts: ScanFacts }
   /** The page, or a redirect of it, was refused by the policy. */
@@ -128,6 +155,13 @@ export type CaptureReport = {
   reference: Pixels | undefined;
 };
 
+/** A built draft page walked for its layers at one width, for the hand-off to Figma (plan 21). */
+export type LayerVisit = { page: string; state: string; width: number; height: number };
+
+export type LayerReport =
+  | { state: 'walked'; facts: LayerFacts }
+  | { state: 'failed'; error: string };
+
 /**
  * Catalog examples shot as PNG files one after another in one context, for the editor's Insert
  * pane (ADR 0075). Unlike `capture` nothing is compared: the page's own background is in the shot.
@@ -171,10 +205,14 @@ export interface BrowserSession {
   crop?(inputs: Crop[]): Promise<CropReport[]>;
   /** Screenshots a catalog example and decodes it with its reference. */
   capture?(input: Capture): Promise<CaptureReport>;
+  /** Walks a built draft page for the layers the hand-off sends to Figma. */
+  layers?(visit: LayerVisit): Promise<LayerReport>;
   /** Writes each shot of a batch as a PNG; one report per shot, in order. */
   shoot?(input: ShotBatch): Promise<ShotReport[]>;
   /** A live page for rework and craft: shot, page facts and inventory. */
   survey?(input: Survey): Promise<SurveyReport>;
+  /** The person's page shot and scaled beside a reference, for the hand-off's comparison. */
+  match?(input: Match): Promise<MatchReport>;
   close(): Promise<void>;
 }
 

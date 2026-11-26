@@ -1,5 +1,6 @@
 // Composition root: the one place that wires modules together.
 
+import { randomBytes } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -11,6 +12,7 @@ import { createTscChecker } from './checks/adapters/tsc-checker.ts';
 import {
   cropKit,
   makePreviews,
+  measureLayers,
   readPreviews,
   refuseFailedKit,
   SHARED_BROWSER_ENV,
@@ -29,6 +31,7 @@ import {
   createDecisionsCommand,
   createDoctorCommand,
   createDraftCommand,
+  createHandoffCommand,
   createInboxCommand,
   createKitCommand,
   createLayoutCommand,
@@ -48,6 +51,8 @@ import { createNodeMachine } from './doctor/adapters/node-machine.ts';
 import { createFsDraftStore } from './drafts/adapters/fs-draft-store.ts';
 import { createEsbuildCompiler } from './edit/adapters/esbuild-compiler.ts';
 import { createImageFiles, createImageStore } from './edit/adapters/image-files.ts';
+import { createNodeHandoffFiles } from './handoff/adapters/node-handoff-files.ts';
+import { compareHandoff, writeBrief } from './handoff/index.ts';
 import { createFolderKitStore } from './kit/adapters/folder-store.ts';
 import { createFolderKitWriter } from './kit/adapters/folder-writer.ts';
 import { createLayeredKitStore } from './kit/adapters/layered-store.ts';
@@ -63,6 +68,7 @@ import {
   PLUGIN_ROOT,
   pluginVersion,
   projectKitsDir,
+  readDecisionsText,
   resolveDataDir,
   type Translate,
   workspaceDir,
@@ -328,7 +334,7 @@ export function main(argv: string[]): Promise<number> {
               { drafts: projectDrafts, kits: projectKits, ...warm },
               slug,
             );
-            return { ok: report.built, version: report.version };
+            return { ok: report.built, version: report.version, cached: report.cached };
           },
           dispose: () => disposeRenderTools(warm),
         },
@@ -368,6 +374,31 @@ export function main(argv: string[]): Promise<number> {
     createMapCommand(drafts),
     createBuildCommand({ ...drafts, render }),
     createCheckCommand({ ...drafts, render, types, browser }),
+    createHandoffCommand({
+      ...drafts,
+      render,
+      // The layer walk (plan 21) opens the browser once for the widths of one send.
+      measure: (renderDeps, input) =>
+        measureLayers({ render: renderDeps, browser: browser() }, input),
+      files: createNodeHandoffFiles(),
+      newSendId: () => randomBytes(5).toString('hex'),
+      now: () => new Date(),
+      projectFiles: createProjectFiles,
+      // Plan 22: the brief reads the draft, its kit and the project; the comparison opens one page.
+      brief: (project, store, input) =>
+        writeBrief(
+          {
+            drafts: store,
+            kits: kitsAt(project),
+            files: createProjectFiles(project),
+            decisions: () => readDecisionsText(project),
+            rules: join(PLUGIN_ROOT, 'reference', 'handoff-code.md'),
+          },
+          input,
+        ),
+      compare: (_project, store, input) =>
+        compareHandoff({ drafts: store, browser: browser(), lookup: addresses }, input),
+    }),
     createBrowserCommand({ browser, installer, browsersDir }),
     createDoctorCommand(doctorDeps),
     createStudioCommand(studio),

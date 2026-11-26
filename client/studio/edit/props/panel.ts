@@ -29,6 +29,7 @@ import {
   emptyView,
   fill,
   focusCustom,
+  focusOpener,
   keptFocus,
   restoreFocus,
   rise,
@@ -218,6 +219,9 @@ export function mountProps(ctx: EditorContext): void {
     // "Custom" was just opened: the cursor goes into its editor (plan 19, task T5).
     const wanted = custom.takeFocus();
     if (wanted !== null) focusCustom(section, wanted);
+    // Escape closed it: the cursor goes back to what opened it.
+    const back = custom.takeBack();
+    if (back !== null) focusOpener(section, back);
   }
 
   function viewOf(

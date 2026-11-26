@@ -131,6 +131,22 @@ test('withDecision: an empty section, no newline at the end, and a heading that 
   assert.equal(block, `---\nkit: a\n---\n\n## Kits\n- x (${DAY})\n`);
 });
 
+test('a file written before the Handoff section still reads, and a hand-off decision adds it', () => {
+  const older =
+    '---\nkit: acme\n---\n# Project decisions\n\n## Kits\n\n## Copy\n\n## Layout\n\n## Checks\n\n' +
+    '## Other\n- keep it short (2026-11-01)\n';
+  const parsed = parseDecisions(older);
+  assert.deepEqual(parsed.settings, { kit: 'acme' });
+  assert.deepEqual(parsed.warnings, []);
+  const added = addDecision(older, 'Handoff', 'Figma file abc', DAY);
+  assert.equal(added.text, `${older}\n## Handoff\n- Figma file abc (${DAY})\n`);
+  assert.equal(added.line, 18);
+  // The template has the heading between Checks and Other.
+  assert.match(decisionsTemplate(), /## Checks\n\n## Handoff\n\n## Other\n/);
+  const next = withDecision(decisionsTemplate(), 'Handoff', 'code into src/ui', DAY);
+  assert.ok(next.includes(`## Handoff\n- code into src/ui (${DAY})\n\n## Other`));
+});
+
 test('withSetting replaces one line, adds the line, or adds the block', () => {
   assert.equal(
     withSetting('---\nkit: a\ncopy: pl\n---\nbody\n', 'kit', 'b'),

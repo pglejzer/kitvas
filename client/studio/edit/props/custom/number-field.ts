@@ -32,6 +32,8 @@ export type NumberFieldOptions = NumberRule & {
   onPreview(css: string | null): void;
   onPick(css: string): void;
   onUse(token: TokenOption): void;
+  /** Escape: the old value is back; the row closes the editor. */
+  onCancel?(): void;
 };
 
 export type Editor = { root: HTMLElement; focus(): void; hidden(on: boolean): void };
@@ -159,6 +161,7 @@ export function numberField(options: NumberFieldOptions): Editor {
       line.show(null, null);
       if (previewing) options.onPreview(null);
       previewing = false;
+      options.onCancel?.();
     } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       event.preventDefault();
       const direction = event.key === 'ArrowUp' ? 1 : -1;

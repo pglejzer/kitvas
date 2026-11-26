@@ -36,6 +36,8 @@ export function customEditor(options: {
   start: string | null;
   onPreview(value: StyleValue | null): void;
   onPick(value: StyleValue): void;
+  /** Escape in the editor: the old value is back, and the row closes the editor. */
+  onCancel(): void;
 }): Editor {
   const { kind, tokens } = options;
   const onPreview = (css: string | null): void =>
@@ -52,6 +54,7 @@ export function customEditor(options: {
       onPreview,
       onPick,
       onUse,
+      onCancel: options.onCancel,
     });
   }
   let rule: NumberRule;
@@ -79,5 +82,6 @@ export function customEditor(options: {
     onPreview,
     onPick,
     onUse,
+    onCancel: options.onCancel,
   });
 }

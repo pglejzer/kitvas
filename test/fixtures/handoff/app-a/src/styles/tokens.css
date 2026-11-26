@@ -1,0 +1,11 @@
+:root {
+  --color-ink: #1b1d24;
+  --color-paper: #ffffff;
+  --color-muted: #5b6070;
+  --color-accent: #2f5bea;
+  --space-2: 0.5rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --radius-md: 0.5rem;
+  --font-body: system-ui, sans-serif;
+}

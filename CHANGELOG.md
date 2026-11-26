@@ -59,3 +59,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Refused requests of the studio and the prototype origin are written to the studio log, without queries, tokens or cookies, at most 20 a minute.
 - Stopping a job ends the processes its command started, on Windows, Linux and macOS.
 - A job that cannot start keeps the error's own text out of the API; the cause goes to the log.
+- `/kitvas:handoff figma <slug>`: a draft goes to the person's own Figma file as editable layers (a page per draft, a frame per width and per section, real text, auto layout, the kit's tokens as variables), from scripts kitvas writes and the skill sends through the person's Figma MCP after a yes (ADR 0078).
+- `/kitvas:handoff code <slug>`: a draft goes into the person's project in the project's own technology through the `kitvas:fitter` agent, inside the scope the person gives, then is checked by the project's own scripts and against the draft's shots (ADR 0079).
+- `kitvas handoff figma | sent | list | target | brief | changes | compare`, each with `--json`, and the record of a draft's hand-offs in `handoff.json`.
+- A `## Handoff` section in `.kitvas/decisions.md`.

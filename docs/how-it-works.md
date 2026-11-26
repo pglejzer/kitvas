@@ -22,7 +22,7 @@ One screen takes this path:
 
 | Place                            | Holds                                                                                                                                                                 |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.kitvas/` in your project       | `decisions.md` (the project's settings and decisions, shared through git), `kits/` (kits you learned), `additions/` (what craft added), `drafts/<slug>/v<N>/` (md, src, build) |
+| `.kitvas/` in your project       | `decisions.md` (the project's settings and decisions, shared through git), `kits/` (kits you learned), `additions/` (what craft added), `drafts/<slug>/v<N>/` (md, src, build, handoff) |
 | `~/.kitvas/` in your home folder | `config.json` (the studio's look), `data/` (the plugin's npm packages, Chromium in `data/browsers/`, the studio's state files), `data-dir` (where the data folder is) |
 | The studio                       | A local process that serves pages and prototypes on 127.0.0.1 until it is stopped                                                                                     |
 
@@ -38,5 +38,6 @@ Claude Code runs the skills and the commands. The plugin's agents only write fil
 | `kitvas:tailor`   | A kit from a Figma file, a website scan or screenshots      |
 | `kitvas:sketcher` | Three sketches of a component, icon or logo for craft       |
 | `kitvas:scout`    | A research note from the public web                         |
+| `kitvas:fitter`   | A finished draft in your project's own technology, and a report |
 
 Commands appear in these docs as `kitvas <command>`. That is shorthand, explained in [Commands](commands.md).

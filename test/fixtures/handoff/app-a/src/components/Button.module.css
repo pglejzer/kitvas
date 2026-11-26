@@ -1,0 +1,16 @@
+.button {
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+}
+
+.primary {
+  background: var(--color-accent);
+  color: var(--color-paper);
+}
+
+.quiet {
+  background: transparent;
+  color: var(--color-ink);
+}

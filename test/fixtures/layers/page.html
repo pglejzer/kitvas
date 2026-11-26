@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Layer walk</title>
+    <style>
+      body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; background: #fafafa; }
+      .page { display: flex; flex-direction: column; gap: 24px; padding: 16px; }
+      .hidden { display: none; }
+      .unseen { visibility: hidden; }
+      .zero { width: 0; height: 0; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .cell { height: 40px; background: #e0e7ff; }
+      .card { position: relative; padding: 16px; background: #ffffff; border: 1px solid #d4d4d8; border-radius: 12px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
+      .badge { position: absolute; top: -8px; right: -8px; padding: 2px 8px; border-radius: 999px; background: #dc2626; color: #ffffff; font-size: 12px; }
+      .sentence { margin: 0; font-size: 16px; line-height: 24px; }
+      .sentence a { color: #2563eb; text-decoration: underline; }
+      .gradient { height: 80px; background-image: linear-gradient(90deg, #ff0000, #0000ff); }
+      .long { width: 320px; margin: 0; font-size: 14px; line-height: 20px; }
+      .photo { display: block; width: 120px; height: 80px; }
+      .row { display: flex; align-items: center; gap: 12px; }
+      .button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; background: #2563eb; color: #ffffff; }
+      .field { width: 240px; padding: 8px; font-size: 16px; }
+      .rule { height: 1px; background: #d4d4d8; }
+      .crowd { display: flex; flex-wrap: wrap; gap: 2px; }
+      .dot { width: 4px; height: 4px; background: #16a34a; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <main class="page" data-ks="sections/Story:main">
+        <p class="hidden" data-ks="sections/Story:main/p.hidden">Never shown</p>
+        <p class="unseen" data-ks="sections/Story:main/p.unseen">Not seen</p>
+        <div class="zero" data-ks="sections/Story:main/div.zero"></div>
+        <div class="grid" data-ks="sections/Story:main/div.grid">
+          <div class="cell" data-ks="sections/Story:main/div.grid/div.1"></div>
+          <div class="cell" data-ks="sections/Story:main/div.grid/div.2"></div>
+          <div class="cell" data-ks="sections/Story:main/div.grid/div.3"></div>
+        </div>
+        <div class="wrapper">
+          <section class="card" data-ks="sections/Story:main/section">
+            <span class="badge" data-ks="sections/Story:main/section/span">New</span>
+            <p class="sentence" data-ks="sections/Story:main/section/p">Plans start at <strong>nine euros</strong> a month, and <a href="#terms">the terms</a> are short.</p>
+          </section>
+        </div>
+        <div class="gradient" data-ks="sections/Story:main/div.gradient"></div>
+        <p class="long" id="long" data-ks="sections/Story:main/p.long"></p>
+        <img class="photo" src="missing.png" alt="The team at work" data-ks="sections/Story:main/img.missing" />
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%2316a34a'/%3E%3C/svg%3E" width="40" height="40" alt="" data-ks="sections/Story:main/img.loaded" />
+        <div class="row" data-ks="sections/Story:main/div.row">
+          <span class="button" data-ks="sections/Story:main/div.row/Button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 8h12"></path></svg>Save</span>
+        </div>
+        <input class="field" placeholder="Email" data-ks="sections/Story:main/input" />
+        <div class="rule" data-ks="sections/Story:main/div.rule"></div>
+      </main>
+    </div>
+    <script>
+      // A text of 5,000 characters, more than one text layer holds.
+      const sentence = 'Kitvas reads every layer of a page so that a person can keep working on it in Figma. ';
+      document.getElementById('long').textContent = sentence.repeat(80).slice(0, 5000);
+      // The state `crowd`: 3,000 painted elements instead, more than one width may send.
+      if (new URLSearchParams(location.search).get('state') === 'crowd') {
+        const crowd = document.createElement('div');
+        crowd.className = 'crowd';
+        crowd.setAttribute('data-ks', 'sections/Crowd:div');
+        for (let at = 0; at < 3000; at += 1) {
+          const dot = document.createElement('div');
+          dot.className = 'dot';
+          dot.setAttribute('data-ks', `sections/Crowd:div/div.${at}`);
+          crowd.append(dot);
+        }
+        document.querySelector('main').replaceChildren(crowd);
+      }
+    </script>
+  </body>
+</html>

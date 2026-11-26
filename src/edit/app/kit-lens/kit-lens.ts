@@ -126,11 +126,13 @@ function readRuleValues(
 ): { spacing: Spacing; offKit: OffKit } {
   const spacing: Spacing = [];
   const offKit: OffKit = [];
+  const sizes = new Map<string, string>();
   for (const property of STYLE_PROPERTIES) {
     const source = styleSource({ ...input, property });
     if (source.kind !== 'scss') continue;
     const held = source.value.trim();
     if (held === '') continue;
+    if (property === 'width' || property === 'height') sizes.set(property, held);
     const name = varOf(held);
     const token = name === null ? undefined : reading.tokens.find((one) => one.var === name);
     if (token !== undefined) {
@@ -148,7 +150,10 @@ function readRuleValues(
       offKit.push({ property, value: held.slice(0, MAX_TEXT) });
     }
   }
-  return { spacing, offKit };
+  // A visually hidden helper (the text only a screen reader hears) is a box of 1px by 1px on
+  // purpose: none of its values are for the kit.
+  const hidden = sizes.get('width') === '1px' && sizes.get('height') === '1px';
+  return { spacing, offKit: hidden ? [] : offKit };
 }
 
 /** Every element of the latest version with something to say about the kit, in page order. */

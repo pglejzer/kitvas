@@ -1,8 +1,9 @@
-// The project's decisions file (ADR 0076): a short front matter of settings, then free text in five
+// The project's decisions file (ADR 0076): a short front matter of settings, then free text in six
 // sections, one dated bullet per decision. Text in, text out: nothing here reads or writes a file.
 // A write keeps every other byte of the text, including its own line ends and a leading BOM.
 
-export const DECISION_SECTIONS = ['Kits', 'Copy', 'Layout', 'Checks', 'Other'] as const;
+/** `Handoff` came with plans 21 and 22; a file written before them has no such heading. */
+export const DECISION_SECTIONS = ['Kits', 'Copy', 'Layout', 'Checks', 'Handoff', 'Other'] as const;
 export type DecisionSection = (typeof DECISION_SECTIONS)[number];
 
 export const SETTING_KEYS = ['kit', 'copy', 'check'] as const;

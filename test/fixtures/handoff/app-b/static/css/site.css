@@ -1,0 +1,30 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  color: #1b1d24;
+}
+
+.page {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.card {
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  background: #ffffff;
+}
+
+.card-title {
+  margin: 0 0 1rem;
+}
+
+.button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: #2f5bea;
+  color: #ffffff;
+  text-decoration: none;
+}

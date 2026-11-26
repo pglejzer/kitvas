@@ -29,6 +29,8 @@ export type ColourPickerOptions = {
   onPreview(css: string | null): void;
   onPick(css: string): void;
   onUse(token: TokenOption): void;
+  /** Escape: the old colour is back; the row closes the panel. */
+  onCancel?(): void;
 };
 
 /** Where an unreadable start is drawn: a mid grey. */
@@ -380,12 +382,13 @@ export function colourPicker(options: ColourPickerOptions): Editor {
   percent.addEventListener('keyup', (event) => {
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') gesture.end();
   });
-  // Escape anywhere in the panel: the old value is back and nothing is written.
+  // Escape anywhere in the panel: the old value is back, nothing is written, the panel closes.
   root.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
     event.preventDefault();
     event.stopPropagation();
     revert();
+    options.onCancel?.();
   });
 
   draw();

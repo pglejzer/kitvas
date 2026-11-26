@@ -75,6 +75,12 @@ export const ERROR_TABLE = {
   // Plan 20 (ADR 0076): the project's decisions file.
   DECISION_INVALID: { exit: 65, http: 400 },
   DECISION_NOT_FOUND: { exit: 66, http: 404 },
+  // Plans 21 and 22: the hand-off of a draft to Figma and into the project's code.
+  HANDOFF_BUILD_FAILED: { exit: 67, http: 422 },
+  HANDOFF_TOO_LARGE: { exit: 68, http: 422 },
+  HANDOFF_INVALID: { exit: 69, http: 422 },
+  HANDOFF_OUTSIDE: { exit: 70, http: 422 },
+  HANDOFF_NO_BRIEF: { exit: 71, http: 409 },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_TABLE;

@@ -125,7 +125,7 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
       }
     },
 
-    async bundle({ workingDir, entry, alias, ids, project }) {
+    async bundle({ workingDir, entry, alias, ids, project, script }) {
       const { build } = await esbuild();
       const loadPaths = project === undefined ? [] : nodeModulesFrom(project);
       const tsconfig = projectTsconfig(project, workingDir);
@@ -154,6 +154,7 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
           loader: LOADERS,
           plugins: scss ? [scssPlugin({ compile: scss, loadPaths, workingDir })] : [],
           define: { ...DEFINE, __KITVAS_IDS__: JSON.stringify(ids) },
+          ...(script === undefined ? {} : { globalName: script.globalName, minify: true }),
           logLevel: 'silent',
         });
         const output = (extension: string): string =>

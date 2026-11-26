@@ -25,6 +25,15 @@ export interface ProjectSetup extends ProjectFiles {
    * forward slashes, sorted; [] when it is missing or its real path leaves the project.
    */
   listFiles(relPath: string): string[];
+  /**
+   * Files under a project folder, as `listFiles` lists them, but for the hand-off's reading of a
+   * whole project: `''` is the project root; a folder whose name is in `skip` is never entered (the
+   * entry `.*` stands for every folder whose name starts with a dot; files are never skipped); the
+   * walk stops after `cap` files, so a caller that asks for `cap` and gets `cap` knows it was cut.
+   * Relative to the folder, forward slashes, sorted; [] when the folder is missing, is not a
+   * project path, or its real path leaves the project. A link to a folder is not entered.
+   */
+  walk(relPath: string, options: { skip: readonly string[]; cap: number }): string[];
   /** Size in bytes of a project file; undefined when missing, a folder, or its real path leaves the project. */
   size(relPath: string): number | undefined;
   /** Bytes of a project file; undefined when missing, a folder, or its real path leaves the project. */

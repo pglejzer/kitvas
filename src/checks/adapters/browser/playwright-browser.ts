@@ -18,7 +18,9 @@ import { measureFacts } from '../facts/playwright-facts.ts';
 import { runPasses } from '../facts/playwright-passes.ts';
 import { captureExample } from '../images/playwright-capture.ts';
 import { cropImages } from '../images/playwright-images.ts';
+import { matchRendered } from '../images/playwright-match.ts';
 import { shootExamples } from '../images/playwright-shoot.ts';
+import { walkLayers } from '../layers/playwright-layers.ts';
 import { scanPage } from '../scan/playwright-scan.ts';
 import { surveyPage } from '../scan/playwright-survey.ts';
 
@@ -271,6 +273,8 @@ function createSession(
     survey: (input) => surveyPage(browser, input),
     crop: (inputs) => cropImages(browser, inputs),
     capture: (input) => captureExample(browser, input),
+    layers: (visit) => walkLayers(browser, visit),
+    match: (input) => matchRendered(browser, input),
     shoot: (input) => shootExamples(browser, input),
     async close() {
       await browser.close();

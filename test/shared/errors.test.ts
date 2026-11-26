@@ -91,6 +91,21 @@ test('a full inbox has its own code', () => {
   assert.equal(httpStatusOf('INBOX_FULL'), 409);
 });
 
+test('the hand-off codes have their own exit codes', () => {
+  const codes = {
+    HANDOFF_BUILD_FAILED: [67, 422],
+    HANDOFF_TOO_LARGE: [68, 422],
+    HANDOFF_INVALID: [69, 422],
+    HANDOFF_OUTSIDE: [70, 422],
+    HANDOFF_NO_BRIEF: [71, 409],
+  } as const;
+  for (const [code, [exit, status]] of Object.entries(codes)) {
+    const name = code as keyof typeof codes;
+    assert.equal(exitCodeOf(name), exit, code);
+    assert.equal(httpStatusOf(name), status, code);
+  }
+});
+
 test('exit codes are unique', () => {
   const exits = Object.values(ERROR_TABLE).map((entry) => entry.exit);
   assert.equal(new Set(exits).size, exits.length);

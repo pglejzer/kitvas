@@ -38,6 +38,12 @@ export type LiveLoopDeps = LiveTools & {
 export type LiveLoop = {
   /** The edit API's `beforeWrite`: these files of this version are about to get these ETags. */
   expect(slug: string, version: number, etags: Record<string, string>): void;
+  /**
+   * A draft page opened: the draft is built once in this process, quietly. A build made by an older
+   * frame runtime (kitvas was updated, or its frame code changed) is made again, so the page never
+   * runs an old frame against a new studio; a build still up to date tells nothing.
+   */
+  opened(slug: string): void;
   /** Lets the draft's running build end and drops the one waiting: its folder is about to move. */
   settle(slug: string): Promise<void>;
   /** Stops the watch, waits for the running builds, then stops the tools. */
@@ -73,8 +79,15 @@ export function startLiveLoop(deps: LiveLoopDeps): LiveLoop {
     onError: deps.onError,
   });
   let closing: Promise<void> | undefined;
+  const opened = new Set<string>();
   return {
     expect: (slug, version, etags) => watcher.expect(slug, version, etags),
+    opened(slug) {
+      if (opened.has(slug)) return;
+      opened.add(slug);
+      // The version is told only when the build throws, which a quiet build never tells.
+      builder.request(slug, 1, { quiet: true });
+    },
     settle: (slug) => builder.settle(slug),
     close() {
       closing ??= (async () => {

@@ -67,6 +67,38 @@ test('one build at a time per draft: requests meanwhile make one more run after 
   assert.equal(calls.length, 3, 'a request after the last run starts a new one at once');
 });
 
+test('a quiet build (a draft page opened) publishes only a build that was not cached', async () => {
+  const { builder, calls, events } = setup();
+  builder.request('shop', 2, { quiet: true });
+  calls[0]?.done({ ok: true, version: 2, cached: true });
+  await settled();
+  assert.deepEqual(events, [], 'nothing changed, so the open page is not loaded again');
+  builder.request('shop', 2, { quiet: true });
+  calls[1]?.done({ ok: true, version: 2, cached: false });
+  await settled();
+  assert.deepEqual(events, [{ slug: 'shop', version: 2, state: 'succeeded', ms: 0 }]);
+  builder.request('shop', 2, { quiet: true });
+  calls[2]?.fail(new KitvasError('DRAFT_INVALID', { slug: 'shop', detail: 'layout' }));
+  await settled();
+  assert.equal(
+    events.length,
+    1,
+    'a quiet build that fails says nothing: the page shows the last good one',
+  );
+});
+
+test('a request while a quiet build runs makes the next run tell its end', async () => {
+  const { builder, calls, events } = setup();
+  builder.request('shop', 2, { quiet: true });
+  builder.request('shop', 2);
+  calls[0]?.done({ ok: true, version: 2, cached: true });
+  await settled();
+  assert.equal(calls.length, 2);
+  calls[1]?.done({ ok: true, version: 2, cached: true });
+  await settled();
+  assert.deepEqual(events, [{ slug: 'shop', version: 2, state: 'succeeded', ms: 0 }]);
+});
+
 test('two drafts build side by side', () => {
   const { builder, calls } = setup();
   builder.request('shop', 1);

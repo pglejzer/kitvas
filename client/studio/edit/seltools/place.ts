@@ -1,5 +1,5 @@
 // Where the tools on the selection stand (redesign spec, goal 12; plan 19, task 4): the action bar
-// or the variant pill, centred 8 px above the selected element; below it when there is no room
+// or the variant pill, centred 8 px above the frame's label of the selected element; below it when there is no room
 // above; hidden when neither fits, when the element is taller than the stage, and when nothing of
 // it shows. Never outside the stage, never over a pill on the canvas or the ask bar (`keepOut`).
 // Pixels are the stage's (`section.stage-canvas`), its top left corner at 0, 0. Pure.
@@ -12,6 +12,11 @@ export { unionBox };
 
 /** The room between the element and the tools. */
 export const GAP = 8;
+/**
+ * The frame's label of a selected element stands right above it, one size on the screen
+ * (`client/frame/edit/label.ts`: 11 px type at 1.4): the tools above the element keep clear of it.
+ */
+export const LABEL = 16;
 /** The room kept free inside the stage's edge, and around a pill or the ask bar. */
 export const EDGE = 8;
 
@@ -68,7 +73,7 @@ export function placeBar(
     .filter((one) => one.width > 0 && one.height > 0)
     .map((one) => grown(one, EDGE));
   const centre = clamp(shown.x + shown.width / 2 - bar.width / 2, EDGE, leftMost);
-  const rows = [shown.y - GAP - bar.height, shown.y + shown.height + GAP];
+  const rows = [shown.y - LABEL - GAP - bar.height, shown.y + shown.height + GAP];
   for (const top of rows) {
     if (top < EDGE || top > topMost) continue;
     const row = { x: 0, y: top, width: view.width, height: bar.height };
