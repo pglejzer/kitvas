@@ -209,18 +209,23 @@ const strayEdge: VisitRule = {
   run(input) {
     const { facts } = input;
     const { minColumn, minOffset, maxOffset, maxReported } = UI_STRAY_EDGE.thresholds;
-    const left = new Map<number, number>();
-    const subjects: { index: number; x: number }[] = [];
+    // A column is an edge the blocks of one parent share. Blocks of other parents meet it only by
+    // chance, and a dense page has some edge within a few pixels of every block.
+    const shared = new Map<number, Map<number, number>>();
+    const subjects: { index: number; parent: number; x: number }[] = [];
     facts.nodes.forEach((node, index) => {
       if (node.hidden) return;
       if (node.text === null && frameOf(facts, index) === null) return;
       const x = Math.round(node.box[0]);
-      subjects.push({ index, x });
-      left.set(x, (left.get(x) ?? 0) + 1);
+      subjects.push({ index, parent: node.parent, x });
+      const left = shared.get(node.parent) ?? new Map<number, number>();
+      shared.set(node.parent, left.set(x, (left.get(x) ?? 0) + 1));
     });
-    const columns = [...left].filter(([, count]) => count >= minColumn).map(([x]) => x);
     const found: RawFinding[] = [];
-    for (const { index, x } of subjects) {
+    for (const { index, parent, x } of subjects) {
+      const columns = [...(shared.get(parent) ?? [])]
+        .filter(([, count]) => count >= minColumn)
+        .map(([column]) => column);
       if (columns.includes(x)) continue;
       const near = columns
         .map((column) => ({ column, off: Math.abs(x - column) }))

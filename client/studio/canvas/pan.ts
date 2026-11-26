@@ -1,7 +1,7 @@
-// Panning the canvas (plan 15, task B): Space+drag and the middle button. Space may be held on the
-// page or in a frame, which forwards it (`space`). While it is held a shield lies over the cards
-// and takes the pointer, so a drag that starts over a frame pans instead of reaching the frame.
-// Only the canvas scrolls; the window never does.
+// Panning the canvas (plan 15, task B): Space+drag, with the left or the right button, and the
+// middle button. Space may be held on the page or in a frame, which forwards it (`space`). While
+// it is held a shield lies over the cards and takes the pointer, so a drag that starts over a frame
+// pans instead of reaching the frame. Only the canvas scrolls; the window never does.
 
 /** What the pan knows: Space held on the page, Space held in a frame, a drag going on. */
 export type PanState = { page: boolean; frame: boolean; dragging: boolean };
@@ -35,6 +35,8 @@ export type Pan = {
 export function mountPan(scroll: HTMLElement, shield: HTMLElement | null): Pan {
   const state: PanState = { page: false, frame: false, dragging: false };
   let last: { x: number; y: number } | null = null;
+  /** A drag with the right button just ended: its menu is still to come. */
+  let menuDue = false;
 
   function render(): void {
     const view = panView(state);
@@ -75,16 +77,19 @@ export function mountPan(scroll: HTMLElement, shield: HTMLElement | null): Pan {
     set({ dragging: true });
   }
 
-  function stop(): void {
+  function stop(event: PointerEvent): void {
     if (!last) return;
     last = null;
+    menuDue = event.type === 'pointerup' && event.button === 2;
     set({ dragging: false });
   }
 
   if (shield) {
     shield.addEventListener('pointerdown', (event) => {
-      if (event.button === 0) start(event);
+      if (event.button === 0 || event.button === 2) start(event);
     });
+    // The right button pans too, so its menu stays away while the shield is up.
+    shield.addEventListener('contextmenu', (event) => event.preventDefault());
     // A press that moved focus out of the frame would end the frame's Space there.
     shield.addEventListener('mousedown', (event) => event.preventDefault());
   }
@@ -95,6 +100,20 @@ export function mountPan(scroll: HTMLElement, shield: HTMLElement | null): Pan {
   scroll.addEventListener('pointerdown', (event) => {
     if (event.button === 1) start(event);
   });
+  // The right button's menu comes with its release, when the drag is over; with Space let go
+  // first the shield is down by then and the menu would open over the card.
+  scroll.addEventListener('contextmenu', (event) => {
+    if (menuDue) event.preventDefault();
+    menuDue = false;
+  });
+  // Where the menu comes with the press instead, none follows the release: the next press starts clean.
+  scroll.addEventListener(
+    'pointerdown',
+    () => {
+      menuDue = false;
+    },
+    true,
+  );
   scroll.addEventListener('pointermove', (event) => {
     if (!last) return;
     scroll.scrollLeft -= event.clientX - last.x;

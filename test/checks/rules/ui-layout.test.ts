@@ -250,6 +250,17 @@ test('stray-edge is silent for 1 px, 5 px, a hidden node, a small column, and wh
   assert.deepEqual(run('ui/stray-edge', []), []);
 });
 
+test('stray-edge takes a column from the blocks of one parent, never from the whole page', () => {
+  // Two rows under the page: three cells share an edge in the first row.
+  const rows = [root(), node({ parent: 0 }), node({ parent: 0 })];
+  const cells = column(288, 3).map((cell) => ({ ...cell, parent: 1 }));
+  const cell = (parent: number) =>
+    node({ parent, ks: 'a:td/2', box: [284, 400, 66, 20], text: text('Business') });
+  // A cell of another row, 4 px off them, ends where they end: its width sets its left edge.
+  assert.deepEqual(run('ui/stray-edge', [...rows, ...cells, cell(2)]), []);
+  assert.equal(run('ui/stray-edge', [...rows, ...cells, cell(1)]).length, 1);
+});
+
 test('card-sizes fires once per row, at its first card', () => {
   const nodes = [
     root(),

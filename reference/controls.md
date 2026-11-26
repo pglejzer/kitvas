@@ -16,6 +16,7 @@ A control is judged in use, not at rest: under the pointer, with keyboard focus,
 - R-CONTROL-8: The label of a control never changes and never disappears with its state. "Weekly" stays "Weekly" at rest, on and under the pointer.
 - R-CONTROL-9: A hover look and `cursor: pointer` belong only to controls. A row, a card or a heading that does nothing when pressed gets neither.
 - R-CONTROL-10: A control that cannot be used takes the kit's `disabled` prop, never only a grey style. Text near it says why when the reason is not plain.
+- R-CONTROL-29: The label of a control is not text to select. A kit button brings that; a control you write yourself takes `user-select: none`. Else a double click beside it, or a drag across a row of controls, selects the labels.
 
 ## What a control does
 
@@ -32,7 +33,7 @@ A control is judged in use, not at rest: under the pointer, with keyboard focus,
 - R-CONTROL-16: Choose the pattern by what the control does, and keep to it. One of several choices that changes the content: a group of buttons with `aria-pressed`, one always on, inside an element with `role="group"` and a label; each button is a Tab stop and takes Space and Enter. Separate views: the kit's tabs, when it has them. Never a mix of the two.
 - R-CONTROL-17: A filter changes every part it governs at once, and the screen says what is shown: a count or a summary that changes with it ("12 accounts, Business plan"). One action returns every filter to its default.
 - R-CONTROL-18: A column head that shows a sort mark is a button inside its `th`. Pressing it sorts the rows and turns the mark. `aria-sort` stands on the one sorted column. A column that cannot be sorted shows no mark.
-- R-CONTROL-19: A select is the kit's `Select` (R-COMPOSE-7). The browser draws its list, not the page: do not style the options. Choosing a value changes what the section shows.
+- R-CONTROL-19: A select is the kit's `Select` (R-COMPOSE-7). Its list is the kit's and the browser's to draw: do not style the options and do not build a list of your own. Choosing a value changes what the section shows.
 - R-CONTROL-20: A search field has a visible label that names what it searches (R-COMPOSE-31) and filters that list as the person types. No match: R-CONTROL-15.
 - R-CONTROL-21: A link goes somewhere, a button does something. A card that opens a page is one link, not a card with a second target hidden in it.
 

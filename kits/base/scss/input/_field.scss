@@ -52,3 +52,74 @@
     color: var(--kit-color-fix);
   }
 }
+
+// A select's list is drawn in the page where the browser can do that (`base-select`): it takes
+// the kit's tokens and is laid out, scaled and captured with the page. Elsewhere the system's own
+// list opens (ADR 0087).
+@supports (appearance: base-select) {
+  select.kit-field__control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--kit-space-sm);
+    cursor: pointer;
+
+    &,
+    &::picker(select) {
+      appearance: base-select;
+    }
+
+    // A chevron of two borders: the kit has no icon font.
+    &::picker-icon {
+      content: "";
+      flex: none;
+      box-sizing: border-box;
+      width: var(--kit-space-sm);
+      height: var(--kit-space-sm);
+      margin: 0 var(--kit-space-xs) var(--kit-space-xs);
+      border: solid var(--kit-color-ink-mid);
+      border-width: 0 2px 2px 0;
+      rotate: 45deg;
+    }
+
+    &::picker(select) {
+      box-sizing: border-box;
+      margin-block: var(--kit-space-xs);
+      padding: var(--kit-space-xs);
+      border: 1px solid var(--kit-color-line-strong);
+      border-radius: var(--kit-radius-md);
+      background: var(--kit-color-surface);
+      color: var(--kit-color-ink);
+    }
+
+    option {
+      min-height: var(--kit-size-control-sm);
+      padding: 0 var(--kit-space-sm);
+      border-radius: var(--kit-radius-sm);
+      gap: var(--kit-space-sm);
+      align-items: center;
+      background: transparent;
+      color: var(--kit-color-ink);
+      cursor: pointer;
+
+      &:hover,
+      &:focus-visible {
+        background: var(--kit-color-bg);
+      }
+
+      &:focus-visible {
+        @include mixins.focus-ring;
+
+        outline-offset: -2px;
+      }
+
+      &:checked {
+        font-weight: var(--kit-font-weight-medium);
+      }
+
+      &:disabled {
+        @include mixins.disabled;
+      }
+    }
+  }
+}

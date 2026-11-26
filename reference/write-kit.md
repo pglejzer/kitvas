@@ -39,6 +39,7 @@ Read by the `tailor` agent before it writes a kit from Figma files, a website sc
 - W13: Props come from what the source shows. Figma: the variant properties in the metadata (`Size=Large, Type=Primary` gives `size` and `type`, enums of the values you read). Website and images: the variations you see (primary and secondary buttons, a disabled field). Use `className` only when the component passes it on.
 - W14: States: write hover, focus-visible, active and disabled styles only when the source shows them. Never invent a state. A focus style that the source lacks still needs a visible ring from a token; say so in the report.
 - W15: Plain elements first: a real `button`, `a`, `input`, `label`. Keep the accessible name and keyboard use of the native element.
+- W15b: A select stays a native `select`, and its list is drawn in the page where the browser can do that: inside `@supports (appearance: base-select)` give the control and its `::picker(select)` `appearance: base-select`, then style the list and its options from the kit's tokens (the look of the open list when the source shows one, else the look of the field). The system's own list is a window outside the page: in the studio it opens beside its control at any zoom but 100 %, and no check sees it.
 - W16: Text inside a component is the example's text, passed as props or `children`. Never put copied page text in a component as a default unless it is a short label the source always shows.
 
 ## kit.json

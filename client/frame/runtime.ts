@@ -82,6 +82,10 @@ export function startFrame(input: FrameInput): void {
   // Not framed, or no channel asked for: nothing more to do.
   if (!link || window.parent === window) return;
 
+  // In the studio the page keeps the card's whole width, as in a check and on a phone: its own
+  // scrollbar takes no room. The wheel, the keys and a drag still scroll it.
+  document.documentElement.style.setProperty('scrollbar-width', 'none');
+
   const { channel } = link;
   const studio = window.parent;
   // The studio and the prototype origin share the host name; only the port differs. `URL` writes

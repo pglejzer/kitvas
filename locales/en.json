@@ -380,7 +380,7 @@
   "checkHint.uiPlaceholderMedia": "Put real images, icons or illustrations in these boxes, or remove them. Use the kit's Image or Avatar component where it has one.",
   "checkHint.uiShadowCount": "The page uses {count} different shadows. Pick the kit's shadow tokens and keep to its few elevation levels.",
   "checkHint.uiStickyChrome": "Fixed bars take {percent} percent of the screen height. Keep them slim, or make one of them scroll with the page.",
-  "checkHint.uiStrayEdge": "This block starts {off} px from a column that other blocks share (x = {column}). Use the same padding and spacing tokens so the edges line up.",
+  "checkHint.uiStrayEdge": "This block starts {off} px from the column that the other blocks of its container share (x = {column}). Use the same padding and spacing tokens so the edges line up.",
   "checkHint.uiTripleFrame": "Keep one cue. Use a border for a flat card, or a shadow for a raised one, and let the fill go if it adds nothing.",
   "checkHint.uiWireframe": "Replace the placeholder boxes and copy with real content, and give the page more than one size and weight of text.",
   "checkHint.uxBrokenAnchor": "Give the target the id \"{target}\", or point the link at an element that exists.",

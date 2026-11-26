@@ -135,7 +135,9 @@ export function mountCanvas(
   let locating = 0;
   const listeners = new Set<(zoom: number) => void>();
 
-  const room = (): Size => ({ width: scroll.clientWidth, height: scroll.clientHeight });
+  // The scroller's whole box, its scrollbars counted in: they come and go with the zoom, and a
+  // room that shrank with them would move the world sideways at that step.
+  const room = (): Size => ({ width: scroll.offsetWidth, height: scroll.offsetHeight });
   const worldSize = (): Size => ({ width: world.offsetWidth, height: world.offsetHeight });
 
   /** Puts the world where the zoom and the room say; the frames keep their own size. */

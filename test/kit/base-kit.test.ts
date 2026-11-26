@@ -94,3 +94,19 @@ test('components and styles sit in a folder per category, never loose', () => {
   }
   assert.deepEqual(problems, []);
 });
+
+test('the select draws its list in the page where the browser can (ADR 0087)', () => {
+  const styles = read('scss', 'input', '_field.scss');
+  const guarded = styles.split('@supports (appearance: base-select)')[1] ?? '';
+  // Both the control and its list must ask for it, or the system's own list opens.
+  assert.match(guarded, /&,\s*&::picker\(select\)\s*\{\s*appearance: base-select;/);
+  // Outside the guard nothing asks for it: a browser without it keeps its own select whole.
+  assert.doesNotMatch(styles.split('@supports')[0] ?? '', /appearance:\s*base-select/);
+  const entry = base.kit.components.find((component) => component.name === 'Select');
+  assert.match(entry?.description ?? '', /list/);
+});
+
+test('the label of a button is never taken into a text selection', () => {
+  // A double click beside a button, or a drag across a row of them, selected their labels.
+  assert.match(read('scss', 'action', '_button.scss'), /\.kit-button \{[^}]*user-select: none;/);
+});
