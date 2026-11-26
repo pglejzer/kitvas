@@ -5,6 +5,7 @@
 // `before`. A change the panel would refuse makes the whole variant invalid, with the reason: a
 // variant is applied whole or not at all. Pure: no DOM.
 
+import { sameContext } from '../../../../src/edit/domain/op-kinds.ts';
 import type {
   EditOp,
   PropValue,
@@ -173,15 +174,13 @@ function styleAlready(
     const next = utilityFor(property, value, env.context, env.tokens);
     return next !== null && next === currentUtility(view, property, env.context);
   }
-  const { width, state } = env.context;
   const held = isBase(env.context)
     ? ruleHeld(view, property)
     : (view.overrides ?? []).find(
         (one) =>
           one.utility === null &&
           one.property === property &&
-          one.context.width === width &&
-          one.context.state === state,
+          sameContext(one.context, env.context),
       );
   if (held === undefined || held === null) return false;
   return same(styleValueOf(held.value, held.offKit), value);

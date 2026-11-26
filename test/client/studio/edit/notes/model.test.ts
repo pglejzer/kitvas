@@ -70,20 +70,17 @@ test('rows are numbered as in the list; only open notes on an element now are pi
 });
 
 test('a note for Claude sends a note request with its element, context and id', () => {
-  const made = noteRequest(
-    { id: 'n1', element: BUTTON, text: `  ${'x'.repeat(1_200)}  ` },
-    { width: 390, state: 'hover' },
-  );
+  const context = { width: 390, state: 'hover' as const, option: { id: 'theme', value: 'dark' } };
+  const note = { id: 'n1', element: BUTTON, text: `  ${'x'.repeat(1_200)}  ` };
+  const made = noteRequest(note, context);
   assert.equal(made.kind, 'note');
   assert.deepEqual(made.elements, [BUTTON]);
-  assert.deepEqual(made.context, { width: 390, state: 'hover' });
+  assert.deepEqual(made.context, context);
   assert.equal(made.note, 'n1');
   // A request takes less text than a note: the words are cut to fit.
   assert.equal(made.text.length, 1_000);
-  assert.deepEqual(
-    noteRequest({ id: 'n2', element: null, text: 'Hi' }, { width: null, state: null }).elements,
-    [],
-  );
+  const base = { width: null, state: null, option: null };
+  assert.deepEqual(noteRequest({ id: 'n2', element: null, text: 'Hi' }, base).elements, []);
 });
 
 test("a note's waiting request is found, and a status change of one tells the notes to reload", () => {

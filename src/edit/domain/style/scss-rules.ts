@@ -35,7 +35,7 @@ function readJoined(
   parent: Found | null,
   into: Found[],
 ): void {
-  const body = readBody(text, place.block, place.closed, null, false);
+  const body = readBody(text, place.block, place.closed);
   const rule: Found = {
     ...body,
     view: {

@@ -53,8 +53,34 @@ const HERO_TSX = [
 const HERO_SCSS = '.hero {\n  padding: var(--kit-space-md);\n}\n';
 const WIDE_BLOCK = '\n  @media (min-width: 768px) {\n    padding: var(--kit-space-lg);\n  }\n';
 
-const AT_768: StyleContext = { width: 768, state: null };
+const AT_768: StyleContext = { width: 768, state: null, option: null };
 const LG: StyleValue = { token: '--kit-space-lg' };
+/** ADR 0082: the value `2` of the option `columns`, at every width, resting. */
+const TWO: StyleContext = { width: null, state: null, option: { id: 'columns', value: '2' } };
+const OPTIONS_FILE = 'src/json/options.json';
+const OPTIONS_JSON = JSON.stringify({
+  schemaVersion: 1,
+  options: [
+    {
+      id: 'columns',
+      label: 'Columns',
+      default: '3',
+      values: [
+        { id: '3', label: '3' },
+        { id: '2', label: '2' },
+      ],
+    },
+    {
+      id: 'cards',
+      label: 'Cards',
+      default: 'outlined',
+      values: [
+        { id: 'outlined', label: 'Outlined' },
+        { id: 'filled', label: 'Filled' },
+      ],
+    },
+  ],
+});
 
 function setup(scss = HERO_SCSS) {
   const { store } = tempDrafts();
@@ -122,7 +148,7 @@ test('a hover value at a width and its undo go through one request each', async 
       value: { raw: '#123456' },
       before: null,
       newRule: false,
-      context: { width: 768, state: 'hover' },
+      context: { width: 768, state: 'hover', option: null },
       newBlock: true,
     },
   ];
@@ -186,7 +212,7 @@ test('a width that is no breakpoint of the kit is refused, and nothing is writte
   const { store, deps } = setup();
   const result = await applyEdits(
     deps,
-    request(store, 1, [widePadding({ width: 900, state: null })]),
+    request(store, 1, [widePadding({ ...AT_768, width: 900 })]),
   );
   assert.deepEqual(result, {
     outcome: 'refused',
@@ -194,6 +220,48 @@ test('a width that is no breakpoint of the kit is refused, and nothing is writte
     refusals: [{ index: 0, reason: 'not-breakpoint' }],
   });
   assert.equal(store.readText('shop', `v2/${SCSS}`), undefined);
+});
+
+test("an edit for an option's value goes into its block in the version's order, and undoes", async () => {
+  const filled = '\n  [data-opt-cards="filled"] & {\n    color: var(--kit-color-ink);\n  }\n';
+  const read = HERO_SCSS.replace('}\n', `${filled}}\n`);
+  const { store, deps } = setup(read);
+  writeVersionFiles(store, 'shop', 1, { [OPTIONS_FILE]: OPTIONS_JSON });
+  const ops = [widePadding(TWO)];
+  const result = await applyEdits(deps, request(store, 1, ops));
+  assert.equal(result.outcome, 'applied');
+  if (result.outcome !== 'applied') return;
+  // `columns` comes before `cards` in the version's file, so its block does too.
+  const columns = '\n  [data-opt-columns="2"] & {\n    padding: var(--kit-space-lg);\n  }\n';
+  assert.equal(
+    store.readText('shop', `v2/${SCSS}`),
+    HERO_SCSS.replace('}\n', `${columns}${filled}}\n`),
+  );
+  assert.deepEqual(result.inverse, inverseAll(ops));
+  const undo = await applyEdits(deps, request(store, 2, result.inverse));
+  assert.equal(undo.outcome, 'applied');
+  assert.equal(store.readText('shop', `v2/${SCSS}`), read);
+});
+
+test('an op for an option or a value the version does not have is refused, nothing written', async () => {
+  const invalid = { outcome: 'refused', version: 1, refusals: [{ index: 0, reason: 'invalid' }] };
+  const { store, deps } = setup();
+  writeVersionFiles(store, 'shop', 1, { [OPTIONS_FILE]: OPTIONS_JSON });
+  for (const option of [
+    { id: 'columns', value: '4' },
+    { id: 'theme', value: 'dark' },
+  ]) {
+    const ops = [widePadding({ ...TWO, option })];
+    assert.deepEqual(await applyEdits(deps, request(store, 1, ops)), invalid);
+  }
+  assert.equal(store.readText('shop', `v2/${SCSS}`), undefined);
+  // A version without `options.json` has no option at all: an op stored for one is refused too.
+  const none = setup();
+  assert.deepEqual(
+    await applyEdits(none.deps, request(none.store, 1, [widePadding(TWO)])),
+    invalid,
+  );
+  assert.equal(none.store.readText('shop', `v2/${SCSS}`), undefined);
 });
 
 test('a property a kit prop covers takes no value of a width or a state', async () => {
@@ -211,15 +279,18 @@ test('a property a kit prop covers takes no value of a width or a state', async 
     ...(context === undefined ? {} : { context, newBlock: true }),
   });
   // Base's Stack sets its gap by the `gap` prop.
+  const base: StyleContext = { width: null, state: null, option: null };
   assert.equal(await refusal(gap(AT_768)), 'prop-covered');
-  assert.equal(await refusal(gap({ width: null, state: 'hover' })), 'prop-covered');
+  assert.equal(await refusal(gap({ ...base, state: 'hover' })), 'prop-covered');
   // The base goes to the prop as in stage 4a, and is no business of this check.
   assert.equal(await refusal(gap(undefined)), null);
-  assert.equal(await refusal(gap({ width: null, state: null })), null);
+  assert.equal(await refusal(gap(base)), null);
   // A property no prop covers, and a plain element.
   assert.equal(await refusal(widePadding(AT_768, STACK, 'stack')), null);
   assert.equal(await refusal(gap(AT_768, SECTION)), null);
-  assert.equal(await refusal(gap({ width: 900, state: null })), 'not-breakpoint');
+  assert.equal(await refusal(gap({ ...base, width: 900 })), 'not-breakpoint');
+  // An option's value the version (here without options) does not have is no value to write.
+  assert.equal(await refusal(gap(TWO, SECTION)), 'invalid');
   // Taking an override away is never refused for the prop.
   const drop: SimpleOp = {
     op: 'removeStyle',

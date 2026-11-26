@@ -12,6 +12,7 @@
 import type { EditOp, StyleProperty } from '../../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../../src/studio/api/edit/edit-schemas.ts';
 import { MAX_PREVIEW, type PreviewChange } from '../../../../channel/edit-protocol.ts';
+import { choiceStoreOf } from '../../../options/choice.ts';
 import { inspect as readInspect } from '../../api.ts';
 import type { EditorContext } from '../../context.ts';
 import { uploadControl } from '../../insert/image-upload.ts';
@@ -70,6 +71,8 @@ export function mountProps(ctx: EditorContext): void {
   const section = ctx.panel.querySelector<HTMLElement>('[data-edit="props"]');
   if (!section) return;
   const { store, bridge, history, slug, main } = ctx;
+  /** The values of the version's options the page shows (plan 25); none without options. */
+  const choices = choiceStoreOf(main);
   const notes = new Map<string, string>();
   /** Rows whose edit is waiting for the frame to show whether the computed value moved. */
   const pending = new Map<string, { property: StyleProperty; before: string | undefined }>();
@@ -269,6 +272,15 @@ export function mountProps(ctx: EditorContext): void {
       preview: (ops) => sendPreview(ops, itemNow(state)?.item),
       scope: switchCount === null ? null : { mode: scope, count: switchCount },
       custom,
+      // A Tailwind draft's options act through the prop (plan 25): no option context there.
+      options:
+        choices === undefined || edit.format === 'tailwind'
+          ? null
+          : {
+              list: choices.options(),
+              choice: choices.get(),
+              pick: (option) => store.set({ context: { ...store.get().context, option } }),
+            },
     };
     const view = propsView(env, ui());
     // Under the head: the suggestion, what a handle could not write, then the notes.
@@ -424,6 +436,9 @@ export function mountProps(ctx: EditorContext): void {
       state.stateHeld !== previous.stateHeld;
     if (changed) render();
   });
+
+  // Plan 25: other values shown change where a row's value comes from, and the bar's targets.
+  choices?.subscribe(() => render());
 
   // A handle that wrote nothing says why here, for the element it was on.
   main.addEventListener(HANDLE_NOTE, (event) => {

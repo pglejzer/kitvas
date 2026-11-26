@@ -29,7 +29,7 @@ export function askRequest(finding: FindingFacts): NewRequest {
   return {
     kind: 'say',
     elements: finding.element === null ? [] : [finding.element].slice(0, MAX_REQUEST_ELEMENTS),
-    context: { width: null, state: null },
+    context: { width: null, state: null, option: null },
     text: `${head}${body}${note}${tail}`.slice(0, MAX_REQUEST_TEXT).trim(),
   };
 }

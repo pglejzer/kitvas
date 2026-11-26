@@ -1,9 +1,18 @@
 // What the editor's operations are and do without their schemas (spec 4a, decision 5): which kind
 // an op is, the element ids it names, where it writes, its exact inverse, how a style value is
-// written, and the hash of a subtree. It imports types only, so the studio page uses it as it is
+// written, whether two contexts name one block, and the hash of a subtree. It imports types only,
+// so the studio page uses it as it is
 // (ADR 0080); `ops.ts` re-exports every name.
 
-import type { EditOp, EditOpKind, ItemClassOp, SimpleOp, StructuralOp, StyleValue } from './ops.ts';
+import type {
+  EditOp,
+  EditOpKind,
+  ItemClassOp,
+  SimpleOp,
+  StructuralOp,
+  StyleContext,
+  StyleValue,
+} from './ops.ts';
 
 const SIMPLE: ReadonlySet<EditOpKind> = new Set([
   'setProp',
@@ -120,6 +129,22 @@ export function inverse(op: SimpleOp): SimpleOp {
       return { ...op, value: op.before, before: op.value };
   }
 }
+
+/** Every width, the resting state, every option: where an op without a context writes. */
+export const BASE_CONTEXT: StyleContext = { width: null, state: null, option: null };
+
+/** The context is the base: no width, no state, no option. */
+export const isBaseContext = (context: StyleContext): boolean =>
+  context.width === null && context.state === null && context.option === null;
+
+/** The same value of the same option, or both none (ADR 0082). */
+export function sameOption(a: StyleContext['option'], b: StyleContext['option']): boolean {
+  return a === null || b === null ? a === b : a.id === b.id && a.value === b.value;
+}
+
+/** The same width, state and option value: the same block of a rule. */
+export const sameContext = (a: StyleContext, b: StyleContext): boolean =>
+  a.width === b.width && a.state === b.state && sameOption(a.option, b.option);
 
 /** The inverse of a gesture: the inverses in reverse order. */
 export const inverseAll = (ops: readonly SimpleOp[]): SimpleOp[] => [...ops].reverse().map(inverse);

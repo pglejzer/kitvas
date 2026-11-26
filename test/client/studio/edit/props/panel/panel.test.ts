@@ -99,7 +99,7 @@ test('a class already in the TSX adds nothing', () => {
 
 test('this item adds its class once for a write in a width context', () => {
   const ops = opsForStyle(itemView(false), 'background-color', MD_COLOR, {
-    context: { width: 768, state: null },
+    context: { width: 768, state: null, option: null },
   });
   assert.deepEqual(
     ops.map((op) => op.op),

@@ -25,12 +25,12 @@ const PLAIN: ScssOptions = { force: false };
 const FORCE: ScssOptions = { force: true };
 const KIT: ScssOptions = { force: false, breakpoints: () => [768, 1280] };
 
-const AT_768: StyleContext = { width: 768, state: null };
-const AT_1280: StyleContext = { width: 1280, state: null };
-const HOVER: StyleContext = { width: null, state: 'hover' };
-const FOCUS: StyleContext = { width: null, state: 'focus-visible' };
-const ACTIVE: StyleContext = { width: null, state: 'active' };
-const HOVER_768: StyleContext = { width: 768, state: 'hover' };
+const AT_768: StyleContext = { width: 768, state: null, option: null };
+const AT_1280: StyleContext = { width: 1280, state: null, option: null };
+const HOVER: StyleContext = { width: null, state: 'hover', option: null };
+const FOCUS: StyleContext = { width: null, state: 'focus-visible', option: null };
+const ACTIVE: StyleContext = { width: null, state: 'active', option: null };
+const HOVER_768: StyleContext = { width: 768, state: 'hover', option: null };
 
 const token = (name: string): StyleValue => ({ token: `--kit-${name}` });
 const raw = (value: string): StyleValue => ({ raw: value });
@@ -444,10 +444,11 @@ test('the last declaration of a block goes with the block when the op says so', 
 // ---- Refusals and conflicts ---------------------------------------------------------------------
 
 test('a width that is no breakpoint of the kit is refused', () => {
-  const odd: StyleContext = { width: 900, state: null };
+  const odd: StyleContext = { width: 900, state: null, option: null };
   const op = set(odd, 'gap', token('space-md'), null, { newBlock: true });
   assert.deepEqual(applyScss(BASE, op, KIT), { refused: 'not-breakpoint' });
-  assert.deepEqual(applyScss(BASE, { ...op, context: { width: 900, state: 'hover' } }, KIT), {
+  const oddHover: StyleContext = { ...odd, state: 'hover' };
+  assert.deepEqual(applyScss(BASE, { ...op, context: oddHover }, KIT), {
     refused: 'not-breakpoint',
   });
   const written = WIDE.replace('768', '900');
@@ -518,7 +519,7 @@ test('a keyword or an image is checked in a context as in the base', () => {
 });
 
 test('an op with the base context is the op of stage 4a', () => {
-  const base: StyleContext = { width: null, state: null };
+  const base: StyleContext = { width: null, state: null, option: null };
   const op = set(base, 'gap', token('space-md'), null);
   assert.equal(
     textOf(applyScss(BASE, op, KIT)),

@@ -3,19 +3,19 @@
 // removed declaration falls back to a value only the stylesheet knows, so both wait for the build.
 // A style value shows as the SCSS gets it: `styleText` of the server's ops (ADR 0080).
 
-import { styleText } from '../../../../src/edit/domain/op-kinds.ts';
+import { isBaseContext, styleText } from '../../../../src/edit/domain/op-kinds.ts';
 import type { EditOp, StyleContext } from '../../../../src/edit/index.ts';
 import { MAX_STYLE_VALUE, type PreviewChange } from '../../../channel/edit-protocol.ts';
 
 /**
- * The width and state a style op writes (spec 4c); `null` for the base and for any other op. Its
- * preview is for the cards at least that wide, and shows while the state is forced (task B).
+ * The width, state and option value a style op writes (spec 4c, ADR 0082); `null` for the base
+ * and for any other op. Its preview is for the cards at least that wide, and shows while the
+ * state is forced (task B).
  */
 export function previewContext(op: EditOp): StyleContext | null {
   if (op.op !== 'setStyle' && op.op !== 'removeStyle') return null;
   const { context } = op;
-  if (context === undefined || (context.width === null && context.state === null)) return null;
-  return context;
+  return context === undefined || isBaseContext(context) ? null : context;
 }
 
 /**

@@ -6,6 +6,7 @@
 // the server's own (`src/edit/domain/style/utilities.ts`, ADR 0080), so every class built here is
 // one the server knows and reads back.
 
+import { isBaseContext, sameContext } from '../../../../src/edit/domain/op-kinds.ts';
 import { UTILITY } from '../../../../src/edit/domain/op-limits.ts';
 import {
   coreOf,
@@ -134,16 +135,13 @@ export function utilityFor(
   return className !== null && UTILITY.test(className) ? className : null;
 }
 
-const sameContext = (a: StyleContext, b: StyleContext): boolean =>
-  a.width === b.width && a.state === b.state;
-
 /** The class that sets the property in `context` now, as the inspect answer names it. */
 export function currentUtility(
   inspected: Inspect,
   property: StyleProperty,
   context: StyleContext,
 ): string | null {
-  if (context.width === null && context.state === null) {
+  if (isBaseContext(context)) {
     const source = inspected.styles[property];
     return source?.kind === 'utility' ? source.className : null;
   }

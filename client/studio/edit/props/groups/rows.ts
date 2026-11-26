@@ -6,6 +6,7 @@
 // code or held by the context a locked chip whose reason is its tooltip (`prop-control.ts`).
 
 import type {
+  ContextOption,
   EditOp,
   PropValue,
   Refusal,
@@ -13,6 +14,7 @@ import type {
   StyleState,
   TokenOption,
 } from '../../../../../src/edit/index.ts';
+import type { DraftOption, OptionChoice } from '../../../../../src/shared/values/options.ts';
 import type { Inspect } from '../../../../../src/studio/api/edit/edit-schemas.ts';
 import type { EditorState, Gesture } from '../../store.ts';
 import { isBase } from '../../style/context-ops.ts';
@@ -84,6 +86,22 @@ export type Env = {
     /** A press outside: forgets the row with no draw and no cursor; `false` if it was not held. */
     drop(row: string): boolean;
   };
+  // Plan 25 (T4).
+  /**
+   * `null` for a version without options and for a Tailwind draft, whose options act through the
+   * prop.
+   */
+  options: OptionsEnv | null;
+};
+
+/**
+ * The version's options (plan 25), the values the page shows, and the bar's pick of where style
+ * edits go among them (`null`: "All options").
+ */
+export type OptionsEnv = {
+  list: readonly DraftOption[];
+  choice: OptionChoice;
+  pick(option: ContextOption | null): void;
 };
 
 type Row = { root: HTMLElement; label: HTMLElement; body: HTMLElement; meta: HTMLElement };
@@ -243,8 +261,10 @@ export function propRows(env: Env): HTMLElement[] {
     const value = written?.kind === 'literal' ? written.value : shared;
     const raw = value ? value.value : absent ? def?.default : undefined;
     if (fixed) {
-      // A prop has one value for every width and state: the reason is the chip's tooltip.
-      row.body.append(lockedChip(String(raw ?? ''), text('context.propOnce')));
+      // A prop has one value for every width, state and option: the reason is the chip's tooltip.
+      const { option } = env.state.context;
+      const once = option === null ? 'context.propOnce' : 'context.propOnceOption';
+      row.body.append(lockedChip(String(raw ?? ''), text(once)));
       rows.push(row.root);
       continue;
     }

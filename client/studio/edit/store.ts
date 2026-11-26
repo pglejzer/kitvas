@@ -141,7 +141,10 @@ export type EditorState = {
    * layers list, a key).
    */
   copies: CopyRef[];
-  /** Where style edits go: the edit card's width (`null` all widths) and the state bar's state. */
+  /**
+   * Where style edits go: the edit card's width (`null` all widths), the state bar's state, and
+   * the bar's option value (`null`: "All options", plan 25).
+   */
   context: StyleContext;
   /** The session's live findings: the frame's measurements and the code checks of changed files. */
   live: LiveItem[];
@@ -216,7 +219,7 @@ export function initialState(slug: string): EditorState {
     locked: [],
     item: null,
     copies: [],
-    context: { width: null, state: null },
+    context: { width: null, state: null, option: null },
     live: [],
     waivers: [],
     applied: null,

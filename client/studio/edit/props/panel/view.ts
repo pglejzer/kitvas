@@ -10,7 +10,7 @@ import type { StyleProperty } from '../../../../../src/edit/index.ts';
 import { partTarget } from '../../structure/list-parts.ts';
 import { sharedProperties } from '../../style/ops.ts';
 import { text } from '../../texts.ts';
-import { contextBarView, scopeBarView } from '../context/context-bar.ts';
+import { contextBarView, optionBarView, scopeBarView } from '../context/context-bar.ts';
 import { el } from '../controls/controls.ts';
 import { a11yParts, type FindingOf } from '../groups/a11y-group.ts';
 import {
@@ -174,6 +174,10 @@ export function propsView(env: Env, ui: PanelUi): PropsView {
     }),
     contextBarView({ context: env.state.context, pick: (state) => env.pickState(state) }),
   ];
+  if (env.options !== null) {
+    const { option } = env.state.context;
+    head.push(optionBarView({ ...env.options, option, redraw: () => env.redraw() }));
+  }
   if (env.scope !== null) {
     head.push(scopeBarView({ ...env.scope, chosen: ui.scope.chosen, pick: ui.scope.pick }));
   }

@@ -10,11 +10,13 @@ import type { EditorState } from '../../../../../client/studio/edit/store.ts';
 import type { NewRequest } from '../../../../../src/studio/api/requests/request-schemas.ts';
 
 const ID = 'sections/Hero:section/Stack/Button';
+/** The edit context goes with the request whole: the card's width and the bar's option value. */
+const CONTEXT = { width: 768, state: null, option: { id: 'theme', value: 'dark' } };
 
 function harness(answer = true) {
   const state: Pick<EditorState, 'selection' | 'context' | 'viewing'> = {
     selection: [ID],
-    context: { width: 768, state: null },
+    context: CONTEXT,
     viewing: null,
   };
   const posted: NewRequest[] = [];
@@ -36,7 +38,7 @@ test('words go as a `say` request about the selection, with the edit context', a
   const h = harness();
   assert.equal(await h.sender.send('  Make it bolder  '), true);
   assert.deepEqual(h.posted, [
-    { kind: 'say', elements: [ID], context: { width: 768, state: null }, text: 'Make it bolder' },
+    { kind: 'say', elements: [ID], context: CONTEXT, text: 'Make it bolder' },
   ]);
   assert.equal(h.reads(), 1);
 });

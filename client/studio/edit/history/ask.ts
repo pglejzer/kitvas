@@ -233,7 +233,7 @@ export function askRequestOf(
   return {
     kind: 'ask',
     elements: [...new Set(ids)].slice(0, MAX_REQUEST_ELEMENTS),
-    context: { width: context.width, state: context.state },
+    context: { width: context.width, state: context.state, option: context.option },
     text: askText(subject, inspected, MAX_REQUEST_TEXT).trim(),
     ...(ops.length > 0 ? { ops } : {}),
   };

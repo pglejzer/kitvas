@@ -3,6 +3,7 @@
 // of what it measured, the items grouped by element with their numbers, the marks each card gets,
 // and what the editor showed for an edit (held against the build). No DOM here.
 
+import { BASE_CONTEXT } from '../../../../src/edit/domain/op-kinds.ts';
 import type { EditOp, StyleState } from '../../../../src/edit/index.ts';
 import type { LiveCodeFinding } from '../../../../src/studio/api/edit/live-schemas.ts';
 import type { Waiver } from '../../../../src/studio/api/waivers/waiver-schemas.ts';
@@ -293,7 +294,7 @@ export function expectations(
   const wanted = new Map<string, Expected>();
   for (const op of ops) {
     if (op.op !== 'setStyle') continue;
-    const context = op.context ?? { width: null, state: null };
+    const context = op.context ?? BASE_CONTEXT;
     if (context.state !== state || context.width !== width) continue;
     const change = previewOf(op);
     if (change?.kind !== 'style') continue;

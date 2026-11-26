@@ -4,12 +4,14 @@
 // of the file, its line endings and its indentation stay as they were, and an operation followed
 // by its inverse gives the file back exactly. A value a keyword or image property may not take is
 // refused before anything is cut (plan 15, `style-values.ts`). An operation with a width or a
-// state goes to that block of the rule (spec 4c, `scss-context.ts`); the cuts and pastes both
+// state goes to that block of the rule (spec 4c, `scss-context.ts`), and so does one with an
+// option's value (ADR 0082); the cuts and pastes both
 // share are in `scss-write.ts`. A class's rules are the top-level `.class` rules and the ones
 // nested as `&__part` (ADR 0067, `scss-rules.ts`), read together in file order. A property a
 // shorthand of the rule holds is written inside that shorthand, or right after one that does not
 // split (ADR 0070, `shorthand-write.ts`).
 
+import { isBaseContext } from '../ops.ts';
 import type { ApplyResult } from '../types.ts';
 import { applyScssContext } from './scss-context.ts';
 import { scssBalanced } from './scss-reader.ts';
@@ -56,13 +58,16 @@ const noImage = (): boolean => false;
 /**
  * The rule a new declaration of the base goes into: the class's last rule, so that no later rule
  * of the class wins over it; but the first rule with a width block that sets the property, when
- * one has, where it goes above that rule's blocks, so the width still wins.
+ * one has, where it goes above that rule's blocks, so the width still wins. An option's block wins
+ * by its selector wherever it stands (ADR 0082).
  */
 function homeOf(rules: readonly Found[], property: string): Found | undefined {
   const widthSets = (rule: Found): boolean =>
     rule.blocks.some(
       (block) =>
-        block.context.state === null && block.own.some((own) => own.view.property === property),
+        block.context.width !== null &&
+        block.context.state === null &&
+        block.own.some((own) => own.view.property === property),
     );
   return rules.find(widthSets) ?? rules.at(-1);
 }
@@ -74,7 +79,7 @@ export function applyScss(text: string, op: ScssOp, options: ScssOptions): Apply
     if (refusal !== null) return { refused: refusal };
   }
   const { context } = op;
-  if (context !== undefined && (context.width !== null || context.state !== null)) {
+  if (context !== undefined && !isBaseContext(context)) {
     return applyScssContext(text, op, context, options);
   }
   const rules = classRules(text, op.className);

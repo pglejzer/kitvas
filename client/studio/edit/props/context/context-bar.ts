@@ -2,25 +2,37 @@
 // the edit card's (the card the person last worked in): the largest kit breakpoint at or below
 // it, every width at the base. The state is the Properties header's state bar: Default, Hover,
 // Focus, Active. A state is forced on the selected elements in every card, so what is edited is
-// seen; another selection, or leaving Edit, lets them rest again. The rules are in
-// `context-rules.ts`; `contextBarView` is the bar the properties panel draws.
+// seen; another selection, or leaving Edit, lets them rest again. Plan 25: a version with
+// options has a third control, the option value edits go to ("All options", or "Only Theme:
+// Dark" for a value the page shows off its default); it follows the values shown. The rules are
+// in `context-rules.ts`; `contextBarView` and `optionBarView` are what the properties panel draws.
 
-import type { StyleContext, StyleState } from '../../../../../src/edit/index.ts';
+import { sameOption } from '../../../../../src/edit/domain/op-kinds.ts';
+import type { ContextOption, StyleContext, StyleState } from '../../../../../src/edit/index.ts';
+import {
+  type DraftOption,
+  type OptionChoice,
+  offDefault,
+} from '../../../../../src/shared/values/options.ts';
 import type { Inspect } from '../../../../../src/studio/api/edit/edit-schemas.ts';
 import { frameWidth } from '../../../canvas/card-list.ts';
+import { choiceStoreOf } from '../../../options/choice.ts';
 import type { EditorContext } from '../../context.ts';
 import {
   BAR_STATES,
   breakpointsOf,
   contextWidthOf,
   forceBody,
+  keptOption,
+  optionKey,
+  optionWords,
   restContext,
   stateName,
   widthWords,
 } from '../../style/context-rules.ts';
 import type { Format } from '../../style/ops.ts';
 import { text } from '../../texts.ts';
-import { el } from '../controls/controls.ts';
+import { el, selectControl } from '../controls/controls.ts';
 
 /**
  * The line under the header: the width edits go to as a chip, and the state they go to as a
@@ -55,6 +67,45 @@ export function contextBarView(options: {
   }
   bar.append(where, width, states);
   return bar;
+}
+
+/**
+ * The bar's third control (plan 25): "All options", then "Only <Option>: <Value>" for each value
+ * the page shows that differs from its default. A full-width line of its own under the width and
+ * the states, there for every version with options (disabled while every value is the default),
+ * so a switch of a value never moves the rows; a redraw replaces this line only.
+ */
+export function optionBarView(bar: {
+  list: readonly DraftOption[];
+  choice: OptionChoice;
+  option: ContextOption | null;
+  pick(option: ContextOption | null): void;
+  redraw(): void;
+}): HTMLElement {
+  const targets = offDefault(bar.list, bar.choice);
+  const items = [
+    { value: optionKey(null), label: text('context.option.all') },
+    ...targets.map((one) => ({
+      value: optionKey(one),
+      label: text('context.option.only', optionWords(bar.list, one)),
+    })),
+  ];
+  const control = selectControl({
+    label: text('context.option.label'),
+    value: optionKey(keptOption(bar.option, bar.list, bar.choice)),
+    options: items,
+    disabled: targets.length === 0,
+    onChange: (value) => {
+      const picked = targets.find((one) => optionKey(one) === value) ?? null;
+      if (!sameOption(picked, bar.option)) bar.pick(picked);
+    },
+    // A draw held while the list was open shows once it closes.
+    onClose: () => bar.redraw(),
+  });
+  // A row key, so the panel puts the focus back on it after a redraw.
+  control.dataset.row = 'context-option';
+  if (targets.length === 0) control.title = text('context.option.none');
+  return control;
 }
 
 /** The list scope switch: `chosen` is whether one copy of the item is picked on the canvas. */
@@ -146,6 +197,17 @@ export function mountContextBar(ctx: EditorContext): void {
     if (message.id !== store.get().selection[0]) return;
     store.set({ computed: message.found ? message.styles : null });
   });
+
+  // Plan 25: the bar's option follows the values the page shows; a value no longer shown off its
+  // default gives way to "All options", so an edit never goes to a value that is not on the page.
+  const choices = choiceStoreOf(ctx.main);
+  if (choices !== undefined) {
+    choices.subscribe((choice) => {
+      const { context } = store.get();
+      const option = keptOption(context.option, choices.options(), choice);
+      if (option !== context.option) store.set({ context: { ...context, option } });
+    });
+  }
 
   store.subscribe((state, previous) => {
     // The breakpoints come with the element's inspect answer.

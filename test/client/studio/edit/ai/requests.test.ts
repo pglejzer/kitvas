@@ -27,7 +27,7 @@ import {
 
 const ID = 'sections/Hero:section/Stack/Button';
 const OTHER = 'sections/Hero:section/Stack/Text';
-const BASE: StyleContext = { width: null, state: null };
+const BASE: StyleContext = { width: null, state: null, option: null };
 
 function request(overrides: Partial<RequestView> = {}): RequestView {
   return {
@@ -87,6 +87,16 @@ test('a malformed request is left out; an answer without the listening state is 
   assert.equal(readRequests('nothing'), null);
 });
 
+test("a request's option value is read; one from before options is every option", () => {
+  const dark = { width: 768, state: null, option: { id: 'theme', value: 'dark' } };
+  assert.deepEqual(readRequest(request({ context: dark }))?.context, dark);
+  const older = { ...request(), context: { width: null, state: null } };
+  assert.deepEqual(readRequest(older)?.context, BASE);
+  for (const option of [{ id: 'Theme', value: 'dark' }, { id: 'theme' }, 'dark']) {
+    assert.equal(readRequest({ ...request(), context: { ...BASE, option } }), undefined);
+  }
+});
+
 test('a variant with an unknown change, property or empty label is not read', () => {
   const bad = (change: unknown, label = 'x') =>
     readRequest({
@@ -126,7 +136,11 @@ test('requests about the selection come first, newest first; dropped ones are no
 });
 
 test('Send makes a `say` request of the selection: trimmed, bounded, never empty', () => {
-  const context: StyleContext = { width: 768, state: 'hover' };
+  const context: StyleContext = {
+    width: 768,
+    state: 'hover',
+    option: { id: 'theme', value: 'dark' },
+  };
   const body = sayRequest('  Bigger, please  ', [ID, ID, OTHER], context);
   assert.deepEqual(body, { kind: 'say', elements: [ID, OTHER], context, text: 'Bigger, please' });
   assert.notEqual(body?.context, context);

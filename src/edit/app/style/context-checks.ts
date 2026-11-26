@@ -1,15 +1,29 @@
-// What an op of a width or a state must hold before it is applied (spec 4c, goals 1 and 2): its
-// width is one of the kit's breakpoints, and its property is not one a prop of the kit component
-// covers. A prop has one value for every width and state, so a value written beside it for one
-// width would fight it (ADR 0050); the panel says so and offers Ask Claude.
+// What an op of a width, a state or an option must hold before it is applied (spec 4c, goals 1 and
+// 2): its width is one of the kit's breakpoints, its option a value the version has (ADR 0082),
+// and its property is not one a prop of the kit component covers. A prop has one value for every
+// width and state, so a value written beside it for one width would fight it (ADR 0050); the
+// panel says so and offers Ask Claude.
 
-import type { SimpleOp, StyleContext } from '../../domain/ops.ts';
+import type { DraftOption } from '../../../shared/index.ts';
+import {
+  type ContextOption,
+  isBaseContext,
+  type SimpleOp,
+  type StyleContext,
+} from '../../domain/ops.ts';
 import { type SourceInput, styleSource, tokenGroupsOf } from '../../domain/style/source.ts';
 import { contextOfVariants, ownProperties, splitUtility } from '../../domain/style/utilities.ts';
 import { readTag } from '../../domain/tsx/apply-tsx.ts';
 import { isStyleProperty, type Refusal, type StyleProperty } from '../../domain/types.ts';
 import { tokenOptions } from '../edit-state.ts';
-import { breakpointsOf, componentOf, kitOf, locate, type Work } from '../request-state.ts';
+import {
+  breakpointsOf,
+  componentOf,
+  kitOf,
+  locate,
+  optionsOf,
+  type Work,
+} from '../request-state.ts';
 
 /** The context an op writes and the properties it sets there; `null` for an op of the base. */
 function written(op: SimpleOp): { context: StyleContext; properties: StyleProperty[] } | null {
@@ -26,19 +40,27 @@ function written(op: SimpleOp): { context: StyleContext; properties: StyleProper
   return context === null ? null : { context, properties: ownProperties(base) };
 }
 
+/** The version has the option and the option has the value. */
+const hasValue = (options: readonly DraftOption[], asked: ContextOption): boolean =>
+  options.some(
+    (option) => option.id === asked.id && option.values.some((one) => one.id === asked.value),
+  );
+
 /**
- * Why an op of a width or a state is not applied: `not-breakpoint`, `prop-covered`, or `null`
- * when it may be. An op of the base is never refused here. The element is found where the
- * request's earlier ops left it; one that is not found is left to the op itself.
+ * Why an op of a width, a state or an option is not applied: `not-breakpoint`, `invalid` for an
+ * option or a value the version does not have (an op stored before the file changed),
+ * `prop-covered`, or `null` when it may be. An op of the base is never refused here. The element
+ * is found where the request's earlier ops left it; one that is not found is left to the op itself.
  */
 export async function contextRefusal(work: Work, op: SimpleOp): Promise<Refusal | null> {
   const found = written(op);
   if (found === null) return null;
   const { context, properties } = found;
-  if (context.width === null && context.state === null) return null;
+  if (isBaseContext(context)) return null;
   if (context.width !== null && !breakpointsOf(work).includes(context.width)) {
     return 'not-breakpoint';
   }
+  if (context.option !== null && !hasValue(optionsOf(work), context.option)) return 'invalid';
   if (properties.length === 0) return null;
 
   const at = await locate(work, op.id);

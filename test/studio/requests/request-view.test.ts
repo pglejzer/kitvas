@@ -15,7 +15,7 @@ function stored(over: Partial<StoredRequest> = {}): StoredRequest {
     kind: 'say',
     elements: [BUTTON, TITLE],
     stamps: [null, null],
-    context: { width: null, state: null },
+    context: { width: null, state: null, option: null },
     text: 'Bigger',
     ops: [],
     note: null,

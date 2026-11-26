@@ -1,8 +1,9 @@
-// A style row in the edit context (spec 4c, goal 1; plan 16, task B): what it holds at the width
-// and state edits go to, where the value it shows comes from, and its two actions, "Remove for
-// this width" and "Apply to all widths", each one gesture. A property a kit prop covers has one
-// value for every width and state: a pick there asks Claude instead of writing. The sources and
-// the ops are task A's (`context-ops.ts`); this file words them and wires the buttons.
+// A style row in the edit context (spec 4c, goal 1; plan 16, task B): what it holds at the width,
+// state and option value edits go to, where the value it shows comes from, and its actions,
+// "Remove for this width" (or state, or option), "Apply to all widths" and "Apply to all options"
+// (plan 25), each one gesture. A property a kit prop covers has one value for every width, state
+// and option: a pick there asks Claude instead of writing. The sources, the targets and the ops
+// are task A's (`context-ops.ts`); this file words them and wires the buttons.
 
 import type {
   EditOp,
@@ -10,27 +11,44 @@ import type {
   StyleProperty,
   StyleValue,
 } from '../../../../../src/edit/index.ts';
+import type { DraftOption, OptionChoice } from '../../../../../src/shared/values/options.ts';
 import type { Inspect } from '../../../../../src/studio/api/edit/edit-schemas.ts';
 import {
+  applyToAllOptions,
   applyToAllWidths,
   isBase,
   type RowSource,
   removeForContext,
   sourceAt,
+  targetContext,
 } from '../../style/context-ops.ts';
+import { optionWords } from '../../style/context-rules.ts';
 import type { StyleOptions } from '../../style/ops.ts';
 import { text } from '../../texts.ts';
 import { el } from '../controls/controls.ts';
 import type { Env } from '../groups/rows.ts';
+
+/** The option values the page shows; none for a version without options (or in Tailwind). */
+export const choiceOf = (env: Env): OptionChoice => env.options?.choice ?? {};
+
+/**
+ * Where an edit of `property` goes (C6 of plan 25): the bar's width and state, and its option;
+ * with "All options" the option whose block holds the value the first element shows.
+ */
+export function rowContext(env: Env, property: StyleProperty): StyleContext {
+  const { context } = env.state;
+  return targetContext(env.inspected, property, context, choiceOf(env));
+}
 
 /** What the selected elements hold in exactly the context; `mixed` when they differ. */
 export function heldAt(
   views: readonly Inspect[],
   property: StyleProperty,
   context: StyleContext,
+  choice: OptionChoice = {},
 ): { held: string | null; offKit: boolean; mixed: boolean } {
   const here = views.map((view) => {
-    const source = sourceAt(view, property, context);
+    const source = sourceAt(view, property, context, choice);
     return source.kind === 'here' ? source : null;
   });
   const values = new Set(here.map((one) => one?.value ?? null));
@@ -39,11 +57,10 @@ export function heldAt(
   return { held: first?.value ?? null, offKit: here.some((one) => one?.offKit), mixed: false };
 }
 
-/** The words of a row's source in a context other than the base: set here, or where from. */
-export function sourceWords(
-  source: RowSource,
-  context: StyleContext,
-): { key: string; params: Record<string, string | number> } {
+type Words = { key: string; params: Record<string, string | number> };
+
+/** Where in the rule the value is: here, or the width and state it comes from. */
+function placeWords(source: RowSource, context: StyleContext): Words {
   if (source.kind === 'here') {
     // A shorthand of the context's block holds the value (ADR 0070): the row names it.
     if (source.via !== undefined) {
@@ -56,15 +73,35 @@ export function sourceWords(
   if (context.state !== null && source.state === null && source.width === context.width) {
     return { key: 'context.source.default', params: {} };
   }
+  // The rule's own value of the same width and state, under the bar's one option value.
+  if (context.option !== null && source.option === undefined && source.width === context.width) {
+    return { key: 'context.source.allOptions', params: {} };
+  }
   if (source.width === null) return { key: 'context.source.all', params: {} };
   return { key: 'context.source.up', params: { width: source.width } };
+}
+
+/**
+ * The words of a row's source in a context other than the base: set here, or where from; a value
+ * an option's block holds names the value too, "Set here · Only Theme: Dark" (plan 25).
+ */
+export function sourceWords(
+  source: RowSource,
+  context: StyleContext,
+  options: readonly DraftOption[] = [],
+): Words {
+  const place = placeWords(source, context);
+  if (source.kind === 'kit' || source.option === undefined) return place;
+  const named = optionWords(options, source.option);
+  const params = { source: text(place.key, place.params), ...named };
+  return { key: 'context.source.option', params };
 }
 
 /** A property a kit prop sets: in a context other than the base it cannot take its own value. */
 export const coveredAt = (inspected: Inspect, property: StyleProperty, context: StyleContext) =>
   !isBase(context) && inspected.styles[property]?.kind === 'prop';
 
-/** "Remove for this width" over every selected element, as one gesture; `null` with none set. */
+/** "Remove for this …" over every selected element, as one gesture; `null` with none set. */
 export function removeAll(
   views: readonly Inspect[],
   property: StyleProperty,
@@ -108,27 +145,45 @@ function actionButton(label: string, title: string, onClick: () => void): HTMLBu
   return button;
 }
 
-/** The row's actions in a context: remove its value here, or make it the value at every width. */
-export function contextActions(env: Env, property: StyleProperty, key: string): HTMLElement[] {
-  const { context } = env.state;
+/** The words of "Remove for this …": the width, else the state, else the option value. */
+function removeWords(context: StyleContext): string {
+  if (context.width !== null) return 'context.remove';
+  return context.state === null ? 'context.removeOption' : 'context.removeState';
+}
+
+/** "Apply to all widths" and "Apply to all options": the ops, the button's words, its label. */
+const TO_ALL = [
+  { ops: applyToAllWidths, words: 'context.applyAll', label: 'context.label.all' },
+  { ops: applyToAllOptions, words: 'context.applyAllOptions', label: 'context.label.allOptions' },
+] as const;
+
+/**
+ * The row's actions in `context` (`rowContext`): remove its value there, or make it the value at
+ * every width, or of every option.
+ */
+export function contextActions(
+  env: Env,
+  property: StyleProperty,
+  key: string,
+  context: StyleContext,
+): HTMLElement[] {
   const options: StyleOptions = { format: env.format, tokens: env.tokens };
   const buttons: HTMLElement[] = [];
   if (removeAll(env.views, property, context, options) !== null) {
-    const words = context.width === null ? 'context.removeState' : 'context.remove';
     const label = text('context.label.remove', { property });
     buttons.push(
-      actionButton(text(words), label, () =>
+      actionButton(text(removeWords(context)), label, () =>
         env.commit(key, (now) => removeAll(now, property, context, options) ?? [], label),
       ),
     );
   }
   const [only] = env.views;
-  const toAll = (view: Inspect): EditOp[] | null =>
-    applyToAllWidths(view, property, context, options);
-  if (env.views.length === 1 && only && toAll(only) !== null) {
-    const label = text('context.label.all', { property });
+  for (const axis of TO_ALL) {
+    const toAll = (view: Inspect): EditOp[] | null => axis.ops(view, property, context, options);
+    if (env.views.length !== 1 || !only || toAll(only) === null) continue;
+    const label = text(axis.label, { property });
     buttons.push(
-      actionButton(text('context.applyAll'), label, () =>
+      actionButton(text(axis.words), label, () =>
         env.commit(key, (now) => (now[0] ? (toAll(now[0]) ?? []) : []), label),
       ),
     );
@@ -147,7 +202,7 @@ export function askCovered(
   reason: 'prop-covered' | 'kit-state-wins' = 'prop-covered',
 ): void {
   if (value === null) return;
-  const op = wantedOp(env.inspected, property, value, env.state.context);
+  const op = wantedOp(env.inspected, property, value, rowContext(env, property));
   if (op === null) return;
   env.refuse({ ops: [op], label: text('props.label.style', { property }) }, reason);
 }

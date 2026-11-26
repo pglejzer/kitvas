@@ -56,7 +56,7 @@ const styled: Gesture = {
       value: { token: '--kit-color-ink-mid' },
       before: { raw: '#999', mark: false },
       newRule: false,
-      context: { width: 768, state: 'hover' },
+      context: { width: 768, state: 'hover', option: null },
       newBlock: true,
     },
   ],
@@ -243,6 +243,20 @@ test('every op kind has its fields checked', () => {
   const deep = Array.from({ length: 9 }, () => 0);
   assert.equal(isOp({ op: 'duplicateItem', id: ID, item: 0, path: deep }), false);
   assert.equal(readChange({ ...claude, by: 'someone' }), null);
+});
+
+test('a kept style step keeps the option value it was for, and a context that names none drops it', () => {
+  const [op] = styled.ops;
+  const forOption = {
+    ...op,
+    context: { width: null, state: null, option: { id: 'theme', value: 'dark' } },
+  };
+  assert.equal(isOp(forOption), true);
+  assert.deepEqual(readGesture({ ops: [forOption], label: 'Edit' })?.ops, [forOption]);
+  assert.equal(isOp({ ...op, context: { width: null, state: null } }), false);
+  assert.equal(isOp({ ...op, context: { width: null, state: null, option: 'dark' } }), false);
+  const badId = { width: null, state: null, option: { id: 'Theme', value: 'dark' } };
+  assert.equal(isOp({ ...op, context: badId }), false);
 });
 
 test('a kept "This item" step keeps its copy, and a copy that is no place drops the step', () => {

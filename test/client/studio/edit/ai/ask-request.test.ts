@@ -13,7 +13,7 @@ import {
   askRequestOf,
   askText,
 } from '../../../../../client/studio/edit/history/ask.ts';
-import type { EditOp } from '../../../../../src/edit/index.ts';
+import { BASE_CONTEXT, type EditOp } from '../../../../../src/edit/index.ts';
 import { NewRequestSchema } from '../../../../../src/studio/api/requests/request-schemas.ts';
 
 const ID = 'sections/Hero:section/Stack';
@@ -32,7 +32,7 @@ test('Ask Claude sends an `ask` request with the refused ops, their words and th
     newRule: false,
   };
   const subject: AskSubject = { gesture: { ops: [op], label: 'Gap' }, index: 0, reason: 'nested' };
-  const context = { width: 768, state: null };
+  const context = { width: 768, state: null, option: { id: 'theme', value: 'dark' } };
   const body = askRequestOf(subject, null, context);
   assert.equal(body.kind, 'ask');
   assert.deepEqual(body.elements, [ID]);
@@ -50,14 +50,14 @@ test('the element of the refused op comes first, and every element is named once
     index: 1,
     reason: 'invalid',
   };
-  const body = askRequestOf(subject, null, { width: null, state: null });
+  const body = askRequestOf(subject, null, BASE_CONTEXT);
   assert.deepEqual(body.elements, [ID, OTHER]);
 });
 
 test('a long change is cut short, so the reason reaches Claude within the limit', () => {
   const op: EditOp = { op: 'setText', id: ID, value: 'x'.repeat(2_000), before: 'y' };
   const subject: AskSubject = { gesture: { ops: [op, op], label: 'x' }, index: 0, reason: 'mixed' };
-  const body = askRequestOf(subject, null, { width: null, state: null });
+  const body = askRequestOf(subject, null, BASE_CONTEXT);
   assert.ok(body.text.length <= MAX_REQUEST_TEXT);
   assert.match(body.text, /could not write it itself because the target mixes text and elements/);
   assert.equal(NewRequestSchema.safeParse(body).success, true);
@@ -68,7 +68,7 @@ test('a long change is cut short, so the reason reaches Claude within the limit'
 test('a gesture of more ops than a request carries sends the first ones', () => {
   const ops = Array.from({ length: 45 }, (_, n) => addClass(`${ID}.${n}`));
   const subject: AskSubject = { gesture: { ops, label: 'x' }, index: 0, reason: 'invalid' };
-  const body = askRequestOf(subject, null, { width: null, state: null });
+  const body = askRequestOf(subject, null, BASE_CONTEXT);
   assert.equal(body.ops?.length, MAX_VARIANT_CHANGES);
   assert.equal(NewRequestSchema.safeParse(body).success, true);
 });

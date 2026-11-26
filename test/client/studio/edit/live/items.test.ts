@@ -206,7 +206,7 @@ test('elements whose build differs from the editor are found for the change list
 const setStyle = (
   property: string,
   value: string,
-  context?: { width: number | null; state: 'hover' | null },
+  context?: { width: number | null; state: 'hover' | null; option: null },
 ): EditOp => ({
   op: 'setStyle',
   id: TITLE,
@@ -236,7 +236,7 @@ test('the editor shows only values of the context the edit card is in', () => {
   const words: EditOp = { op: 'setText', id: TITLE, value: 'Hi', before: 'Hello' };
   const ops = [
     setStyle('gap', '8px'),
-    setStyle('padding', '24px', { width: 768, state: null }),
+    setStyle('padding', '24px', { width: 768, state: null, option: null }),
     setStyle('gap', '12px'),
     words,
   ];
@@ -247,8 +247,8 @@ test('the editor shows only values of the context the edit card is in', () => {
 test('a state edit is held against the build only while that state is forced', () => {
   const ops = [
     setStyle('gap', '8px'),
-    setStyle('padding', '24px', { width: null, state: 'hover' }),
-    setStyle('margin', '4px', { width: 768, state: 'hover' }),
+    setStyle('padding', '24px', { width: null, state: 'hover', option: null }),
+    setStyle('margin', '4px', { width: 768, state: 'hover', option: null }),
   ];
   const hover = expectations(ops, null, 'hover');
   assert.deepEqual(hover, [{ id: TITLE, property: 'padding', value: '24px' }]);

@@ -299,7 +299,7 @@ test('Ask Claude files an ask request with the finding, its element and why, wit
   });
   assert.equal(request.kind, 'ask');
   assert.deepEqual(request.elements, [ID]);
-  assert.deepEqual(request.context, { width: null, state: null });
+  assert.deepEqual(request.context, { width: null, state: null, option: null });
   assert.match(request.text, /420 px wide/);
   assert.match(request.text, /390 px\./);
   assert.match(request.text, /live\/overflow/);

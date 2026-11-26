@@ -1,10 +1,14 @@
 // The reader under the SCSS editor (`apply-scss.ts`): the lexical units a brace, a semicolon or a
 // quote must not be read inside, the statements of a block, and the body of a rule with its own
 // declarations, its context blocks (spec 4c: `@media (min-width: Npx)`, `&:hover`,
-// `&:focus-visible`, `&:active`, a state inside a width) and the rules nested in it as `&__part`
-// (ADR 0067). The class rules themselves are read in `scss-rules.ts`. Nothing here writes.
+// `&:focus-visible`, `&:active`, a state inside a width; ADR 0082: an option's
+// `[data-opt-<id>="<value>"] &` with a width's and a state's blocks inside) and the rules nested
+// in it as `&__part` (ADR 0067). The class rules themselves are read in `scss-rules.ts`. Nothing
+// here writes.
 
+import { OPTION_ID, OPTION_VALUE } from '../../../shared/index.ts';
 import {
+  BASE_CONTEXT,
   MAX_BREAKPOINT,
   OFF_KIT_MARKER,
   STYLE_STATES,
@@ -341,7 +345,7 @@ export type Body = {
   joins: Join[];
 };
 
-/** A context block: a width, a state, or a state inside a width's block. */
+/** A context block: a width, a state, an option, or one of them inside another's block. */
 export type Nest = Body & {
   context: StyleContext;
   /** From the prelude to the end of the closing `}`. */
@@ -357,17 +361,26 @@ export type Join = { suffix: string; span: Span; block: Block; closed: boolean }
 const JOIN = /^&([A-Za-z0-9_-]+)$/;
 const MEDIA = /^@media\s*\(\s*min-width\s*:\s*([1-9]\d{0,4})px\s*\)$/i;
 const STATE = /^&:([a-z-]+)$/;
+/** `[data-opt-columns="2"] &`, as `optionSelector` writes it; the id and value are checked apart. */
+const OPTION = /^\[data-opt-([^\s="\]]+)="([^"]*)"\]\s+&$/;
 
 /**
- * The context a nested block's prelude names, inside a body of `width` (`null`: the rule itself).
- * A width's block is read only in the rule, never inside another one.
+ * The context a nested block's prelude names inside a body of context `at` (`BASE_CONTEXT`: the
+ * rule itself), which is never a state's. A width's block is read in the rule and in an option's
+ * block; an option's block only in the rule (ADR 0082).
  */
-function contextOf(prelude: string, width: number | null): StyleContext | null {
+function contextOf(prelude: string, at: StyleContext): StyleContext | null {
   const word = STATE.exec(prelude)?.[1];
   const state: StyleState | undefined = STYLE_STATES.find((name) => name === word);
-  if (state !== undefined) return { width, state };
-  const size = width === null ? Number(MEDIA.exec(prelude)?.[1] ?? Number.NaN) : Number.NaN;
-  return Number.isInteger(size) && size <= MAX_BREAKPOINT ? { width: size, state: null } : null;
+  if (state !== undefined) return { ...at, state };
+  if (at.width !== null) return null;
+  const size = Number(MEDIA.exec(prelude)?.[1] ?? Number.NaN);
+  if (Number.isInteger(size) && size <= MAX_BREAKPOINT) return { ...at, width: size };
+  const option = at.option === null ? OPTION.exec(prelude) : null;
+  const id = option?.[1];
+  const value = option?.[2];
+  if (id === undefined || value === undefined) return null;
+  return OPTION_ID.test(id) && OPTION_VALUE.test(value) ? { ...at, option: { id, value } } : null;
 }
 
 /** The prelude without its comments, so `/* a *\/ .card /* b *\/` reads as `.card`. */
@@ -383,36 +396,37 @@ export function withoutComments(text: string, from: number, to: number): string 
 }
 
 /**
- * A body with its declarations, context blocks and joined rules. `width`: the width of the block
- * it is in (`null` in the rule). `leaf`: a state's block, where no context block is read any more.
+ * A body with its declarations, context blocks and joined rules. `at`: the context of the body
+ * (`BASE_CONTEXT` in the rule). In a state's block no further context block is read.
  */
 export function readBody(
   text: string,
   block: Block,
   closed: boolean,
-  width: number | null,
-  leaf: boolean,
+  at: StyleContext = BASE_CONTEXT,
 ): Body {
   const body = statements(text, block.open, block.close);
   const own: Own[] = [];
   const blocks: Nest[] = [];
   const joins: Join[] = [];
   const inNested: string[] = [];
+  const leaf = at.state !== null;
+  const rule = at.width === null && !leaf && at.option === null;
   for (const inner of body) {
     if (inner.block !== null) {
       const prelude = withoutComments(text, inner.start, inner.stop).trim();
-      // A join inside a width's or a state's block is not a rule kitvas reads: it stays nested.
-      const suffix = width === null && !leaf ? JOIN.exec(prelude)?.[1] : undefined;
+      // A join inside a context's block is not a rule kitvas reads: it stays nested.
+      const suffix = rule ? JOIN.exec(prelude)?.[1] : undefined;
       if (suffix !== undefined) {
         // `&__title { … }` is the rule of another class: read as that class's, never this one's.
         const span = { start: inner.start, end: inner.end };
         joins.push({ suffix, span, block: inner.block, closed: inner.terminated });
         continue;
       }
-      const context = leaf ? null : contextOf(prelude, width);
+      const context = leaf ? null : contextOf(prelude, at);
       if (context !== null) {
         blocks.push({
-          ...readBody(text, inner.block, inner.terminated, context.width, context.state !== null),
+          ...readBody(text, inner.block, inner.terminated, context),
           context,
           span: { start: inner.start, end: inner.end },
         });

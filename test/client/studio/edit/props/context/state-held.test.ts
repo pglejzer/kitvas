@@ -22,13 +22,14 @@ test("the kit's longhands name the editor's properties they set", () => {
 test('a row is held only for the selected element in the state it was asked for', () => {
   const store = createStore('shop');
   const held = { id: ID, state: 'hover' as const, longhands: ['background-color'] };
-  store.set({ selection: [ID], context: { width: null, state: 'hover' }, stateHeld: held });
+  const at = (state: 'hover' | 'active' | null) => ({ width: null, state, option: null });
+  store.set({ selection: [ID], context: at('hover'), stateHeld: held });
   assert.equal(kitHolds(store.get(), 'background-color'), true);
   assert.equal(kitHolds(store.get(), 'color'), false);
-  store.set({ context: { width: null, state: 'active' } });
+  store.set({ context: at('active') });
   assert.equal(kitHolds(store.get(), 'background-color'), false);
-  store.set({ context: { width: null, state: 'hover' }, selection: ['sections/Plans:Stack'] });
+  store.set({ context: at('hover'), selection: ['sections/Plans:Stack'] });
   assert.equal(kitHolds(store.get(), 'background-color'), false);
-  store.set({ selection: [ID], context: { width: null, state: null } });
+  store.set({ selection: [ID], context: at(null) });
   assert.equal(kitHolds(store.get(), 'background-color'), false);
 });

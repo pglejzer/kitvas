@@ -12,7 +12,7 @@ const request = (over: Partial<RequestView>): RequestView => ({
   id: 'r1',
   kind: 'say',
   elements: ['sections/Pricing:section/Button'],
-  context: { width: null, state: null },
+  context: { width: null, state: null, option: null },
   text: 'Make the Team button stand out',
   version: 2,
   at: '2026-11-25T10:00:00.000Z',

@@ -22,7 +22,7 @@ const BUTTON = 'sections/Hero:section/Button';
 const SAY: NewRequest = {
   kind: 'say',
   elements: [BUTTON],
-  context: { width: null, state: null },
+  context: { width: null, state: null, option: null },
   text: 'Make it stand out',
 };
 const VARIANTS = {

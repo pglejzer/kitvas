@@ -6,6 +6,7 @@
 
 import { CANVAS_TEXT_KEYS } from './edit-texts-canvas.ts';
 import { CLAUDE_TEXT_KEYS } from './edit-texts-claude.ts';
+import { CONTEXT_TEXT_KEYS } from './edit-texts-context.ts';
 import { FIDELITY_TEXT_KEYS } from './edit-texts-fidelity.ts';
 import { LOOK_TEXT_KEYS } from './edit-texts-look.ts';
 
@@ -279,7 +280,6 @@ const PANEL_TEXT_KEYS = [
   'copy.locationDone',
   'copy.locationFailed',
   // Stage 4c (plan 16).
-  'context.kitState',
   'props.reason.kit-state-wins',
   'props.reason.prop-covered',
   'props.reason.not-breakpoint',
@@ -293,29 +293,6 @@ const PANEL_TEXT_KEYS = [
   'canvas.everyTitle',
   'canvas.editing',
   'canvas.cardTitle',
-  'context.where',
-  'context.where.hint',
-  'context.width.all',
-  'context.width.up',
-  'context.states',
-  'context.state.default',
-  'context.state.hover',
-  'context.state.focus',
-  'context.state.active',
-  'context.source.here',
-  'context.source.shorthand',
-  'context.source.kit',
-  'context.source.default',
-  'context.source.all',
-  'context.source.up',
-  'context.remove',
-  'context.removeState',
-  'context.applyAll',
-  'context.label.remove',
-  'context.label.all',
-  'context.propOnce',
-  'context.covered',
-  'context.covered.ask',
   'props.tailwindWrites',
   'props.warn.contrast',
   'props.warn.target',
@@ -489,6 +466,7 @@ const PANEL_TEXT_KEYS = [
 
 export const EDIT_TEXT_KEYS: readonly string[] = [
   ...PANEL_TEXT_KEYS,
+  ...CONTEXT_TEXT_KEYS,
   ...CLAUDE_TEXT_KEYS,
   ...LOOK_TEXT_KEYS,
   ...FIDELITY_TEXT_KEYS,

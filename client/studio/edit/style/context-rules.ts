@@ -1,9 +1,16 @@
 // The rules of the edit context (spec 4c, goals 1 and 3; plan 16, task B), pure so they are tested
 // without a DOM: the width an edit applies from, given the card it is made in and the kit's
-// breakpoints; which cards show a preview; and the state bar, whose states force the same state
-// on the selected elements in every card.
+// breakpoints; which cards show a preview; the state bar, whose states force the same state on
+// the selected elements in every card; and the bar's option values (plan 25): "All options", or
+// one value the page shows that differs from its default.
 
-import type { StyleContext, StyleState } from '../../../../src/edit/index.ts';
+import { sameOption } from '../../../../src/edit/domain/op-kinds.ts';
+import type { ContextOption, StyleContext, StyleState } from '../../../../src/edit/index.ts';
+import {
+  type DraftOption,
+  type OptionChoice,
+  offDefault,
+} from '../../../../src/shared/values/options.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import type { ForceState, LiveStudioBody } from '../../../channel/live-protocol.ts';
 import { PRESETS } from '../../canvas/width.ts';
@@ -69,6 +76,34 @@ export function widthWords(width: number | null): { key: string; params: Record<
     ? { key: 'context.width.all', params: {} }
     : { key: 'context.width.up', params: { width } };
 }
+
+/**
+ * The bar's option once the page shows other values: kept while it is a value shown that differs
+ * from its default (the bar's targets after "All options", `offDefault`), else "All options"
+ * (`null`), so an edit never goes to a value that is not shown.
+ */
+export function keptOption(
+  option: ContextOption | null,
+  options: readonly DraftOption[],
+  choice: OptionChoice,
+): ContextOption | null {
+  if (option === null) return null;
+  return offDefault(options, choice).some((one) => sameOption(one, option)) ? option : null;
+}
+
+/** The labels of an option's value, as the options row says them; the ids for one not known. */
+export function optionWords(
+  options: readonly DraftOption[],
+  option: ContextOption,
+): { option: string; value: string } {
+  const found = options.find((one) => one.id === option.id);
+  const value = found?.values.find((one) => one.id === option.value);
+  return { option: found?.label ?? option.id, value: value?.label ?? option.value };
+}
+
+/** The bar's key of a target: `columns=2`, and `''` for "All options". */
+export const optionKey = (option: ContextOption | null): string =>
+  option === null ? '' : `${option.id}=${option.value}`;
 
 const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
   a.length === b.length && a.every((id, index) => id === b[index]);

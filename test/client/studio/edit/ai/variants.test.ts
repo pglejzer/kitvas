@@ -28,8 +28,8 @@ const ID = 'sections/Pricing:section/Stack';
 const OTHER = 'sections/Pricing:section/Stack/Text';
 const ETAG = `"${'a'.repeat(27)}"`;
 const SCSS_FILE = 'src/scss/sections/pricing.scss';
-const BASE: StyleContext = { width: null, state: null };
-const AT_768: StyleContext = { width: 768, state: null };
+const BASE: StyleContext = { width: null, state: null, option: null };
+const AT_768: StyleContext = { width: 768, state: null, option: null };
 const MD: StyleValue = { token: '--kit-space-md' };
 const TOKENS: TokenOption[] = [
   { var: '--kit-space-md', path: 'space.md', type: 'dimension', css: '12px' },

@@ -22,7 +22,7 @@ const VIEW: RequestView = {
   id: ID,
   kind: 'say',
   elements: [BUTTON],
-  context: { width: null, state: null },
+  context: { width: null, state: null, option: null },
   text: 'Make it stand out',
   version: 1,
   at: '2026-11-24T10:00:00.000Z',

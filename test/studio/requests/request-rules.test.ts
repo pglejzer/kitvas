@@ -25,7 +25,7 @@ function stored(n: number, over: Partial<StoredRequest> = {}): StoredRequest {
     kind: 'say',
     elements: ['sections/Hero:section/Button'],
     stamps: [null],
-    context: { width: null, state: null },
+    context: { width: null, state: null, option: null },
     text: `Request ${n}`,
     ops: [],
     note: null,

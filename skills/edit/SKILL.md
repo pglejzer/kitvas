@@ -34,7 +34,7 @@ Then run this step again. Nothing new after 600 seconds is no error: run it agai
 
 ## 3. One request
 
-Run `KITVAS request show <id> --json`. It gives `data.request` (its `kind`, `text`, `context` width and state, and `stale` when an element changed since the person asked), `data.elements` (each element as the editor reads it now: `id`, `file`, `tag`, `component` with its catalog props, `props`, `text`, `className`, `styles`, `overrides`), `data.format` (`scss` or `tailwind`) and `data.locked`.
+Run `KITVAS request show <id> --json`. It gives `data.request` (its `kind`, `text`, `context` width, state and option value, and `stale` when an element changed since the person asked), `data.elements` (each element as the editor reads it now: `id`, `file`, `tag`, `component` with its catalog props, `props`, `text`, `className`, `styles`, `overrides`), `data.format` (`scss` or `tailwind`) and `data.locked`.
 
 `data.locked` lists elements the person locked: never change them, in a variant or in the code.
 
@@ -75,7 +75,7 @@ A variant is a label of at most 60 characters and up to 40 changes the Propertie
 }
 ```
 
-- `id`: an element of `data.elements`. `style` values are kit tokens (`{ "token": "--kit-…" }`); a raw value (`{ "raw": "…" }`) is off the kit and shows as such. Style changes apply in the request's `context` (width and state).
+- `id`: an element of `data.elements`. `style` values are kit tokens (`{ "token": "--kit-…" }`); a raw value (`{ "raw": "…" }`) is off the kit and shows as such. Style changes apply in the request's `context` (width, state and, when it names one, the value of one option).
 - `prop`: only props the component's catalog lists, with its values. `text`: the element's one text child. `utility` (Tailwind drafts only): `{ "kind": "utility", "id": "…", "value": "p-6", "before": "p-4" }`, `before: null` to add, `value: null` to remove.
 - A text change keeps the person's words unless the request asks for new ones.
 - Variants differ from each other in a way the person can see; each is complete on its own.

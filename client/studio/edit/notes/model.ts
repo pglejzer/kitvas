@@ -72,7 +72,7 @@ export function noteRequest(
   return {
     kind: 'note',
     elements: note.element === null ? [] : [note.element],
-    context: { width: context.width, state: context.state },
+    context: { width: context.width, state: context.state, option: context.option },
     text: note.text.trim().slice(0, MAX_REQUEST_TEXT).trim(),
     note: note.id,
   };

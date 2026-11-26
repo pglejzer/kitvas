@@ -1,13 +1,24 @@
-// Style operations with a width or a state (spec 4c, goal 2): the declaration lives in a block
-// nested in the element's class rule. `@media (min-width: Npx)` blocks stand after the rule's own
-// declarations in ascending width, then `&:hover`, `&:focus-visible` and `&:active`; a state at a
-// width is that state's block inside the width's block. A block that an operation creates
-// (`newBlock`) is taken away by its inverse (`dropBlock`) byte for byte, and so is a rule. A class
-// with several rules (ADR 0067) is read in file order: a value is written where its last
-// declaration is, and a new one goes into the class's last rule. A shorthand of a block answers
-// for the properties it holds as one of the rule's own body does (ADR 0070).
+// Style operations with a width, a state or an option (spec 4c, goal 2; ADR 0082): the declaration
+// lives in a block nested in the element's class rule. After the rule's own declarations stand the
+// `@media (min-width: Npx)` blocks in ascending width, then the options' blocks
+// `[data-opt-<id>="<value>"] &` in the order of the version's options and of their values, then
+// `&:hover`, `&:focus-visible` and `&:active`. An option's block holds the same three (its
+// declarations, its widths, its states), and a width's block its states: a state at a width of an
+// option is three blocks deep. A block that an operation creates (`newBlock`) is taken away by its
+// inverse (`dropBlock`) byte for byte, and so is a rule. A block written in another order is read
+// and edited where it stands. A class with several rules (ADR 0067) is read in file order: a value
+// is written where its last declaration is, and a new one goes into the class's last rule. A
+// shorthand of a block answers for the properties it holds as one of the rule's own body does
+// (ADR 0070).
 
-import { STYLE_STATES, type StyleContext } from '../ops.ts';
+import { type DraftOption, MAX_VALUES, optionSelector } from '../../../shared/index.ts';
+import {
+  type ContextOption,
+  STYLE_STATES,
+  type StyleContext,
+  sameContext,
+  sameOption,
+} from '../ops.ts';
 import { type ApplyResult, isStyleProperty, type StyleProperty } from '../types.ts';
 import { type Body, indentAt, type Nest } from './scss-reader.ts';
 import { classRules, type Found } from './scss-rules.ts';
@@ -30,26 +41,37 @@ import { answerFor, type Said, untyped } from './shorthand-source.ts';
 import { type Beside, heldIn, holdsHeld, setBeside, withoutPart } from './shorthand-write.ts';
 
 const conflict = (): ApplyResult => ({ conflict: 'changed' });
-const widthOnly = (context: StyleContext): StyleContext => ({ width: context.width, state: null });
 
-/** The preludes of the blocks a context is written in, the outer one first. */
+/** The blocks a context is written in, the outer one first: its option's, its width's, its state's. */
+function levelsOf(context: StyleContext): StyleContext[] {
+  const { width, state, option } = context;
+  const levels: StyleContext[] = [];
+  if (option !== null) levels.push({ width: null, state: null, option });
+  if (width !== null) levels.push({ width, state: null, option });
+  if (state !== null) levels.push({ width, state, option });
+  return levels;
+}
+
+/** The preludes of those blocks, the outer one first. */
 function preludesOf(context: StyleContext): string[] {
-  const media = context.width === null ? [] : [`@media (min-width: ${context.width}px)`];
-  return context.state === null ? media : [...media, `&:${context.state}`];
+  const { width, state, option } = context;
+  return [
+    ...(option === null ? [] : [`${optionSelector(option.id, option.value)} &`]),
+    ...(width === null ? [] : [`@media (min-width: ${width}px)`]),
+    ...(state === null ? [] : [`&:${state}`]),
+  ];
 }
 
 /** The one block of `context` right inside `body`; `undefined` without one. */
 function blockIn(body: Body, context: StyleContext): Nest | undefined | 'ambiguous' {
-  const hits = body.blocks.filter(
-    (block) => block.context.width === context.width && block.context.state === context.state,
-  );
+  const hits = body.blocks.filter((block) => sameContext(block.context, context));
   return hits.length > 1 ? 'ambiguous' : hits[0];
 }
 
 /**
  * Where a context's block is, or would go. `parent`: the body it is or goes in (the rule, or the
- * width's block for a state at a width that has one), with the indent of that body's first line.
- * `missing`: the blocks to create when `target` is not there, the outer one first.
+ * deepest block around it that is there), with the indent of that body's first line. `missing`:
+ * the blocks to create when `target` is not there, the outer one first.
  */
 type Place = {
   parent: Body;
@@ -59,52 +81,71 @@ type Place = {
 };
 
 function placeOf(text: string, rule: Found, context: StyleContext): Place | 'ambiguous' | 'open' {
-  if (context.width === null || context.state === null) {
-    const target = blockIn(rule, context);
-    if (target === 'ambiguous') return target;
-    return { parent: rule, outer: rule.outer, target, missing: [context] };
+  const levels = levelsOf(context);
+  let parent: Body = rule;
+  let outer = rule.outer;
+  for (const [at, level] of levels.entries()) {
+    const found = blockIn(parent, level);
+    if (found === 'ambiguous') return found;
+    if (found === undefined) return { parent, outer, target: undefined, missing: levels.slice(at) };
+    if (at === levels.length - 1) return { parent, outer, target: found, missing: [] };
+    if (!found.closed) return 'open';
+    parent = found;
+    outer = indentAt(text, found.span.start);
   }
-  const media = blockIn(rule, widthOnly(context));
-  if (media === 'ambiguous') return media;
-  if (media === undefined) {
-    const missing = [widthOnly(context), context];
-    return { parent: rule, outer: rule.outer, target: undefined, missing };
-  }
-  if (!media.closed) return 'open';
-  const target = blockIn(media, context);
-  if (target === 'ambiguous') return target;
-  return { parent: media, outer: indentAt(text, media.span.start), target, missing: [context] };
+  return 'open';
+}
+
+/** Where an option's block stands among the options' blocks: the version's order, its values'. */
+function optionRank(option: ContextOption | null, list: readonly DraftOption[]): number {
+  if (option === null) return 0;
+  const at = list.findIndex((one) => one.id === option.id);
+  const value = list[at]?.values.findIndex((one) => one.id === option.value) ?? -1;
+  return at < 0 || value < 0 ? Number.MAX_SAFE_INTEGER : at * MAX_VALUES + value;
 }
 
 /**
- * The start of the block a new one of `context` stands before in `body`, or the body's closing
- * brace: widths ascend and come before every state; states keep the order of `STYLE_STATES`.
+ * The order of the blocks right inside one body, which differ from it by one of the three: widths
+ * ascending, then options, then states in the order of `STYLE_STATES`.
  */
-function nextOf(body: Body, context: StyleContext): number {
-  const order = (block: Nest): number =>
-    block.context.state === null ? -1 : STYLE_STATES.indexOf(block.context.state);
-  const mine = context.state === null ? -1 : STYLE_STATES.indexOf(context.state);
-  const later = body.blocks.find((block) =>
-    context.state === null
-      ? block.context.state !== null || (block.context.width ?? 0) > (context.width ?? 0)
-      : order(block) > mine,
-  );
+function rankOf(context: StyleContext, list: readonly DraftOption[]): [number, number] {
+  if (context.state !== null) return [2, STYLE_STATES.indexOf(context.state)];
+  if (context.width !== null) return [0, context.width];
+  return [1, optionRank(context.option, list)];
+}
+
+/** The start of the block a new one of `context` stands before in `body`, or its closing brace. */
+function nextOf(body: Body, context: StyleContext, options: ScssOptions): number {
+  const list = options.versionOptions?.() ?? [];
+  const [group, place] = rankOf(context, list);
+  const later = body.blocks.find((block) => {
+    const [other, at] = rankOf(block.context, list);
+    return other > group || (other === group && at > place);
+  });
   return later?.span.start ?? body.close;
 }
 
 /** The missing blocks of a place with the declaration inside, in their place of the parent. */
-function insertBlocks(text: string, place: Place, declaration: string): ApplyResult {
+function insertBlocks(
+  text: string,
+  place: Place,
+  declaration: string,
+  options: ScssOptions,
+): ApplyResult {
   const { parent, missing } = place;
   const first = missing[0];
-  if (first === undefined) return { refused: 'invalid' };
-  const preludes = preludesOf(missing.at(-1) ?? first).slice(-missing.length);
-  return insertNested(text, parent, place.outer, nextOf(parent, first), preludes, declaration);
+  const last = missing.at(-1);
+  if (first === undefined || last === undefined) return { refused: 'invalid' };
+  const preludes = preludesOf(last).slice(-missing.length);
+  const next = nextOf(parent, first, options);
+  return insertNested(text, parent, place.outer, next, preludes, declaration);
 }
 
 /**
- * Another rule of the class than `home` sets the property in a block of the same state at a wider
- * width. A new value in `home`, the class's last rule, would come after that block in the cascade
- * and win over it where the wider width should: which value shows is not kitvas's to guess.
+ * Another rule of the class than `home` sets the property in a block of the same state and option
+ * at a wider width. A new value in `home`, the class's last rule, would come after that block in
+ * the cascade and win over it where the wider width should: which value shows is not kitvas's to
+ * guess. An option's block outranks the rule's own blocks by its selector, wherever it stands.
  */
 function outranked(
   rules: readonly Found[],
@@ -114,6 +155,7 @@ function outranked(
 ): boolean {
   const wider = (block: Nest): boolean =>
     block.context.state === context.state &&
+    sameOption(block.context.option, context.option) &&
     (block.context.width ?? 0) > (context.width ?? 0) &&
     block.own.some((own) => own.view.property === property);
   const any = (blocks: readonly Nest[]): boolean =>
@@ -123,7 +165,7 @@ function outranked(
 
 /**
  * The text without the context's block of the class's rule number `index` when the block is
- * empty, and then without the width's block around a state's when that is empty too: what
+ * empty, and then without each block around it that is empty too, the inner one first: what
  * `insertBlocks` put in, or less.
  */
 function dropEmptyBlocks(
@@ -133,8 +175,7 @@ function dropEmptyBlocks(
   index: number,
 ): string {
   let next = text;
-  const both = context.width !== null && context.state !== null;
-  for (const each of both ? [context, widthOnly(context)] : [context]) {
+  for (const each of levelsOf(context).reverse()) {
     const rule = classRules(next, className)[index];
     const place = rule === undefined || !rule.closed ? 'open' : placeOf(next, rule, each);
     if (typeof place === 'string' || place.target === undefined) return next;
@@ -162,7 +203,7 @@ function addInContext(
   const { target } = home.place;
   if (target === undefined) {
     if (op.newBlock !== true && !options.force) return { refused: 'not-found' };
-    return insertBlocks(text, home.place, declaration);
+    return insertBlocks(text, home.place, declaration, options);
   }
   if (!target.closed) return { refused: 'invalid' };
   return addDeclaration(text, target, indentAt(text, target.span.start), declaration);
@@ -186,7 +227,7 @@ function besideInContext(
   return setBeside(text, after, outer, op, options.varKind ?? untyped);
 }
 
-/** Applies a style operation whose context is a width, a state or both. */
+/** Applies a style operation whose context is a width, a state, an option or more of them. */
 export function applyScssContext(
   text: string,
   op: ScssOp,
@@ -248,8 +289,8 @@ export function applyScssContext(
 }
 
 /**
- * A value the rule sets for a width or a state: one declaration of one of its context blocks, or
- * the part of a shorthand there that holds the property (`via`, ADR 0070).
+ * A value the rule sets for a width, a state or an option: one declaration of one of its context
+ * blocks, or the part of a shorthand there that holds the property (`via`, ADR 0070).
  */
 export type ScssOverride = {
   context: StyleContext;
@@ -276,7 +317,9 @@ export function scssOverrides(
   const contexts = new Map<string, { context: StyleContext; said: Said[] }>();
   const order = new Map<string, { at: string; property: StyleProperty }>();
   const take = (block: Nest): void => {
-    const at = `${block.context.width ?? ''}|${block.context.state ?? ''}`;
+    const { width, state, option } = block.context;
+    const named = option === null ? '' : `${option.id}=${option.value}`;
+    const at = `${width ?? ''}|${state ?? ''}|${named}`;
     const group = contexts.get(at) ?? { context: block.context, said: [] };
     contexts.set(at, group);
     for (const own of block.own) {

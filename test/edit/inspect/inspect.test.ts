@@ -222,7 +222,7 @@ test("the answer lists the kit's breakpoints and every value of a width or a sta
   assert.deepEqual(section.breakpoints, [768, 1280]);
   // What the width's `padding` holds (ADR 0070): its two pairs, then its four sides.
   const held = ['block', 'inline', 'top', 'right', 'bottom', 'left'].map((part) => ({
-    context: { width: 768, state: null },
+    context: { width: 768, state: null, option: null },
     property: `padding-${part}`,
     value: '40px',
     offKit: true,
@@ -231,7 +231,7 @@ test("the answer lists the kit's breakpoints and every value of a width or a sta
   }));
   assert.deepEqual(section.overrides, [
     {
-      context: { width: 768, state: null },
+      context: { width: 768, state: null, option: null },
       property: 'padding',
       value: '40px',
       offKit: true,
@@ -239,14 +239,14 @@ test("the answer lists the kit's breakpoints and every value of a width or a sta
     },
     ...held,
     {
-      context: { width: 768, state: 'hover' },
+      context: { width: 768, state: 'hover', option: null },
       property: 'color',
       value: 'var(--kit-color-ink)',
       offKit: false,
       utility: null,
     },
     {
-      context: { width: null, state: 'focus-visible' },
+      context: { width: null, state: 'focus-visible', option: null },
       property: 'outline-width',
       value: 'var(--kit-space-xs)',
       offKit: false,
@@ -266,13 +266,59 @@ test("the answer lists the kit's breakpoints and every value of a width or a sta
   assert.deepEqual(stack.overrides, []);
 });
 
+test("the values of an option's block carry the option, with its width and state", async () => {
+  const scss = [
+    '.pricing {',
+    '  color: var(--kit-color-ink);',
+    '',
+    '  [data-opt-columns="2"] & {',
+    '    color: var(--kit-color-muted);',
+    '',
+    '    @media (min-width: 768px) {',
+    '      &:hover {',
+    '        outline-width: var(--kit-space-xs);',
+    '      }',
+    '    }',
+    '  }',
+    '}',
+    '',
+  ].join('\n');
+  const drafts = draftWith({ ...PRICING, 'src/scss/sections/pricing.scss': scss });
+  const section = await inspectIn(drafts, 'sections/Pricing:section');
+  const option = { id: 'columns', value: '2' };
+  assert.deepEqual(section.overrides, [
+    {
+      context: { width: null, state: null, option },
+      property: 'color',
+      value: 'var(--kit-color-muted)',
+      offKit: false,
+      utility: null,
+    },
+    {
+      context: { width: 768, state: 'hover', option },
+      property: 'outline-width',
+      value: 'var(--kit-space-xs)',
+      offKit: false,
+      utility: null,
+    },
+  ]);
+  // The base is the rule's own value: an option's block is no base and nothing `nested`.
+  assert.deepEqual(section.styles.color, {
+    kind: 'scss',
+    className: 'pricing',
+    value: 'var(--kit-color-ink)',
+    offKit: false,
+  });
+  assert.deepEqual(section.scss?.nested, []);
+});
+
 test('a Tailwind draft lists its prefixed utilities as the overrides', async () => {
   const hero = await inspectIn(draftWith(HERO), 'sections/Hero:div', tailwindKits());
   assert.deepEqual(hero.styles.padding, { kind: 'utility', className: 'p-4' });
   const padding = hero.overrides.filter((each) => each.property === 'padding');
   assert.deepEqual(padding, [
     {
-      context: { width: 768, state: null },
+      context: { width: 768, state: null, option: null },
       property: 'padding',
       value: '6',
       offKit: false,

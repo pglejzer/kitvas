@@ -1,8 +1,8 @@
 // A style row of the properties panel (plan 13, task G; plan 15, task C): its control follows the
 // property's kind (`style-controls.ts`). Stage 4c (spec goals 1 and 5): the row shows and writes
-// the value at the edit context (a width, a state), says where the value comes from, offers
-// "Remove for this width" and "Apply to all widths", and marks colour and size options that would
-// fail a live check. A value a shorthand of the rule holds shows as its part, and the source names
+// the value at the edit context (a width, a state, an option value: plan 25), says where the value
+// comes from, offers "Remove for this width" and "Apply to all widths" (and "… options"), and
+// marks colour and size options that would fail a live check. A value a shorthand of the rule holds shows as its part, and the source names
 // the shorthand; a side of a box or of a pair has no reset (ADR 0070). Plan 18f (task 2): a value
 // off the kit says "Off kit" with "Use <token>" for the nearest token; the sentences that explain
 // a row (where its value comes from, what the frame computes, why a pick asks Claude) are its
@@ -11,6 +11,7 @@
 import type {
   EditOp,
   Shorthand,
+  StyleContext,
   StyleProperty,
   StyleValue,
 } from '../../../../../src/edit/index.ts';
@@ -27,12 +28,14 @@ import {
 import { text } from '../../texts.ts';
 import {
   askCovered,
+  choiceOf,
   contextActions,
   coveredAt,
   coveredWords,
   heldAt,
   heldNote,
   removeAll,
+  rowContext,
   sourceWords,
 } from '../context/context.ts';
 import { kitHolds } from '../context/state-held.ts';
@@ -69,13 +72,13 @@ export function ruleSourceText(
   return text('props.source.scss', { className });
 }
 
-function sourceText(env: Env, property: StyleProperty): string {
-  const { context } = env.state;
+function sourceText(env: Env, property: StyleProperty, context: StyleContext): string {
   const source = env.inspected.styles[property];
   // A prop holds one value for every width and state: it is the source in any context.
   if (source?.kind === 'prop') return text('props.source.prop', { prop: source.prop });
   if (!isBase(context)) {
-    const words = sourceWords(sourceAt(env.inspected, property, context), context);
+    const at = sourceAt(env.inspected, property, context, choiceOf(env));
+    const words = sourceWords(at, context, env.options?.list);
     return text(words.key, words.params);
   }
   if (source?.kind === 'scss') {
@@ -92,10 +95,11 @@ function heldOf(
   env: Env,
   property: StyleProperty,
   single: boolean,
+  context: StyleContext,
 ): { held: string | null; offKit: boolean; mixed: boolean } {
   const { inspected } = env;
-  if (!isBase(env.state.context)) {
-    const at = heldAt(env.views, property, env.state.context);
+  if (!isBase(context)) {
+    const at = heldAt(env.views, property, context, choiceOf(env));
     // A Tailwind value is its class name, no CSS value: the row shows the computed one, as at
     // the base.
     return env.format === 'tailwind' && !at.mixed ? { ...at, held: null, offKit: false } : at;
@@ -118,9 +122,15 @@ function heldOf(
 }
 
 /** The value shown when the context sets none: what it inherits, else what the frame computes. */
-function hintOf(env: Env, property: StyleProperty, single: boolean, computed: string): string {
-  if (!single || isBase(env.state.context)) return computed;
-  const source = sourceAt(env.inspected, property, env.state.context);
+function hintOf(
+  env: Env,
+  property: StyleProperty,
+  context: StyleContext,
+  shown: { single: boolean; computed: string },
+): string {
+  const { single, computed } = shown;
+  if (!single || isBase(context)) return computed;
+  const source = sourceAt(env.inspected, property, context, choiceOf(env));
   return computed || (source.kind === 'below' ? source.value : '');
 }
 
@@ -156,7 +166,8 @@ function offKitMarks(style: Style, writes: boolean): HTMLElement[] {
  */
 export function styleRow(env: Env, property: StyleProperty, look: RowLook = {}): HTMLElement {
   const { inspected } = env;
-  const { context } = env.state;
+  // Plan 25: the bar's context, in the option whose block holds the value shown (C6).
+  const context = rowContext(env, property);
   const base = isBase(context);
   const single = env.views.length === 1;
   const source = inspected.styles[property];
@@ -178,7 +189,7 @@ export function styleRow(env: Env, property: StyleProperty, look: RowLook = {}):
   const beaten = !covered && single && !base && kitHolds(env.state, property);
   const reason =
     single && !covered ? readOnlyReason(inspected, property, env.format, context) : null;
-  const { held, offKit, mixed } = heldOf(env, property, single);
+  const { held, offKit, mixed } = heldOf(env, property, single, context);
   // The context and the tokens go with every style op; at the base the ops are those of 4a.
   const options: StyleOptions = { format: env.format, context, tokens: env.tokens };
   const set = (value: StyleValue | null): void => {
@@ -196,7 +207,7 @@ export function styleRow(env: Env, property: StyleProperty, look: RowLook = {}):
         : opsForAll(now, property, value, options);
     env.commit(key, build, label, watched);
   };
-  const hint = mixed ? text('props.mixed') : hintOf(env, property, single, computed);
+  const hint = mixed ? text('props.mixed') : hintOf(env, property, context, { single, computed });
   const start = held ?? (computed || null);
   // The same ops a pick would write, shown in the cards; a covered or beaten row writes nothing.
   const preview = (value: StyleValue | null): void => {
@@ -236,7 +247,7 @@ export function styleRow(env: Env, property: StyleProperty, look: RowLook = {}):
     explain(row.label, coveredWords(env));
   } else if (!reason && !base) {
     if (beaten) explain(row.label, heldNote(env).textContent ?? '');
-    row.meta.append(...contextActions(env, property, key));
+    row.meta.append(...contextActions(env, property, key, context));
   } else if (!reason && (held !== null || mixed) && !heldBySides(env.views, property)) {
     // A side a box or a pair holds has no reset: the whole `padding` or `margin` has one.
     const name = single && source?.kind === 'prop' ? source.prop : property;
@@ -251,12 +262,12 @@ export function styleRow(env: Env, property: StyleProperty, look: RowLook = {}):
     row.meta.append(...offKitMarks(style, reason === null));
   }
   if (single) {
-    const said = sourceText(env, property);
+    const said = sourceText(env, property, context);
     if (base) explain(row.label, said);
     else {
-      // In a width or a state the source is a short status of its own, so it stays in view.
+      // In a width, a state or an option the source is a short status of its own, in view.
       const from = el('span', 'props-from', said);
-      from.dataset.context = sourceAt(inspected, property, context).kind;
+      from.dataset.context = sourceAt(inspected, property, context, choiceOf(env)).kind;
       row.meta.append(from);
     }
   }

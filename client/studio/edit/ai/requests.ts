@@ -15,6 +15,7 @@ import {
 } from '../../../../src/edit/domain/op-limits.ts';
 import type { PropValue, StyleContext, StyleValue } from '../../../../src/edit/index.ts';
 import { isRecord as isObject } from '../../../../src/shared/values/guards.ts';
+import { OPTION_ID, OPTION_VALUE } from '../../../../src/shared/values/options.ts';
 import {
   LISTENING_STATES,
   MAX_REQUEST_ELEMENTS,
@@ -53,14 +54,24 @@ const isUtility = (value: unknown): value is string => isText(value) && UTILITY.
 const oneOf = <T extends string>(list: readonly T[], value: unknown): T | undefined =>
   list.find((item) => item === value);
 
+/** A context's option value (ADR 0082); one the server wrote before options is `null` too. */
+function readOption(value: unknown): StyleContext['option'] | undefined {
+  if (value === undefined || value === null) return null;
+  if (!isObject(value)) return undefined;
+  const { id, value: picked } = value;
+  if (typeof id !== 'string' || typeof picked !== 'string') return undefined;
+  return OPTION_ID.test(id) && OPTION_VALUE.test(picked) ? { id, value: picked } : undefined;
+}
+
 function readContext(value: unknown): StyleContext | undefined {
   if (!isObject(value)) return undefined;
   const raw = value.width;
   const width =
     raw === null ? null : typeof raw === 'number' && Number.isInteger(raw) && raw >= 1 ? raw : -1;
   const state = value.state === null ? null : oneOf(STYLE_STATES, value.state);
-  if (width === -1 || state === undefined) return undefined;
-  return { width, state };
+  const option = readOption(value.option);
+  if (width === -1 || state === undefined || option === undefined) return undefined;
+  return { width, state, option };
 }
 
 function readStyleValue(value: unknown): StyleValue | undefined {
@@ -226,6 +237,7 @@ export const requestElements = (selection: readonly string[]): string[] =>
 const copyContext = (context: StyleContext): StyleContext => ({
   width: context.width,
   state: context.state,
+  option: context.option === null ? null : { ...context.option },
 });
 
 /** "What should change?" with Send: a `say` request; `null` with no words or no selection. */

@@ -382,7 +382,7 @@ export function findingRequest(finding: AskFinding): NewRequest {
   return {
     kind: 'ask',
     elements: finding.element === null ? [] : [finding.element].slice(0, MAX_REQUEST_ELEMENTS),
-    context: { width: null, state: null },
+    context: { width: null, state: null, option: null },
     text: `${head}${message}${tail}`.slice(0, MAX_REQUEST_TEXT).trim(),
   };
 }

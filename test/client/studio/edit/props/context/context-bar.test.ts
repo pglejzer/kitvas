@@ -14,6 +14,11 @@ import {
 } from '../../../../../../client/studio/edit/props/context/context-bar.ts';
 import { createStore } from '../../../../../../client/studio/edit/store.ts';
 import type { Frame } from '../../../../../../client/studio/frames.ts';
+import {
+  type ChoiceStore,
+  registerChoiceStore,
+} from '../../../../../../client/studio/options/choice.ts';
+import type { DraftOption, OptionChoice } from '../../../../../../src/shared/values/options.ts';
 import type { Inspect } from '../../../../../../src/studio/api/edit/edit-schemas.ts';
 
 const literal: Inspect['list'] = { kind: 'literal', count: 3, reason: null };
@@ -42,8 +47,11 @@ const frameOf = (name: string, width: number): Frame => ({
   ready: true,
 });
 
-/** The context bar over a phone card (the width shown) and a tablet card, in Edit. */
-function setup() {
+/**
+ * The context bar over a phone card (the width shown) and a tablet card, in Edit; `main` is the
+ * page whose options store the bar finds (none: a version without options).
+ */
+function setup(main?: HTMLElement) {
   const store = createStore('shop');
   const phone = frameOf('p', 390);
   const tablet = frameOf('t', 768);
@@ -68,7 +76,7 @@ function setup() {
     nextRequest: () => 7,
     setPreviewWidth: (width: number | null) => previews.push(width),
   } as unknown as Bridge;
-  mountContextBar({ store, bridge } as unknown as EditorContext);
+  mountContextBar({ store, bridge, main } as unknown as EditorContext);
   store.set({ on: true, selection: ['sections/Hero:a'] });
   const hear = (message: EditFrameMessage): void => {
     for (const listener of listeners) listener(message);
@@ -135,4 +143,68 @@ test('leaving Edit leaves no forced state', () => {
   store.set({ on: true });
   store.set({ on: false });
   assert.equal(live.length, count + 1, 'leaving again tells the cards to rest once more');
+});
+
+// ---- Options (plan 25) --------------------------------------------------------------------------
+
+const OPTIONS: DraftOption[] = [
+  {
+    id: 'columns',
+    label: 'Columns',
+    default: '3',
+    values: [
+      { id: '3', label: '3' },
+      { id: '2', label: '2' },
+    ],
+  },
+  {
+    id: 'theme',
+    label: 'Theme',
+    default: 'light',
+    values: [
+      { id: 'light', label: 'Light' },
+      { id: 'dark', label: 'Dark' },
+    ],
+  },
+];
+const DARK = { id: 'theme', value: 'dark' };
+
+/** The page's options store as the bar hears it: a switch tells every listener. */
+function pageChoices(initial: OptionChoice): ChoiceStore {
+  let choice = { ...initial };
+  const listeners: ((next: OptionChoice) => void)[] = [];
+  return {
+    options: () => OPTIONS,
+    get: () => ({ ...choice }),
+    set(next) {
+      choice = { ...choice, ...next };
+      for (const listener of listeners) listener({ ...choice });
+    },
+    subscribe(listener) {
+      listeners.push(listener);
+      return () => undefined;
+    },
+  };
+}
+
+test("the bar's option follows the values shown: one no longer shown is All options", () => {
+  const main = {} as unknown as HTMLElement;
+  const page = pageChoices({ columns: '3', theme: 'dark' });
+  registerChoiceStore(main, page);
+  const { store } = setup(main);
+  store.set({ context: { ...store.get().context, state: 'hover', option: DARK } });
+  // Another option's switch keeps it.
+  page.set({ columns: '2' });
+  assert.deepEqual(store.get().context.option, DARK);
+  // The theme back at its default: every edit goes to all options again; the state stays.
+  page.set({ theme: 'light' });
+  assert.deepEqual(store.get().context, { width: null, state: 'hover', option: null });
+});
+
+test('a version without options has no option in the context, whatever happens', () => {
+  const { store, list, tablet } = setup();
+  list.setEdit(tablet);
+  store.set({ context: { ...store.get().context, state: 'hover' } });
+  store.set({ selection: ['sections/Hero:b'] });
+  assert.deepEqual(store.get().context, { width: 768, state: null, option: null });
 });

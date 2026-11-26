@@ -26,6 +26,7 @@ import {
   type RuleView,
   type StyleContext,
   type StyleValue,
+  sameContext,
 } from '../../../src/edit/index.ts';
 import { PLUGIN_ROOT } from '../../../src/shared/env/paths.ts';
 import { listFiles } from '../../helpers/architecture.ts';
@@ -170,14 +171,21 @@ test('a token on every existing declaration and then its inverse leave the file 
   assert.ok(keywords >= 5, `only ${keywords} keyword declarations tried`);
 });
 
+const COLUMNS = { id: 'columns', value: '2' };
+
 const CONTEXTS: StyleContext[] = [
-  { width: 768, state: null },
-  { width: 1280, state: null },
-  { width: null, state: 'hover' },
-  { width: null, state: 'focus-visible' },
-  { width: null, state: 'active' },
-  { width: 768, state: 'hover' },
-  { width: 1280, state: 'active' },
+  { width: 768, state: null, option: null },
+  { width: 1280, state: null, option: null },
+  { width: null, state: 'hover', option: null },
+  { width: null, state: 'focus-visible', option: null },
+  { width: null, state: 'active', option: null },
+  { width: 768, state: 'hover', option: null },
+  { width: 1280, state: 'active', option: null },
+  // ADR 0082: an option's block, alone and with a width's and a state's blocks inside.
+  { width: null, state: null, option: COLUMNS },
+  { width: 768, state: null, option: COLUMNS },
+  { width: null, state: 'hover', option: COLUMNS },
+  { width: 1280, state: 'active', option: COLUMNS },
 ];
 
 test('a value for a width or a state and then its inverse leave every rule as it was', () => {
@@ -187,7 +195,7 @@ test('a value for a width or a state and then its inverse leave every rule as it
       for (const context of CONTEXTS) {
         const where = `${path} .${rule.className} ${JSON.stringify(context)}`;
         const here = (each: { context: StyleContext }): boolean =>
-          each.context.width === context.width && each.context.state === context.state;
+          sameContext(each.context, context);
         // As the panel sends a new value: a context the rule has a block of keeps it, and its
         // inverse leaves the block there with what else it holds; another gets a new one.
         const op: ScssOp = {

@@ -35,8 +35,8 @@ const LINE = 'var(--kit-color-line)';
 const SURFACE = 'var(--kit-color-surface)';
 const SMALL = 'var(--kit-space-sm)';
 const LARGE = 'var(--kit-space-lg)';
-const HOVER: StyleContext = { width: null, state: 'hover' };
-const WIDE: StyleContext = { width: 768, state: null };
+const HOVER: StyleContext = { width: null, state: 'hover', option: null };
+const WIDE: StyleContext = { width: 768, state: null, option: null };
 
 type SetOp = Extract<ScssOp, { op: 'setStyle' }>;
 type RemoveOp = Extract<ScssOp, { op: 'removeStyle' }>;

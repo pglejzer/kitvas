@@ -67,7 +67,7 @@ const REQUESTS = '/api/v1/drafts/shop/requests';
 const SAY = {
   kind: 'say',
   elements: [STACK],
-  context: { width: null, state: null },
+  context: { width: null, state: null, option: null },
   text: '  More air between the plans  ',
 };
 const ROOMY = {
