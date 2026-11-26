@@ -1,6 +1,6 @@
 # 0068. The logo moves: an entrance once for a tab, and a sign while Claude works
 
-Date: 2026-11-25. Status: accepted. Changes in part ADR 0057 (its motion rule: every motion takes the studio's motion times, and nothing moves while idle). Spec: `docs/specs/2026-11-25-kitvas-start-page-design.md`, section 6.2. Plan 18d, agent B.
+Date: 2026-11-25. Status: accepted, changed in part by ADR 0084. Changes in part ADR 0057 (its motion rule: every motion takes the studio's motion times, and nothing moves while idle). Spec: `docs/specs/2026-11-25-kitvas-start-page-design.md`, section 6.2. Plan 18d, agent B.
 
 ## Context
 

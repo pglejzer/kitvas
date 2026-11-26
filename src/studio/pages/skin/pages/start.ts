@@ -36,8 +36,7 @@ export const SKIN_START = `
   height: 520px;
   pointer-events: none;
 }
-.start-giant .k-logo-block { fill: var(--st-color-panel); }
-.start-giant .k-logo-pointer { fill: var(--st-color-line); }
+.start-giant .k-logo-icon { fill: var(--st-color-panel); }
 .start-brand {
   display: grid;
   gap: var(--st-space-16);

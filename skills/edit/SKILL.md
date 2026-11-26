@@ -1,7 +1,7 @@
 ---
 
 name: edit
-description: "Use when the user runs /kitvas:edit <slug>, or wants Claude to answer what they ask from the studio's editor (select and say, Improve, Ask Claude, notes for Claude, the reasons of a section) while they edit a draft."
+description: "Use when the user runs /kitvas:edit with a draft's slug, or wants Claude to answer what they ask from the studio's editor (select and say, Improve, Ask Claude, notes for Claude, the reasons of a section) while they edit a draft."
 ---
 
 # kitvas: answer the editor

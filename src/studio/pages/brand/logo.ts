@@ -1,13 +1,15 @@
-// The kitvas logo as an inline SVG (spec 6.2, ADR 0068): the mark (a block and a pointer) and the
-// word, in one colour, `currentColor`. The paths are those of `docs/brand/kitvas-logo.svg`; a test
-// fails when they differ. Each part carries a class, so the motion can address it
-// (`skin/logo.ts`): the block, the pointer (the "v" of the word, placed by a transform) and the six
-// letters. A letter's place is the `transform` of its inner path, so a rule that moves the letter's
-// group never takes the place away.
+// The kitvas logo as an inline SVG (spec 6.2, ADRs 0068 and 0084): the icon (two kit parts joined by
+// a dovetail), the word and two loose parts (the dot of the "i" and a full stop). The icon and the
+// parts take the accent, the word the text's colour, both as rules of `skin/logo.ts`: the markup
+// has no colour. The paths are those of `docs/brand/kitvas-logo.svg`; a test fails when they differ.
+// The icon is a group of two paths; the right one (`k-logo-joint`) is the part the working sign
+// nudges along the joint. Each part carries a class, so the motion can address it. A CSS `transform` replaces the
+// `transform` attribute, so a part a rule moves never carries its place: the place is on the group
+// around it (the loose parts, the icon) or on a letter's inner path (the letter's group moves).
 
-import { THEME_COLORS } from '../../theme/tokens.ts';
+import { ACCENT_COLORS } from '../../theme/tokens.ts';
 import { type Html, html, trusted } from '../html.ts';
-import { POINTER_PLACE, V } from './pointer.ts';
+import { PART_D } from './part.ts';
 
 export type LogoKind = 'full' | 'mark';
 export type LogoOptions = {
@@ -17,46 +19,65 @@ export type LogoOptions = {
   className?: string;
   /** `data-play`: this logo plays the entrance when the page starts one (`logoEntrance`). */
   play?: boolean;
-  /** `data-claude`: its pointer shows that Claude works. The bars' logos only. */
+  /** `data-claude`: its joint (and the full stop) show that Claude works. The bars' logos only. */
   working?: boolean;
 };
 
-const BLOCK = 'M0 0H44V33.46L27.2 27.2L33.46 44H0Z';
-/** The word's place beside the mark. */
-const WORD_PLACE = 'translate(76 1)';
+/** The icon's two parts: the left one holds the tail, the right one (the joint) the socket. */
+const ICON_LEFT = 'M3 0H12V13L22 10V24L12 21V34H3A3 3 0 0 1 0 31V3A3 3 0 0 1 3 0Z';
+const ICON_RIGHT = 'M16 0H31A3 3 0 0 1 34 3V31A3 3 0 0 1 31 34H16V26.4L26 29.4V4.6L16 7.6Z';
+/** The icon's place beside the word, and the word's place. */
+const ICON_PLACE = 'translate(2 6)';
+const WORD_PLACE = 'translate(47 0)';
 
 /** The six letters, each with its place in the word (`null`: at the word's start). */
 const LETTERS: readonly { d: string; place: string | null }[] = [
-  { d: 'M0 8H8V31L19 20H30L13 37L30 54H19L8 43V54H0Z', place: null },
-  { d: 'M0 8H8V16H0ZM0 20H8V54H0Z', place: 'translate(35 0)' },
-  { d: 'M6 8H14V20H20V28H14V54H6V28H0V20H6Z', place: 'translate(47 0)' },
-  { d: V, place: 'translate(70 20)' },
   {
-    d: 'M28 20H36V54H28V51.97A18 18 0 1 1 28 22.03ZM28 37A10 10 0 1 0 8 37A10 10 0 1 0 28 37Z',
-    place: 'translate(101 0)',
+    d: 'M0 9A3 3 0 0 1 6 9V37A3 3 0 0 1 0 37ZM.88 28.88L10.88 18.88A3 3 0 0 1 15.12 23.12L5.12 33.12ZM9.62 24.88L19.62 34.88A3 3 0 0 1 15.38 39.12L5.38 29.12Z',
+    place: null,
+  },
+  { d: 'M24 21A3 3 0 0 1 30 21V37A3 3 0 0 1 24 37Z', place: 'translate(1 0)' },
+  {
+    d: 'M35.5 12A3 3 0 0 1 41.5 12V37A3 3 0 0 1 35.5 37ZM35.5 18H42.5A3 3 0 0 1 42.5 24H35.5A3 3 0 0 1 35.5 18Z',
+    place: 'translate(2.5 0)',
   },
   {
-    d: 'M27 19H11A11 11 0 0 0 11 41H17A3 3 0 0 1 17 47H1V55H17A11 11 0 0 0 17 33H11A3 3 0 0 1 11 27H27Z',
-    place: 'translate(141 0)',
+    d: 'M53.25 19.8L60.25 35.8A3 3 0 0 1 54.75 38.2L47.75 22.2A3 3 0 0 1 53.25 19.8ZM61.75 19.8A3 3 0 0 1 67.25 22.2L60.25 38.2A3 3 0 0 1 54.75 35.8Z',
+    place: 'translate(4 0)',
+  },
+  {
+    d: 'M69 29A11 11 0 1 1 91 29A11 11 0 1 1 69 29ZM75 29A5 5 0 1 0 85 29A5 5 0 1 0 75 29ZM85 21A3 3 0 0 1 91 21V37A3 3 0 0 1 85 37Z',
+    place: 'translate(6 0)',
+  },
+  {
+    d: 'M101.88 18H109.25A2.5 2.5 0 0 1 109.25 23H101.88A1.75 1.75 0 0 0 101.88 26.5H105.12A6.75 6.75 0 0 1 105.12 40H97.75A2.5 2.5 0 0 1 97.75 35H105.12A1.75 1.75 0 0 0 105.12 31.5H101.88A6.75 6.75 0 0 1 101.88 18Z',
+    place: 'translate(6.5 0)',
   },
 ];
 
-const MARK = `<path class="k-logo-block" d="${BLOCK}"/><path class="k-logo-pointer" transform="${POINTER_PLACE}" d="${V}"/>`;
+const ICON_PATH = `<g class="k-logo-icon"><path d="${ICON_LEFT}"/><path class="k-logo-joint" d="${ICON_RIGHT}"/></g>`;
+const FULL_ICON = `<g transform="${ICON_PLACE}">${ICON_PATH}</g>`;
+
+/** A loose part at its place in the word: the dot of the "i", or the full stop. */
+const dot = (className: string, place: string): string =>
+  `<g class="k-logo-dot ${className}" transform="${place}"><path d="${PART_D}"/></g>`;
 
 const WORD = `<g transform="${WORD_PLACE}">${LETTERS.map(
   ({ d, place }) =>
-    `<g class="k-logo-letter"><path fill-rule="evenodd"${place === null ? '' : ` transform="${place}"`} d="${d}"/></g>`,
-).join('')}</g>`;
+    `<g class="k-logo-letter"><path${place === null ? '' : ` transform="${place}"`} d="${d}"/></g>`,
+).join(
+  '',
+)}${dot('k-logo-dot-i', 'translate(28 10.2)')}${dot('k-logo-stop', 'translate(127.3 36.2)')}</g>`;
 
 /**
- * The browser tab's icon, as a data address: the mark in the studio's ink, dark on a light tab bar
- * and light on a dark one. The pages' policy lets `img-src` take `data:`.
+ * The browser tab's icon, as a data address: the icon alone in the copper accent, the light one on
+ * a light tab bar and the dark one on a dark bar. The pages' policy lets `img-src` take `data:`.
  */
 export const FAVICON = `data:image/svg+xml,${encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><style>path{fill:${THEME_COLORS.light.ink}}@media (prefers-color-scheme:dark){path{fill:${THEME_COLORS.dark.ink}}}</style><path d="${BLOCK}"/><path transform="${POINTER_PLACE}" d="${V}"/></svg>`,
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 34"><style>path{fill:${ACCENT_COLORS.copper.light.accent}}@media (prefers-color-scheme:dark){path{fill:${ACCENT_COLORS.copper.dark.accent}}}</style><path d="${ICON_LEFT}"/><path d="${ICON_RIGHT}"/></svg>`,
 )}`;
 
-/** `full`: the mark and the word, viewBox `0 0 245 64`. `mark`: the mark alone, `0 0 64 64`. */
+/** `full`: the icon and the word, viewBox `0 0 180 46`. `mark`: the icon alone, `0 0 34 34`. */
 export function logo(kind: LogoKind, options: LogoOptions = {}): Html {
   const { label, className, play, working } = options;
   const classes = className === undefined || className === '' ? 'k-logo' : `k-logo ${className}`;
@@ -68,8 +89,8 @@ export function logo(kind: LogoKind, options: LogoOptions = {}): Html {
   const marks = trusted(
     `${play === true ? ' data-play' : ''}${working === true ? ' data-claude' : ''}`,
   );
-  const viewBox = kind === 'full' ? '0 0 245 64' : '0 0 64 64';
-  const parts = trusted(kind === 'full' ? `${MARK}${WORD}` : MARK);
+  const viewBox = kind === 'full' ? '0 0 180 46' : '0 0 34 34';
+  const parts = trusted(kind === 'full' ? `${FULL_ICON}${WORD}` : ICON_PATH);
   return html`<svg class="${classes}" viewBox="${viewBox}"${name}${marks}>${parts}</svg>`;
 }
 

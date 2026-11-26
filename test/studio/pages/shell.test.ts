@@ -62,12 +62,12 @@ test('a page has the icons, then the bar: the logo, the links, the status and Vi
 test('the logo in the bar is a link home with a name, and shows that Claude works', () => {
   const home = homeLink(t, 'full').text;
   assert.ok(
-    home.startsWith('<a class="k-logo-link" href="/"><svg class="k-logo" viewBox="0 0 245 64"'),
+    home.startsWith('<a class="k-logo-link" href="/"><svg class="k-logo" viewBox="0 0 180 46"'),
   );
   assert.ok(home.includes(`role="img" aria-label="${t('studio.nav.home')}" data-claude>`));
   assert.ok(home.endsWith('</svg></a>'));
   assert.ok(!home.includes('data-play'), 'only the start page plays the entrance');
-  assert.ok(homeLink(t, 'mark').text.includes('viewBox="0 0 64 64"'));
+  assert.ok(homeLink(t, 'mark').text.includes('viewBox="0 0 34 34"'));
 });
 
 test("Claude's status slot is empty and holds the words the script shows", () => {

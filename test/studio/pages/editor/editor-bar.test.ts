@@ -61,7 +61,7 @@ test('the start is the mark, a link home, then Drafts / title and the version me
   const start = between(text, 'k-bar-start', 'k-bar-mid');
   assert.ok(start.startsWith(`k-bar-start">${homeLink(t, 'mark').text}<a class="k-btn bar-crumb"`));
   const mark = homeLink(t, 'mark').text;
-  assert.ok(mark.includes('viewBox="0 0 64 64"'));
+  assert.ok(mark.includes('viewBox="0 0 34 34"'));
   assert.ok(mark.includes(`aria-label="${t('studio.nav.home')}" data-claude>`));
   assert.ok(!text.includes('k-mark'), 'the word is gone');
   assert.ok(start.includes(`<a class="k-btn bar-crumb" href="/">${t('studio.nav.drafts')}</a>`));

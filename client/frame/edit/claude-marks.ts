@@ -1,9 +1,10 @@
 // Claude's mark on the canvas (spec 18e, D): around each element Claude looks at or works on, a dashed
 // ring in the selection tone, 2 px outside the element, and under its bottom right corner a small
-// tag with the logo's pointer and the word the studio sends (`label`: no text for people lives in
-// the frame). A mark that `motion` marks is one Claude works on: the dashes run along the ring and
-// the pointer taps, with the period of the bar logo's working sign (ADR 0068); a still mark is one
-// Claude only looks at or has not taken yet. Under reduced motion both stand still.
+// tag with the logo's loose part (a small rounded square, turned) and the word the studio sends
+// (`label`: no text for people lives in the frame). A mark that `motion` marks is one Claude works
+// on: the dashes run along the ring and the part sways from its turn to +10 degrees and back, with
+// the period of the bar logo's working sign (ADR 0084); a still mark is one Claude only looks at or
+// has not taken yet. Under reduced motion both stand still.
 //
 // Everything sits in one overlay at the end of `body`, inside a closed shadow root, as the marks
 // of `page/marks.ts` do: the prototype's styles do not reach it, it never takes the pointer and
@@ -11,11 +12,11 @@
 // resize, size change and any change of the page (a build swapped in). No new colour: the
 // selection tone the studio says (`toned`), the system's until then.
 //
-// The period and the pointer are the studio's own: `LOGO_TAP_MS` of `skin/logo.ts`, and `V` (the
-// "v" of the logo) with its place `POINTER_PLACE` of `brand/pointer.ts` (ADR 0080).
+// The period and the part are the studio's own: `LOGO_SWAY_MS` of `skin/logo.ts`, and `PART_D` with
+// its turn `PART_TURN` of `brand/part.ts` (ADR 0080).
 
-import { POINTER_PLACE, V } from '../../../src/studio/pages/brand/pointer.ts';
-import { LOGO_TAP_MS } from '../../../src/studio/pages/skin/logo.ts';
+import { PART_D, PART_TURN } from '../../../src/studio/pages/brand/part.ts';
+import { LOGO_SWAY_MS } from '../../../src/studio/pages/skin/logo.ts';
 import type { ClaudeMark } from '../../channel/edit-protocol.ts';
 import { type Point, placeRing, type Rect } from '../drag/place.ts';
 import { overlayHostStyle } from '../page/overlay-host.ts';
@@ -30,8 +31,10 @@ const DASH = '6 4';
 const DASH_PERIOD = 10;
 /** Between the tag and the element's box. */
 const TAG_GAP = 4;
-/** The pointer's drawing in the tag: its place on the 30 by 30 square the logo's place gives it. */
-const POINTER_SIZE = 12;
+/** The part's drawing in the tag: its 7 unit square on a 10 unit view, so about 8 px wide. */
+const PART_SIZE = 12;
+/** Where the part sways to, in degrees; it starts and ends at `PART_TURN`. */
+const SWAY_TO = 10;
 
 const SHEET = `
 .ring { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
@@ -45,14 +48,17 @@ const SHEET = `
   font: 600 11px/14px system-ui, -apple-system, "Segoe UI", sans-serif; white-space: nowrap;
   letter-spacing: 0; background: var(--kv-select, Highlight); color: var(--kv-on-select, HighlightText);
 }
-.tag svg { display: block; width: ${POINTER_SIZE}px; height: ${POINTER_SIZE}px; fill: currentColor; }
+.tag svg { display: block; width: ${PART_SIZE}px; height: ${PART_SIZE}px; fill: currentColor; }
+.tag path {
+  transform: rotate(${PART_TURN}deg); transform-box: fill-box; transform-origin: center;
+}
 .off { display: none; }
-.ring[data-motion] rect { animation: dash ${LOGO_TAP_MS}ms linear infinite; }
-.tag[data-motion] svg { animation: tap ${LOGO_TAP_MS}ms ease-in-out infinite; }
+.ring[data-motion] rect { animation: dash ${LOGO_SWAY_MS}ms linear infinite; }
+.tag[data-motion] path { animation: sway ${LOGO_SWAY_MS}ms ease-in-out infinite; }
 @keyframes dash { to { stroke-dashoffset: -${DASH_PERIOD}; } }
-@keyframes tap { 50% { transform: translate(-1.5px, -1.5px); } }
+@keyframes sway { 50% { transform: rotate(${SWAY_TO}deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .ring[data-motion] rect, .tag[data-motion] svg { animation: none; }
+  .ring[data-motion] rect, .tag[data-motion] path { animation: none; }
 }
 @media (forced-colors: active) {
   .ring rect { stroke: Highlight; }
@@ -114,12 +120,11 @@ function resolve(marks: readonly ClaudeMark[]): Target[] {
   return found.slice(0, MAX_DRAWN);
 }
 
-function pointer(): SVGSVGElement {
+function part(): SVGSVGElement {
   const svg = document.createElementNS(SVG, 'svg');
-  svg.setAttribute('viewBox', '-1 -1 32 32');
+  svg.setAttribute('viewBox', '-5 -5 10 10');
   const path = document.createElementNS(SVG, 'path');
-  path.setAttribute('transform', POINTER_PLACE);
-  path.setAttribute('d', V);
+  path.setAttribute('d', PART_D);
   svg.append(path);
   return svg;
 }
@@ -134,7 +139,7 @@ function draw(label: string): Drawn {
   const word = document.createElement('span');
   // Text only: a label is never read as markup.
   word.textContent = label;
-  tag.append(pointer(), word);
+  tag.append(part(), word);
   return { ring, rect, tag };
 }
 

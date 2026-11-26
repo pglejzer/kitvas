@@ -184,7 +184,7 @@ export function main(argv: string[]): Promise<number> {
           'shared/values/numbers.ts',
           'shared/values/options.ts',
           'shared/values/paths.ts',
-          'studio/pages/brand/pointer.ts',
+          'studio/pages/brand/part.ts',
           'studio/pages/skin/logo.ts',
           'studio/theme/tokens.ts',
         ].map((file) => join(PLUGIN_ROOT, 'src', file)),
