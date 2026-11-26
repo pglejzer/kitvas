@@ -101,7 +101,7 @@ npm ci --ignore-scripts
 npm run check
 ```
 
-`AGENTS.md` has the rules. `docs/adr/README.md` indexes the decisions. `CHANGELOG.md` lists the changes. `evals/README.md` explains the skill evals.
+`AGENTS.md` has the rules. `docs/adr/README.md` indexes the decisions. `CHANGELOG.md` lists the changes. `evals/README.md` explains the skill evals. [CONTRIBUTING.md](CONTRIBUTING.md) says how to report a problem and what a pull request has to pass; everyone who takes part follows the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
