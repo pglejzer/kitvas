@@ -27,8 +27,10 @@ export function labelText(
 }
 
 /**
- * Where a label goes, in page coordinates: just above the box and flush with its left edge, or
- * inside the box's top edge when there is no room above, and moved left to stay in the page.
+ * Where a label goes, in page coordinates: just above the box and flush with its left edge, and
+ * moved left to stay in the page. With no room above it goes inside the box's top edge, unless
+ * the box is under twice the label's height: then it goes under the box, so the element stays
+ * in view (zoomed out, a label keeps its size on screen and is larger than a button).
  */
 export function labelPlace(
   box: Rect,
@@ -37,7 +39,8 @@ export function labelPlace(
   labelHeight: number,
 ): Point {
   const above = box.top - labelHeight;
-  const top = above >= 0 ? above : box.top;
+  const inside = box.height >= labelHeight * 2 ? box.top : box.top + box.height;
+  const top = above >= 0 ? above : inside;
   const left = Math.max(0, Math.min(box.left, pageWidth - labelWidth));
   return { left, top };
 }

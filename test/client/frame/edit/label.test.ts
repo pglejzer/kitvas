@@ -27,6 +27,17 @@ test('a label goes inside the top edge when there is no room above', () => {
   assert.deepEqual(labelPlace({ ...box, top: 16 }, 1000, 60, 16), { left: 40, top: 0 });
 });
 
+test('a label goes under a box it would cover when there is no room above', () => {
+  // Zoomed out, a label keeps its size on screen, so in page pixels it is larger than a button.
+  const button = { left: 1400, top: 20, width: 93, height: 37 };
+  assert.deepEqual(labelPlace(button, 1885, 320, 45), { left: 1400, top: 57 });
+  // A box under twice the label's height would lose most of itself to a label inside it.
+  assert.deepEqual(labelPlace({ left: 40, top: 10, width: 200, height: 31 }, 1000, 60, 16), {
+    left: 40,
+    top: 41,
+  });
+});
+
 test('a label stays inside the page and never goes below zero on the left', () => {
   const box = { left: 950, top: 100, width: 100, height: 50 };
   assert.deepEqual(labelPlace(box, 1000, 80, 16), { left: 920, top: 84 });
