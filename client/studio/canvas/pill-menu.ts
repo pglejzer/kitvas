@@ -1,6 +1,6 @@
 // What the canvas's width pill holds (plan 18f, task 5; spec S4.10), pure so it is tested without a
-// DOM. The pill shows the three presets and "More"; More holds the other sizes, the custom width
-// and the cards. A width that is not a preset shows in the pill as its own number, pressed.
+// DOM. The pill shows the three presets and "More"; More holds every size, the custom width and
+// the cards (the presets' rows show only while the pill is narrowed to the width in use). A width that is not a preset shows in the pill as its own number, pressed.
 
 import type { CardCount } from './card-rules.ts';
 import { PRESETS, SIZES } from './width.ts';
@@ -16,7 +16,10 @@ export type PillView = {
 
 /** What the More menu holds and what its parts show. */
 export type PillMenu = {
-  /** The sizes the menu lists: every size that is not one of the three presets in the pill. */
+  /**
+   * The sizes the menu lists: every size, the three presets too, so the pill can show only the
+   * width in use when the canvas is narrow (`fit/`).
+   */
   sizes: number[];
   /** The width shown is not a preset: the pill adds its number, pressed. */
   custom: boolean;
@@ -25,10 +28,9 @@ export type PillMenu = {
 };
 
 export function pillMenu(view: PillView): PillMenu {
-  const preset = (width: number): boolean => PRESETS.some((one) => one === width);
   return {
-    sizes: SIZES.map((size) => size.width).filter((width) => !preset(width)),
-    custom: !preset(view.width),
+    sizes: SIZES.map((size) => size.width),
+    custom: !PRESETS.some((one) => one === view.width),
     cards: view.every === true ? 'every' : view.cards,
   };
 }

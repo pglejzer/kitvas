@@ -11,6 +11,7 @@ import type { CanvasFrameMessage, CanvasStudioMessage } from '../../channel/canv
 import type { Frame } from '../frames.ts';
 import { emitShellKey, onShellKey } from '../shell/bus.ts';
 import type { CardSource } from './card-list.ts';
+import { mountFit } from './fit/mount.ts';
 import { mountPan } from './pan.ts';
 import { mountStrip } from './strip.ts';
 import {
@@ -335,6 +336,8 @@ export function mountCanvas(
     window.addEventListener('resize', follow);
   }
   follow();
+  // The top bars make room for each other by steps (`fit/`).
+  mountFit(main);
 
   return {
     zoom: () => zoom,

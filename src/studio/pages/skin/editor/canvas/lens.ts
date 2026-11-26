@@ -2,7 +2,8 @@
 // at the canvas's top left, across from the width pill: a quiet "Lens" caption, then a button per
 // lens, the one on pressed as the width pill's chosen width is, with its count in the quiet ink.
 // The pins themselves are drawn inside the frame (`client/frame/lens/`), with the studio's tones
-// and none of these rules. Studio tokens only (`--st-*`); shared classes are `../` (`k-`).
+// and none of these rules. When the canvas is narrow the pill shows the lens in use and a menu.
+// Studio tokens only (`--st-*`); shared classes are `../` (`k-`).
 
 export const SKIN_EDITOR_LENS = `
 .pill-lens { position: absolute; top: var(--st-space-12); left: var(--st-space-12); z-index: 3; }
@@ -29,4 +30,11 @@ export const SKIN_EDITOR_LENS = `
   font-weight: var(--st-font-weight-bold);
 }
 .pill-lens-opt > .pill-num:empty { display: none; }
-`;
+/* The narrowed form (step 3 of the fit, \`client/studio/canvas/fit/\`): the lens in use stays, the
+   others go into the menu. The menu opens from the pill's left edge. */
+.pill-lens > .pill-lens-more { display: none; }
+.stage-canvas[data-fit="3"] .pill-lens > .pill-lens-more { display: flex; }
+.stage-canvas[data-fit="3"] .pill-lens > .pill-lens-opt:not([aria-pressed="true"]) { display: none; }
+.pill-lens-more > summary { padding: 0 var(--st-space-4); }
+.pill-lens-more > .pill-sizes { right: auto; left: 0; }
+.pill-lens-list > [aria-current] { font-weight: var(--st-font-weight-bold); }`;

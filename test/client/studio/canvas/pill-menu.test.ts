@@ -4,15 +4,15 @@ import { pillMenu } from '../../../../client/studio/canvas/pill-menu.ts';
 import { stepFocus } from '../../../../client/studio/canvas/pill-menus.ts';
 import { PRESETS } from '../../../../client/studio/canvas/width.ts';
 
-test('the pill shows the three presets, and More does not list them again', () => {
+test('the pill shows the three presets, and More lists them too for the narrowed pill', () => {
   assert.deepEqual([...PRESETS], [390, 768, 1280]);
   const { sizes } = pillMenu({ width: 390, cards: 1 });
-  for (const preset of PRESETS) assert.ok(!sizes.includes(preset), String(preset));
+  for (const preset of PRESETS) assert.ok(sizes.includes(preset), String(preset));
 });
 
-test('More holds the other sizes, the custom width and Cards', () => {
+test('More holds every size, the custom width and Cards', () => {
   const menu = pillMenu({ width: 768, cards: 2 });
-  assert.deepEqual(menu.sizes, [320, 430, 1024, 1440, 1920, 2560]);
+  assert.deepEqual(menu.sizes, [320, 390, 430, 768, 1024, 1280, 1440, 1920, 2560]);
   // The custom width has its field in the menu at any width; the card choice is the one shown.
   assert.equal(menu.cards, 2);
   assert.equal(pillMenu({ width: 768, cards: 3, every: true }).cards, 'every');

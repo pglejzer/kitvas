@@ -2,6 +2,13 @@
 // The widths themselves are in `widths.ts`, which this file re-exports.
 
 import { type Draft, latestVersion, type States } from '../../drafts/index.ts';
+import {
+  choiceFromQuery,
+  type DraftOption,
+  OPTION_PARAM,
+  type OptionChoice,
+  offDefault,
+} from '../../shared/index.ts';
 import { CARD_COUNTS, type CardCount, MAX_VIEW, MIN_VIEW, WIDTHS, type Width } from './widths.ts';
 
 export * from './widths.ts';
@@ -11,6 +18,7 @@ export * from './widths.ts';
  * `view`: a width that is not one of `WIDTHS`, shown in the card; the checks' findings and marks
  * stay on `width`.
  * `cards`: more than one card; absent for one. Compare has one card per version instead.
+ * `options`: the values of the version's options that differ from their defaults; absent for none.
  */
 export type DraftChoice = {
   version: number;
@@ -19,6 +27,7 @@ export type DraftChoice = {
   compare?: number;
   view?: number;
   cards?: CardCount;
+  options?: OptionChoice;
 };
 
 /** `?version=`: one the draft has, else the latest. */
@@ -67,6 +76,15 @@ export function pickCards(query: URLSearchParams): CardCount {
   return CARD_COUNTS.find((count) => count === asked) ?? 1;
 }
 
+/**
+ * `?opt-<id>=<value>`: the values of this version's options that differ from the defaults. An id or
+ * a value the version does not have is dropped, so an old address shows the defaults.
+ */
+export function pickOptions(query: URLSearchParams, options: readonly DraftOption[]): OptionChoice {
+  const asked = choiceFromQuery(options, query);
+  return Object.fromEntries(offDefault(options, asked).map(({ id, value }) => [id, value]));
+}
+
 /** The address of a view; it names all three, so a link always shows the same thing. */
 export function draftHref(slug: string, choice: DraftChoice): string {
   const query = new URLSearchParams({
@@ -79,6 +97,10 @@ export function draftHref(slug: string, choice: DraftChoice): string {
   // Compare has its own two cards; more widths are only for one version.
   if (choice.cards !== undefined && choice.cards > 1 && choice.compare === undefined) {
     query.set('cards', String(choice.cards));
+  }
+  // Only the values that differ are held, so each is one pair (`choiceToQuery` writes the same).
+  for (const [id, value] of Object.entries(choice.options ?? {})) {
+    query.set(`${OPTION_PARAM}${id}`, value);
   }
   return `/drafts/${slug}?${query}`;
 }

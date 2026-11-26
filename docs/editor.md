@@ -98,6 +98,16 @@ A page lives at several widths and in several states, and the editor sees both:
 - The state bar (Default, Hover, Focus, Active) forces that state on the selected element in every card and sends your edits to it. They are written as `&:hover`, `&:focus-visible` or `&:active`, or as a `hover:` utility. A forced state is only a preview: it never reaches the build, and it ends with Edit or with the selection.
 - Each style row says where its value comes from (set here, from all widths, from 768 up, or the kit) and offers "Remove for this width" and "Apply to all widths".
 
+## Options
+
+A version can hold choices, such as a light and a dark theme, two or three columns, or an outlined or a filled card (`src/json/options.json`; Claude writes it when you ask for them). A version without options has no Options pill and no row.
+
+- The Options pill stands in the pill row before the width pill. It shows how many options the version has and a dot while the values shown are not the defaults; it opens and folds the row under the pills (one line, as wide as the canvas). The row stays as you left it in this browser. Opening it moves the page down by the row's height, as a panel fold does; nothing else moves.
+- Each option is its name and its values. Press a value and every card of the page switches in place: the frames never reload, so your selection, your locks and your notes stay. The label above each card names the values that differ, and the address keeps them (`opt-columns=2`), so a reload, a link and the other pills keep the choice. Every value is also a plain link, so the row works without the script. Values that do not fit scroll sideways; the end of the row stays in view.
+- At the end of the row: "Default" while every value is the default; otherwise "Reset", which shows the defaults and writes nothing, and, in Edit on the latest version, "Make default", which writes the values shown as the defaults of the version. Make default is an edit: one step of Undo and Redo, and the first edit of a session starts a version.
+- Options are not part of Compare: while two versions are compared the pill and the row are not shown.
+- When the canvas is narrow the pill keeps its icon, its count and its dot, and loses its word first (the fit of the canvas's bars).
+
 ## Live checks
 
 After each edit's build the editor measures the changed elements in every card (text contrast, target size, content that overflows or is cut) and checks the code it wrote (values outside the kit, plain controls). A finding shows in the Checks tab, as a mark on the canvas and in the line above Properties. That line is there for as long as an element is selected and keeps one height, so a finding that comes or goes never moves the pane under your pointer; press it to open the findings as cards, and it stays as you left it. A colour or size option that would fail warns you before you pick it. The Properties panel also has an accessibility card: role, name, focus order, contrast and target size of the selected element.

@@ -3,11 +3,13 @@
 // on pressed; Checks and Changes carry a count. Kit and Changes need Edit: outside it they are off,
 // with a title that says why. When more pins exist than a frame draws, the pressed button's title
 // says how many were left out. The pill only asks (`choose`); `mount.ts` sets the lens. It shows in
-// Preview and in Edit. A toolbar: the arrow keys, Home and End move between its buttons.
+// Preview and in Edit. A toolbar: the arrow keys, Home and End move between its buttons. When the
+// canvas is narrow the fit (`canvas/fit/`) leaves the lens in use and a menu of every lens.
 
 import { MAX_PINS } from '../../channel/lens-protocol.ts';
 import { el } from '../edit/props/controls/controls.ts';
 import { text } from '../edit/texts.ts';
+import { icon } from '../ui/icon.ts';
 import { LENSES, type LensId, lensAllowed } from './lens.ts';
 
 export type LensCounts = { checks: number; changes: number };
@@ -67,7 +69,13 @@ export function buttonViews(view: PillView): ButtonView[] {
 
 export type Pill = { render(view: PillView): void };
 
-type Parts = { button: HTMLButtonElement; count: HTMLElement };
+/** A lens's button in the pill, and its row in the menu the narrowed pill shows (`fit/`). */
+type Parts = {
+  button: HTMLButtonElement;
+  count: HTMLElement;
+  row: HTMLButtonElement;
+  rowCount: HTMLElement;
+};
 
 /** The key a toolbar's focus moves by: the next button, the one before, the first or the last. */
 function moved(key: string, at: number, length: number): number | null {
@@ -93,19 +101,42 @@ export function mountPill(host: HTMLElement, choose: (lens: LensId) => void): Pi
     name.dataset.text = label;
     const count = el('span', 'pill-num');
     button.append(name, count);
-    button.addEventListener('click', () => {
-      if (button.getAttribute('aria-disabled') !== 'true') choose(id);
-    });
-    parts.set(id, { button, count });
+    // The same pick in the menu of the narrowed pill: the page's menus close it (`pill-menus.ts`).
+    const row = el('button', 'k-menu-item');
+    row.type = 'button';
+    row.dataset.lensPick = id;
+    const rowCount = el('span', 'k-meta pill-num');
+    row.append(el('span', undefined, label), rowCount);
+    for (const one of [button, row]) {
+      one.addEventListener('click', () => {
+        if (one.getAttribute('aria-disabled') !== 'true') choose(id);
+      });
+    }
+    parts.set(id, { button, count, row, rowCount });
   }
-  const buttons = [...parts.values()].map((part) => part.button);
-  host.replaceChildren(caption, ...buttons);
+  const all = [...parts.values()];
+  const buttons = all.map((part) => part.button);
+  // The narrowed form (step 3 of the fit): the lens in use stays, and this menu holds every lens.
+  const more = el('details', 'pill-menu pill-lens-more');
+  more.dataset.pillMenu = '';
+  const choice = el('summary', 'k-btn');
+  choice.title = text('lens.label');
+  choice.setAttribute('aria-label', text('lens.label'));
+  choice.append(icon('chevron-down'));
+  const list = el('div', 'k-pop k-menu pill-sizes pill-lens-list');
+  list.setAttribute('role', 'group');
+  list.setAttribute('aria-label', text('lens.label'));
+  list.append(...all.map((part) => part.row));
+  more.append(choice, list);
+  host.replaceChildren(caption, ...buttons, more);
   host.addEventListener('keydown', (event) => {
-    const at = buttons.findIndex((button) => button === document.activeElement);
-    const next = at < 0 ? null : moved(event.key, at, buttons.length);
+    // A button the narrowed pill hides is not on the way.
+    const shown = buttons.filter((button) => button.getClientRects().length > 0);
+    const at = shown.findIndex((button) => button === document.activeElement);
+    const next = at < 0 ? null : moved(event.key, at, shown.length);
     if (next === null) return;
     event.preventDefault();
-    buttons[next]?.focus();
+    shown[next]?.focus();
   });
 
   return {
@@ -116,13 +147,19 @@ export function mountPill(host: HTMLElement, choose: (lens: LensId) => void): Pi
       for (const one of views) {
         const part = parts.get(one.id);
         if (!part) continue;
-        const { button, count } = part;
+        const { button, count, row, rowCount } = part;
         button.setAttribute('aria-pressed', String(one.pressed));
-        if (one.off) button.setAttribute('aria-disabled', 'true');
-        else button.removeAttribute('aria-disabled');
-        if (one.title === '') button.removeAttribute('title');
-        else button.title = one.title;
-        if (count.textContent !== one.count) count.textContent = one.count;
+        if (one.pressed) row.setAttribute('aria-current', 'true');
+        else row.removeAttribute('aria-current');
+        for (const node of [button, row]) {
+          if (one.off) node.setAttribute('aria-disabled', 'true');
+          else node.removeAttribute('aria-disabled');
+          if (one.title === '') node.removeAttribute('title');
+          else node.title = one.title;
+        }
+        for (const node of [count, rowCount]) {
+          if (node.textContent !== one.count) node.textContent = one.count;
+        }
         button.tabIndex = one.id === tabbed ? 0 : -1;
       }
     },

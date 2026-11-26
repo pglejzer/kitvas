@@ -1,22 +1,22 @@
-// The ask bar (redesign spec, goal 10; plan 19; mock v10 lines 169 to 174): at the canvas's bottom
-// centre, in Edit only. The page draws the empty form hidden; the script (\`client/studio/edit/ask/\`)
-// fills and shows it. Above it, in one column: the commands, the "not listening" line, one line of
-// news. Studio tokens only (\`--st-*\`); shared classes are \`../\` (\`k-\`). The bar is a \`.k-pop\`, which
-// rises in when shown (and not under reduced motion), so it is placed with \`translate\`, not
-// \`transform\`.
+// The ask bar (redesign spec, goal 10; plan 19; mock v10 lines 169 to 174): in the bottom row of
+// the canvas, in Edit only. The row is a grid (\`.stage-foot\` in \`stage.ts\`) whose middle column is
+// this bar, at most 470 px wide: it stays in the middle of the canvas while there is room, then
+// moves left and narrows, and never goes under the zoom pill. The page draws the empty form hidden; the script
+// (\`client/studio/edit/ask/\`) fills and shows it. Above it, in one column: the commands, the
+// "not listening" line, one line of news. Studio tokens only (\`--st-*\`); shared classes are \`../\`
+// (\`k-\`).
 
 export const SKIN_EDITOR_ASK = `
 .ask-bar {
-  position: absolute;
-  bottom: var(--st-space-12);
-  left: 50%;
-  z-index: 3;
-  translate: -50% 0;
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--st-space-8);
   box-sizing: border-box;
-  width: min(470px, calc(100% - 200px));
+  width: 100%;
+  min-width: 0;
   height: 42px;
   padding: 0 var(--st-space-6) 0 var(--st-space-12);
   border-radius: var(--st-radius-lg);

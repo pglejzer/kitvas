@@ -9,6 +9,7 @@ import {
   type DraftStore,
   latestVersion,
   loadDraft,
+  readOptions,
   versionFolder,
   versionInfo,
 } from '../../../drafts/index.ts';
@@ -18,6 +19,7 @@ import {
   type DraftChoice,
   pickCards,
   pickCompare,
+  pickOptions,
   pickState,
   pickVersion,
   pickView,
@@ -135,7 +137,10 @@ function cards(view: View): Html {
     version: choice.version,
     built: view.built,
     slug,
-    src: frameSrc(deps.frame, request.host, target(choice.version)),
+    src: frameSrc(deps.frame, request.host, {
+      ...target(choice.version),
+      ...(choice.options === undefined ? {} : { choice: choice.options }),
+    }),
     original,
     compare:
       compare === null || compare === 0
@@ -201,13 +206,19 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   const compare = pickCompare(request.query, draft, version);
   const custom = pickView(request.query);
   const shownCards = pickCards(request.query);
-  const choice: DraftChoice = {
+  const picked: DraftChoice = {
     version,
     state: pickState(request.query, info.states),
     width: pickWidth(request.query),
     ...(compare === null ? {} : { compare }),
     ...(custom === null ? {} : { view: custom }),
     ...(compare === null && shownCards > 1 ? { cards: shownCards } : {}),
+  };
+  const options = readOptions(deps.drafts, slug, versionFolder(version));
+  const differ = pickOptions(request.query, options);
+  const choice: DraftChoice = {
+    ...picked,
+    ...(Object.keys(differ).length === 0 ? {} : { options: differ }),
   };
   const checks = info.built ? readChecks(deps.drafts, slug, version) : undefined;
   const view: View = { deps, request, draft, choice, built: info.built, checks, compare };
@@ -227,7 +238,9 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
     sketches: craftPick(t, draft),
     timeline: info.built && compare === null,
   };
-  const canvas = html`<section class="stage-canvas" data-shell="canvas" aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link, breakpoints: breakpointsOf(deps.kits, draft.kit.id) })}${canvasTools(t)}</section>`;
+  // The row is open until the script, which keeps it open or folded per browser, says otherwise.
+  const optioned = options.length > 0 && compare === null ? html` data-options="open"` : '';
+  const canvas = html`<section class="stage-canvas" data-shell="canvas"${optioned} aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link, breakpoints: breakpointsOf(deps.kits, draft.kit.id), options })}${canvasTools(t)}</section>`;
   const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}${openingLayout(request.nonce)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce })}${trashTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
   return page({
     title: draft.title,

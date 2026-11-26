@@ -15,7 +15,14 @@ export type ChoiceLink = (change: Partial<DraftChoice>, compare?: number | null)
 export function choiceLink(draft: Draft, choice: DraftChoice): ChoiceLink {
   return (change, compare = choice.compare ?? null) => {
     const merged = { ...choice, ...change };
-    const base: DraftChoice = { version: merged.version, state: merged.state, width: merged.width };
+    // The values of the options stay too; another version keeps those it also has (its own page
+    // drops the rest).
+    const base: DraftChoice = {
+      version: merged.version,
+      state: merged.state,
+      width: merged.width,
+      ...(merged.options === undefined ? {} : { options: merged.options }),
+    };
     const keep = compare !== null && compare !== merged.version;
     return draftHref(draft.slug, keep ? { ...base, compare } : base);
   };

@@ -3,6 +3,7 @@
 import { SKIN_EDITOR_ASK } from './canvas/ask.ts';
 import { SKIN_EDITOR_COMPARE } from './canvas/compare.ts';
 import { SKIN_EDITOR_LENS } from './canvas/lens.ts';
+import { SKIN_EDITOR_OPTIONS } from './canvas/options.ts';
 import { SKIN_EDITOR_SELTOOLS } from './canvas/seltools.ts';
 import { SKIN_EDITOR_STAGE } from './canvas/stage.ts';
 import { SKIN_EDITOR_INSERT } from './left/insert.ts';
@@ -26,6 +27,7 @@ export const EDITOR_PARTS = {
   body: SKIN_EDITOR_BODY,
   stage: SKIN_EDITOR_STAGE,
   lens: SKIN_EDITOR_LENS,
+  options: SKIN_EDITOR_OPTIONS,
   ask: SKIN_EDITOR_ASK,
   seltools: SKIN_EDITOR_SELTOOLS,
   compare: SKIN_EDITOR_COMPARE,

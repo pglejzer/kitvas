@@ -1,7 +1,8 @@
 // The canvas (plan 18, task A; spec goal 5): the canvas ground with nothing drawn on it, the width
 // cards with their labels and the frame shadow, the width handle, the pan, and the pills that
-// float over it: width, cards and state at the top right, zoom at the bottom right. The top left
-// and the bottom centre stay free for the lens pill and the ask bar of part 2.
+// float over it: width, cards and state at the top right, the lens pill at the top left (`lens.ts`),
+// and the bottom row, the ask bar (`ask.ts`) and the zoom at the right. Plan 25: the top bars fit
+// by steps, the bottom row by its grid.
 // Studio tokens only (`--st-*`); shared classes are `../` (`k-`).
 //
 // The page script scales the world (`client/studio/canvas/canvas.ts`) and sets `--canvas-zoom` on
@@ -128,8 +129,12 @@ export const SKIN_EDITOR_STAGE = `
 .side-screen[data-resizing] .card-handle::after { background: var(--st-color-accent); }
 .card-handle:focus-visible { outline: none; }
 
-/* The pills at the top right, one row: the state, then the width with More. The top left stays
-   free; a long state name is cut, never the row wrapped. */
+/* The pills at the top right, one row: the state, then the width with More. The top left is the
+   lens pill's; a long state name is cut, never the row wrapped. The row keeps its place: the fit
+   (\`client/studio/canvas/fit/\`, \`data-fit\` on the canvas) narrows the bars' own content in steps
+   until the two groups are 12px apart. 1: the Options pill loses its word (its own skin file).
+   2: the width pill shows the width in use and More, whose rows then hold the presets. 3: the lens
+   pill shows the lens in use and a menu (\`lens.ts\`), and the state's name is cut shorter. */
 .pill-row {
   position: absolute;
   top: var(--st-space-12);
@@ -139,8 +144,13 @@ export const SKIN_EDITOR_STAGE = `
   align-items: center;
   justify-content: flex-end;
   gap: var(--st-space-6);
-  max-width: calc(100% - 200px);
+  max-width: calc(100% - 2 * var(--st-space-12));
 }
+.stage-canvas:is([data-fit="2"], [data-fit="3"]) .pill-group > .pill-opt:not([aria-current]),
+.stage-canvas:is([data-fit="2"], [data-fit="3"]) .pill-more .pill-word { display: none; }
+.stage-canvas[data-fit="3"] .pill-state > summary { max-width: 96px; }
+.pill-more .pill-size.pill-preset { display: none; }
+.stage-canvas:is([data-fit="2"], [data-fit="3"]) .pill-more .pill-size.pill-preset { display: flex; }
 .pill-row > .k-pill { min-width: 0; }
 .pill-state { min-width: 0; }
 .pill-state > summary { max-width: 160px; }
@@ -193,8 +203,25 @@ export const SKIN_EDITOR_STAGE = `
 .pill-width { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--st-space-6); }
 .pill-tick { width: 1px; height: var(--st-space-12); background: var(--st-color-ink-mid); }
 
-/* The zoom pill at the bottom right: −, the percent, +, and the menu that opens upwards. */
-.pill-zoom { position: absolute; right: var(--st-space-12); bottom: var(--st-space-12); z-index: 3; }
+/* The bottom row, CSS only: three columns. The ask bar is the middle one and the zoom pill the last,
+   which is never narrower than the pill; the two outer columns share what is left. So the ask bar
+   stays in the middle of the canvas while there is room, then moves left, then narrows, and never
+   goes under the zoom pill. The row takes no pointer of its own; the bars do. */
+.stage-foot {
+  position: absolute;
+  right: var(--st-space-12);
+  bottom: var(--st-space-12);
+  left: var(--st-space-12);
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 470px) 1fr;
+  align-items: end;
+  pointer-events: none;
+}
+.stage-foot > * { pointer-events: auto; }
+/* The zoom pill: −, the percent, +, and the menu that opens upwards. Its margin is the gap the
+   ask bar keeps from it. */
+.pill-zoom { grid-column: 3; grid-row: 1; justify-self: end; margin-left: var(--st-space-12); }
 .pill-zoom:empty { display: none; }
 .pill-level { width: 56px; text-align: center; }
 .pill-zoom[data-fit] .pill-level { font-weight: var(--st-font-weight-bold); }

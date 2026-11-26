@@ -34,10 +34,11 @@ export const SECTION = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 export const DRAFT_SLUG = /^[a-z0-9][a-z0-9-]{0,62}$/;
 /**
  * A file inside a version that a server-made inverse may change: a section's or a sketch's TSX, a
- * section's SCSS, the layout. Never the generated `index.tsx` or `index.scss`.
+ * section's SCSS, the layout, and the options file ("Make default" and its Undo, plan 25). Never
+ * the generated `index.tsx` or `index.scss`.
  */
 export const EDIT_FILE =
-  /^(?:src\/tsx\/sections\/[A-Za-z0-9]+\.tsx|src\/tsx\/sketches\/[A-Za-z0-9]+\.tsx|src\/scss\/sections\/_?[a-z][a-z0-9-]*\.scss|md\/layout\.md)$/;
+  /^(?:src\/tsx\/sections\/[A-Za-z0-9]+\.tsx|src\/tsx\/sketches\/[A-Za-z0-9]+\.tsx|src\/scss\/sections\/_?[a-z][a-z0-9-]*\.scss|md\/layout\.md|src\/json\/options\.json)$/;
 
 /**
  * The states a style may be set for (spec 4c, goal 1): written as `&:hover`, `&:focus-visible`,
