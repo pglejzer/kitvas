@@ -20,7 +20,7 @@ import type {
   CatalogReport,
 } from '../../../src/render/index.ts';
 import { catalogDir, PLUGIN_ROOT, projectKitsDir } from '../../../src/shared/index.ts';
-import { tinyKitJson } from '../../helpers/kits.ts';
+import { tinyKitJson } from '../../helpers/kit/kits.ts';
 
 /** A project that exists nowhere: the fakes never touch the disk. */
 export const PROJECT = join(PLUGIN_ROOT, 'no-such-project');

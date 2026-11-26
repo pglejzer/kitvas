@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { parseKit } from '../../src/kit/domain/contract.ts';
 import { KitvasError } from '../../src/shared/index.ts';
-import { tinyKitJson } from '../helpers/kits.ts';
+import { tinyKitJson } from '../helpers/kit/kits.ts';
 
 function invalid(change: (raw: Record<string, unknown>) => void): string {
   const raw = tinyKitJson();

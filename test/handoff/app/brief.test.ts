@@ -11,8 +11,14 @@ import type { TargetFacts } from '../../../src/handoff/domain/code/target.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import type { KitStore, ProjectSetup } from '../../../src/kit/index.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
-import { GOOD_LAYOUT, NOW, TINY, tempDrafts, writeVersionFiles } from '../../helpers/drafts.ts';
-import { FIXTURE_KITS, tinyKitJson } from '../../helpers/kits.ts';
+import {
+  GOOD_LAYOUT,
+  NOW,
+  TINY,
+  tempDrafts,
+  writeVersionFiles,
+} from '../../helpers/draft/drafts.ts';
+import { FIXTURE_KITS, tinyKitJson } from '../../helpers/kit/kits.ts';
 
 const D = '.kitvas/drafts/shop/v1';
 const RULES = '/plugin/reference/handoff-code.md';

@@ -17,7 +17,7 @@ import {
   watchBar,
 } from '../../../../client/studio/shell/bar-status.ts';
 import type { Listening } from '../../../../src/studio/api/requests/request-schemas.ts';
-import { fakeClock } from '../../../helpers/fake-clock.ts';
+import { fakeClock } from '../../../helpers/studio/fake-clock.ts';
 
 const SINCE = '2026-11-25T10:00:00.000Z';
 const LISTENING: Listening = { state: 'listening', since: SINCE };

@@ -16,7 +16,7 @@ import {
   type Visit,
   visitPlan,
 } from '../../src/checks/index.ts';
-import { fakeBrowser } from '../helpers/checks.ts';
+import { fakeBrowser } from '../helpers/draft/checks.ts';
 import { page } from './rules/facts.ts';
 
 const DIR = join('drafts', 'mark', 'v1');

@@ -2,7 +2,14 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { DraftStore } from '../../../src/drafts/index.ts';
 import { etagOf } from '../../../src/studio/http/etag.ts';
-import { call, pageCookie, raw, rawCall, shopStudio, studioOver } from '../../helpers/studio.ts';
+import {
+  call,
+  pageCookie,
+  raw,
+  rawCall,
+  shopStudio,
+  studioOver,
+} from '../../helpers/studio/studio.ts';
 
 const SECURITY = [
   'content-security-policy',

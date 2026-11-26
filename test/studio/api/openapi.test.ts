@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { SLUG } from '../../../src/drafts/index.ts';
 import { openApi } from '../../../src/studio/api/openapi.ts';
 import { apiRoutes } from '../../../src/studio/api/routes.ts';
-import { apiDeps } from '../../helpers/api.ts';
+import { apiDeps } from '../../helpers/studio/api.ts';
 
 type Operation = {
   operationId: string;

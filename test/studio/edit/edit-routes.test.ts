@@ -13,8 +13,8 @@ import type {
   TextSource,
 } from '../../../src/studio/api/edit/edit-schemas.ts';
 import { etagOf } from '../../../src/studio/http/etag.ts';
-import { NOW, tempDrafts } from '../../helpers/drafts.ts';
-import { call, studioOver } from '../../helpers/studio.ts';
+import { NOW, tempDrafts } from '../../helpers/draft/drafts.ts';
+import { call, studioOver } from '../../helpers/studio/studio.ts';
 
 const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';

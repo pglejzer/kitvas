@@ -10,7 +10,7 @@
 
 import type { EditorContext } from '../context.ts';
 import { requestFullCheck } from '../live/check.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { actionsOf } from './actions.ts';

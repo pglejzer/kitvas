@@ -16,7 +16,7 @@ import {
   startBox,
   stepTo,
   stepTransform,
-} from '../../../../client/frame/drag/flip.ts';
+} from '../../../../client/frame/drag/motion/flip.ts';
 
 const box = (left: number, top: number, width: number, height: number): Box => ({
   left,

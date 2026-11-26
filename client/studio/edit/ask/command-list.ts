@@ -3,7 +3,7 @@
 // the options (an option that is off shows its reason and does not run) and "No such command".
 
 import { icon } from '../../ui/icon.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import type { Command } from './commands.ts';
 

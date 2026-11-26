@@ -4,7 +4,7 @@
 
 import type { TokenOption } from '../../../../src/edit/index.ts';
 import { parseColour, type Rgba } from '../../../../src/shared/values/colour.ts';
-import { nearestToken } from '../props/kit-value.ts';
+import { nearestToken } from '../props/values/kit-value.ts';
 
 /** The kit's colour tokens that are opaque, each with its colour read. */
 export function colourTokens(tokens: readonly TokenOption[]): { token: TokenOption; rgba: Rgba }[] {

@@ -13,8 +13,8 @@ import { readBeforeImage } from '../../../src/studio/pages/draft/before-files.ts
 import { escapeHtml } from '../../../src/studio/pages/html.ts';
 import { pageRoutes } from '../../../src/studio/pages/routes.ts';
 import { originalView } from '../../../src/studio/views/rework-view.ts';
-import { NOW, shopDraft, TINY, tempDrafts } from '../../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../../helpers/kits.ts';
+import { NOW, shopDraft, TINY, tempDrafts } from '../../helpers/draft/drafts.ts';
+import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 import { t } from '../../helpers/translate.ts';
 
 type Ask = { params?: Record<string, string>; query?: string };

@@ -11,7 +11,7 @@ import type {
 } from '../../../../src/studio/api/requests/request-schemas.ts';
 import { barStateOf, LISTEN_RECHECK_MS, paintBarStatus } from '../../shell/bar-status.ts';
 import { iconButton } from '../../ui/icon.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 

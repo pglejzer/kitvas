@@ -8,7 +8,7 @@ import {
   studioWidth,
   versionStatus,
 } from '../../../src/studio/views/status.ts';
-import { checksOf, finding } from '../../helpers/findings.ts';
+import { checksOf, finding } from '../../helpers/studio/findings.ts';
 
 test('a version is not built, not checked, or checked with its counts', () => {
   const checks = checksOf([finding(), finding({ severity: 'review', line: 20 })]);

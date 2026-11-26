@@ -11,9 +11,10 @@ const KEY = /['"`](doctor\.[A-Za-z0-9.]+)['"`]/g;
 
 /** Every `doctor.*` key written in the doctor's code. */
 export function doctorKeys(): string[] {
-  const files = [...listFiles(PLUGIN_ROOT, 'src/doctor'), 'src/cli/commands/doctor.ts'].filter(
-    (file) => file.endsWith('.ts'),
-  );
+  const files = [
+    ...listFiles(PLUGIN_ROOT, 'src/doctor'),
+    'src/cli/commands/project/doctor.ts',
+  ].filter((file) => file.endsWith('.ts'));
   const keys = new Set([
     'doctor.status.ok',
     'doctor.status.warn',

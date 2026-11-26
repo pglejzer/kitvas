@@ -17,8 +17,8 @@ import type {
   TokenOption,
 } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import { imageOfUrl, imageUrl, KIND, keywordsOf, propValueOf } from '../props/kinds.ts';
-import { styleValueOf } from '../props/steps.ts';
+import { imageOfUrl, imageUrl, KIND, keywordsOf, propValueOf } from '../props/values/kinds.ts';
+import { styleValueOf } from '../props/values/steps.ts';
 import type { Refused } from '../store.ts';
 import { opsForUtility } from './utility-ops.ts';
 

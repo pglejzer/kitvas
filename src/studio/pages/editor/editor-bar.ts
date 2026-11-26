@@ -7,7 +7,7 @@
 // has (`barStatusSlot`, painted by `client/studio/shell/bar-status.ts`). The menus are plain
 // links in `<details>`, so they work without the script; More holds Compare and the list of
 // shortcuts, which `?` opens too. A word beside an icon (`k-bar-word`) gives way in a narrow bar
-// (`skin/editor/bar.ts`); the icon and the name stay.
+// (`skin/editor/shell/bar.ts`); the icon and the name stay.
 
 import type { Draft } from '../../../drafts/index.ts';
 import type { Translate } from '../../../shared/index.ts';

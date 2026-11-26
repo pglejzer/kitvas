@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { KitvasError } from '../../../src/shared/index.ts';
 import { ensureStudio, openLink, stopStudio, studioStatus } from '../../../src/studio/index.ts';
-import { fakeLifecycle } from '../../helpers/fake-lifecycle.ts';
-import { SAMPLE_STATE } from '../../helpers/studio-state.ts';
+import { fakeLifecycle } from '../../helpers/studio/fake-lifecycle.ts';
+import { SAMPLE_STATE } from '../../helpers/studio/studio-state.ts';
 
 const OLD = { ...SAMPLE_STATE, version: '0.0.9' };
 const PID = SAMPLE_STATE.pid;

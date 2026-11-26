@@ -6,7 +6,6 @@ import {
   parseEditFrame,
 } from '../../../client/channel/edit-protocol.ts';
 import type { DragSource } from '../../../client/channel/structure-protocol.ts';
-import type { ListSlot } from '../../../client/frame/drag/item-slots.ts';
 import {
   createSession,
   type Family,
@@ -17,7 +16,8 @@ import {
   samePlace,
   THRESHOLD,
 } from '../../../client/frame/drag/session.ts';
-import type { Box, Point, Slot } from '../../../client/frame/drag/slots.ts';
+import type { ListSlot } from '../../../client/frame/drag/slots/item-slots.ts';
+import type { Box, Point, Slot } from '../../../client/frame/drag/slots/slots.ts';
 import { samePath } from '../../../src/shared/values/paths.ts';
 
 const at = (x: number, y: number): Point => ({ x, y });

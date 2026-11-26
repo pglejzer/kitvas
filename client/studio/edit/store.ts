@@ -11,7 +11,7 @@ import type { Listening, RequestView } from '../../../src/studio/api/requests/re
 import type { Waiver } from '../../../src/studio/api/waivers/waiver-schemas.ts';
 import type { CopyRef, TreeNode } from '../../channel/edit-protocol.ts';
 import type { A11yCard } from '../../channel/live-protocol.ts';
-import type { StateHeld } from './props/state-held.ts';
+import type { StateHeld } from './props/context/state-held.ts';
 import { settle } from './select/copies.ts';
 
 /**

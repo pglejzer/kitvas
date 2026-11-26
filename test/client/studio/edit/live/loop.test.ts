@@ -5,7 +5,7 @@ import {
   DEBOUNCE_MS,
   TYPING_MS,
 } from '../../../../../client/studio/edit/live/loop.ts';
-import { fakeClock } from '../../../../helpers/fake-clock.ts';
+import { fakeClock } from '../../../../helpers/studio/fake-clock.ts';
 
 function loopOf(findings = false) {
   const clock = fakeClock(1_000);

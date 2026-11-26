@@ -10,7 +10,7 @@ import {
   listeningState,
   type Timers,
 } from '../../../src/studio/requests/listening.ts';
-import { fakeClock } from '../../helpers/fake-clock.ts';
+import { fakeClock } from '../../helpers/studio/fake-clock.ts';
 
 const START = Date.parse('2026-11-24T10:00:00.000Z');
 

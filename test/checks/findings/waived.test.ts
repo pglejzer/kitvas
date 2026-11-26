@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { splitWaived } from '../../../src/checks/domain/findings/waived.ts';
 import { ChecksFileSchema, type Finding } from '../../../src/checks/index.ts';
-import { checkShop } from '../../helpers/checks.ts';
+import { checkShop } from '../../helpers/draft/checks.ts';
 
 const finding = (rule: string, element: string | null, severity: Finding['severity']): Finding => ({
   check: 'ds',

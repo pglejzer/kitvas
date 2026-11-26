@@ -1,6 +1,6 @@
 // Where a dragged row of the layers tree may land (spec 4b, "Drag to move" and "Sections"). Pure
 // over plain data; `layers.ts` does the pointer and the DOM. The rules match the frame's slots
-// (`client/frame/drag/slots.ts`), read from `state.structure` instead of the real layout.
+// (`client/frame/drag/slots/slots.ts`), read from `state.structure` instead of the real layout.
 
 import type { StructureEntry } from '../../../../src/studio/api/edit/structure-schemas.ts';
 

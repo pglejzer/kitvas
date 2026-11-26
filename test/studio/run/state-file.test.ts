@@ -8,7 +8,7 @@ import {
   studioFiles,
   writeState,
 } from '../../../src/studio/run/state-file.ts';
-import { SAMPLE_STATE } from '../../helpers/studio-state.ts';
+import { SAMPLE_STATE } from '../../helpers/studio/studio-state.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 
 test('one state file per project, written whole, read back, removed only for its own pid', () => {

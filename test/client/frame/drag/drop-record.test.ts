@@ -4,7 +4,7 @@ import {
   createDropRecord,
   type Holder,
   type Seated,
-} from '../../../../client/frame/drag/drop-record.ts';
+} from '../../../../client/frame/drag/motion/drop-record.ts';
 
 // A tiny tree: a box holds an ordered list of nodes; a node reads its place from its box.
 class Leaf implements Seated<Leaf> {

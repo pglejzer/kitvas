@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { request } from 'node:http';
 import { test } from 'node:test';
-import { call, shopStudio } from '../../helpers/studio.ts';
+import { call, shopStudio } from '../../helpers/studio/studio.ts';
 
 /** A GET to the prototype origin with its own Host; the answer's status only. */
 function frameStatus(port: number, host: string): Promise<number> {

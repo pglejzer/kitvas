@@ -4,7 +4,7 @@
 // Previews stay as they are: pointing at a card or focusing it shows it on the canvas.
 
 import { sayFor, saying } from '../history/said.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import type { CardModel } from './tab.ts';
 

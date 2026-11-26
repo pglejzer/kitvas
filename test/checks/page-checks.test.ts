@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import type { Browser, PageReport, Visit } from '../../src/checks/index.ts';
 import { KitvasError } from '../../src/shared/index.ts';
-import { checkShop } from '../helpers/checks.ts';
+import { checkShop } from '../helpers/draft/checks.ts';
 
 const CLEAN: PageReport = {
   rendered: true,

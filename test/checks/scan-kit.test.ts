@@ -11,7 +11,7 @@ import {
 } from '../../src/checks/index.ts';
 import type { KitStore, KitWriter } from '../../src/kit/index.ts';
 import { KitvasError } from '../../src/shared/index.ts';
-import { tinyKitJson } from '../helpers/kits.ts';
+import { tinyKitJson } from '../helpers/kit/kits.ts';
 
 const KIT_DIR = join('kits', 'site');
 const FIRST = 'https://example.com/';

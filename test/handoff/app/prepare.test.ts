@@ -7,9 +7,14 @@ import { createNodeHandoffFiles } from '../../../src/handoff/adapters/node-hando
 import { type PrepareFigmaDeps, prepareFigma } from '../../../src/handoff/app/figma/prepare.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
-import { shopDraft } from '../../helpers/drafts.ts';
-import { fakeBundler, PNG, shopFacts, writeShopBuild } from '../../helpers/handoff-fixtures.ts';
-import { FIXTURE_KITS } from '../../helpers/kits.ts';
+import { shopDraft } from '../../helpers/draft/drafts.ts';
+import {
+  fakeBundler,
+  PNG,
+  shopFacts,
+  writeShopBuild,
+} from '../../helpers/handoff/handoff-fixtures.ts';
+import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 
 function setup(options: { image?: string; truncated?: boolean; built?: boolean } = {}) {
   const { store, root } = shopDraft();

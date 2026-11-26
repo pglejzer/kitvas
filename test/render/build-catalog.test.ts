@@ -12,8 +12,8 @@ import {
   readCatalogStamp,
 } from '../../src/render/index.ts';
 import { KitvasError } from '../../src/shared/index.ts';
-import { builtinKits, copyKit, tinyKitJson } from '../helpers/kits.ts';
-import { renderTools } from '../helpers/render.ts';
+import { renderTools } from '../helpers/draft/render.ts';
+import { builtinKits, copyKit, tinyKitJson } from '../helpers/kit/kits.ts';
 import { tempDir } from '../helpers/tmp.ts';
 
 type Example = { title: string; code: string; imports: string[]; reference?: string };

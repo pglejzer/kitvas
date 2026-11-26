@@ -8,7 +8,7 @@
 
 import type { Waiver } from '../../../../src/studio/api/waivers/waiver-schemas.ts';
 import { noteKey, waiverOf } from '../live/waiver-rules.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import { type CardInfo, dismissLayout, insertionIndex, type Tone } from './dismissed.ts';
 

@@ -3,7 +3,7 @@
 // of their own, so their names come from the page's texts. The Changes pane and the Claude tab's
 // variant cards both draw their chips here.
 
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import { type EntryChip, entryChips } from './change-chips.ts';
 import type { ChangeChip } from './chips.ts';

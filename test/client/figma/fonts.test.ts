@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { fontStyle, loadFonts, readStyle } from '../../../client/figma/fonts.ts';
-import { createFigmaFake, FAKE_FONTS } from '../../helpers/figma-fake.ts';
+import { createFigmaFake, FAKE_FONTS } from '../../helpers/handoff/figma-fake.ts';
 
 const FOUR = ['Regular', 'Medium', 'Semi Bold', 'Bold'];
 

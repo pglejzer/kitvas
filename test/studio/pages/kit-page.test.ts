@@ -6,8 +6,8 @@ import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts'
 import { cssVarName, type KitStore, loadKit } from '../../../src/kit/index.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
 import { pageRoutes } from '../../../src/studio/pages/routes.ts';
-import { tempDrafts } from '../../helpers/drafts.ts';
-import { builtinKits, copyKit, FIXTURE_KITS, tinyKitJson } from '../../helpers/kits.ts';
+import { tempDrafts } from '../../helpers/draft/drafts.ts';
+import { builtinKits, copyKit, FIXTURE_KITS, tinyKitJson } from '../../helpers/kit/kits.ts';
 import { t } from '../../helpers/translate.ts';
 
 function pages(kits: KitStore, projectKit = 'base') {

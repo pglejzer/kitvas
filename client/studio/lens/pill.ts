@@ -6,7 +6,7 @@
 // Preview and in Edit. A toolbar: the arrow keys, Home and End move between its buttons.
 
 import { MAX_PINS } from '../../channel/lens-protocol.ts';
-import { el } from '../edit/props/controls.ts';
+import { el } from '../edit/props/controls/controls.ts';
 import { text } from '../edit/texts.ts';
 import { LENSES, type LensId, lensAllowed } from './lens.ts';
 

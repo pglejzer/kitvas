@@ -11,7 +11,7 @@ import { createEsbuildCompiler } from '../../../src/edit/adapters/esbuild-compil
 import { elementHistory } from '../../../src/edit/app/history/element-history.ts';
 import { elementIds, idsFile, readSites } from '../../../src/render/index.ts';
 import { KitvasError, PLUGIN_ROOT } from '../../../src/shared/index.ts';
-import { shopDraft, writeVersionFiles } from '../../helpers/drafts.ts';
+import { shopDraft, writeVersionFiles } from '../../helpers/draft/drafts.ts';
 
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());

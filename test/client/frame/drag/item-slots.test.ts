@@ -8,8 +8,8 @@ import {
   itemSlot,
   listSlot,
   listsOf,
-} from '../../../../client/frame/drag/item-slots.ts';
-import type { Box } from '../../../../client/frame/drag/slots.ts';
+} from '../../../../client/frame/drag/slots/item-slots.ts';
+import type { Box } from '../../../../client/frame/drag/slots/slots.ts';
 
 const box = (left: number, top: number, width: number, height: number): Box => ({
   left,

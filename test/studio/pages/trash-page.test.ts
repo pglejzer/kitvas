@@ -7,8 +7,8 @@ import { pageRoutes } from '../../../src/studio/pages/routes.ts';
 import { SKIN_TRASH } from '../../../src/studio/pages/skin/pages/trash.ts';
 import { utcText } from '../../../src/studio/pages/trash/trash-list.ts';
 import { TRASH_TEXT_KEYS, trashTexts } from '../../../src/studio/pages/trash/trash-texts.ts';
-import { NOW, shopDraft, TINY } from '../../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../../helpers/kits.ts';
+import { NOW, shopDraft, TINY } from '../../helpers/draft/drafts.ts';
+import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 import { t } from '../../helpers/translate.ts';
 
 const AT = new Date('2026-11-24T10:15:30.123Z');

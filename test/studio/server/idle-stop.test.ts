@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { isUse, startIdleStop } from '../../../src/studio/server/idle-stop.ts';
-import { fakeClock } from '../../helpers/fake-clock.ts';
+import { fakeClock } from '../../helpers/studio/fake-clock.ts';
 
 const MINUTE = 60_000;
 

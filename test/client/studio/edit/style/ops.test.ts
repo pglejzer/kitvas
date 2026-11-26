@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { plainValue } from '../../../../../client/studio/edit/props/kinds.ts';
+import { plainValue } from '../../../../../client/studio/edit/props/values/kinds.ts';
 import {
   allowedValue,
   heldBySides,

@@ -19,7 +19,7 @@ import {
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import type { NewRequest } from '../../../../src/studio/api/requests/request-schemas.ts';
 import { MAX_REQUEST_ELEMENTS, MAX_REQUEST_TEXT } from '../ai/requests.ts';
-import { PROPERTIES, styleValueOf } from '../props/steps.ts';
+import { PROPERTIES, styleValueOf } from '../props/values/steps.ts';
 import { type Format, opsForStyle, readOnlyReason, ruleHeld } from '../style/ops.ts';
 import type { Values } from './evidence.ts';
 import { LIVE_RULE_IDS } from './items.ts';

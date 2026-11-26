@@ -4,7 +4,7 @@ import { etagOf } from '../../../src/studio/http/etag.ts';
 import type { BuiltDraft } from '../../../src/studio/live/builder.ts';
 import { startLiveLoop } from '../../../src/studio/live/live-loop.ts';
 import { QUIET_MS } from '../../../src/studio/live/watcher.ts';
-import { fakeClock } from '../../helpers/fake-clock.ts';
+import { fakeClock } from '../../helpers/studio/fake-clock.ts';
 
 const HERO = 'src/tsx/sections/Hero.tsx';
 

@@ -11,9 +11,9 @@ import {
   MAX_PIN_KEY,
   MAX_PIN_TEXT,
 } from '../../../channel/lens-protocol.ts';
-import { nearestToken } from '../../edit/props/kit-value.ts';
-import { tokenNameOf } from '../../edit/props/stepper.ts';
-import { hasOwnScale, PROPERTIES, TOKEN_TYPE, tokensFor } from '../../edit/props/steps.ts';
+import { nearestToken } from '../../edit/props/values/kit-value.ts';
+import { tokenNameOf } from '../../edit/props/values/stepper.ts';
+import { hasOwnScale, PROPERTIES, TOKEN_TYPE, tokensFor } from '../../edit/props/values/steps.ts';
 import { text } from '../../edit/texts.ts';
 
 const SEP = ' · ';

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { type AddressInfo, createServer, type Server } from 'node:net';
 import { test } from 'node:test';
-import { call, shopStudio } from '../../helpers/studio.ts';
+import { call, shopStudio } from '../../helpers/studio/studio.ts';
 
 /** A server holding a port on 127.0.0.1, the way another program would. */
 const listening = async (): Promise<Server> => {

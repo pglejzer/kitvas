@@ -13,7 +13,7 @@ import {
 } from '../../src/kit/domain/sources.ts';
 import { type Kit, type KitStore, loadKit, parseKit } from '../../src/kit/index.ts';
 import { projectKitsDir } from '../../src/shared/index.ts';
-import { tinyKitJson } from '../helpers/kits.ts';
+import { tinyKitJson } from '../helpers/kit/kits.ts';
 import {
   ACME_MAP,
   ACME_TOKENS,

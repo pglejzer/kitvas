@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { addVersion, appendRenames } from '../../src/drafts/index.ts';
-import { NOW, shopDraft } from '../helpers/drafts.ts';
-import { call, studioOver, writeFakeBuild } from '../helpers/studio.ts';
+import { NOW, shopDraft } from '../helpers/draft/drafts.ts';
+import { call, studioOver, writeFakeBuild } from '../helpers/studio/studio.ts';
 
 type Problem = { code: string };
 type Listed = {

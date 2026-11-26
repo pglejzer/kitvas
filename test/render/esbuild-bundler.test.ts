@@ -6,7 +6,7 @@ import { createEsbuildBundler } from '../../src/render/adapters/esbuild-bundler.
 import { createSassPipeline } from '../../src/render/adapters/sass-pipeline.ts';
 import type { BundleInput } from '../../src/render/index.ts';
 import { PLUGIN_ROOT } from '../../src/shared/index.ts';
-import { JSX_RUNTIME } from '../helpers/render.ts';
+import { JSX_RUNTIME } from '../helpers/draft/render.ts';
 import { tempProject, writeFile } from './helpers/temp-project.ts';
 
 /** A React of the project's own that no real React prints: proof of where the alias points. */

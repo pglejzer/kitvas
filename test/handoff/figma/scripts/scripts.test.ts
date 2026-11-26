@@ -16,14 +16,14 @@ import type {
 import type { FigmaVariable } from '../../../../src/handoff/domain/figma/variables.ts';
 import { createEsbuildBundler } from '../../../../src/render/adapters/esbuild-bundler.ts';
 import { PLUGIN_ROOT } from '../../../../src/shared/index.ts';
+import { JSX_RUNTIME } from '../../../helpers/draft/render.ts';
 import {
   createFigmaFake,
   type FakeDocument,
   type FakeNodeData,
   type FigmaFake,
   runScript,
-} from '../../../helpers/figma-fake.ts';
-import { JSX_RUNTIME } from '../../../helpers/render.ts';
+} from '../../../helpers/handoff/figma-fake.ts';
 
 type Node = TreeLayer['node'];
 

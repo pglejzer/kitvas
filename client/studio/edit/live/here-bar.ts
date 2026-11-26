@@ -6,8 +6,8 @@
 // it).
 
 import { icon } from '../../ui/icon.ts';
-import { el } from '../props/controls.ts';
-import type { StorageLike } from '../props/groups.ts';
+import { el } from '../props/controls/controls.ts';
+import type { StorageLike } from '../props/groups/groups.ts';
 import type { LiveGroup } from './items.ts';
 import { rowNameKey } from './row-words.ts';
 

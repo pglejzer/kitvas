@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { parseKit } from '../../src/kit/domain/contract.ts';
 import { kitIssues } from '../../src/kit/domain/rules.ts';
-import { tinyKitJson } from '../helpers/kits.ts';
+import { tinyKitJson } from '../helpers/kit/kits.ts';
 
 type RawComponent = {
   name: string;

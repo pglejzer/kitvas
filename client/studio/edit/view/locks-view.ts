@@ -4,7 +4,7 @@
 // refused (Unlock). Drawing only; `view.ts` acts. Each row is one `.k-item` (plan 18, task B).
 
 import type { EditorContext } from '../context.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import type { LocksModel } from './model.ts';
 

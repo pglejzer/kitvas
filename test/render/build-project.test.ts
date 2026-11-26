@@ -19,9 +19,9 @@ import { createDraft } from '../../src/drafts/index.ts';
 import { GENERATED_ENTRY, type KitWriter, loadKit } from '../../src/kit/index.ts';
 import { buildCatalog, buildDraft, type CatalogReport } from '../../src/render/index.ts';
 import { catalogDir, PLUGIN_ROOT, projectKitsDir, workspaceDir } from '../../src/shared/index.ts';
-import { NOW } from '../helpers/drafts.ts';
-import { type FixtureName, fixtureProject } from '../helpers/projects.ts';
-import { closeRenderTools, projectKitStore, renderTools } from '../helpers/render.ts';
+import { NOW } from '../helpers/draft/drafts.ts';
+import { closeRenderTools, projectKitStore, renderTools } from '../helpers/draft/render.ts';
+import { type FixtureName, fixtureProject } from '../helpers/kit/projects.ts';
 import { parseJson } from './helpers/json.ts';
 
 const FIXTURES = join(PLUGIN_ROOT, 'test', 'fixtures', 'projects');

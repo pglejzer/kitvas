@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { Box, Point } from '../../../../client/frame/drag/slots.ts';
+import type { Box, Point } from '../../../../client/frame/drag/slots/slots.ts';
 import {
   boxOf,
   contains,

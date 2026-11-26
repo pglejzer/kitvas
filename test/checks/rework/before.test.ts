@@ -13,7 +13,7 @@ import {
 } from '../../../src/checks/index.ts';
 import { createDraft } from '../../../src/drafts/index.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
-import { NOW, TINY, tempDrafts } from '../../helpers/drafts.ts';
+import { NOW, TINY, tempDrafts } from '../../helpers/draft/drafts.ts';
 import { node, page, text, visit } from '../rules/facts.ts';
 
 const SOURCE: SourceRecord = {

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { addVersion, appendRenames } from '../../../src/drafts/index.ts';
 import type { StoredRequest } from '../../../src/studio/requests/request-file.ts';
 import { carrierFor, viewOf } from '../../../src/studio/requests/request-view.ts';
-import { NOW, shopDraft } from '../../helpers/drafts.ts';
+import { NOW, shopDraft } from '../../helpers/draft/drafts.ts';
 
 const BUTTON = 'sections/Hero:section/Button';
 const MOVED = 'sections/Hero:section/Stack/Button';

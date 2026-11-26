@@ -19,8 +19,8 @@ import type {
   Variant,
   VariantChange,
 } from '../../../../src/studio/api/requests/request-schemas.ts';
-import { type CatalogProp, KIND, keywordOfProp, plainValue } from '../props/kinds.ts';
-import { styleValueOf } from '../props/steps.ts';
+import { type CatalogProp, KIND, keywordOfProp, plainValue } from '../props/values/kinds.ts';
+import { styleValueOf } from '../props/values/steps.ts';
 import { isBase } from '../style/context-ops.ts';
 import {
   allowedValue,

@@ -3,10 +3,10 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { GestureLog } from '../../../../client/frame/drag/gesture-log.ts';
-import type { ListSlot } from '../../../../client/frame/drag/item-slots.ts';
+import type { GestureLog } from '../../../../client/frame/drag/gesture/gesture-log.ts';
 import { createSession, type Press, type Session } from '../../../../client/frame/drag/session.ts';
-import type { Point, Slot } from '../../../../client/frame/drag/slots.ts';
+import type { ListSlot } from '../../../../client/frame/drag/slots/item-slots.ts';
+import type { Point, Slot } from '../../../../client/frame/drag/slots/slots.ts';
 
 const at = (x: number, y: number): Point => ({ x, y });
 

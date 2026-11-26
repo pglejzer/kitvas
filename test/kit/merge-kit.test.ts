@@ -11,7 +11,7 @@ import {
   mergeKit,
 } from '../../src/kit/index.ts';
 import { KitvasError, projectKitsDir } from '../../src/shared/index.ts';
-import { FIXTURE_KITS } from '../helpers/kits.ts';
+import { FIXTURE_KITS } from '../helpers/kit/kits.ts';
 import {
   ACME_MAP,
   ACME_TOKENS,

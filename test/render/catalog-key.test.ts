@@ -11,8 +11,8 @@ import {
   readCatalogStamp,
 } from '../../src/render/index.ts';
 import { KitvasError } from '../../src/shared/index.ts';
-import { copyKit, tinyKitJson } from '../helpers/kits.ts';
-import { closeRenderTools, renderTools } from '../helpers/render.ts';
+import { closeRenderTools, renderTools } from '../helpers/draft/render.ts';
+import { copyKit, tinyKitJson } from '../helpers/kit/kits.ts';
 import { tempDir } from '../helpers/tmp.ts';
 
 test('the current key is the stamp key after a build and another one once the kit changes', async () => {

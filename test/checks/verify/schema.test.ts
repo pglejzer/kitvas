@@ -12,7 +12,7 @@ import {
   parseKit,
 } from '../../../src/kit/index.ts';
 import { KitvasError, PLUGIN_ROOT, projectKitsDir } from '../../../src/shared/index.ts';
-import { copyKit, FIXTURE_KITS } from '../../helpers/kits.ts';
+import { copyKit, FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 import { acmeKitJson, PROJECT } from './support.ts';
 
 const FIXTURE = join(PLUGIN_ROOT, 'test', 'fixtures', 'projects', 'acme-npm', 'kit');

@@ -9,10 +9,10 @@ const FRAME = join(PLUGIN_ROOT, 'client', 'frame');
 
 /** Every overlay of the frame that draws a colour (the sheets in these files). */
 const SHEETS = [
-  'drag/guides.ts',
-  'drag/handles-sheet.ts',
-  'drag/preview.ts',
-  'drag/rect-layer.ts',
+  'drag/handles/guides.ts',
+  'drag/handles/handles-sheet.ts',
+  'drag/motion/preview.ts',
+  'drag/gesture/rect-layer.ts',
   'edit/edit.ts',
   'edit/indicator.ts',
   'edit/label.ts',
@@ -61,7 +61,7 @@ test('the overlays together read every tone the studio sends', () => {
 test('every overlay host takes the studio tones once', () => {
   const folders = ['drag', 'edit', 'live', 'page'];
   for (const folder of folders) {
-    for (const entry of readdirSync(join(FRAME, folder))) {
+    for (const entry of readdirSync(join(FRAME, folder), { recursive: true, encoding: 'utf8' })) {
       if (!entry.endsWith('.ts')) continue;
       const text = read(`${folder}/${entry}`);
       if (!text.includes('attachShadow')) continue;

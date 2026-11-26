@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DRAG_PX, dragLeft, tabShift } from '../../../../client/studio/shell/tab-row.ts';
-import { SKIN_EDITOR_BODY } from '../../../../src/studio/pages/skin/editor/body.ts';
+import { SKIN_EDITOR_BODY } from '../../../../src/studio/pages/skin/editor/shell/body.ts';
 
 test('a tab cut off at either end is brought whole into the row; one in view stays', () => {
   const row = { left: 100, right: 300 };

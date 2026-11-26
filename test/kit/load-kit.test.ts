@@ -12,7 +12,7 @@ import {
   tokensToCss,
 } from '../../src/kit/index.ts';
 import { KitvasError, projectKitsDir } from '../../src/shared/index.ts';
-import { copyKit, FIXTURE_KITS } from '../helpers/kits.ts';
+import { copyKit, FIXTURE_KITS } from '../helpers/kit/kits.ts';
 import { tempDir } from '../helpers/tmp.ts';
 import {
   ACME_MAP,

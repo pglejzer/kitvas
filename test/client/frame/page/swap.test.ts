@@ -11,7 +11,7 @@ import {
   SWAP_TIMEOUT_MS,
   sameFile,
 } from '../../../../client/frame/page/swap.ts';
-import { fakeClock } from '../../../helpers/fake-clock.ts';
+import { fakeClock } from '../../../helpers/studio/fake-clock.ts';
 
 /** Lets every promise that can settle now settle. */
 const settled = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));

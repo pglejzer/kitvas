@@ -1,6 +1,6 @@
 // A panel's fold as one move (plan 18, task A; spec goal 7). A panel folds and opens, and Preview
 // and Edit trade places, over the studio's slow motion. While it moves, `main[data-moving]` turns
-// the panels' width transition on (`src/studio/pages/skin/editor/body.ts`). The canvas follows its
+// the panels' width transition on (`src/studio/pages/skin/editor/shell/body.ts`). The canvas follows its
 // room on every frame of the move (`canvas/canvas.ts`), so the draft glides with the panel: a fit
 // kept for the move's end made it jump. The end is the panel's `transitionend`, a timer when that
 // never comes, and at once under reduced motion.

@@ -4,7 +4,7 @@
 
 import type { EditOp } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import { imageUrl, plainValue } from '../props/kinds.ts';
+import { imageUrl, plainValue } from '../props/values/kinds.ts';
 import { type Format, opsForProp, opsForStyle } from '../style/ops.ts';
 
 /** The prop an image file goes into. */

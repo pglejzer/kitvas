@@ -7,7 +7,7 @@ import {
   parseKit,
   projectIssues,
 } from '../../src/kit/index.ts';
-import { tinyKitJson } from '../helpers/kits.ts';
+import { tinyKitJson } from '../helpers/kit/kits.ts';
 import { type Json, npmKitJson, repoKitJson } from './helpers/project-kit.ts';
 
 type Disk = {

@@ -21,7 +21,7 @@ import {
   type NotePin,
 } from '../channel/live-protocol.ts';
 import { type FrameMessage, type Mark, parseStudioMessage, readHash } from '../channel/protocol.ts';
-import { createMotion } from './drag/motion.ts';
+import { createMotion } from './drag/motion/motion.ts';
 import { createEdit } from './edit/edit.ts';
 import { createPreview } from './edit/preview.ts';
 import { createStructure } from './edit/structure.ts';
@@ -101,7 +101,7 @@ export function startFrame(input: FrameInput): void {
       shownPins.hush(on);
       shownLens.hush(on);
     },
-    // A gesture that was lost (`drag/gesture-log.ts`): its last steps, for whoever reads them.
+    // A gesture that was lost (`drag/gesture/gesture-log.ts`): its last steps, for whoever reads them.
     report: (message) => studio.postMessage(message, studioOrigin),
   });
   // The screen's canvas (plan 15): forwards the zoom wheel, Space and the screen's keys.

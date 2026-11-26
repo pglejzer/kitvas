@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { readRecord, recordSend } from '../../../src/handoff/app/record.ts';
 import { HANDOFF_RECORD_FILE } from '../../../src/handoff/index.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
-import { shopDraft } from '../../helpers/drafts.ts';
+import { shopDraft } from '../../helpers/draft/drafts.ts';
 
 const KEY = 'aB3dE5fG7hJ9kL1mN3pQ5r';
 const AT = new Date('2026-11-25T10:00:00.000Z');

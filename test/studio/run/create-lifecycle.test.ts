@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createLifecycle, startStudio, writeState } from '../../../src/studio/index.ts';
-import { shopDraft } from '../../helpers/drafts.ts';
-import { builtinKits } from '../../helpers/kits.ts';
-import { fakeAssets } from '../../helpers/studio.ts';
-import { SAMPLE_STATE } from '../../helpers/studio-state.ts';
+import { shopDraft } from '../../helpers/draft/drafts.ts';
+import { builtinKits } from '../../helpers/kit/kits.ts';
+import { fakeAssets } from '../../helpers/studio/studio.ts';
+import { SAMPLE_STATE } from '../../helpers/studio/studio-state.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 import { t } from '../../helpers/translate.ts';
 import { until } from '../../helpers/wait.ts';

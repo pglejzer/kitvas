@@ -6,9 +6,9 @@ import { samePath } from '../../../src/shared/values/paths.ts';
 import type { CopyRef, EditFrameMessage } from '../../channel/edit-protocol.ts';
 import type { DragSource } from '../../channel/structure-protocol.ts';
 import { rectOf } from '../page/rect.ts';
-import type { GestureEnd, GestureLog } from './gesture-log.ts';
-import type { ListSlot } from './item-slots.ts';
-import type { Box, Point, Slot } from './slots.ts';
+import type { GestureEnd, GestureLog } from './gesture/gesture-log.ts';
+import type { ListSlot } from './slots/item-slots.ts';
+import type { Box, Point, Slot } from './slots/slots.ts';
 
 /** A press becomes a drag or a rectangle once the pointer is more than this far, on the screen. */
 export const THRESHOLD = 4;

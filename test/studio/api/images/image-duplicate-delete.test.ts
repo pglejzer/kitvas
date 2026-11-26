@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { createImageStore } from '../../../../src/edit/adapters/image-files.ts';
 import { countUses, findDuplicate } from '../../../../src/studio/api/images/image-rules.ts';
-import { shopDraft, writeVersionFiles } from '../../../helpers/drafts.ts';
-import { call, studioOver, writeFakeBuild } from '../../../helpers/studio.ts';
+import { shopDraft, writeVersionFiles } from '../../../helpers/draft/drafts.ts';
+import { call, studioOver, writeFakeBuild } from '../../../helpers/studio/studio.ts';
 
 type Problem = { code: string };
 type Stored = { version: number; file: string; duplicate?: true };

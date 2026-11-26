@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Studio } from '../../../src/studio/index.ts';
-import { call, pageCookie, raw, rawCall, shopStudio } from '../../helpers/studio.ts';
+import { call, pageCookie, raw, rawCall, shopStudio } from '../../helpers/studio/studio.ts';
 
 /** The frame key, read from the address the draft page frames. */
 async function keyOf(studio: Studio): Promise<string> {

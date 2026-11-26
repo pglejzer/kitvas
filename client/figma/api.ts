@@ -1,7 +1,7 @@
 // The part of Figma's Plugin API that the hand-off's builder calls inside `use_figma` (plan 21,
 // call 3), typed by hand from Figma's plugin documentation and the calls probe P1 ran in the
 // owner's file (`docs/plans/plan-21/probes.md`). Only what the builder needs is here: a member
-// added here is added to the fake too (`test/helpers/figma-fake.ts`), which throws where Figma does.
+// added here is added to the fake too (`test/helpers/handoff/figma-fake.ts`), which throws where Figma does.
 // `notify`, `setPluginData`, `createImageAsync`, `loadAllPagesAsync` and `closePlugin` are left
 // out on purpose: `use_figma` forbids them.
 

@@ -7,8 +7,8 @@ import { test } from 'node:test';
 import type { DraftStore } from '../../../src/drafts/index.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import { pageRoutes } from '../../../src/studio/pages/routes.ts';
-import { shopDraft } from '../../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../../helpers/kits.ts';
+import { shopDraft } from '../../helpers/draft/drafts.ts';
+import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 import { t } from '../../helpers/translate.ts';
 
 function draftRoute(store: DraftStore, opened: string[]) {

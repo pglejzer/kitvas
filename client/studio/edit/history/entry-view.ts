@@ -6,7 +6,7 @@
 
 import { icon, iconButton } from '../../ui/icon.ts';
 import type { EditorContext } from '../context.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import {
   agoOf,

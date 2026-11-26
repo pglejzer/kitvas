@@ -12,7 +12,7 @@ import { icon } from '../../ui/icon.ts';
 import { namesOf } from '../ai/names.ts';
 import { focusAsk } from '../ask/focus.ts';
 import type { EditorContext } from '../context.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import type { EditorState } from '../store.ts';
 import { actionsFor, runAction } from '../structure/actions.ts';
 import { partTarget } from '../structure/list-parts.ts';

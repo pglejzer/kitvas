@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { offKitValues } from '../../../src/edit/app/style/off-kit.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
-import { GOOD_LAYOUT, shopDraft } from '../../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../../helpers/kits.ts';
+import { GOOD_LAYOUT, shopDraft } from '../../helpers/draft/drafts.ts';
+import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 
 const kits = createFolderKitStore(FIXTURE_KITS);
 

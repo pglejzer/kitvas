@@ -7,7 +7,7 @@ import {
   type NewNote,
   NewNoteSchema,
 } from '../../../src/studio/inbox/inbox.ts';
-import { NOW } from '../../helpers/drafts.ts';
+import { NOW } from '../../helpers/draft/drafts.ts';
 
 const NOTE: NewNote = { kind: 'note', slug: 'shop', element: null, text: 'Bigger title' };
 

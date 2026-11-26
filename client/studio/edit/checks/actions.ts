@@ -9,7 +9,7 @@ import { postRequest } from '../ai/api.ts';
 import { inspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { fixOps, reasonKey } from '../live/fix.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';

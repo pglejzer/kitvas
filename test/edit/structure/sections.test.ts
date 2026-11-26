@@ -9,7 +9,13 @@ import {
 } from '../../../src/edit/app/structure/sections.ts';
 import { applyHunks, makeHunks } from '../../../src/edit/index.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
-import { NOW, readVersionFiles, shopDraft, TINY, writeVersionFiles } from '../../helpers/drafts.ts';
+import {
+  NOW,
+  readVersionFiles,
+  shopDraft,
+  TINY,
+  writeVersionFiles,
+} from '../../helpers/draft/drafts.ts';
 
 type InsertOp = Extract<SectionOp, { op: 'insertSection' }>;
 

@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { Box } from '../../../../client/frame/drag/slots.ts';
 import {
   allowedSpots,
   gapSpots,
@@ -10,7 +9,8 @@ import {
   showsGap,
   spotAt,
   spotsFor,
-} from '../../../../client/frame/drag/spots.ts';
+} from '../../../../client/frame/drag/handles/spots.ts';
+import type { Box } from '../../../../client/frame/drag/slots/slots.ts';
 
 const box = (left: number, top: number, width: number, height: number): Box => ({
   left,

@@ -14,8 +14,8 @@ import {
 } from '../../src/checks/index.ts';
 import { createProjectFiles } from '../../src/kit/adapters/project-files.ts';
 import { catalogDir, KitvasError, projectKitsDir } from '../../src/shared/index.ts';
-import { fixtureProject, removeFixture } from '../helpers/projects.ts';
-import { closeRenderTools, renderTools } from '../helpers/render.ts';
+import { closeRenderTools, renderTools } from '../helpers/draft/render.ts';
+import { fixtureProject, removeFixture } from '../helpers/kit/projects.ts';
 import {
   type Json,
   layeredStore,

@@ -14,9 +14,9 @@ import { createLayeredKitStore } from '../../../src/kit/adapters/layered-store.t
 import { createProjectFiles } from '../../../src/kit/adapters/project-files.ts';
 import type { KitStore } from '../../../src/kit/index.ts';
 import { PLUGIN_ROOT, projectKitsDir } from '../../../src/shared/index.ts';
-import { builtinKits, FIXTURE_KITS } from '../../helpers/kits.ts';
-import { fixtureProject, removeFixture } from '../../helpers/projects.ts';
-import { renderTools } from '../../helpers/render.ts';
+import { renderTools } from '../../helpers/draft/render.ts';
+import { builtinKits, FIXTURE_KITS } from '../../helpers/kit/kits.ts';
+import { fixtureProject, removeFixture } from '../../helpers/kit/projects.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 
 const browser = createPlaywrightBrowser({

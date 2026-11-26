@@ -8,7 +8,7 @@ import {
   type StoredRequest,
   writeRequests,
 } from '../../../src/studio/requests/request-file.ts';
-import { shopDraft } from '../../helpers/drafts.ts';
+import { shopDraft } from '../../helpers/draft/drafts.ts';
 
 const idOf = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 

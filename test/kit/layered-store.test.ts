@@ -5,7 +5,7 @@ import { createFolderKitStore } from '../../src/kit/adapters/folder-store.ts';
 import { createLayeredKitStore } from '../../src/kit/adapters/layered-store.ts';
 import { listKits, loadKit } from '../../src/kit/index.ts';
 import { projectKitsDir } from '../../src/shared/index.ts';
-import { FIXTURE_KITS, tinyKitJson } from '../helpers/kits.ts';
+import { FIXTURE_KITS, tinyKitJson } from '../helpers/kit/kits.ts';
 import {
   ACME_MAP,
   ACME_TOKENS,

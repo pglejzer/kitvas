@@ -1,7 +1,7 @@
 // The selection rectangle's geometry (ADRs 0059 and 0066). No DOM here: boxes come in, what the
 // rectangle takes goes out. `drag.ts` measures and draws.
 
-import type { Box, Point } from '../drag/slots.ts';
+import type { Box, Point } from '../drag/slots/slots.ts';
 
 /** The box between two corners, whichever way the pointer went. */
 export function rectOf(a: Point, b: Point): Box {

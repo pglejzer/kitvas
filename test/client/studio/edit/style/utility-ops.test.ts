@@ -4,7 +4,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { plainValue } from '../../../../../client/studio/edit/props/kinds.ts';
+import { plainValue } from '../../../../../client/studio/edit/props/values/kinds.ts';
 import { isOwn, utilityFor } from '../../../../../client/studio/edit/style/utility-ops.ts';
 import {
   contextOfVariants,

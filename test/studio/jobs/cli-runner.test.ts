@@ -18,7 +18,7 @@ import {
   fakeCli,
   PARENT_CLI,
   SLOW_CLI,
-} from '../../helpers/fake-cli.ts';
+} from '../../helpers/studio/fake-cli.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 import { t } from '../../helpers/translate.ts';
 

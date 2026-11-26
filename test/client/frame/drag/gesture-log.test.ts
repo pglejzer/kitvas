@@ -11,7 +11,7 @@ import {
   type GestureTool,
   MAX_GESTURE_AT,
   MAX_GESTURE_STEPS,
-} from '../../../../client/frame/drag/gesture-log.ts';
+} from '../../../../client/frame/drag/gesture/gesture-log.ts';
 
 type Bench = { log: GestureLog; posted: GestureLogMessage[]; clock: { now: number } };
 

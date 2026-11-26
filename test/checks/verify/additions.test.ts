@@ -9,7 +9,7 @@ import { createTscChecker } from '../../../src/checks/adapters/tsc-checker.ts';
 import { type VerifyDeps, verifyKit } from '../../../src/checks/index.ts';
 import { createNodeBuildFs } from '../../../src/render/adapters/node-build-fs.ts';
 import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
-import { closeRenderTools, renderTools } from '../../helpers/render.ts';
+import { closeRenderTools, renderTools } from '../../helpers/draft/render.ts';
 import {
   type AdditionsProject,
   additionsProject,

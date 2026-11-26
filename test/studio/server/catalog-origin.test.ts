@@ -3,8 +3,8 @@ import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import type { Studio } from '../../../src/studio/index.ts';
-import { writeCatalog } from '../../helpers/catalog.ts';
-import { call, pageCookie, raw, rawCall, shopStudio } from '../../helpers/studio.ts';
+import { writeCatalog } from '../../helpers/kit/catalog.ts';
+import { call, pageCookie, raw, rawCall, shopStudio } from '../../helpers/studio/studio.ts';
 
 /** The frame key and the example frame's path, read from the kit page like the browser does. */
 async function frameOf(studio: Studio): Promise<{ key: string; path: string }> {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { SKIN_EDITOR_BAR } from '../../../../src/studio/pages/skin/editor/bar.ts';
+import { SKIN_EDITOR_BAR } from '../../../../src/studio/pages/skin/editor/shell/bar.ts';
 import { SKIN_SURFACES } from '../../../../src/studio/pages/skin/surfaces.ts';
 
 test('the editor bar has two equal side columns, so the mode switch stays in the middle', () => {

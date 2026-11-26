@@ -8,7 +8,7 @@
 
 import type { EditOp, Shorthand, StyleContext, StyleProperty } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import { styleValueOf } from '../props/steps.ts';
+import { styleValueOf } from '../props/values/steps.ts';
 import { keepsPart, opsForStyle, readOnlyReason, type StyleOptions } from './ops.ts';
 import { currentUtility, isOwn, splitUtility, variantPrefix } from './utility-ops.ts';
 

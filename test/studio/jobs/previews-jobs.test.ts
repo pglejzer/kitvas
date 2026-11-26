@@ -5,7 +5,7 @@ import { KitvasError } from '../../../src/shared/index.ts';
 import { type JobOutcome, JobSchema, type RunningJob } from '../../../src/studio/jobs/job.ts';
 import { createJobs } from '../../../src/studio/jobs/jobs.ts';
 import { keepBrowser } from '../../../src/studio/jobs/shared-browser.ts';
-import { NOW } from '../../helpers/drafts.ts';
+import { NOW } from '../../helpers/draft/drafts.ts';
 import { t } from '../../helpers/translate.ts';
 
 type Started = { args: string[]; finish(outcome: JobOutcome): void; cancelled: number };

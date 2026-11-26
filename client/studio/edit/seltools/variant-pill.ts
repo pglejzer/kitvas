@@ -12,7 +12,7 @@
 import { isMac, shortcutHint } from '../../shell/shortcuts.ts';
 import { iconButton } from '../../ui/icon.ts';
 import type { VariantRef } from '../ai/control.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import { roveButtons, titleOf } from './action-bar.ts';
 

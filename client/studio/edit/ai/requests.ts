@@ -35,7 +35,7 @@ import type {
   VariantChange,
 } from '../../../../src/studio/api/requests/request-schemas.ts';
 import type { StreamEvent } from '../../live/sse.ts';
-import { PROPERTIES } from '../props/steps.ts';
+import { PROPERTIES } from '../props/values/steps.ts';
 import type { VariantRef } from './control.ts';
 
 export {

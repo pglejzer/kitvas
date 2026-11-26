@@ -14,7 +14,7 @@ import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts'
 import { loadKit } from '../../../src/kit/index.ts';
 import { createNodeBuildFs } from '../../../src/render/adapters/node-build-fs.ts';
 import { catalogDir, KitvasError } from '../../../src/shared/index.ts';
-import { copyKit, FIXTURE_KITS } from '../../helpers/kits.ts';
+import { copyKit, FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 import {
   bundleError,

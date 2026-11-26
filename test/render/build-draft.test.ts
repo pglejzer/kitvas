@@ -5,9 +5,9 @@ import { test } from 'node:test';
 import { createFolderKitStore } from '../../src/kit/adapters/folder-store.ts';
 import { type BuildReport, buildDraft } from '../../src/render/index.ts';
 import { KitvasError } from '../../src/shared/index.ts';
-import { shopDraft } from '../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../helpers/kits.ts';
-import { HERO_TSX, renderTools, writeShopSections } from '../helpers/render.ts';
+import { shopDraft } from '../helpers/draft/drafts.ts';
+import { HERO_TSX, renderTools, writeShopSections } from '../helpers/draft/render.ts';
+import { FIXTURE_KITS } from '../helpers/kit/kits.ts';
 import { at, keysAt, parseJson } from './helpers/json.ts';
 
 const kits = createFolderKitStore(FIXTURE_KITS);

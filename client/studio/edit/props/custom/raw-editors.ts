@@ -5,8 +5,8 @@
 // the kit's token instead. The checks of a typed value are `number-rules.ts` and `colour-math.ts`.
 
 import type { StyleProperty, StyleValue, TokenOption } from '../../../../../src/edit/index.ts';
-import { nearestToken } from '../kit-value.ts';
-import { allowsNegative } from '../units.ts';
+import { nearestToken } from '../values/kit-value.ts';
+import { allowsNegative } from '../values/units.ts';
 import { colourPicker } from './colour-picker.ts';
 import { type Editor, numberField } from './number-field.ts';
 import { AUTO, NONE, type NumberRule, WEIGHT_RULE } from './number-rules.ts';

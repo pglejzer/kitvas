@@ -23,7 +23,7 @@ import type {
   TokenOption,
 } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import { KIND } from '../props/kinds.ts';
+import { KIND } from '../props/values/kinds.ts';
 
 export { splitUtility, variantPrefix } from '../../../../src/edit/domain/style/utilities.ts';
 
