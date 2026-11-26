@@ -39,6 +39,7 @@ button.layers-twist:disabled { opacity: 0.5; }
   gap: var(--st-space-6);
   min-width: 0;
   min-height: var(--st-size-row);
+  overflow: hidden;
   padding-left: var(--st-space-2);
   border-radius: var(--st-radius-sm);
   color: var(--st-color-ink-mid);
@@ -52,7 +53,8 @@ button.layers-twist:disabled { opacity: 0.5; }
 .layers-tree li[aria-selected="true"] > .layers-line .layers-name { font-weight: var(--st-font-weight-bold); }
 .layers-tree li[aria-selected="true"] > .layers-line .layers-row { color: var(--st-color-ink); }
 .layers-kit-wrap { display: inline-flex; flex: none; color: var(--st-color-accent); }
-.layers-name { flex: 0 1 auto; min-width: 8ch; }
+/* The name takes what the row has left and ends in an ellipsis: it never draws under lock and hide. */
+.layers-name { flex: 0 1 auto; min-width: 0; }
 /* The word "section" after a section's name, muted, at the row's right. */
 .layers-kind { flex: none; margin-left: auto; white-space: nowrap; }
 .layers-badge { flex: none; margin-left: auto; white-space: nowrap; }
@@ -67,10 +69,11 @@ button.layers-twist:disabled { opacity: 0.5; }
 .layers-badge + .layers-dot { margin-left: 0; }
 .layers-name + .layers-dot { margin-left: auto; }
 .layers-tree li[data-hidden] > .layers-line .layers-name { opacity: 0.5; }
-/* Lock and hide: on the line on hover and on focus, and always when on. Until then they take no
-   room, so a name has the whole line. */
+/* Lock and hide: on the line on hover and for the keyboard, and always when on. Until then they
+   take no room, so a name has the whole line; a click leaves the focus on the row, which is no
+   reason to keep them (the selected row's name would stay cut). */
 .layers-line > .k-icon-btn { display: none; width: 24px; height: 24px; }
-.layers-line:hover > .k-icon-btn, .layers-line:focus-within > .k-icon-btn,
+.layers-line:hover > .k-icon-btn, .layers-line:has(:focus-visible) > .k-icon-btn,
 .layers-line > .k-icon-btn[aria-pressed="true"] { display: inline-grid; }
 .layers-line > .k-icon-btn[aria-pressed="true"] { background: none; color: var(--st-color-ink); }
 .layers-line > .k-icon-btn[aria-pressed="true"]:hover { background: var(--st-color-raised-strong); }
