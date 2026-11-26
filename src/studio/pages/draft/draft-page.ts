@@ -228,20 +228,21 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   const link = choiceLink(draft, choice);
   const block = editBlock({ built: info.built, version, latest, compare });
   const editable = block === null;
+  const kit = kitName(deps.kits, draft.kit.id);
 
   const status = shownStatus(info.built, checks, shown);
   const bar = editorBar({ t, draft, choice, link, latest, block, status });
   const sides = {
     t,
     locked: block === null ? null : lockedNote({ t, block, link, latest, slug }),
-    checks: html`${checksLines(t, kitName(deps.kits, draft.kit.id), info.built, checks)}${notesSection({ t, shown, elsewhere, next, waived: checks?.waived ?? [], run: runInput(deps, slug, version, checks, editable) })}`,
+    checks: html`${checksLines(t, kit, info.built, checks)}${notesSection({ t, shown, elsewhere, next, waived: checks?.waived ?? [], run: runInput(deps, slug, version, checks, editable) })}`,
     sketches: craftPick(t, draft),
     timeline: info.built && compare === null,
   };
   // The row is open until the script, which keeps it open or folded per browser, says otherwise.
   const optioned = options.length > 0 && compare === null ? html` data-options="open"` : '';
   const canvas = html`<section class="stage-canvas" data-shell="canvas"${optioned} aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link, breakpoints: breakpointsOf(deps.kits, draft.kit.id), options })}${canvasTools(t)}</section>`;
-  const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}${openingLayout(request.nonce)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce })}${trashTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
+  const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}${openingLayout(request.nonce)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce, kit })}${trashTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
   return page({
     title: draft.title,
     nonce: request.nonce,

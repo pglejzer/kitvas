@@ -6,7 +6,8 @@ import type { Translate } from '../../../shared/index.ts';
 import { type Html, html, trusted } from '../html.ts';
 import { EDIT_TEXT_KEYS } from './edit-texts.ts';
 
-export type EditTextsInput = { t: Translate; nonce: string };
+/** `kit`: the name of the draft's kit, which the texts that say `{kit}` name. */
+export type EditTextsInput = { t: Translate; nonce: string; kit: string };
 
 /** JSON that cannot end its `<script>` element or open a comment in it. */
 const scriptJson = (value: unknown): string =>
@@ -17,11 +18,14 @@ const scriptJson = (value: unknown): string =>
 
 /**
  * The script's texts in one JSON block. Every draft page has it, editable or not: the screen's own
- * parts (the list of shortcuts, the rails) show some of them too.
+ * parts (the list of shortcuts, the rails) show some of them too. A draft has one kit, so its
+ * name is filled in here ("Base component"); every other `{name}` is left for the script.
  */
 export function editTexts(input: EditTextsInput): Html {
-  const { t } = input;
-  const texts = Object.fromEntries(EDIT_TEXT_KEYS.map((key) => [key, t(`studio.edit.${key}`)]));
+  const { t, kit } = input;
+  const texts = Object.fromEntries(
+    EDIT_TEXT_KEYS.map((key) => [key, t(`studio.edit.${key}`, { kit })]),
+  );
   return html`<script type="application/json" id="edit-texts" nonce="${input.nonce}">${trusted(scriptJson(texts))}</script>`;
 }
 
