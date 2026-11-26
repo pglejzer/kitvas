@@ -4,8 +4,8 @@ Evals for six skills of the plugin, in the format of `claude plugin eval`:
 
 - `evals/kitvas/`: `/kitvas` (status, init, language). Tagged `smoke`.
 - `evals/kit/`: `/kitvas:kit` (components, tones, a missing component). Tagged `smoke`.
-- `evals/craft/`: `/kitvas:craft` (a near match in the kit, three sketches of an icon, a pick added to the kit).
-  `near-match` is `smoke`, the other two are `slow`.
+- `evals/craft/`: `/kitvas:craft` (a near match in the kit, a look word read two ways, three sketches of an
+  icon, a pick added to the kit). `near-match` and `look-word` are `smoke`, the other two are `slow`.
 - `evals/rework/`: `/kitvas:rework` (a local address, a design system not learned yet, a rework from a
   screenshot). The first two are `smoke`, `from-image` is `slow`.
 - `evals/compose/`: `/kitvas:compose` (a screen, states, a second version). Tagged `slow`: one run each,
