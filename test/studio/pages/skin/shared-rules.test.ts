@@ -60,7 +60,7 @@ test('every animation a rule names has its keyframes', () => {
 
 test("the logo's motion: an entrance once for a tab, a working sign, nothing on hover", () => {
   // The entrance plays only on a logo that plays, while the page started one.
-  for (const part of ['k-logo-block', 'k-logo-letter', 'k-logo-pointer']) {
+  for (const part of ['k-logo-icon', 'k-logo-letter', 'k-logo-dot path']) {
     assert.ok(
       SKIN_LOGO.includes(`:root[data-logo-enter] .k-logo[data-play] .${part} {`),
       `${part} enters`,
@@ -72,23 +72,26 @@ test("the logo's motion: an entrance once for a tab, a working sign, nothing on 
     delays.map((match) => [Number(match[1]), Number(match[2])]),
     [1, 2, 3, 4, 5, 6].map((n) => [n, 160 + (n - 1) * 45]),
   );
-  // The pointer docks where its rule places it: the last frame of the flight is that place.
-  const place = /\.k-logo-pointer \{ transform: ([^;]+); \}/.exec(SKIN_LOGO)?.[1];
-  assert.ok(place);
-  assert.ok(SKIN_LOGO.includes(`100% {\n    opacity: 1;\n    transform: ${place};`));
+  // The loose parts land turned as their rule turns them; the full stop sways while Claude works.
+  assert.match(SKIN_LOGO, /\.k-logo-dot path \{[^}]*transform: rotate\(-15deg\);/);
   assert.match(
     SKIN_LOGO,
-    /:root\[data-claude="working"\] \.k-logo\[data-claude\] \.k-logo-pointer \{\s*fill: var\(--st-color-accent\);\s*animation: k-logo-tap 1\.2s ease-in-out infinite;/,
+    /:root\[data-claude="working"\] \.k-logo\[data-claude\] \.k-logo-stop path \{\s*animation: k-logo-sway 1\.2s ease-in-out infinite;/,
   );
-  // Opacity and transform move; the colour of the flight and of the working pointer is the
-  // accent's. Nothing moves on hover.
+  // The same state nudges the right part of the icon, and only moves transform.
+  assert.match(
+    SKIN_LOGO,
+    /:root\[data-claude="working"\] \.k-logo\[data-claude\] \.k-logo-joint \{\s*animation: k-logo-fit 1\.2s ease-in-out infinite;/,
+  );
+  assert.match(SKIN_LOGO, /@keyframes k-logo-fit \{ 50% \{ transform: translateX\(1\.5px\); \} \}/);
+  // Opacity and transform move. Nothing moves on hover.
   assert.doesNotMatch(SKIN_LOGO, /:hover/);
   for (const frames of SKIN_LOGO.matchAll(/@keyframes [a-z-]+ \{([\s\S]*?\})\s*\}/g)) {
     const properties = [...(frames[1] ?? '').matchAll(/([a-z-]+):/g)].map(
       (match) => match[1] ?? '',
     );
     for (const property of properties) {
-      assert.ok(['opacity', 'transform', 'fill'].includes(property), property);
+      assert.ok(['opacity', 'transform'].includes(property), property);
     }
   }
 });

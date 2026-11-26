@@ -179,7 +179,7 @@ test('the top bar has three parts: the draft, the mode, and the session', async 
   // The mark is a link home, then Drafts / title.
   assert.ok(
     start.startsWith(
-      '<div class="k-bar-start"><a class="k-logo-link" href="/"><svg class="k-logo" viewBox="0 0 64 64"',
+      '<div class="k-bar-start"><a class="k-logo-link" href="/"><svg class="k-logo" viewBox="0 0 34 34"',
     ),
   );
   assert.ok(start.includes('</svg></a><a class="k-btn bar-crumb" href="/">'));

@@ -74,7 +74,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0065](0065-copies-list-items.md) | A selection of copies, and list items at any depth | 2026-11-24 | accepted, changed in part by ADR 0069 |
 | [0066](0066-drag-copies-lists-edges.md) | Gestures in the frame: copies, lists and a container's edge | 2026-11-24 | accepted |
 | [0067](0067-nested-class-rules.md) | Nested class rules, and class names after the section | 2026-11-24 | accepted |
-| [0068](0068-logo-motion.md) | The logo moves: an entrance once for a tab, and a sign while Claude works | 2026-11-25 | accepted |
+| [0068](0068-logo-motion.md) | The logo moves: an entrance once for a tab, and a sign while Claude works | 2026-11-25 | accepted, changed in part by ADR 0084 |
 | [0069](0069-click-takes-the-row.md) | A click in a list takes the row first | 2026-11-25 | accepted |
 | [0070](0070-shorthand-write.md) | A shorthand is read as a source and written in place | 2026-11-25 | accepted |
 | [0071](0071-hook-data-folder.md) | The session hook reads its data folder from its environment | 2026-11-25 | accepted |
@@ -90,3 +90,4 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0081](0081-learn-a-whole-package.md) | Learning a whole package: the schema as a file, the exports read from the package, fragments merged by kitvas | 2026-11-26 | accepted |
 | [0082](0082-options-of-a-version.md) | Options of a version: conditions in one source | 2026-11-26 | accepted |
 | [0083](0083-themes-and-token-additions.md) | Themes are token sets of the kit; the project adds tokens and theme values | 2026-11-26 | accepted |
+| [0084](0084-logo-dovetail.md) | The logo is a dovetail of two kit parts, with two loose parts that move | 2026-11-26 | accepted |
