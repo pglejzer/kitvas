@@ -26,6 +26,7 @@ import { mountNotes } from './notes/notes.ts';
 import { mountContextBar } from './props/context/context-bar.ts';
 import { mountStateHeld } from './props/context/state-held.ts';
 import { mountProps } from './props/panel/panel.ts';
+import { mountGround } from './select/ground.ts';
 import { mountKeys } from './select/keys.ts';
 import { mountMode } from './select/mode.ts';
 import { modeStorage, opensInEdit, readMode } from './select/mode-memory.ts';
@@ -80,6 +81,7 @@ export function startEditor(main: HTMLElement, frame: Frame): Editor | undefined
   mountFrameDrop(ctx);
   // The frame's pointer gestures (ADR 0059): the selection rectangle and a reordered list item.
   mountRect(ctx);
+  mountGround(ctx);
   mountRelease(ctx);
   mountReorder(ctx);
   mountMenu(ctx);

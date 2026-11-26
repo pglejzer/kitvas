@@ -52,7 +52,7 @@ The sizes of the panels are kept.
 
 ## Selecting
 
-- Click an element, or find it in the layers list.
+- Click an element, or find it in the layers list. A click on empty page, or on the canvas beside the cards, clears the selection.
 - Shift, Ctrl or Cmd with a click adds an element to the selection, on the page and in Layers.
 - Press and drag on the page to move an element (see Structure). Drag a rectangle over empty space to select several elements. It takes the elements it touches that do not hold it whole, the outermost of those, never a locked element. A rectangle with Shift, Ctrl or Cmd held adds to the selection. A rectangle that takes nothing clears it.
 - A locked element is picked in the layers list only: a click on it in the prototype selects what is under it.
