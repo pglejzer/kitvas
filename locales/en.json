@@ -642,8 +642,6 @@
   "studio.edit.props.reason.utility-unknown": "No utility class kitvas knows says this value.",
   "studio.edit.props.reason.locked": "It is locked, so the editor keeps it as it is. Unlock it in Layers first.",
   "studio.edit.props.reason.item-key": "Its list's key does not give each item a name a class can use.",
-  "studio.edit.history.undo": "Undid: {label}",
-  "studio.edit.history.redo": "Redid: {label}",
   "studio.edit.conflict.title": "The source changed",
   "studio.edit.conflict.changed": "{file} holds a different value than the one you edited. Keep your change, or keep what is there now?",
   "studio.edit.conflict.gone": "The place you edited in {file} is gone. Your change cannot be written.",

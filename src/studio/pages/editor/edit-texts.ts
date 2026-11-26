@@ -70,8 +70,6 @@ const PANEL_TEXT_KEYS = [
   'props.reason.nested',
   'props.reason.invalid',
   'props.reason.item-key',
-  'history.undo',
-  'history.redo',
   'conflict.title',
   'conflict.changed',
   'conflict.gone',

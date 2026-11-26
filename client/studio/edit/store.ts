@@ -35,6 +35,8 @@ export type Gesture = {
   /** ADR 0072: the copy a "This item" change is for; its previews go to that copy only. */
   item?: number;
   renames?: Readonly<Record<string, string>>;
+  /** On the redo stack: the change list's line the undo took out, which a redo puts back. */
+  line?: ChangeEntry;
 };
 
 /** What copy and cut keep (task D4): each element's source and the TSX file it came from. */

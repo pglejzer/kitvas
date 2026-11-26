@@ -124,7 +124,7 @@ An image file (PNG, JPEG, WebP, AVIF or GIF, up to 5 MB; never SVG) can be uploa
 
 The first edit starts a new version, and later edits go into it. "Save version" ends the session; the next edit starts another version. Claude can edit the same files while you work: you see its changes live, and when you both changed the same place you choose between yours and theirs.
 
-Undo and redo work with Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y. The undo history and the change list are kept in the browser per draft, so a reload of the page does not empty them. Save version ends the session and clears them; Undo save brings them back. A change that cannot be saved leaves the history as it was and the bar says so: "The change could not be saved. Try again."
+Undo and redo work with Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y. The change list holds what differs from the last saved version: an undone step leaves it and a redo puts it back, so the counts in the bar, on the Changes tab and on the Changes lens say how many changes are in effect. The undo history and the change list are kept in the browser per draft, so a reload of the page does not empty them. Save version ends the session and clears them; Undo save brings them back. A change that cannot be saved leaves the history as it was and the bar says so: "The change could not be saved. Try again."
 
 ## With Claude
 

@@ -162,6 +162,12 @@ export function readGesture(value: unknown): Gesture | null {
     if (typeof value.item !== 'number' || !index(value.item)) return null;
     gesture.item = value.item;
   }
+  // A redo step: the change list's line its undo took out.
+  if (value.line !== undefined) {
+    const line = readChange(value.line);
+    if (line === null) return null;
+    gesture.line = line;
+  }
   return gesture;
 }
 

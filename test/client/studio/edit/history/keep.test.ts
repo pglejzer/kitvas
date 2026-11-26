@@ -255,6 +255,17 @@ test('a kept "This item" step keeps its copy, and a copy that is no place drops 
   assert.equal(readGesture({ ops: [own], label: 'Edit', item: '1' }), null);
 });
 
+test('a kept redo step keeps the line it took out of the change list', () => {
+  const line = { by: 'person', id: ID, label: 'Set gap', files: [], offKit: true, at: 1_000 };
+  const step = {
+    ops: [{ op: 'setText', id: ID, value: 'New', before: 'Old' }],
+    label: 'Set gap',
+    line,
+  };
+  assert.deepEqual(readGesture(step)?.line, line);
+  assert.equal(readGesture({ ...step, line: { ...line, by: 'someone' } }), null);
+});
+
 test('the editor reads the kept history once the edit state is known', async () => {
   const storage = memory({ [keepKey(SLUG)]: packed() });
   const store = createStore(SLUG);

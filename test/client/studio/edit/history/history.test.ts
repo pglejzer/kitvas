@@ -291,6 +291,43 @@ test('the change list marks a raw style value as off-kit', async () => {
   assert.equal(entry?.id, id);
 });
 
+test('an undone step leaves the change list, and its redo puts the same line back', async () => {
+  const { store, history, tick } = setup([applied(), applied(), applied(), applied()]);
+  await history.apply(gesture(gap('13px', '8px')));
+  const [line] = store.get().changes;
+  assert.equal(store.get().changes.length, 1);
+  tick(5_000);
+  await history.undo();
+  // Nothing differs from the saved version now: no line, so every count says none.
+  assert.deepEqual(store.get().changes, []);
+  tick(5_000);
+  await history.redo();
+  // The line is the step's own again (its label and its values), as the newest of the list.
+  assert.deepEqual(store.get().changes, [{ ...line, at: 11_000 }]);
+  await history.undo();
+  assert.deepEqual(store.get().changes, []);
+});
+
+test('an undo takes out its own step and leaves the lines of the other steps', async () => {
+  const { store, history } = setup([applied(), applied(), applied()]);
+  await history.apply(gesture(variant(CARD), 'Set variant'));
+  await history.apply({ ...gesture(gap('13px', '8px')), flash: true });
+  const claude = {
+    by: 'claude',
+    id: null,
+    label: 'Claude',
+    files: [SCSS],
+    offKit: false,
+    at: 2_000,
+  } as const;
+  store.set({ changes: [...store.get().changes, { ...claude, files: [...claude.files] }] });
+  await history.undo();
+  assert.deepEqual(
+    store.get().changes.map((change) => change.label),
+    ['Set variant', 'Claude'],
+  );
+});
+
 test('edits of one property within 800 ms are one undo step', async () => {
   const { store, history, requests, tick } = setup([applied(), applied(), applied()]);
   await history.apply(gesture(gap('9px', '8px')));

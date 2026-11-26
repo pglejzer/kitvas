@@ -6,8 +6,8 @@ import type { ChangeEntry, Gesture } from '../store.ts';
 
 /**
  * The step (an index of the newest-first list) whose undo is the bar's undo: the newest line,
- * when the person made it and the top of the undo stack is that very step. `-1` for none: an undo
- * or a redo line, or a change by Claude, is not what undo takes back next.
+ * when the person made it and the top of the undo stack is that very step. `-1` for none: a
+ * change by Claude is not what undo takes back next.
  */
 export function undoableIndex(newest: readonly ChangeEntry[], top: Gesture | undefined): number {
   const [first] = newest;
