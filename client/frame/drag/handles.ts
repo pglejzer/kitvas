@@ -19,6 +19,7 @@ import type {
 import { soleElement } from '../edit/items.ts';
 import { createPreview } from '../edit/preview.ts';
 import { hold } from '../page/busy.ts';
+import { boxOf } from '../page/rect.ts';
 import type { GestureEnd, GestureLog } from './gesture-log.ts';
 import { createGuides, createOverlay, type Overlay } from './guides.ts';
 import { HANDLES_SHEET } from './handles-sheet.ts';
@@ -35,7 +36,6 @@ import {
   tracksOf,
 } from './magnet.ts';
 import { aroundOf, px, readSpots } from './measure.ts';
-import { boxOf } from './preview.ts';
 import type { Box, Point } from './slots.ts';
 import { allowedSpots, type Spot, spotAt } from './spots.ts';
 

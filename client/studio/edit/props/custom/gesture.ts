@@ -5,7 +5,7 @@
 export type Gesture = {
   /** The colour now, shown on the canvas and held for the write. */
   move(css: string): void;
-  /** Writes the last colour if it differs from what was written before; once per gesture. */
+  /** Writes the last colour if it differs from what the source holds or shows; once per gesture. */
   end(): void;
   /** Escape: the old value is shown again and nothing is written. */
   cancel(): void;
@@ -16,6 +16,8 @@ export type Gesture = {
 export function createGesture(options: {
   /** The value in the source when the picker opened, or `null`. */
   value: string | null;
+  /** The colour the element shows when the source holds none of its own, or `null`. */
+  shown?: string | null;
   preview(css: string | null): void;
   write(css: string): void;
 }): Gesture {
@@ -30,7 +32,9 @@ export function createGesture(options: {
       const css = pending;
       pending = null;
       if (css === null) return;
-      if (css === held) {
+      // The same colour again is no change, also when the source holds none and the colour is the
+      // one the element shows already (the hue moved on black): nothing is written.
+      if (css === held || (held === null && css === (options.shown ?? null))) {
         options.preview(null);
         return;
       }

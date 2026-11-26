@@ -4,6 +4,7 @@
 // chooses the element itself, with no copy. Pure over plain data: the store settles a selection
 // with its copies through `settle`, and `select/mode.ts` tells the frame with `selectBody`.
 
+import { samePath } from '../../../../src/shared/values/paths.ts';
 import {
   type CopyRef,
   type EditStudioBody,
@@ -21,9 +22,6 @@ export type Picked = {
   item?: number | undefined;
   path?: readonly number[] | undefined;
 };
-
-const samePath = (a: readonly number[], b: readonly number[]): boolean =>
-  a.length === b.length && a.every((place, index) => place === b[index]);
 
 /** A ref that names no one copy: the element shows one copy, in no list. */
 const bare = (ref: CopyRef): boolean => ref.item === undefined && ref.path === undefined;

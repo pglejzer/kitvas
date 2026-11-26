@@ -9,6 +9,7 @@
 import { type PageFacts, REFLOW_VIEWPORT, SPACING_OVERRIDE } from '../../domain/page/facts.ts';
 import type { PageReport } from '../../domain/page/page.ts';
 import type { Pass } from '../../ports/browser.ts';
+import { settle } from '../browser/settle.ts';
 import { deepPasses } from './playwright-deep.ts';
 import { focusWalk } from './playwright-facts-focus.ts';
 import type { FactsWindow } from './playwright-facts-walk.ts';
@@ -43,13 +44,6 @@ export type SpacingInput = {
   slack: number;
 };
 export type SpacingRead = { clipped: number[]; pairs: [number, number][] };
-
-/** Runs in the page: two frames, so the page has laid out and painted what changed. */
-function settle(): Promise<null> {
-  return new Promise((done) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => done(null))),
-  );
-}
 
 /**
  * Runs in the page at the reflow size: the document's scroll width and the deepest nodes whose

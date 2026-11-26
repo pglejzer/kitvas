@@ -7,6 +7,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { PreviewShot, ShotBatch, ShotReport } from '../../ports/browser.ts';
+import { settle } from '../browser/settle.ts';
 import { firstLine } from './playwright-images.ts';
 import { NO_REACH, pageSize, REACH_MAX, shadowReach, widened } from './playwright-reach.ts';
 
@@ -26,13 +27,6 @@ const SAY = {
   unmarked: 'the page marked no example as shown',
   empty: 'the example rendered no element',
 };
-
-/** Runs in the page: two frames, so React has painted (the wait `inspect` uses). */
-function settle(): Promise<null> {
-  return new Promise((done) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => done(null))),
-  );
-}
 
 /** Runs in the page: the kit's fonts are in, so the text of a shot is set in them. */
 function fontsReady(): Promise<null> {

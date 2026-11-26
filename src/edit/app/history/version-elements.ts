@@ -5,6 +5,7 @@
 
 import { collapseSource, type DraftStore, versionFolder } from '../../../drafts/index.ts';
 import { elementIds, readSites } from '../../../render/index.ts';
+import { isRecord } from '../../../shared/index.ts';
 import { type ElementFacts, wordsOf } from '../../domain/identity/match.ts';
 import { elementSpan } from '../../domain/structure/subtree.ts';
 import { offsetOf, openAt, openingTags, plainText } from '../../domain/tsx/tsx-reader.ts';
@@ -20,9 +21,6 @@ export type VersionElement = ElementFacts & { at: number; span: Span };
 export type VersionFile = { text: string; elements: VersionElement[]; built: boolean };
 
 type Site = { id: string; tag: string; at: number };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** An explicit `<Fragment>` is an opening tag, but the build gives it no id. */
 const FRAGMENT = /^Fragment\d*$/;

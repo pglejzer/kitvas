@@ -11,7 +11,7 @@
 
 import type { ForceState } from '../../channel/live-protocol.ts';
 import { elementsWith } from '../edit/tree.ts';
-import { EDITOR_STATE, heavier, specificity } from './specificity.ts';
+import { EDITOR_STATE, heavier, identEnd, specificity } from './specificity.ts';
 
 export const FORCE_ATTRIBUTE = 'data-kv-force';
 const STATES: readonly ForceState[] = ['hover', 'focus', 'active'];
@@ -21,20 +21,6 @@ const PSEUDOS: Record<ForceState, readonly string[]> = {
   focus: ['focus', 'focus-visible'],
   active: ['active'],
 };
-
-const IDENT = /[A-Za-z0-9_-]/;
-
-/** Where the identifier starting at `from` ends (escapes and non-ASCII letters belong to it). */
-function identEnd(text: string, from: number): number {
-  let at = from;
-  while (at < text.length) {
-    const char = text[at] ?? '';
-    if (char === '\\') at += 2;
-    else if (IDENT.test(char) || char.charCodeAt(0) > 127) at += 1;
-    else break;
-  }
-  return Math.min(at, text.length);
-}
 
 /** Where a string or an attribute selector that opens at `from` closes, just after it. */
 function closeOf(text: string, from: number): number {

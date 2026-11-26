@@ -2,7 +2,7 @@
 // children for `spotsFor`, and the lengths a handle's drag starts from. Reads only, in the frame's
 // viewport pixels: `spots.ts` decides where the handles go and `handles.ts` draws them.
 
-import { boxOf } from './preview.ts';
+import { boxOf } from '../page/rect.ts';
 import { MAX_GAPS, type Side, type Spot, spotsFor } from './spots.ts';
 
 /** A computed length in pixels; 0 for a value that is no number. */

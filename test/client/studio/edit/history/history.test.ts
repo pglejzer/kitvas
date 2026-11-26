@@ -8,8 +8,6 @@ import {
   createHistory,
   GROUP_MS,
   type HistoryIo,
-  inverse,
-  inverseAll,
 } from '../../../../../client/studio/edit/history/history.ts';
 import { readGesture, readList } from '../../../../../client/studio/edit/history/keep-shape.ts';
 import { createStore, elementOf, type Gesture } from '../../../../../client/studio/edit/store.ts';
@@ -207,7 +205,7 @@ test('an answer moves the selection, hidden elements and the change list, never 
   assert.deepEqual(store.get().selection, [id]);
   assert.deepEqual(store.get().hidden, [CARD]);
   await history.undo();
-  assert.deepEqual(requests[3]?.ops, [inverse(prop)]);
+  assert.deepEqual(requests[3]?.ops, [serverInverse(prop)]);
 });
 
 test('a step under a removal keeps the removed element id, so its undo finds it again', async () => {
@@ -226,7 +224,7 @@ test('a step under a removal keeps the removed element id, so its undo finds it 
   assert.deepEqual(store.get().selection, []);
   await history.undo();
   await history.undo();
-  assert.deepEqual(requests[3]?.ops, [inverse(prop)]);
+  assert.deepEqual(requests[3]?.ops, [serverInverse(prop)]);
 });
 
 test('a deleted element that no other one replaces leaves the selection too', async () => {
@@ -600,11 +598,6 @@ const samples: SimpleOp[] = [
   { op: 'addClass', id, className: 'pricing-card' },
   { op: 'removeClass', id, className: 'pricing-card' },
 ];
-
-test('the client inverse equals the server inverse on every sample', () => {
-  for (const op of samples) assert.deepEqual(inverse(op), serverInverse(op));
-  assert.deepEqual(inverseAll(samples), serverAll(samples));
-});
 
 test('the client makes no inverse for a gesture with a structural op', () => {
   assert.deepEqual(clientInverse(samples), serverAll(samples));

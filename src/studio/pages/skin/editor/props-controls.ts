@@ -88,6 +88,12 @@ export const SKIN_EDITOR_PROPS_CONTROLS = `
   margin: var(--st-space-2) 0 var(--st-space-8);
   padding: var(--st-space-8);
 }
+/* The panel comes in once, when "Custom..." opens it (the script marks it \`data-entering\`). A draw
+   puts a new panel in its place after every write: that one shows still, so the panel never bobs
+   under the pointer. */
+.props-colour.k-pop:not([data-entering]) { animation: none; }
+/* The panel's ground takes the keyboard on a press (so Escape still closes it); it is no control. */
+.props-colour:focus { outline: none; }
 .props-cp-square, .props-cp-track {
   position: relative;
   touch-action: none;

@@ -1,6 +1,8 @@
 // Where the note form stands and which keys save it: pure rules, so the dialog's script stays
 // short. Pixels are the window's.
 
+import { clamp as within } from '../../../../src/shared/values/numbers.ts';
+
 /** The gap between the form and what it stands beside, and to the window's edge. */
 export const FORM_GAP = 12;
 
@@ -23,10 +25,6 @@ export function savesNote(event: {
  */
 export function menuAnchor(click: { x: number; y: number; box?: Box }): Box {
   return click.box ?? { x: click.x, y: click.y, width: 0, height: 0 };
-}
-
-function within(value: number, low: number, high: number): number {
-  return Math.max(low, Math.min(value, high));
 }
 
 /**

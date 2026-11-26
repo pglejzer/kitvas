@@ -3,6 +3,8 @@
 // keeps the log (`client/frame/drag/gesture-log.ts`); the studio says over the canvas why a
 // gesture ended early (`client/studio/edit/structure/gesture-note.ts`).
 
+import { isRecord as isObject } from '../../src/shared/values/guards.ts';
+
 /** The tools that keep a log. */
 export const GESTURE_TOOLS = ['drag', 'handle'] as const;
 export type GestureTool = (typeof GESTURE_TOOLS)[number];
@@ -73,10 +75,6 @@ export type GestureLogMessage = {
   steps: GestureStep[];
 };
 
-type Loose = Record<string, unknown>;
-
-const isObject = (value: unknown): value is Loose =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 const isTool = (value: unknown): value is GestureTool =>
   GESTURE_TOOLS.some((tool) => tool === value);
 const isState = (value: unknown): value is GestureState =>

@@ -8,6 +8,7 @@
 import type { Box, LayerFacts, LayerNode, LayerPaint } from '../../../checks/index.ts';
 import type { FlatToken } from '../../../kit/index.ts';
 import type { IdsFile } from '../../../render/index.ts';
+import { pascal } from '../../../shared/index.ts';
 import { bindLayer, rawValues } from './bind.ts';
 import { componentOf, layerName } from './names.ts';
 import type { TokenUses } from './token-uses.ts';
@@ -31,13 +32,6 @@ export type ShapeInput = {
   /** The file in `assets/` for an image address the page asked for; null when there is none. */
   assetOf(src: string): string | null;
 };
-
-const pascal = (id: string): string =>
-  id
-    .split('-')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
 
 const SECTION_FILE = /(?:^|\/)sections\/([A-Za-z0-9]+)\.tsx$/;
 

@@ -132,6 +132,9 @@ export function fakeBundler(
       bundles.push(input);
       return { js: '', css: '', errors: typeof errors === 'function' ? errors(input) : errors };
     },
+    async exportNames() {
+      return { names: [], errors: [] };
+    },
     async dispose() {},
   };
 }

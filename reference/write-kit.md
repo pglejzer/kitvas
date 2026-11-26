@@ -46,7 +46,8 @@ Read by the `tailor` agent before it writes a kit from Figma files, a website sc
 - W17: Cover the core set first: `action` (Button, Link), `input` (TextField, Select, Checkbox), `layout`, `typography` (Heading, Text), `display` (Card, Badge), `feedback`. Only components the source shows. The rest of the core goes to `gaps` with `missing`.
 - W18: `import.from` is a kit path, `components/Button`, no extension, no `..`. `import.name` is the export (rule L16 of `learn.md` does not apply here).
 - W19: Props are typed as in rules L9 to L11 of `learn.md`. The type of each prop must match what the component file declares.
-- W20: One or two examples per component, each valid TSX with the listed props only, real text and no lorem ipsum. `imports` lists the kit components used.
+- W20: One or two examples per component. An example is an object with `title` (a short English title), `code`, `imports` and, in a written kit, `reference` (W23), and no other key. Each is valid TSX with the listed props only, real text and no lorem ipsum. `imports` lists the kit components used. `state` is an array, one entry for each controlled value: `[{ "value": "value", "onChange": "onChange" }]`.
+- W20a: The exact shapes are in `reference/kit.schema.json` (`$defs.component`, `prop`, `example`, `stateEntry`, `gap`). Read it before you write. The rules here explain it and never replace it; when they differ, the schema file wins.
 - W21: `description` is one plain sentence in your own words. Never paste text from the source.
 - W22: `tokens.file` is `json/tokens.json`. Leave `tokens.cssVars` out: there is no native variable to map.
 

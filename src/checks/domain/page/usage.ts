@@ -25,6 +25,8 @@ export type CatalogComponent = {
     default?: string | number | boolean | undefined;
   }[];
   styling: string[];
+  /** The prop that names the element the component renders (`as`, `component`); the kit need not list it in `props` too. */
+  polymorphic?: { prop: string } | undefined;
 };
 
 export type UsageInput = {
@@ -71,6 +73,7 @@ export function usageFindings({ usage, catalog, ids, state, width }: UsageInput)
       const prop = known.get(name);
       if (!prop) {
         if (entry.styling.includes(name) || OPEN_PROP.test(name)) continue;
+        if (entry.polymorphic?.prop === name) continue;
         report(
           'ds/unknown-prop',
           { key: 'checkRule.unknownProp', params: { component, prop: name } },

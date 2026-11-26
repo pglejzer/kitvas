@@ -6,10 +6,13 @@ import { test } from 'node:test';
 import {
   MAX_REASON,
   noteKey,
+  QUICK_REASON_KEYS,
   reasonProblem,
+  reasonRequest,
   waiverOf,
 } from '../../../../../client/studio/edit/live/waivers.ts';
 import { MAX_REASON as SERVER_MAX } from '../../../../../src/studio/api/waivers/waiver-schemas.ts';
+import { t } from '../../../../helpers/translate.ts';
 
 const ELEMENT = 'sections/Hero:section/Button';
 
@@ -68,6 +71,37 @@ test('a row of the Checks list gives its rule and its element, even once it is a
       element: null,
     },
   );
+});
+
+test('each quick reason is saved at once, its own text as the reason', () => {
+  const key = { rule: 'a11y/color-contrast', element: ELEMENT };
+  assert.deepEqual(
+    QUICK_REASON_KEYS.map((name) => t(`studio.edit.${name}`)),
+    ['Fine as it is', "The kit's own look", 'False alarm'],
+  );
+  for (const name of QUICK_REASON_KEYS) {
+    const words = t(`studio.edit.${name}`);
+    assert.deepEqual(reasonRequest(key, words), { ok: true, body: { ...key, reason: words } });
+  }
+});
+
+test('"Other…" keeps the validation: empty, spaces and over 300 characters are not sent', () => {
+  const key = { rule: 'ds/raw-color', element: null };
+  assert.deepEqual(reasonRequest(key, ''), { ok: false, problem: 'empty' });
+  assert.deepEqual(reasonRequest(key, '  \n'), { ok: false, problem: 'empty' });
+  assert.deepEqual(reasonRequest(key, 'x'.repeat(301)), { ok: false, problem: 'long' });
+  assert.deepEqual(reasonRequest(key, `  ${'x'.repeat(300)} `), {
+    ok: true,
+    body: { rule: 'ds/raw-color', element: null, reason: 'x'.repeat(300) },
+  });
+});
+
+test('the words people read say dismiss and restore, never accept or withdraw', () => {
+  assert.equal(t('studio.edit.waiver.accept'), 'Dismiss this finding');
+  assert.equal(t('studio.edit.waiver.reasonLabel'), 'Why dismiss it?');
+  assert.equal(t('studio.edit.waiver.accepted', { reason: 'ok' }), 'Dismissed: ok');
+  assert.equal(t('studio.edit.waiver.withdraw'), 'Restore');
+  assert.equal(t('studio.notes.filter.accepted'), 'Dismissed');
 });
 
 test('a row with no rule has no key', () => {

@@ -4,10 +4,16 @@
 // level. The rules are pure (`roleOf`, `nameOf`, `tabPosition`, `headingLevel` take plain values,
 // a subset of HTML-AAM and accname that covers what drafts write); `readCard` reads the page.
 
+import {
+  formatRgb,
+  isLargeText,
+  over,
+  shownRatio,
+  textContrast,
+} from '../../../src/shared/values/colour.ts';
 import { type A11yCard, type NameSource, parseLiveFrame } from '../../channel/live-protocol.ts';
 import { copyAt } from '../edit/items.ts';
 import { cut } from '../page/snapshot.ts';
-import { formatRgb, isLargeText, over, shownRatio, textContrast } from './colour.ts';
 import { backgroundOf, hasOwnText, isInteractive, painted, toRgba, weightOf } from './measure.ts';
 
 const MAX_NAME = 500;

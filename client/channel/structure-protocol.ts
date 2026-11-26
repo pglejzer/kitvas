@@ -7,9 +7,10 @@
 // reordered list item or a handle into ops. A drag that starts on the page (the palette, the tree)
 // is forwarded into the frame as `drag` messages in the frame's own CSS pixels.
 
+import { isRecord as isObject } from '../../src/shared/values/guards.ts';
 import type { CopyRef } from './edit-protocol.ts';
+import { isId, itemUpTo } from './guards.ts';
 
-const ELEMENT_ID = /^[A-Za-z0-9_.:/$-]{1,200}$/;
 const PROPERTY = /^[a-z][a-z-]{0,47}$/;
 const TOKEN_VAR = /^--kit-[A-Za-z0-9_-]{1,80}$/;
 
@@ -145,10 +146,6 @@ export const STRUCTURE_STUDIO_TYPES = new Set([
 
 type Loose = Record<string, unknown>;
 
-const isObject = (value: unknown): value is Loose =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-const isId = (value: unknown): value is string =>
-  typeof value === 'string' && ELEMENT_ID.test(value);
 const isIds = (value: unknown): value is string[] =>
   Array.isArray(value) && value.length <= MAX_IDS && value.every(isId);
 const isPx = (value: unknown): value is number =>
@@ -156,8 +153,7 @@ const isPx = (value: unknown): value is number =>
 const isPlace = (value: unknown): value is Place => PLACES.some((place) => place === value);
 const isRoot = (value: unknown): value is FrameEntry['root'] =>
   value === null || value === 'section' || value === 'slot';
-const isItem = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MAX_ITEM;
+const isItem = itemUpTo(MAX_ITEM);
 /** A copy's place in each list around an element (ADR 0060): list item places, outer first. */
 const isPath = (value: unknown): value is number[] =>
   Array.isArray(value) && value.length <= MAX_LISTS && value.every(isItem);

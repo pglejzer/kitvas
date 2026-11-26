@@ -127,6 +127,8 @@ export function codeItem(finding: LiveCodeFinding): LiveItem {
     width: null,
     message: text('live.code', { message: finding.message, place }),
     source: 'code',
+    place: { file, line: finding.line },
+    raw: finding.message,
   };
 }
 
@@ -175,6 +177,10 @@ export type LiveRow = {
   evidence: Evidence;
   /** The values that card measured, for the fix Apply makes (ADR 0061); `null` for a code finding. */
   values: Values | null;
+  /** The finding's own words, without the place a code finding's message carries. */
+  raw?: string;
+  /** A code finding's file and line; none for a finding seen in the page. */
+  place?: { file: string; line: number };
 };
 
 /** The findings of one element (`id: null`: those of no element), and its number on the canvas. */
@@ -215,6 +221,8 @@ export function liveGroups(
       waived: isWaived(waivers, item.rule, item.id),
       evidence: evidenceOf({ message: item.message, values: item.values ?? null }),
       values: item.values ?? null,
+      raw: item.raw ?? item.message,
+      ...(item.place === undefined ? {} : { place: item.place }),
     });
   }
   const last = (id: string | null): number => Number(id === null);
@@ -228,6 +236,10 @@ export function liveGroups(
     return { id, label: marked ? `L${number}` : null, tone, rows };
   });
 }
+
+/** How many findings of the groups still stand: those not dismissed. */
+export const openCount = (groups: readonly LiveGroup[]): number =>
+  groups.reduce((sum, group) => sum + group.rows.filter((row) => !row.waived).length, 0);
 
 /**
  * Elements whose build shows another value than the editor did: the change list puts a warning

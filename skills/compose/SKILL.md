@@ -27,7 +27,7 @@ Every agent's final message starts with a line `STATUS: DONE`, `STATUS: DONE_WIT
 
 Run `KITVAS status --json`. If `data.workspace.exists` is false, ask the user, then run `KITVAS init --json`.
 
-Then run `KITVAS decisions --json` and follow `data.settings` and `data.text` (the project's decisions). Say in one line which apply, for example "Using the project's decisions: kit acme-figma, Polish copy, at most 3 plans side by side"; say nothing when there are none. Show each `data.warnings` message in one line. `settings.copy` is the language of the draft's copy, not the language you speak to the person; `settings.check` `deep` makes `KITVAS check` run deep. An option the person gives wins over the file.
+Then run `KITVAS decisions --json` and follow `data.settings` and `data.text` (the project's decisions). Say in one line which apply, for example "Using the project's decisions: kit acme-figma, Polish copy, at most 3 plans side by side"; say nothing when there are none. Show each `data.warnings` message in one line. `settings.copy` is the language of the draft's copy, not the language you speak to the person: when it is `null` the copy is English, also when the person writes to you in another language. A person who asks for the copy in a language gets it, and you ask once whether to keep it (`KITVAS decisions set copy <code> --json`); `settings.check` `deep` makes `KITVAS check` run deep. An option the person gives wins over the file.
 
 When `KITVAS kit list --json` shows more than one kit and `data.from.kit` is `default`, ask which kit to use and offer to keep the answer: `KITVAS decisions set kit <id> --json`.
 
@@ -64,6 +64,8 @@ Write `v<N>/md/layout.md`. Under its title write a line `Screen: <kind>`, with t
 ```
 
 If `data.valid` is false, fix the lines named in `data.issues` and run it again. When it is valid, kitvas writes the entry files; never edit them.
+
+When the screen needs a component the kit lacks (the layout names it, or `KIT_COMPONENT_NOT_FOUND`) and the kit is a project kit, run `KITVAS kit exports <id> --json`. Names found in `open` are components the package offers: ask once, all the names in one question, whether to add them. On yes, follow the "more components" steps of `${CLAUDE_PLUGIN_ROOT}/skills/learn/SKILL.md` (a learner, then `kit verify`), then go on. On no, or when a name is not exported, pick the nearest component the kit has and say so.
 
 ## 4. Sections
 

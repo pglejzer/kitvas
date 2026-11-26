@@ -28,6 +28,16 @@ export const ICONS = {
   insert: '<rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><path d="M8 5.5v5M5.5 8h5"/>',
   why: '<path d="M3 3h10v8H7l-3 2.5V11H3z"/>',
   note: '<path d="M3 2.5h10v8l-3 3H3zM10 13.5v-3h3"/>',
+  // The right panel's tabs.
+  'tab-properties':
+    '<rect x="2.5" y="2.5" width="11" height="6" rx="1.5"/><path d="M2.5 12h3.5M10 12h3.5"/><circle cx="8" cy="12" r="1.5"/>',
+  'tab-changes': '<path d="M3 5h4M5 3v4M9.5 5h4M3 11.5h4M9.5 11.5h4"/>',
+  'tab-checks':
+    '<path d="M8 2l5 2v4c0 3-2.2 5-5 6-2.8-1-5-3-5-6V4z"/><path d="M5.8 8l1.7 1.7 2.8-3"/>',
+  'tab-claude':
+    '<path d="M8 3.5H2.5v7h2v3l3-3h6v-1"/><path d="M11 2.5q.4 2.6 3 3-2.6.4-3 3-.4-2.6-3-3 2.6-.4 3-3z"/>',
+  'tab-sketches':
+    '<rect x="2.5" y="2.5" width="5" height="5" rx="1"/><circle cx="11" cy="5" r="2.5"/><path d="M8 9.5l3 4H5z"/>',
   panel: '<rect x="2" y="3" width="12" height="10" rx="2"/><path d="M6 3v10"/>',
   search: '<circle cx="7" cy="7" r="4"/><path d="M10 10l3.5 3.5"/>',
   filter: '<path d="M2.5 3.5h11l-4.2 5v4l-2.6-1.3V8.5z"/>',

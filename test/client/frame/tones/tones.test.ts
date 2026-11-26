@@ -7,8 +7,6 @@ import {
 } from '../../../../client/channel/protocol.ts';
 import {
   MARK_TONES,
-  ON_SELECT,
-  POP_TONES,
   SELECT,
   setTones,
   TONE_NAMES,
@@ -32,30 +30,6 @@ test('the frame knows the studio accents and both themes by the same names', () 
   assert.deepEqual([...FRAME_ACCENTS], [...theme.ACCENTS]);
   assert.deepEqual([...FRAME_ACCENTS], [...VIEW_ACCENTS]);
   assert.deepEqual([...FRAME_THEMES].sort(), [...theme.THEMES].sort());
-});
-
-test('the table of the frame holds the same colours as the studio theme', () => {
-  for (const accent of theme.ACCENTS) {
-    assert.equal(SELECT[accent], theme.ACCENT_COLORS[accent].select, accent);
-  }
-  assert.equal(ON_SELECT, theme.ON_SELECT);
-  for (const name of theme.THEMES) {
-    const colors = theme.THEME_COLORS[name];
-    assert.deepEqual(MARK_TONES[name], {
-      fix: colors.fix,
-      review: colors.review,
-      good: colors.good,
-      on: theme.ON_TONE[name],
-    });
-    // The lens pins are popovers (plan 19): the frame has no `--st-*` property, so the
-    // light theme's ring is the line colour itself.
-    assert.deepEqual(POP_TONES[name], {
-      pop: colors.pop,
-      ink: colors.ink,
-      inkMid: colors['ink-mid'],
-      shadow: theme.THEME_SHADOWS[name].pop.replace('var(--st-color-line)', colors.line),
-    });
-  }
 });
 
 test('every pair of a theme and an accent has a value for every name a sheet may read', () => {

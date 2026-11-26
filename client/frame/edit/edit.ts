@@ -15,7 +15,9 @@ import {
   type EditStudioMessage,
   type PreviewChange,
 } from '../../channel/edit-protocol.ts';
-import { placeRing, type Rect } from '../drag/place.ts';
+import { placeRing } from '../drag/place.ts';
+import { overlayHostStyle } from '../page/overlay-host.ts';
+import { pageRect } from '../page/rect.ts';
 import { toned } from '../tones/tones.ts';
 import { createClaudeMarks } from './claude-marks.ts';
 import { createInline } from './inline.ts';
@@ -59,19 +61,7 @@ const SHEET = `
 }
 ${LABEL_SHEET}`;
 
-const HOST_RULES = [
-  'all: initial',
-  'position: absolute',
-  'left: 0',
-  'top: 0',
-  'width: 0',
-  'height: 0',
-  'overflow: visible',
-  'pointer-events: none',
-  'z-index: 2147483646',
-];
-/** Inline and important, so no rule of the prototype moves or hides the overlay itself. */
-const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
+const HOST_STYLE = overlayHostStyle(2147483646);
 
 // Kept importable from here for the code and tests that already do.
 export { idOf, type KeyLike, keyOf, leavesPointer, type Picked, pickOf, type TargetLike };
@@ -101,11 +91,6 @@ type Layer = {
   root: HTMLElement;
   boxes: HTMLElement[];
   labels: HTMLElement[];
-};
-
-const pageRect = (element: Element): Rect => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left: left + scrollX, top: top + scrollY, width, height };
 };
 
 function createLayer(): Layer {

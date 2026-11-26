@@ -2,8 +2,8 @@
 // `slots.ts`. Every box is in the frame's viewport pixels, as `getBoundingClientRect` answers.
 
 import type { DragSource, FrameEntry } from '../../channel/structure-protocol.ts';
+import { boxOf } from '../page/rect.ts';
 import {
-  type Box,
   chooseSlot,
   type Flow,
   flowOf,
@@ -35,11 +35,6 @@ export type Held = {
 const idOf = (element: Element): string => element.getAttribute(ATTRIBUTE) ?? '';
 const markedParent = (element: Element): Element | null =>
   element.parentElement?.closest(MARKED) ?? null;
-
-function boxOf(element: Element): Box {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left, top, width, height };
-}
 
 /** The marked elements right under `element`: wrappers without an id are looked through. */
 function markedChildren(element: Element, found: Element[] = []): Element[] {

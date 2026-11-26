@@ -4,6 +4,7 @@
 // only until the build replaces the page: nothing here is written to the draft.
 
 import type { Place } from '../../channel/structure-protocol.ts';
+import { boxOf } from '../page/rect.ts';
 import { toned } from '../tones/tones.ts';
 import {
   EASING,
@@ -43,11 +44,6 @@ const PLACEHOLDER_SHEET = `
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 `;
-
-export const boxOf = (element: Element): Box => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left, top, width, height };
-};
 
 /** The box that stands for a component the build has not rendered yet. */
 export function placeholderOf(label: string): HTMLElement {

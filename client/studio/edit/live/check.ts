@@ -4,6 +4,7 @@
 // server's page again and swapped in, as a state switch swaps its sections, without a reload.
 // The decisions are in `createFullCheck` over injected ports; the DOM parts are at the end.
 
+import { isRecord } from '../../../../src/shared/values/guards.ts';
 import { jobOf } from '../../live/job-events.ts';
 import type { StreamEvent } from '../../live/sse.ts';
 
@@ -95,9 +96,6 @@ export function createFullCheck(
 export function requestFullCheck(main: HTMLElement): void {
   main.dispatchEvent(new CustomEvent(FULL_CHECK_EVENT));
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 export async function postCheck(
   slug: string,

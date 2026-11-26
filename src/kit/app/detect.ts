@@ -1,7 +1,7 @@
 // `kit detect`: what in the project points at a design system. Read only; the rework and craft
 // skills use the answer to choose a kit before they build.
 
-import { KitvasError } from '../../shared/index.ts';
+import { isRecord, KitvasError } from '../../shared/index.ts';
 import { FIGMA_URL } from '../domain/contract.ts';
 import type { KitStore } from '../ports/kit-store.ts';
 import type { ProjectSetup } from '../ports/project-files.ts';
@@ -52,9 +52,6 @@ export const DESIGN_SYSTEM_PACKAGES = [
 ] as const;
 
 const NOTES_FILE = '.kitvas/notes.md';
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 function sourceOf(store: KitStore, id: string): string {
   try {

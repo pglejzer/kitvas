@@ -16,6 +16,8 @@
 
 import type { LensPin } from '../../channel/lens-protocol.ts';
 import { placeRing, type Rect } from '../drag/place.ts';
+import { firstById, overlayHostStyle, setPlace } from '../page/overlay-host.ts';
+import { pageRect } from '../page/rect.ts';
 import { toned } from '../tones/tones.ts';
 import { CARD_WIDTH, PIN_HEIGHT, pinAt, placeLensPin, type Size } from './place.ts';
 
@@ -89,19 +91,7 @@ small { font-size: 11px; color: var(--kv-ink-mid, CanvasText); overflow-wrap: an
 }
 `;
 
-const HOST_RULES = [
-  'all: initial',
-  'position: absolute',
-  'left: 0',
-  'top: 0',
-  'width: 0',
-  'height: 0',
-  'overflow: visible',
-  'pointer-events: none',
-  'z-index: 2147483645',
-];
-/** Inline and important, so no rule of the prototype moves or hides the overlay itself. */
-const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
+const HOST_STYLE = overlayHostStyle(2147483645);
 
 /** Stopped at the window when the target is a pin: nothing of the page or the editor hears it. */
 const POINTER_EVENTS = [
@@ -128,30 +118,10 @@ type Layer = { host: HTMLElement; rings: HTMLElement; pins: HTMLElement };
 
 const NOWHERE: Rect = { left: 0, top: 0, width: 0, height: 0 };
 
-const pageRect = (element: Element): Rect => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left: left + scrollX, top: top + scrollY, width, height };
-};
-
 const viewRect = (element: Element): Rect => {
   const { left, top, width, height } = element.getBoundingClientRect();
   return { left, top, width, height };
 };
-
-function setPlace(node: HTMLElement, left: number, top: number): void {
-  node.style.left = `${left}px`;
-  node.style.top = `${top}px`;
-}
-
-/** The first element with each id: a pin goes on the first of the elements a loop rendered. */
-function firstById(): Map<string, Element> {
-  const found = new Map<string, Element>();
-  for (const element of document.querySelectorAll('[data-ks]')) {
-    const id = element.getAttribute('data-ks') ?? '';
-    if (!found.has(id)) found.set(id, element);
-  }
-  return found;
-}
 
 function part(tag: string, className: string, words?: string): HTMLElement {
   const node = document.createElement(tag);

@@ -4,6 +4,7 @@
 // The editor's messages are in `edit-protocol.ts` and the editor screen's canvas messages in
 // `canvas-protocol.ts`; the two parsers here hand them over.
 
+import { isRecord as isObject } from '../../src/shared/values/guards.ts';
 import {
   CANVAS_FRAME_TYPES,
   CANVAS_STUDIO_TYPES,
@@ -20,6 +21,7 @@ import {
   parseEditFrame,
   parseEditStudio,
 } from './edit-protocol.ts';
+import { isCount, isText } from './guards.ts';
 import {
   LIVE_FRAME_TYPES,
   LIVE_STUDIO_TYPES,
@@ -149,12 +151,6 @@ export function withScroll(hash: string, scroll: Scroll): string {
 
 type Loose = Record<string, unknown>;
 
-const isObject = (value: unknown): value is Loose =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-const isText = (value: unknown, max: number): value is string =>
-  typeof value === 'string' && value.length <= max;
-const isCount = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 1e9;
 const isSize = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= MAX_SIZE;
 

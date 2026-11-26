@@ -25,6 +25,13 @@ export const MAX_LOCATED = 8;
  * from 1, and both hear every `located` of the card, so their numbers must never meet.
  */
 export const FIRST_REQUEST = 600_000_000;
+/**
+ * The one `locate` request of "Show on canvas" (`bridge.reveal`), whose answer nobody wants. The
+ * canvas counts up from 1 and takes an answer that equals its counter (it would zoom); the anchor
+ * takes answers from `FIRST_REQUEST` up. This sits far above any count the canvas reaches in a
+ * session and below the anchor's first, so neither listener ever takes the answer.
+ */
+export const REVEAL_REQUEST = 500_000_000;
 /** The protocol's largest request number. */
 const LAST_REQUEST = 1_000_000_000;
 

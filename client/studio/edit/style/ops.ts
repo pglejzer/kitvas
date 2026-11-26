@@ -1,8 +1,11 @@
 // The ops the properties panel sends (plan 13, task G; plan 15, task C): a prop at its place, a
 // style at its source (a covering kit prop, or the class rule), why a row is read-only, the row a
 // refusal belongs to, and one gesture over several selected elements. Pure: no DOM. The context
-// menu's copy and paste of styles and the frame's handles use these too.
+// menu's copy and paste of styles and the frame's handles use these too. The props the editor may
+// write and the ops one request may carry are the server's (`PROP_NAME` and `MAX_OPS` of
+// `src/edit/domain/op-limits.ts`, ADR 0080).
 
+import { PROP_NAME } from '../../../../src/edit/domain/op-limits.ts';
 import type {
   EditOp,
   PropValue,
@@ -19,10 +22,7 @@ import { styleValueOf } from '../props/steps.ts';
 import type { Refused } from '../store.ts';
 import { opsForUtility } from './utility-ops.ts';
 
-/** Copy of `PROP_NAME` in `src/edit/domain/ops.ts`: the props the editor may write. */
-export const PROP_NAME = /^(?!className$|key$|ref$|style$)[A-Za-z_][A-Za-z0-9_-]{0,63}$/;
-/** Copy of `MAX_OPS` in `src/edit/domain/ops.ts`: the ops one request may carry. */
-export const MAX_OPS = 50;
+export { MAX_OPS, PROP_NAME } from '../../../../src/edit/domain/op-limits.ts';
 
 export type Format = 'scss' | 'tailwind';
 /**

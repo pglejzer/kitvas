@@ -10,6 +10,7 @@ import type { Pixels } from '../../domain/kit/look-score.ts';
 import { type DeepFacts, LANDSCAPE_VIEWPORT, LONG_NUMBER } from '../../domain/page/facts.ts';
 import { VIEWPORTS } from '../../domain/page/page.ts';
 import { contrast } from '../../domain/rules/colour.ts';
+import { settle } from '../browser/settle.ts';
 import { decodeIn } from '../images/playwright-images.ts';
 
 type Page = import('playwright-core').Page;
@@ -54,13 +55,6 @@ const INK_PIXELS_MIN = 4;
 const INK_MARK = 'data-kitvas-ink';
 
 const none = (): Stressed => ({ clipped: [], over: [] });
-
-/** Runs in the page: two frames, so the page has reacted to a change. */
-function settle(): Promise<null> {
-  return new Promise((done) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => done(null))),
-  );
-}
 
 /**
  * Runs in the page. Short leaf texts are made longer (or number-only texts replaced), every text at

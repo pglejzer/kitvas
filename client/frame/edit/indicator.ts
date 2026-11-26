@@ -4,6 +4,7 @@
 // `slots.ts`, which re-exports it.
 
 import type { Box, Point, Slot } from '../drag/slots.ts';
+import { overlayHostStyle } from '../page/overlay-host.ts';
 import { toned } from '../tones/tones.ts';
 
 /** The indicator line's thickness, in pixels on the screen. */
@@ -66,19 +67,7 @@ const SHEET = `
 }
 `;
 
-const HOST_RULES = [
-  'all: initial',
-  'position: absolute',
-  'left: 0',
-  'top: 0',
-  'width: 0',
-  'height: 0',
-  'overflow: visible',
-  'pointer-events: none',
-  'z-index: 2147483646',
-];
-/** Inline and important, so no rule of the prototype moves or hides the overlay itself. */
-const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
+const HOST_STYLE = overlayHostStyle(2147483646);
 
 type Layer = {
   host: HTMLElement;

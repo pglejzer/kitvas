@@ -1,7 +1,15 @@
 // Writes files into kit folders under one root, the project's `.kitvas/kits/`, into the project's
 // additions beside it (`.kitvas/additions/`), and plain files out to a folder.
 
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  type Dirent,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import { KitvasError, PLUGIN_ROOT } from '../../shared/index.ts';
 import { ADDITIONS_DIR } from '../domain/additions.ts';
@@ -64,6 +72,27 @@ export function createFolderKitWriter(root: string, options: FolderWriterOptions
       const file = kitFile(root, id, relPath);
       if (!file) throw new KitvasError('KIT_INVALID', { id, detail: relPath });
       rmSync(file, { recursive: true, force: true });
+    },
+    listFolder(id, relPath) {
+      const dir = kitFile(root, id, relPath);
+      if (!dir) throw new KitvasError('KIT_INVALID', { id, detail: relPath });
+      let entries: Dirent[];
+      try {
+        entries = readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return undefined; // missing, or a file where a folder was expected
+      }
+      const byName = (a: string, b: string): number => (a < b ? -1 : Number(a > b));
+      // A link is never followed: it is listed with the folders, as no plain file.
+      const files = entries
+        .filter((entry) => entry.isFile())
+        .map((entry) => ({ name: entry.name, size: statSync(join(dir, entry.name)).size }))
+        .sort((a, b) => byName(a.name, b.name));
+      const other = entries
+        .filter((entry) => !entry.isFile())
+        .map((entry) => entry.name)
+        .sort(byName);
+      return { files, other };
     },
     writeAddition: additions.writeAddition,
     exportFiles: additions.exportFiles,

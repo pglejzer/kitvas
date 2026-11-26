@@ -7,6 +7,7 @@
 
 import type { ScaleStep } from '../../channel/structure-protocol.ts';
 import { elementsWith } from '../edit/tree.ts';
+import { boxOf } from '../page/rect.ts';
 import { toned } from '../tones/tones.ts';
 import type { Box, Point } from './slots.ts';
 
@@ -187,11 +188,6 @@ export type Guides = {
   scale(value: number): void;
   /** Removes the overlay. A later `measure` makes it again. */
   dispose(): void;
-};
-
-const boxOf = (element: Element): Box => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left, top, width, height };
 };
 
 /** The nearest marked element under the point that is not `selected` itself. */

@@ -216,6 +216,7 @@ export function tokenRow(style: Style, parts: RowParts): HTMLElement {
         show: () => env.custom.open(style.key),
         hide: () => env.custom.close(style.key),
         cancel: () => env.custom.cancel(style.key),
+        drop: () => env.custom.drop(style.key),
       },
       // The colour panel is as wide as the whole row.
       ...(colour ? { dock: parts.root } : {}),

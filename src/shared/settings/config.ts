@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { type Zod, z } from '../deps/zod.ts';
 import { userDir, workspaceDir } from '../env/paths.ts';
 import { KitvasError } from '../errors/errors.ts';
+import { isRecord } from '../values/guards.ts';
 import { type CheckDepth, isValidSetting, parseDecisions, withSetting } from './decisions.ts';
 import {
   decisionsPath,
@@ -95,9 +96,6 @@ function readConfig<T>(file: string, schema: Zod.ZodType<T>, fallback: T): T {
   const raw = readRaw(file);
   return raw === undefined ? fallback : parseConfig(file, schema, raw);
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const DEFAULT_USER: UserConfig = {
   schemaVersion: 1,

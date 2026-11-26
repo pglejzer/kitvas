@@ -14,11 +14,11 @@ import {
   type Press,
   passed,
   type Session,
-  samePath,
   samePlace,
   THRESHOLD,
 } from '../../../client/frame/drag/session.ts';
 import type { Box, Point, Slot } from '../../../client/frame/drag/slots.ts';
+import { samePath } from '../../../src/shared/values/paths.ts';
 
 const at = (x: number, y: number): Point => ({ x, y });
 const box = (left: number, top: number, width: number, height: number): Box => ({

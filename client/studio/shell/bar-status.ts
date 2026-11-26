@@ -9,6 +9,7 @@
 // session is there, by reading again every 20 s. A lost stream or a failed read paints nothing:
 // the status and the logo's working sign never stay on "working" while the studio cannot be heard.
 
+import { isRecord as isObject } from '../../../src/shared/values/guards.ts';
 import type { Listening } from '../../../src/studio/api/requests/request-schemas.ts';
 import { onStudioEvent, onStudioHealth, openStudioStream } from '../live/live.ts';
 import type { StreamEvent, StreamHealth } from '../live/sse.ts';
@@ -32,9 +33,6 @@ export function barStateOf(listening: Listening | null): BarState {
   if (listening === null || listening.state === 'off') return null;
   return listening.state;
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** A listening state as the studio sends it, read with care; `null` for anything else. */
 export function readListening(value: unknown): Listening | null {

@@ -6,8 +6,10 @@
 // out again on scroll, resize and size changes, once per animation frame.
 
 import type { Mark, Tone } from '../../channel/protocol.ts';
-import { DOT, placeDots, placeRing, type Rect } from '../drag/place.ts';
+import { DOT, placeDots, placeRing } from '../drag/place.ts';
 import { toned } from '../tones/tones.ts';
+import { firstById, overlayHostStyle, setPlace } from './overlay-host.ts';
+import { pageRect } from './rect.ts';
 
 // Studio tokens do not exist inside a prototype: the colours are the studio's tones (`toned`, set
 // on the host), with system colours until the studio has said them. No literal colour here.
@@ -33,19 +35,7 @@ const SHEET = `
 }
 `;
 
-const HOST_RULES = [
-  'all: initial',
-  'position: absolute',
-  'left: 0',
-  'top: 0',
-  'width: 0',
-  'height: 0',
-  'overflow: visible',
-  'pointer-events: none',
-  'z-index: 2147483647',
-];
-/** Inline and important, so no rule of the prototype moves or hides the overlay itself. */
-const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
+const HOST_STYLE = overlayHostStyle(2147483647);
 
 export type Marks = {
   /** Draws `marks`, replacing the ones drawn before. An empty list removes the overlay. */
@@ -64,16 +54,6 @@ type Group = {
 };
 
 type Layer = { host: HTMLElement; rings: HTMLElement; dots: HTMLElement };
-
-/** The first element with each id: a mark goes on the first of elements a loop rendered. */
-function firstById(): Map<string, Element> {
-  const found = new Map<string, Element>();
-  for (const element of document.querySelectorAll('[data-ks]')) {
-    const id = element.getAttribute('data-ks') ?? '';
-    if (!found.has(id)) found.set(id, element);
-  }
-  return found;
-}
 
 /** Marks in their order, one entry per element id. */
 function byElement(marks: Mark[]): Map<string, Mark[]> {
@@ -120,16 +100,6 @@ function makeGroup(layer: Layer, id: string, element: Element, marks: Mark[]): G
     return dot;
   });
   return { id, element, dots, widths: [], ring };
-}
-
-const pageRect = (element: Element): Rect => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left: left + scrollX, top: top + scrollY, width, height };
-};
-
-function setPlace(node: HTMLElement, left: number, top: number): void {
-  node.style.left = `${left}px`;
-  node.style.top = `${top}px`;
 }
 
 export function createMarks(): Marks {

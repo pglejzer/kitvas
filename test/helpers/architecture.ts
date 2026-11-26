@@ -1,4 +1,4 @@
-// Reads the import graph of src/ and reports imports that break the module rules.
+// Reads the import graph of src/ and client/ and reports imports that break the module rules.
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, posix, relative, resolve, sep } from 'node:path';
@@ -135,4 +135,72 @@ export function figmaClientViolations(files: SourceFile[]): string[] {
     }
   }
   return found;
+}
+
+/** A module's own `index.ts`: it gathers the whole module, packages and Node built-ins too. */
+export const MODULE_INDEX = /^src\/[^/]+\/index\.ts$/;
+
+const CLIENT_RULE = 'a client file imports values only from package-free src files (ADR 0080)';
+
+/** The imports of `file` that bring code: every one but those that are only ever types. */
+export function valueImports(file: SourceFile): string[] {
+  const types = new Set(file.types ?? []);
+  return [...new Set(file.imports)].filter((target) => !types.has(target));
+}
+
+/** Why `path` does not belong in a browser bundle on its own; `null` when nothing is wrong. */
+function impurity(path: string, file: SourceFile | undefined): string | null {
+  if (MODULE_INDEX.test(path)) return 'is the index.ts of a module';
+  if (file === undefined) return 'is no .ts file the guard reads';
+  const name = file.packages?.[0];
+  return name === undefined ? null : `imports ${name}`;
+}
+
+/**
+ * ADR 0080: a file under `client/` (but `client/figma/`, which has its own rule) imports values
+ * from `src/` only where every file its value imports reach, one after another, imports no package
+ * or Node built-in and is no module's `index.ts`. A type-only import is erased, so it may name any
+ * file. One message per import that breaks it: the client file, the path, the first impure file.
+ */
+export function clientImportViolations(files: SourceFile[]): string[] {
+  const byPath = new Map(files.map((file) => [file.path, file]));
+  /** The path from `path` to the first impure file below it, `path` first; `null` for none. */
+  const impurePath = (path: string, seen: Set<string>): string[] | null => {
+    if (seen.has(path)) return null;
+    seen.add(path);
+    const file = byPath.get(path);
+    if (file === undefined || impurity(path, file) !== null) return [path];
+    for (const target of valueImports(file)) {
+      const below = impurePath(target, seen);
+      if (below !== null) return [path, ...below];
+    }
+    return null;
+  };
+  const found: string[] = [];
+  for (const file of files) {
+    if (!file.path.startsWith('client/') || file.path.startsWith(FIGMA_CLIENT)) continue;
+    for (const target of valueImports(file)) {
+      if (!target.startsWith('src/')) continue;
+      const chain = impurePath(target, new Set());
+      const last = chain?.at(-1);
+      if (chain === null || last === undefined) continue;
+      const why = impurity(last, byPath.get(last)) ?? '';
+      found.push(`${[file.path, ...chain].join(' -> ')}: ${last} ${why}; ${CLIENT_RULE}`);
+    }
+  }
+  return found;
+}
+
+/** Every `src/` file the value imports of `starts` reach, through any file on the way, sorted. */
+export function valueReach(files: SourceFile[], starts: readonly string[]): string[] {
+  const byPath = new Map(files.map((file) => [file.path, file]));
+  const seen = new Set<string>();
+  const stack = [...starts];
+  for (let path = stack.pop(); path !== undefined; path = stack.pop()) {
+    if (seen.has(path)) continue;
+    seen.add(path);
+    const file = byPath.get(path);
+    if (file !== undefined) stack.push(...valueImports(file));
+  }
+  return [...seen].filter((path) => path.startsWith('src/')).sort();
 }

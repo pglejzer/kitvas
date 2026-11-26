@@ -3,6 +3,7 @@
 export * from './app/before.ts';
 export * from './app/browser-checks.ts';
 export * from './app/crop-kit.ts';
+export * from './app/kit-exports.ts';
 export * from './app/kit-previews.ts';
 export * from './app/match-page.ts';
 export * from './app/measure-layers.ts';
@@ -24,6 +25,7 @@ export * from './domain/code/tsc.ts';
 export * from './domain/findings/checks-file.ts';
 export * from './domain/findings/finding.ts';
 export * from './domain/guidelines/index.ts';
+export * from './domain/kit/exports.ts';
 export * from './domain/kit/kit-verify.ts';
 export * from './domain/kit/look-score.ts';
 export * from './domain/kit/match-scale.ts';

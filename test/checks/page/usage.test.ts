@@ -124,3 +124,23 @@ test('rendered kit components are held to the catalog', () => {
   });
   assert.deepEqual(findings[3]?.hint, { key: 'checkHint.notInCatalog', params: {} });
 });
+
+test('the prop a kit names as polymorphic is known without being listed in props', () => {
+  const catalog: CatalogComponent[] = [
+    {
+      name: 'Button',
+      category: 'action',
+      styling: [],
+      polymorphic: { prop: 'component' },
+      props: [{ name: 'children', type: 'node' }],
+    },
+  ];
+  const usage = [
+    { id: 'sections/Hero:section/Button', component: 'Button', props: { component: 'a', as: 'a' } },
+  ];
+  const found = usageFindings({ usage, catalog, ids: IDS, state: 'filled', width: 1280 });
+  assert.deepEqual(
+    found.map((finding) => [finding.rule, finding.message.params]),
+    [['ds/unknown-prop', { component: 'Button', prop: 'as' }]],
+  );
+});

@@ -4,6 +4,9 @@
 // pinch, which arrives as one), Space for panning, and the screen's own keys. The page asks where
 // an element is, for "zoom to selection". `protocol.ts` hands these types to its parsers.
 
+import { isRecord as isObject } from '../../src/shared/values/guards.ts';
+import { isCount, itemUpTo } from './guards.ts';
+
 /** The screen's keys, the same in the page and in a frame (`shellKeyOf`). */
 export const SHELL_KEYS = [
   'fit',
@@ -113,18 +116,14 @@ export const MAX_DELTA = 10_000;
 type Loose = Record<string, unknown>;
 
 const ELEMENT_ID = /^[A-Za-z0-9_.:/$-]{1,200}$/;
-const isObject = (value: unknown): value is Loose =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 const isCoordinate = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= MAX_CANVAS_PX;
 const isSize = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= MAX_CANVAS_PX;
-const isRequest = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 1e9;
+const isRequest = isCount;
 /** Which copy of a list item: a list is never longer than this on a page worth drawing. */
 const MAX_ITEM = 10_000;
-const isItem = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MAX_ITEM;
+const isItem = itemUpTo(MAX_ITEM);
 const isRatio = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
 const isShellKey = (value: unknown): value is ShellKey =>

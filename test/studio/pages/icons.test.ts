@@ -43,6 +43,12 @@ test('an icon keeps inside its 16 by 16 grid', () => {
   }
 });
 
+test("the right panel's five tabs each have a drawing of their own", () => {
+  const names = ['tab-properties', 'tab-changes', 'tab-checks', 'tab-claude', 'tab-sketches'];
+  for (const name of names) assert.ok(name in ICONS, name);
+  assert.equal(new Set(names.map((name) => ICONS[name as keyof typeof ICONS])).size, 5);
+});
+
 test('icon names are words with dashes, safe in an id and a selector', () => {
   for (const name of ICON_NAMES) assert.match(name, /^[a-z]+(-[a-z]+)*$/);
 });

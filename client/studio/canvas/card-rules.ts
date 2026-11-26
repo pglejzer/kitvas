@@ -1,45 +1,16 @@
 // The rules of the width cards (spec 4c, goal 4; plan 16, task B), pure so they are tested without
 // a DOM: how many cards the address asks for, which preset widths stand beside the card of the
-// width shown, and the address of a new card's frame.
+// width shown, and the address of a new card's frame. The card counts and the widths beside are
+// the server's own (`CARD_COUNTS` and `extraWidths` of `src/studio/views/widths.ts`, ADR 0080).
 
-import type { Width } from '../../../src/studio/views/draft-query.ts';
-import { PRESETS } from './width.ts';
+import { CARD_COUNTS, type CardCount } from '../../../src/studio/views/widths.ts';
 
-/**
- * A copy of `CARD_COUNTS` in `src/studio/views/draft-query.ts`, and `extraWidths` and
- * `nearestPreset` below are copies of the ones there: the page bundle imports no value from
- * `src/`. A test keeps them equal.
- */
-export const CARD_COUNTS = [1, 2, 3] as const;
-export type CardCount = (typeof CARD_COUNTS)[number];
+export { type CardCount, extraWidths } from '../../../src/studio/views/widths.ts';
 
 /** `?cards=` as the page address writes it: 1, 2 or 3; one card for anything else. */
 export function parseCards(text: string | null | undefined): CardCount {
   const asked = Number(text);
   return CARD_COUNTS.find((count) => count === asked) ?? 1;
-}
-
-/** The preset nearest to `width`; the narrower one of two as near. */
-export function nearestPreset(width: number): Width {
-  let best: Width = PRESETS[0] ?? 390;
-  for (const preset of PRESETS) {
-    if (Math.abs(preset - width) < Math.abs(best - width)) best = preset;
-  }
-  return best;
-}
-
-/**
- * The preset widths of the cards beside the one that shows `shown` (the width in the dock), in
- * ascending order. Two cards: the next preset up, or the one below when there is none. Three: the
- * presets other than the one `shown` stands for (a custom width stands for its nearest preset).
- */
-export function extraWidths(count: CardCount, shown: number): Width[] {
-  if (count === 1) return [];
-  if (count === 3) return PRESETS.filter((width) => width !== nearestPreset(shown));
-  const up = PRESETS.find((width) => width > shown);
-  const down = [...PRESETS].reverse().find((width) => width < shown);
-  const next = up ?? down;
-  return next === undefined ? [] : [next];
 }
 
 /** The address with `cards` in it; one card names none. Everything else stays. */

@@ -1,7 +1,8 @@
 // Requests to Claude from the editor (spec 4d, goals 1 and 2; plan 17): the shapes the studio
 // API takes and gives. A request is kept in `<draft>/requests.json` (`src/studio/requests/`);
 // Claude takes it through `kitvas inbox`, reads it with `kitvas request show` and answers with
-// variants (`kitvas request answer`), a closing word (`done`) or a reason (`fail`).
+// variants (`kitvas request answer`), a closing word (`done`) or a reason (`fail`). The lists and
+// limits are in `request-limits.ts`, re-exported here.
 
 import {
   EditOpSchema,
@@ -15,25 +16,19 @@ import {
 } from '../../../edit/index.ts';
 import { type Zod, z } from '../../../shared/index.ts';
 import { InspectSchema } from '../edit/edit-schemas.ts';
+import {
+  LISTENING_STATES,
+  MAX_REQUEST_ELEMENTS,
+  MAX_REQUEST_TEXT,
+  MAX_REQUEST_WORDS,
+  MAX_VARIANT_CHANGES,
+  MAX_VARIANT_LABEL,
+  MAX_VARIANTS,
+  REQUEST_KINDS,
+  REQUEST_STATUSES,
+} from './request-limits.ts';
 
-export const REQUEST_KINDS = ['say', 'improve', 'ask', 'note', 'why'] as const;
-export const REQUEST_STATUSES = ['waiting', 'taken', 'answered', 'failed', 'dropped'] as const;
-export type RequestKind = (typeof REQUEST_KINDS)[number];
-export type RequestStatus = (typeof REQUEST_STATUSES)[number];
-
-/** Spec 4d, goal 9: the limits of a request and of an answer. */
-export const MAX_REQUEST_TEXT = 1_000;
-export const MAX_REQUEST_ELEMENTS = 20;
-export const MAX_OPEN_REQUESTS = 200;
-export const MAX_VARIANTS = 3;
-export const MAX_VARIANT_CHANGES = 40;
-export const MAX_VARIANT_LABEL = 60;
-export const MAX_ANSWER_BYTES = 64 * 1024;
-export const MAX_REQUEST_WORDS = 500;
-/** A `taken` request with no answer for this long waits again: Claude's session ended. */
-export const TAKEN_TIMEOUT_MS = 15 * 60 * 1_000;
-/** Claude counts as listening while a take waits, or for this long after one ended. */
-export const LISTEN_GRACE_MS = 15_000;
+export * from './request-limits.ts';
 
 const Element = z.string().max(200).regex(ELEMENT_ID);
 const Id = z.uuid();
@@ -113,7 +108,7 @@ export type RequestView = Zod.infer<typeof RequestViewSchema>;
  * session: `GET /api/v1/listening` answers it, and the `listening` event carries each new one.
  */
 export const ListeningSchema = z.strictObject({
-  state: z.enum(['listening', 'working', 'off']),
+  state: z.enum(LISTENING_STATES),
   /** When the state began, ISO; `null` when no session was seen since the studio started. */
   since: z.string().nullable(),
 });

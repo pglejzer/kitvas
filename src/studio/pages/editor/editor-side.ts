@@ -30,7 +30,7 @@ export type SidesInput = {
   timeline: boolean;
 };
 
-type Tab = { id: string; label: string };
+type Tab = { id: string; label: string; icon: IconName };
 type RailPane = Tab & { icon: IconName; region: Html };
 
 const HIDDEN = trusted(' hidden');
@@ -135,7 +135,7 @@ function tabRow(t: Translate, tabs: Tab[], selected: string): Html {
     const count = COUNTED.has(tab.id)
       ? html`<span class="k-count" data-tab-count="${tab.id}"></span>`
       : '';
-    return html`<button type="button" class="k-tab" role="tab" id="editor-tab-${tab.id}" data-tab="${tab.id}" aria-controls="editor-pane-${tab.id}" aria-selected="${on ? 'true' : 'false'}" tabindex="${on ? '0' : '-1'}">${tab.label}${count}</button>`;
+    return html`<button type="button" class="k-tab" role="tab" id="editor-tab-${tab.id}" data-tab="${tab.id}" aria-controls="editor-pane-${tab.id}" aria-selected="${on ? 'true' : 'false'}" tabindex="${on ? '0' : '-1'}">${icon(tab.icon)}${tab.label}${count}</button>`;
   });
   const fold = t('studio.edit.shell.fold.right');
   return html`<div class="side-head"><div class="k-tabs side-tabs" role="tablist" aria-label="${t('studio.edit.shell.right')}">${buttons}</div><button type="button" class="k-icon-btn side-fold" data-fold="right" aria-controls="editor-side-right" aria-label="${fold}" title="${fold}">${icon('panel')}</button></div>`;
@@ -153,13 +153,17 @@ function sideRail(t: Translate, name: string): Html {
 export function rightSide(input: SidesInput): Html {
   const { t } = input;
   const tabs: Tab[] = [
-    { id: 'properties', label: t('studio.edit.shell.tab.properties') },
-    { id: 'changes', label: t('studio.edit.shell.tab.changes') },
-    { id: 'checks', label: t('studio.edit.shell.tab.checks') },
-    { id: 'ai', label: t('studio.edit.shell.tab.ai') },
+    { id: 'properties', label: t('studio.edit.shell.tab.properties'), icon: 'tab-properties' },
+    { id: 'changes', label: t('studio.edit.shell.tab.changes'), icon: 'tab-changes' },
+    { id: 'checks', label: t('studio.edit.shell.tab.checks'), icon: 'tab-checks' },
+    { id: 'ai', label: t('studio.edit.shell.tab.ai'), icon: 'tab-claude' },
   ];
   if (input.sketches !== null) {
-    tabs.push({ id: 'sketches', label: t('studio.edit.shell.tab.sketches') });
+    tabs.push({
+      id: 'sketches',
+      label: t('studio.edit.shell.tab.sketches'),
+      icon: 'tab-sketches',
+    });
   }
   const note = input.locked ?? '';
   const region =

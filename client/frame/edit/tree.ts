@@ -1,7 +1,9 @@
 // What the editor asks a frame about its elements: the layers tree and one element's computed
 // styles. The logic is pure (`buildTree`, `nameOf`, `readStyles` take plain values); the functions
-// at the end read the page and hand it to them.
+// at the end read the page and hand it to them. The properties read are the ones the editor shows,
+// `STYLE_PROPERTIES` of `src/edit/domain/types.ts` (ADR 0080: that file imports types only).
 
+import { STYLE_PROPERTIES } from '../../../src/edit/domain/types.ts';
 import {
   MAX_CLASS,
   MAX_NAME,
@@ -11,53 +13,6 @@ import {
   type TreeNode,
 } from '../../channel/edit-protocol.ts';
 import { cut } from '../page/snapshot.ts';
-
-/**
- * The properties the editor shows. A copy of `STYLE_PROPERTIES` in `src/edit/domain/types.ts`:
- * code bundled into a prototype imports no value from `src/`. A test keeps the two equal.
- */
-export const STYLE_PROPERTIES = [
-  'padding',
-  'padding-block',
-  'padding-inline',
-  'margin',
-  'margin-block',
-  'margin-inline',
-  'gap',
-  'color',
-  'background-color',
-  'border-color',
-  'font-size',
-  'font-weight',
-  'line-height',
-  'border-radius',
-  'border-width',
-  'width',
-  'height',
-  'padding-top',
-  'padding-right',
-  'padding-bottom',
-  'padding-left',
-  'margin-top',
-  'margin-right',
-  'margin-bottom',
-  'margin-left',
-  'display',
-  'flex-direction',
-  'flex-wrap',
-  'justify-content',
-  'align-items',
-  'align-self',
-  'text-align',
-  'border-style',
-  'outline-color',
-  'outline-width',
-  'outline-style',
-  'background-image',
-  'background-size',
-  'min-width',
-  'min-height',
-] as const;
 
 const ATTRIBUTE = 'data-ks';
 const HEADINGS = 'h1, h2, h3, h4, h5, h6';

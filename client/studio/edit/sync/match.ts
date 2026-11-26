@@ -11,13 +11,20 @@
 // 4. Else the best scoring element of the same file and tag that no other match took: its text and
 //    the texts inside it (weight 3), its prop names (1) and the closeness of its JSX path (1). Under
 //    `MATCH_THRESHOLD` it is `null`: no text in common is no match.
+//
+// The scores and the threshold are the server's own (`src/edit/domain/identity/match.ts`, ADR
+// 0080), so the timeline and the selection agree on what "the same element" is.
 
+import {
+  MATCH_THRESHOLD,
+  pathCloseness,
+  propLikeness,
+  textLikeness,
+  wordsOf,
+} from '../../../../src/edit/domain/identity/match.ts';
 import type { StructureEntry } from '../../../../src/studio/api/edit/structure-schemas.ts';
 import type { EditorState } from '../store.ts';
 import { forgetIds, heldIds, remapIds } from './remap.ts';
-
-/** The least score that counts as the same element: a third of its words, with props and path. */
-export const MATCH_THRESHOLD = 3;
 
 const exactKey = (entry: StructureEntry): string => `${entry.file}\n${entry.tag}\n${entry.hash}`;
 
@@ -57,13 +64,10 @@ export function exactPairs(
   return pairs;
 }
 
-const wordsOf = (text: string | null): string[] =>
-  text === null ? [] : text.toLowerCase().split(/\s+/).filter(Boolean);
-
 /** Each element's words: its own text and the texts of every element inside it. */
 function contentWords(list: readonly StructureEntry[]): Map<string, string[]> {
   const words = new Map<string, string[]>();
-  for (const entry of list) words.set(entry.id, wordsOf(entry.text));
+  for (const entry of list) words.set(entry.id, entry.text === null ? [] : wordsOf(entry.text));
   // Children come after their parent in document order: walking back, each element's words are
   // complete when they are added to its parent's.
   for (let index = list.length - 1; index >= 0; index -= 1) {
@@ -74,50 +78,6 @@ function contentWords(list: readonly StructureEntry[]): Map<string, string[]> {
     if (own && parent) parent.push(...own);
   }
   return words;
-}
-
-/** Dice over two word lists, each word counted as often as it occurs; 0 when both are empty. */
-export function textLikeness(a: readonly string[], b: readonly string[]): number {
-  if (a.length === 0 && b.length === 0) return 0;
-  const counts = new Map<string, number>();
-  for (const word of a) counts.set(word, (counts.get(word) ?? 0) + 1);
-  let common = 0;
-  for (const word of b) {
-    const left = counts.get(word) ?? 0;
-    if (left > 0) {
-      common += 1;
-      counts.set(word, left - 1);
-    }
-  }
-  return (2 * common) / (a.length + b.length);
-}
-
-/** Jaccard over prop names; 1 when neither writes any. */
-export function propLikeness(a: readonly string[], b: readonly string[]): number {
-  const left = new Set(a);
-  const right = new Set(b);
-  if (left.size === 0 && right.size === 0) return 1;
-  let common = 0;
-  for (const name of left) if (right.has(name)) common += 1;
-  return common / (left.size + right.size - common);
-}
-
-/** The JSX path after the `:`, each tag without its `.n`. */
-const pathOf = (id: string): string[] =>
-  id
-    .slice(id.indexOf(':') + 1)
-    .split('/')
-    .map((part) => part.replace(/\.\d+$/, ''));
-
-/** The share of the two JSX paths that is the same from the root down, 0 to 1. */
-export function pathCloseness(a: string, b: string): number {
-  const left = pathOf(a);
-  const right = pathOf(b);
-  let common = 0;
-  while (common < left.length && common < right.length && left[common] === right[common]) {
-    common += 1;
-  }
-  return common / Math.max(left.length, right.length);
 }
 
 type Scored = { from: string; to: string; score: number; path: number; order: number };

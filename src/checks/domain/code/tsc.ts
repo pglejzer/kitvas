@@ -1,6 +1,7 @@
 // The types check: the tsconfig kitvas writes for a draft, and what tsc prints.
 
 import { posix } from 'node:path';
+import { isRecord } from '../../../shared/index.ts';
 import { type RawFinding, toolText } from '../findings/finding.ts';
 import type { IdEntry } from './ids.ts';
 
@@ -121,9 +122,6 @@ function parseJsonc(text: string): unknown {
 }
 
 const isList = (value: unknown): value is unknown[] => Array.isArray(value);
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !isList(value);
 
 /** A path written in a config, absolute against `dir`, with forward slashes. */
 function absolute(dir: string, path: string): string {

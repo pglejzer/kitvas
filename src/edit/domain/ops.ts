@@ -2,55 +2,39 @@
 // (spec 4a, decision 5). An operation names the element by its id and carries the value the
 // person saw before the change, so a write on a file someone else changed can tell whether the
 // same place still holds that value (decision 7), and undo is the inverse sent the same way.
+// Here are the schemas and their types; the patterns and limits they are built from are in
+// `op-limits.ts`, and what an op does without its schema in `op-kinds.ts`. This file re-exports
+// both, so the rest of `src/` imports the ops from here alone.
 
 import { type Zod, z } from '../../shared/index.ts';
+import {
+  CLASS_NAME,
+  COMPONENT_TAG,
+  CSS_PROPERTY,
+  DRAFT_SLUG,
+  EDIT_FILE,
+  ELEMENT_ID,
+  HASH,
+  MAX_BREAKPOINT,
+  MAX_FILE,
+  MAX_HUNK,
+  MAX_LIST_DEPTH,
+  MAX_RAW,
+  MAX_SOURCE,
+  MAX_TEXT,
+  PLACES,
+  PROP_NAME,
+  SECTION,
+  STYLE_STATES,
+  TOKEN_VAR,
+  UTILITY,
+} from './op-limits.ts';
 
-/** An element id as the build makes it: `sections/Pricing:section/Stack/Card.2` (render/domain/sites.ts). */
-export const ELEMENT_ID =
-  /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*:[A-Za-z0-9_.$-]+(?:\/[A-Za-z0-9_.$-]+)*$/;
-/** A prop name as JSX writes it: `variant`, `aria-label`, `data-x`. Never `className`, `key`, `ref`. */
-export const PROP_NAME = /^(?!className$|key$|ref$|style$)[A-Za-z_][A-Za-z0-9_-]{0,63}$/;
-/** A CSS class name kitvas may read or write. */
-export const CLASS_NAME = /^[a-z][a-z0-9_-]{0,63}$/;
-/** A CSS property in the editor's set: lower-case, hyphens. Custom properties are never edited. */
-export const CSS_PROPERTY = /^[a-z][a-z-]{0,47}$/;
-/** A kit token variable: `--kit-space-md`. */
-export const TOKEN_VAR = /^--kit-[A-Za-z0-9_-]{1,80}$/;
-
-export const MAX_TEXT = 2_000;
-export const MAX_RAW = 200;
-/** Operations in one request: one gesture, or one undo of a gesture (a move across sections with
- * its class rules is several). */
-export const MAX_OPS = 50;
-/** JSX source an op carries: an inserted element, a pasted subtree, an element's whole source. */
-export const MAX_SOURCE = 20_000;
-/** One hunk's text in a server-made inverse, and a whole file in a `file` op. */
-export const MAX_HUNK = 100_000;
-export const MAX_FILE = 200_000;
-/** `hashOf`: FNV-1a 64-bit, 16 lower-case hex digits. */
-export const HASH = /^[0-9a-f]{16}$/;
-/** A kit component tag: `Stack`, `Card.Header`. */
-export const COMPONENT_TAG = /^[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)?$/;
-/** A section id of the layout (the drafts module's `SECTION_ID`) and a draft slug (`SLUG`). */
-export const SECTION = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-export const DRAFT_SLUG = /^[a-z0-9][a-z0-9-]{0,62}$/;
-/**
- * A file inside a version that a server-made inverse may change: a section's or a sketch's TSX, a
- * section's SCSS, the layout. Never the generated `index.tsx` or `index.scss`.
- */
-export const EDIT_FILE =
-  /^(?:src\/tsx\/sections\/[A-Za-z0-9]+\.tsx|src\/tsx\/sketches\/[A-Za-z0-9]+\.tsx|src\/scss\/sections\/_?[a-z][a-z0-9-]*\.scss|md\/layout\.md)$/;
+export * from './op-kinds.ts';
+export * from './op-limits.ts';
 
 export const ElementIdSchema = z.string().max(200).regex(ELEMENT_ID);
 
-/**
- * The states a style may be set for (spec 4c, goal 1): written as `&:hover`, `&:focus-visible`,
- * `&:active` in SCSS, and as the `hover:`, `focus-visible:`, `active:` prefixes in Tailwind.
- */
-export const STYLE_STATES = ['hover', 'focus-visible', 'active'] as const;
-export type StyleState = (typeof STYLE_STATES)[number];
-/** Widest breakpoint a context may name, in CSS px. */
-export const MAX_BREAKPOINT = 10_000;
 /**
  * Where a style edit applies (spec 4c, goal 1). `width`: from this breakpoint up (a kit breakpoint,
  * `@media (min-width: <width>px)`), `null` for all widths. `state`: `null` for the resting state.
@@ -61,12 +45,8 @@ export const StyleContextSchema = z.strictObject({
   state: z.enum(STYLE_STATES).nullable(),
 });
 export type StyleContext = Zod.infer<typeof StyleContextSchema>;
-/** One utility class of a Tailwind draft with its prefixes: `p-4`, `md:hover:bg-ink`, `w-[13px]`. */
-export const UTILITY = /^[A-Za-z0-9:_\-[\]/.#%(),]{1,120}$/;
 /** The place of an item in a `.map`: 0 for the first rendered element of that id. */
 const ItemSchema = z.number().int().min(0).max(10_000);
-/** The most `.map` lists around one element that a text's path names (ADR 0060). */
-export const MAX_LIST_DEPTH = 8;
 /** A copy's place in each `.map` around its element, outer first (ADR 0060). */
 const PathSchema = z.array(ItemSchema).max(MAX_LIST_DEPTH);
 
@@ -97,8 +77,6 @@ export const StyleValueSchema = z.union([
 ]);
 
 const target = { id: ElementIdSchema };
-/** Where a moved or inserted element goes: beside the anchor, or inside it as first or last child. */
-export const PLACES = ['before', 'after', 'first', 'last'] as const;
 const HashSchema = z.string().regex(HASH);
 const SourceSchema = z.string().min(1).max(MAX_SOURCE);
 const place = { anchor: ElementIdSchema, place: z.enum(PLACES) };
@@ -321,7 +299,6 @@ export type PropValue = Zod.infer<typeof PropValueSchema>;
 export type StyleValue = Zod.infer<typeof StyleValueSchema>;
 export type EditOp = Zod.infer<typeof EditOpSchema>;
 export type EditOpKind = EditOp['op'];
-export type Place = (typeof PLACES)[number];
 export type Hunk = Zod.infer<typeof HunkSchema>;
 /** The ops of 4a: one element, one value, an inverse the client can make itself. */
 export type SimpleOp = Extract<
@@ -342,128 +319,3 @@ export type SimpleOp = Extract<
 export type ItemClassOp = Extract<EditOp, { op: 'addItemClass' }>;
 /** The ops of 4b: structure, sections, and the server-made inverses. */
 export type StructuralOp = Exclude<EditOp, SimpleOp | ItemClassOp>;
-
-const SIMPLE: ReadonlySet<EditOpKind> = new Set([
-  'setProp',
-  'removeProp',
-  'setText',
-  'setStyle',
-  'removeStyle',
-  'addClass',
-  'removeClass',
-  'setUtility',
-]);
-
-/** Not a 4a op: the answer's inverse is made by the server (decision 4). */
-export const isStructural = (op: EditOp): op is StructuralOp | ItemClassOp => !SIMPLE.has(op.op);
-
-/** Every element id `op` names: its element, its anchor, the ends of a wrap. Section and file ops name none. */
-export function idsOf(op: EditOp): string[] {
-  switch (op.op) {
-    case 'insertElement':
-      return [op.anchor];
-    case 'moveElement':
-      return [op.id, op.anchor];
-    case 'wrapElements':
-      return [op.first, op.last];
-    case 'moveSection':
-    case 'insertSection':
-    case 'removeSection':
-    case 'patch':
-    case 'file':
-      return [];
-    default:
-      return [op.id];
-  }
-}
-
-/** Where an operation writes: the element's TSX file, or its section's SCSS file. */
-export type OpTarget = 'tsx' | 'scss';
-
-export const targetOf = (op: SimpleOp): OpTarget =>
-  op.op === 'setStyle' || op.op === 'removeStyle' ? 'scss' : 'tsx';
-
-/** `sections/Pricing:section/Stack` lives in `src/tsx/sections/Pricing.tsx`. */
-export function fileOfId(id: string): string {
-  const stem = id.slice(0, id.indexOf(':'));
-  return `src/tsx/${stem}.tsx`;
-}
-
-/**
- * The 64-bit FNV-1a hash of a text, as 16 hex digits: the `hash` of a subtree (spec 4b,
- * decision 5). Not for security: it only tells the editor's copy from another writer's.
- */
-export function hashOf(text: string): string {
-  let hash = 0xcbf29ce484222325n;
-  for (let i = 0; i < text.length; i += 1) {
-    hash ^= BigInt(text.charCodeAt(i));
-    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
-  }
-  return hash.toString(16).padStart(16, '0');
-}
-
-/** The operation that undoes `op` once `op` has been applied (4a ops; 4b's come from the server). */
-export function inverse(op: SimpleOp): SimpleOp {
-  switch (op.op) {
-    case 'setProp':
-      return op.before === null
-        ? { op: 'removeProp', id: op.id, name: op.name, before: op.value, after: op.after }
-        : { ...op, value: op.before, before: op.value };
-    case 'removeProp':
-      return {
-        op: 'setProp',
-        id: op.id,
-        name: op.name,
-        value: op.before,
-        before: null,
-        after: op.after,
-      };
-    case 'setText':
-      return { ...op, value: op.before, before: op.value };
-    case 'setStyle':
-      return op.before === null
-        ? {
-            op: 'removeStyle',
-            id: op.id,
-            className: op.className,
-            property: op.property,
-            before: op.value,
-            dropRule: op.newRule,
-            ...(op.context === undefined
-              ? {}
-              : { context: op.context, dropBlock: op.newBlock === true }),
-          }
-        : { ...op, value: op.before, before: op.value };
-    case 'removeStyle':
-      return {
-        op: 'setStyle',
-        id: op.id,
-        className: op.className,
-        property: op.property,
-        value: op.before,
-        before: null,
-        newRule: op.dropRule,
-        ...(op.context === undefined
-          ? {}
-          : { context: op.context, newBlock: op.dropBlock === true }),
-      };
-    case 'addClass':
-      return { op: 'removeClass', id: op.id, className: op.className };
-    case 'removeClass':
-      return { op: 'addClass', id: op.id, className: op.className };
-    case 'setUtility':
-      return { ...op, value: op.before, before: op.value };
-  }
-}
-
-/** The inverse of a gesture: the inverses in reverse order. */
-export const inverseAll = (ops: readonly SimpleOp[]): SimpleOp[] => [...ops].reverse().map(inverse);
-
-/** How a style value is written into SCSS (decision 3); the marker follows the semicolon. */
-export function styleText(value: StyleValue): { value: string; offKit: boolean } {
-  return 'token' in value
-    ? { value: `var(${value.token})`, offKit: false }
-    : { value: value.raw, offKit: value.mark !== false };
-}
-
-export const OFF_KIT_MARKER = '/* off-kit */';

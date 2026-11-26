@@ -3,7 +3,10 @@
 // keys to step it (Shift ten), the canvas showing the value while it is typed, one write on Enter
 // or blur, Escape to give the old value back, and the line "Off kit · nearest <token>" with the
 // button that writes the token. A value that is no number is marked with the reason and never
-// written. It replaces the length and raw editors `controls.ts` had.
+// written. It replaces the length and raw editors `controls.ts` had. The editor closes on Escape
+// (old value back), when a token is picked, when "Custom..." is pressed again, when the selection
+// changes, and on a press outside it or a blur of the window (`outside.ts`), which `release`s:
+// the value on show is written once.
 
 import type { TokenOption } from '../../../../../src/edit/index.ts';
 import { type SelectItem, studioSelect } from '../../../ui/select/select.ts';
@@ -36,7 +39,18 @@ export type NumberFieldOptions = NumberRule & {
   onCancel?(): void;
 };
 
-export type Editor = { root: HTMLElement; focus(): void; hidden(on: boolean): void };
+export type Editor = {
+  root: HTMLElement;
+  focus(): void;
+  hidden(on: boolean): void;
+  /**
+   * A close by a press outside (`outside.ts`): what is on show is written once, as a blur writes
+   * it, and only if it differs from the source; a value that cannot be written is taken back.
+   */
+  release(): void;
+  /** `true` while the editor waits on something outside the page (the eyedropper). */
+  busy(): boolean;
+};
 
 /** The reason an amount was refused, in words. */
 export function reasonText(reason: Reason): string {
@@ -211,5 +225,12 @@ export function numberField(options: NumberFieldOptions): Editor {
     hidden: (on) => {
       root.hidden = on;
     },
+    release: () => {
+      commit();
+      // A value that was refused, or an empty field, leaves its preview on the canvas: take it back.
+      if (previewing) options.onPreview(null);
+      previewing = false;
+    },
+    busy: () => false,
   };
 }

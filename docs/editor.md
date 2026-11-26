@@ -100,10 +100,10 @@ A page lives at several widths and in several states, and the editor sees both:
 
 ## Live checks
 
-After each edit's build the editor measures the changed elements in every card (text contrast, target size, content that overflows or is cut) and checks the code it wrote (values outside the kit, plain controls). A finding shows in the Checks tab, as a mark on the canvas and at the top of Properties. A colour or size option that would fail warns you before you pick it. The Properties panel also has an accessibility card: role, name, focus order, contrast and target size of the selected element.
+After each edit's build the editor measures the changed elements in every card (text contrast, target size, content that overflows or is cut) and checks the code it wrote (values outside the kit, plain controls). A finding shows in the Checks tab, as a mark on the canvas and in the line above Properties. That line is there for as long as an element is selected and keeps one height, so a finding that comes or goes never moves the pane under your pointer; press it to open the findings as cards, and it stays as you left it. A colour or size option that would fail warns you before you pick it. The Properties panel also has an accessibility card: role, name, focus order, contrast and target size of the selected element.
 
-- A target that is too small and text of too low contrast can be fixed with Apply. The card says what Apply will set before you click. Apply is one undo step. Any other finding offers Ask Claude.
-- A finding you accept on purpose ("Accept…", with a reason) is kept in `waivers.json`, shown as accepted, left out of what must be fixed and out of `kitvas check`'s count, and carries to later versions while its element exists.
+- A target that is too small and text of too low contrast can be fixed with Apply. The card says what Apply will set before you click. Apply is one undo step. A colour written by hand offers "Use <token>", the kit colour nearest to it. Any other finding offers Ask Claude.
+- A finding you dismiss (the eye icon on its card, then a quick reason or your own) is kept in `waivers.json`, shown as dismissed with Restore, left out of what must be fixed and out of `kitvas check`'s count, and carries to later versions while its element exists.
 - Save version starts the full check in the background and shows its result when it ends.
 
 ## Images

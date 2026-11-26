@@ -8,7 +8,7 @@
 // string, a comment, a regular expression or JSX text.
 
 import type { OffsetMap } from '../types.ts';
-import { isSpace, openAt, openingTags } from './tsx-reader.ts';
+import { isSpace, openAt, openingTags, skipRegex, skipString } from './tsx-reader.ts';
 
 /** A name written as code, and where. */
 type Word = { name: string; at: number; end: number };
@@ -55,35 +55,6 @@ function matchAt(pattern: RegExp, text: string, at: number): RegExpExecArray | n
 
 // The walk below follows `tsx-reader.ts`, whose helpers are its own. It does not decide what JSX
 // is: a `<` is an element exactly when the reader's `openingTags` found one there.
-
-function skipString(text: string, at: number): number {
-  const quote = text.charAt(at);
-  let i = at + 1;
-  while (i < text.length) {
-    const char = text.charAt(i);
-    if (char === '\\') {
-      i += text.startsWith('\r\n', i + 1) ? 3 : 2;
-      continue;
-    }
-    if (char === quote) return i + 1;
-    if (char === '\n') return i;
-    i += 1;
-  }
-  return text.length;
-}
-
-function skipRegex(text: string, at: number): number {
-  let inClass = false;
-  for (let i = at + 1; i < text.length; i += 1) {
-    const char = text.charAt(i);
-    if (char === '\n') return -1;
-    if (char === '\\') i += 1;
-    else if (char === '[') inClass = true;
-    else if (char === ']') inClass = false;
-    else if (char === '/' && !inClass) return i + 1;
-  }
-  return -1;
-}
 
 function scanTemplate(scan: Scanner, at: number): number {
   const { text } = scan;

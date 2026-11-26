@@ -4,26 +4,28 @@ Read by the `learner` agent before it writes a kit. Each rule has an id; reports
 
 ## Where you write
 
-- L1: Write only inside the kit folder given in your prompt: `kit.json`, `json/tokens.json`, `json/css-var-map.json`. Never write `generated/`: kitvas writes it. Never edit the project's own files or the packages.
+- L1: Write only inside the kit folder given in your prompt: `kit.json`, `json/tokens.json`, `json/css-var-map.json`, and a fragment file when the prompt names one (L8b). Never write `generated/`: kitvas writes it. Never edit the project's own files or the packages.
 - L2: Keep the fields `kit new` wrote (`id`, `source`, `runtime.entry`, `runtime.packages`). Change them only when a rule below says so.
 - L3: Never invent. Every component, prop, value, token and class name comes from a file you read (a `.d.ts`, a source file, a docs page, a token file). When you cannot read it, add it to `gaps`.
 - L4: Never paste long text from docs. Write one plain sentence per description, in your own words.
 
 ## Core set
 
-- L5: Cover about 25 to 30 components first, by category: `action` (Button, IconButton, Link), `input` (text field, select, checkbox, radio, switch, textarea), `layout` (Stack, Grid, Box, Container, Divider), `typography` (Heading, Text), `display` (Card, Badge, Avatar, Table, List), `feedback` (Alert, Spinner, Progress, Skeleton), `overlay` (Dialog, Menu, Tooltip, Popover), `navigation` (Tabs, Breadcrumbs, Pagination).
+- L5: "The core" means about 25 to 30 components, by category: `action` (Button, IconButton, Link), `input` (text field, select, checkbox, radio, switch, textarea), `layout` (Stack, Grid, Box, Container, Divider), `typography` (Heading, Text), `display` (Card, Badge, Avatar, Table, List), `feedback` (Alert, Spinner, Progress, Skeleton), `overlay` (Dialog, Menu, Tooltip, Popover), `navigation` (Tabs, Breadcrumbs, Pagination).
 - L6: A request names components: do those, and only those. The rest of the core stays as it is.
-- L7: A component that needs a framework (Next.js only, a server setup) goes to `gaps` with `unsupported`. One that exists but you did not cover goes to `gaps` with `missing`. One you could not check goes to `gaps` with `unverified`. A `gaps` path is the component name, or a prop path such as `Button.loading`. An entry has these two keys and no other: `{ "path": "Tabs", "reason": "missing" }`. A remark goes in your reply, never in kit.json.
+- L7: A component that needs a framework (Next.js only, a server setup) goes to `gaps` with `unsupported`. One you could not check goes to `gaps` with `unverified`. A component that exists but is not in this pass is not listed by memory: `kitvas kit exports` lists what the package offers and the kit lacks. `missing` is only for a part of a component you wrote (a prop path such as `Button.loading`). A `gaps` path is the component name, or a prop path such as `Button.loading`. An entry has these two keys and no other: `{ "path": "Tabs", "reason": "missing" }`. A remark goes in your reply, never in kit.json.
 
 ## Props
 
+- L8a: The exact shapes are in `reference/kit.schema.json` (`$defs.component`, `prop`, `example`, `stateEntry`, `gap`). Read it before you write. The rules here explain it and never replace it; when they differ, the schema file wins.
+- L8b: When your prompt names a fragment file (`<kit>/parts/<name>.json`), write only that file and never `kit.json`. Its shape is `{ "components": [ … ], "gaps": [ … ] }`: component entries and gap entries as in `kit.json`, no other key (`gaps` may be left out). Cover only the names you were given. kitvas merges the fragments.
 - L8: Read props from the package's `.d.ts` (npm) or the component's source and its types (repo). Name each prop as written. A component entry has `name`, `category`, `description`, `import` and `props`, and may have `parts`, `polymorphic`, `styling`, `state`, `examples`, `a11y` and `deprecated`; no other key. `props` is a list, `[{ "name": "variant", "type": "enum", "values": ["primary", "ghost"], "default": "primary" }]`, and a prop takes only `name`, `type`, `values`, `default`, `required`, `responsive`, `deprecated` and `description`.
 - L9: Type mapping: a union of string literals is `enum` with `values`; `boolean` is `boolean`; `string` is `string`; `number` is `number`; `ReactNode` and `ReactNode | string` are `node`; a function is `callback`; `ReactElement` is `element`; `ElementType` or a component type is `component`; an object type is `object`; any other union is `union`.
 - L10: A prop without `?` is `"required": true`. Set `default` only when the docs or the source say so.
 - L11: Skip props inherited from HTML attributes. Keep `className`, `style`, `id` and `aria-*` only when they matter, and list the styling props in `styling` (`sx`, `className`, `style`, `classes`). Keep `children` when the component takes it.
 - L12: `deprecated` is set only when the types or the docs say so.
 - L13: A component that renders another element by a prop (`as`, `component`) gets `polymorphic: { "prop": "<name>" }`. A compound component lists its parts in `parts` (`Card` with `CardHeader`).
-- L14: Controlled inputs get a `state` entry: `{ "value": "value", "default": "defaultValue", "onChange": "onChange" }`, with the names the component really has.
+- L14: Controlled inputs get `state`, an array with one entry for each controlled value: `[{ "value": "value", "default": "defaultValue", "onChange": "onChange" }]`, with the names the component really has. `default` may be left out; `value` and `onChange` are required.
 
 ## Imports
 
@@ -33,16 +35,19 @@ Read by the `learner` agent before it writes a kit. Each rule has an id; reports
 
 ## Examples and notes
 
-- L18: One or two examples per component, each valid TSX that compiles with the listed props only. `code` is one JSX expression. `imports` lists the kit components used. Give real text, no lorem ipsum.
+- L18: One or two examples per component. An example is an object with `title`, `code` and `imports` (and `reference` only in a written kit), and no other key. `title` is a short English title (`"Primary button"`). It is valid TSX that compiles with the listed props only. `code` is one JSX expression. `imports` lists the kit components used. Give real text, no lorem ipsum.
 - L19: Required props are always set in an example. Use enum values from `values`.
 - L20: `a11y` holds the notes the docs or the source give (label rules, `aria-label` for icon buttons, keyboard use). Short sentences. Leave it empty when you read none.
 
 ## Tokens
 
-- L21: `json/tokens.json` is DTCG 2025.10. Group names: `color`, `space`, `radius`, `font`, `fontSize`, `fontWeight`, `lineHeight`, `shadow`, `duration`. Put `$type` on the group.
+- L21: `json/tokens.json` is DTCG 2025.10. Group names: `color`, `space`, `radius`, `font`, `fontSize`, `fontWeight`, `lineHeight`, `duration`. Put `$type` on the group. The types are `color`, `dimension`, `duration`, `fontFamily`, `fontWeight` and `number`; there is no shadow type yet, so leave shadows out and say so in the report.
 - L22: A colour is `{ "colorSpace": "srgb", "components": [r, g, b] }` with channels from 0 to 1, optional `alpha`, optional `hex` (`#rrggbb`). A dimension is `{ "value": 8, "unit": "px" }` (`px` or `rem`). A font family is a string or an array of strings. A weight is an integer. An alias is `"{color.ink}"`.
 - L23: Write only values you read in the theme or token files. Colours in `oklch`, `hsl` or `color-mix` are not sRGB: put a first guess, run `kit verify`, then copy the hex it reports in `actual` into `components` and `hex`.
 - L24: Token names are short and stable (`color.primary`, `space.md`, `radius.lg`). Keep the design system's own words.
+- L24a: Read tokens as widely as components. From the theme and palette files write: the brand colours with their shades; the neutral scale (a `grey` or `gray` scale, `neutral-*`); every ground the system has (page, surface or paper, a subtle or tinted ground); the text colours (primary, secondary, disabled); the border or divider colour; the state colours (hover, selected, focus, disabled) where the theme defines them.
+- L24b: A system that spaces by a unit and a factor (MUI's `theme.spacing(n)`) gets the unit and its steps as tokens, named by the factor, with a letter first and `-` for the point (`space.x0-5`, `space.x1`, `space.x1-5`, `space.x2`): 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8 and 10 times the unit. A system with a named scale gets that scale. One spacing token is never enough to build a page.
+- L24c: Before you report, check the kit against what a page needs: at least two grounds that differ, a border colour, a muted text colour, four or more spacing steps, and the font sizes of every text variant the components use. What the system truly lacks goes in the report in one line (not in `gaps`), so the person knows the pages will be flat and why.
 
 ## css-var-map.json
 
@@ -72,4 +77,4 @@ Read by the `learner` agent before it writes a kit. Each rule has an id; reports
 
 ## Report
 
-- L38: Reply in a few lines: the files written, how many components by category, what went to `gaps`, and any rule here that was missing, wrong or hard to follow. Do not paste the JSON.
+- L38: Reply in a few lines: the files written, how many components by category, the number of tokens by group, what went to `gaps`, and any rule here that was missing, wrong or hard to follow. Do not paste the JSON.

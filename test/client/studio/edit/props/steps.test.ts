@@ -3,18 +3,12 @@ import { test } from 'node:test';
 import {
   indexOnScale,
   isOffKit,
-  PROPERTIES,
   stepToken,
   styleValueOf,
-  TOKEN_TYPE,
   tokensFor,
   varOf,
 } from '../../../../../client/studio/edit/props/steps.ts';
-import {
-  PROPERTY_TOKEN_TYPE,
-  STYLE_PROPERTIES,
-  type TokenOption,
-} from '../../../../../src/edit/index.ts';
+import type { TokenOption } from '../../../../../src/edit/index.ts';
 
 function token(path: string, css: string, type: TokenOption['type'] = 'dimension'): TokenOption {
   return { var: `--kit-${path.replaceAll('.', '-')}`, path, type, css };
@@ -28,11 +22,6 @@ const SPACE = [
   token('space.lg', '1rem'),
   token('space.sm', '8px'),
 ];
-
-test('the property list and the token type table are copies of the server ones', () => {
-  assert.deepEqual([...PROPERTIES], [...STYLE_PROPERTIES]);
-  assert.deepEqual(TOKEN_TYPE, PROPERTY_TOKEN_TYPE);
-});
 
 test('tokensFor keeps the tokens of the property type and orders dimensions by value', () => {
   const mixed = [

@@ -67,7 +67,7 @@ export function offsetOf(text: string, line: number, column: number): number {
 }
 
 /** A quoted JavaScript string. An unclosed one ends at its line, so a misread cannot run on. */
-function skipString(text: string, at: number): number {
+export function skipString(text: string, at: number): number {
   const quote = text.charAt(at);
   let i = at + 1;
   while (i < text.length) {
@@ -100,7 +100,7 @@ function skipTemplate(scan: Scan, at: number): number {
 }
 
 /** A regular expression literal on one line; `-1` when the `/` is a division after all. */
-function skipRegex(text: string, at: number): number {
+export function skipRegex(text: string, at: number): number {
   let inClass = false;
   for (let i = at + 1; i < text.length; i += 1) {
     const char = text.charAt(i);

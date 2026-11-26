@@ -1,10 +1,11 @@
 // The utility classes of a Tailwind draft under a width or a state (spec 4c, goal 2): `md:p-6`,
 // `hover:bg-primary`, `md:hover:p-6`. A class without a variant is the base and is read by
 // `source.ts`; here are the variants kitvas writes, the override each prefixed class is, and
-// whether a class is one kitvas knows. The studio builds the classes
-// (`client/studio/edit/style/utility-ops.ts` keeps copies of the tables, and a test compares them).
+// whether a class is one kitvas knows. The studio builds the classes from these tables
+// (`client/studio/edit/style/utility-ops.ts`), so this file stays package-free (ADR 0080).
 
-import { MAX_BREAKPOINT, STYLE_STATES, type StyleContext, type StyleState } from '../ops.ts';
+import { MAX_BREAKPOINT, STYLE_STATES, type StyleState } from '../op-limits.ts';
+import type { StyleContext } from '../ops.ts';
 import {
   isKeywordProperty,
   type KeywordProperty,

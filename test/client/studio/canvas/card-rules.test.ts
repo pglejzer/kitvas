@@ -1,35 +1,16 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  CARD_COUNTS,
   cardAddress,
   cardAt,
   cardsAddress,
   channelOf,
-  extraWidths,
-  nearestPreset,
   parseCards,
 } from '../../../../client/studio/canvas/card-rules.ts';
-import {
-  CARD_COUNTS as SERVER_COUNTS,
-  extraWidths as serverExtraWidths,
-  nearestPreset as serverNearest,
-} from '../../../../src/studio/views/draft-query.ts';
 
 const CHANNEL = 'c'.repeat(22);
 const PAGE = 'http://kitvas.localhost:5174/f/key123/shop/v3/html/index.html';
 const FRAME = `${PAGE}?state=filled&live=2#kitvas=${'a'.repeat(22)}&studio=5173`;
-
-test('the page and the server choose the same cards for every width', () => {
-  assert.deepEqual([...CARD_COUNTS], [...SERVER_COUNTS]);
-  for (let width = 320; width <= 2560; width += 7) {
-    assert.equal(nearestPreset(width), serverNearest(width), String(width));
-    for (const count of CARD_COUNTS) {
-      const label = `${count} cards at ${width}`;
-      assert.deepEqual(extraWidths(count, width), serverExtraWidths(count, width), label);
-    }
-  }
-});
 
 test('the address asks for 1, 2 or 3 cards; anything else is one', () => {
   assert.equal(parseCards('2'), 2);

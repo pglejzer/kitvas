@@ -7,6 +7,8 @@
 
 import type { NotePin } from '../../channel/live-protocol.ts';
 import type { Point, Rect } from '../drag/place.ts';
+import { firstById, overlayHostStyle } from '../page/overlay-host.ts';
+import { pageRect } from '../page/rect.ts';
 import { toned } from '../tones/tones.ts';
 
 export type Pins = { set(pins: readonly NotePin[]): void; clear(): void };
@@ -27,19 +29,7 @@ const SHEET = `
 .off { display: none; }
 `;
 
-const HOST_RULES = [
-  'all: initial',
-  'position: absolute',
-  'left: 0',
-  'top: 0',
-  'width: 0',
-  'height: 0',
-  'overflow: visible',
-  'pointer-events: none',
-  'z-index: 2147483644',
-];
-/** Inline and important, so no rule of the prototype moves or hides the overlay itself. */
-const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
+const HOST_STYLE = overlayHostStyle(2147483644);
 
 /**
  * Where a pin goes: centred on the element's bottom-left corner, moved right to stay inside the
@@ -53,21 +43,6 @@ export function placePin(element: Rect, host: Point, pageWidth: number, width: n
 }
 
 type Pinned = { id: string; element: Element; node: HTMLElement; width: number };
-
-const pageRect = (element: Element): Rect => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left: left + scrollX, top: top + scrollY, width, height };
-};
-
-/** The first element with each id: a pin goes on the first of the elements a loop rendered. */
-function firstById(): Map<string, Element> {
-  const found = new Map<string, Element>();
-  for (const element of document.querySelectorAll('[data-ks]')) {
-    const id = element.getAttribute('data-ks') ?? '';
-    if (!found.has(id)) found.set(id, element);
-  }
-  return found;
-}
 
 export function createPins(): Pins {
   let host: HTMLElement | undefined;

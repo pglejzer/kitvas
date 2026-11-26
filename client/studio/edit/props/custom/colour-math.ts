@@ -1,13 +1,11 @@
 // The picker's colour arithmetic (plan 19, task T5; spec goal 14): HSV and RGB both ways, the
 // text a colour is shown as, and the five forms a person may type. Pure: no DOM.
 
-import { parseColour, type Rgba } from '../../live/colour.ts';
+import { parseColour, type Rgba } from '../../../../../src/shared/values/colour.ts';
+import { clamp } from '../../../../../src/shared/values/numbers.ts';
 
 /** Hue 0 to 360, saturation, value and alpha 0 to 1. */
 export type Hsva = { h: number; s: number; v: number; a: number };
-
-const clamp = (value: number, low: number, high: number): number =>
-  Math.min(high, Math.max(low, value));
 
 const byte = (value: number): number => clamp(Math.round(value), 0, 255);
 

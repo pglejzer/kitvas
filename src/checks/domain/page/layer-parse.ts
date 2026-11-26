@@ -3,6 +3,7 @@
 // it meets as `#rrggbbaa` before it hands a value over (oklch, hsl and names included); the readers
 // also take `rgb()`, `rgba()` and short hex, as a browser computes and a test writes them.
 
+import { clamp } from '../../../shared/index.ts';
 import type { Box, Colour } from './facts.ts';
 import type {
   LayerFacts,
@@ -49,8 +50,6 @@ const round = (value: number, places = 2): number => {
   const scale = 10 ** places;
   return Math.round(value * scale) / scale;
 };
-const clamp = (value: number, low: number, high: number): number =>
-  Math.min(high, Math.max(low, value));
 const pair = (channel: number): string =>
   Math.round(clamp(channel, 0, 255))
     .toString(16)

@@ -3,6 +3,7 @@
 // loads the page again, once, so its frames show it; a failed one shows a note. These are the
 // decisions only; `kit-page.ts` does the requests and changes the page.
 
+import { isRecord as isObject } from '../../../src/shared/values/guards.ts';
 import { jobOf } from '../live/job-events.ts';
 import type { StreamEvent } from '../live/sse.ts';
 
@@ -30,9 +31,6 @@ export type PostStep = 'wait' | 'failed' | 'done';
 /** The statuses that mean a catalog job of this kit runs: just started, or already running. */
 const STARTED = 202;
 const RUNNING = 409;
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Nothing new to show: without examples the page says they could not be built, else it stays. */
 const noNews = (catalog: CatalogState): 'failed' | 'done' =>

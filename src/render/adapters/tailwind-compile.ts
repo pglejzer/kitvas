@@ -10,6 +10,7 @@ import { dirname } from 'node:path';
 import { loadDep } from '../../shared/deps/deps.ts';
 import { packageDirFrom } from '../../shared/env/packages.ts';
 import { KitvasError } from '../../shared/errors/errors.ts';
+import { isRecord } from '../../shared/values/guards.ts';
 import { fileCandidates, hasClassRule, looksLikeClass, probeRule } from '../domain/candidates.ts';
 import type { UtilityInput } from '../ports/utility-css.ts';
 
@@ -48,9 +49,6 @@ const messageOf = (cause: unknown): string =>
 
 const isStrings = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** The request read from stdin, or `undefined` when it is not a `UtilityInput`. */
 export function parseRequest(text: string): UtilityInput | undefined {

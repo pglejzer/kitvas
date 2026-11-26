@@ -1,12 +1,11 @@
 // Reads the two small files of the plugin folder that the doctor reports on.
 
+import { isRecord } from '../../shared/index.ts';
+
 export type Manifest =
   | { state: 'ok'; version: string }
   | { state: 'unreadable' }
   | { state: 'invalid' };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 function parse(text: string): unknown {
   try {

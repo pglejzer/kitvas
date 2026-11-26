@@ -6,14 +6,8 @@ import {
   MAX_STYLE_VALUE,
   parseEditFrame,
 } from '../../../../client/channel/edit-protocol.ts';
-import {
-  buildTree,
-  nameOf,
-  type RawNode,
-  readStyles,
-  STYLE_PROPERTIES,
-} from '../../../../client/frame/edit/tree.ts';
-import { STYLE_PROPERTIES as SERVER_PROPERTIES } from '../../../../src/edit/index.ts';
+import { buildTree, nameOf, type RawNode, readStyles } from '../../../../client/frame/edit/tree.ts';
+import { STYLE_PROPERTIES } from '../../../../src/edit/index.ts';
 
 type Fields = {
   id?: string;
@@ -182,10 +176,6 @@ test('the tree stops at the limit of nodes and the studio accepts it', () => {
   assert.equal(tree[0]?.count, 2);
   const message = { type: 'tree', request: 1, nodes: tree };
   assert.ok(parseEditFrame(message, 'probe'));
-});
-
-test('the property list equals the one the server edits', () => {
-  assert.deepEqual([...STYLE_PROPERTIES], [...SERVER_PROPERTIES]);
 });
 
 test('styles carry every listed property, trimmed and cut to the limit', () => {

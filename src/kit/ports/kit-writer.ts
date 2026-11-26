@@ -6,6 +6,13 @@ import type { KitComponent } from '../domain/contract.ts';
 /** A text file to write: its path from the folder it goes to, with forward slashes. */
 export type TextFile = { path: string; text: string };
 
+/** What a folder holds: its plain files with their size in bytes, and the names of the rest. */
+export type FolderListing = {
+  files: { name: string; size: number }[];
+  /** Folders, links and anything else that is no plain file. */
+  other: string[];
+};
+
 export interface KitWriter {
   /** Text of a file inside the kit folder, or `undefined` when it is missing or outside the folder. */
   readText(id: string, relPath: string): string | undefined;
@@ -15,6 +22,12 @@ export interface KitWriter {
   writeBytes(id: string, relPath: string, bytes: Uint8Array): void;
   /** Removes a file or a folder inside the kit folder; nothing when missing. Throws KIT_INVALID outside it. */
   remove(id: string, relPath: string): void;
+  /**
+   * What a folder inside the kit folder holds, not recursive, each list sorted by name; `undefined`
+   * when there is no such folder. Throws KIT_INVALID outside it. Optional so test fakes need not
+   * have it; without it `kit merge` finds no fragments.
+   */
+  listFolder?(id: string, relPath: string): FolderListing | undefined;
   /**
    * Adds `component` to the project's additions of kit `id`: writes `files` (paths from the
    * additions folder, all inside its `components/`) and puts the component into `additions.json`,

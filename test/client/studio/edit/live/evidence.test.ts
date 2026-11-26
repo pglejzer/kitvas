@@ -3,12 +3,12 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MIN_TARGET } from '../../../../../client/studio/edit/live/colour.ts';
 import {
   evidenceName,
   evidenceOf,
   ratioWords,
 } from '../../../../../client/studio/edit/live/evidence.ts';
+import { MIN_TARGET } from '../../../../../src/shared/values/colour.ts';
 
 const MESSAGE = 'The finding in words.';
 const of = (values: Record<string, string | number> | null) =>

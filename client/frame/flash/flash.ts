@@ -9,6 +9,8 @@
 
 import { flashIds, MAX_FLASH } from '../../channel/protocol.ts';
 import { placeRing, type Rect } from '../drag/place.ts';
+import { overlayHostStyle } from '../page/overlay-host.ts';
+import { pageRect } from '../page/rect.ts';
 import { toned } from '../tones/tones.ts';
 
 /** How long a ring shows: the studio's `motion-flash` (a test holds the two together). */
@@ -38,19 +40,7 @@ export const FLASH_SHEET = `
 }
 `;
 
-const HOST_RULES = [
-  'all: initial',
-  'position: absolute',
-  'left: 0',
-  'top: 0',
-  'width: 0',
-  'height: 0',
-  'overflow: visible',
-  'pointer-events: none',
-  'z-index: 2147483647',
-];
-/** Inline and important, so no rule of the prototype moves or hides the overlay itself. */
-const HOST_STYLE = HOST_RULES.map((rule) => `${rule} !important;`).join(' ');
+const HOST_STYLE = overlayHostStyle(2147483647);
 
 export type Flash = {
   /** Flashes a ring once on every element with one of `ids` (each rendered copy of it). */
@@ -58,11 +48,6 @@ export type Flash = {
 };
 
 type Layer = { host: HTMLElement; rings: HTMLElement };
-
-const pageRect = (element: Element): Rect => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left: left + scrollX, top: top + scrollY, width, height };
-};
 
 /** Made once and kept: the tones are set on this host, and it comes back for the next flash. */
 function createLayer(): Layer {

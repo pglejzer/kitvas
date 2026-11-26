@@ -82,7 +82,26 @@ export const SKIN_GALLERY = `
 }
 /* A card cut off is also out of the tab order (the script marks it \`inert\`) and out of sight. */
 :root[data-fold="shut"] .gallery-card[inert] { visibility: hidden; }
+/* The drafts a kit (\`pages/start/groups.ts\`): a group has its own heading, grid and fold button. */
+.gallery-groups { display: grid; gap: var(--st-space-32); min-width: 0; }
+.gallery-group { display: grid; gap: var(--st-space-12); min-width: 0; }
+.gallery-group-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--st-space-8); }
+.gallery-group-head > h3 { overflow-wrap: anywhere; }
+/* The search hides cards and groups; a hidden card keeps no place in the grid. */
+.gallery-group[hidden], .gallery-card[hidden] { display: none; }
+/* The search field and the filter share the head row's right end. */
+.gallery-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--st-space-12); }
+.gallery-search { width: 220px; max-width: 100%; }
+/* While a search is typed the fold's cut is lifted (\`client/studio/start/fold.ts\`). */
+:root[data-fold] [data-searching] .gallery-grid[data-fold] {
+  grid-template-rows: none;
+  grid-auto-rows: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
 @media (max-width: 40rem) {
   .gallery-grid { grid-template-columns: minmax(0, 280px); }
+  .gallery-tools, .gallery-search { width: 100%; }
 }
 `;

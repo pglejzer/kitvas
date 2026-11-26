@@ -87,6 +87,23 @@ test('Escape in an editor the memory does not hold (a raw value) draws nothing a
   assert.equal(memory.takeBack(), null);
 });
 
+test('6: a press outside forgets the row with no redraw, no cursor back and no cursor in', () => {
+  const { memory, drawn } = panel();
+  memory.toggle(ROW);
+  const draws = drawn.length;
+  assert.equal(memory.drop(ROW), true);
+  assert.equal(memory.has(ROW), false);
+  assert.equal(drawn.length, draws);
+  assert.equal(memory.takeBack(), null);
+  assert.equal(memory.takeFocus(), null);
+});
+
+test('a press outside an editor the memory does not hold asks nothing', () => {
+  const { memory, drawn } = panel();
+  assert.equal(memory.drop(ROW), false);
+  assert.deepEqual(drawn, []);
+});
+
 test('the raw item of the source shows the editor; a token is a token', () => {
   assert.equal(listChoice(ITEMS.raw, false, ITEMS), 'show');
   assert.equal(listChoice('--kit-x', true, ITEMS), 'token');

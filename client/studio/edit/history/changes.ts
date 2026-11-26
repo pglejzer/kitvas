@@ -6,6 +6,7 @@
 // `entry-view.ts` draws the rows; `mountChanges` wires them.
 
 import type { EditOp } from '../../../../src/edit/index.ts';
+import { pascal } from '../../../../src/shared/values/names.ts';
 import type { OffKit } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import { getOffKit } from '../api.ts';
 import type { EditorContext } from '../context.ts';
@@ -62,13 +63,6 @@ export function newestFirst<T extends ChangeEntry>(changes: readonly T[]): T[] {
     .sort((a, b) => b.entry.at - a.entry.at || b.index - a.index)
     .map((item) => item.entry);
 }
-
-const pascal = (id: string): string =>
-  id
-    .split('-')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
 
 /** `src/scss/sections/_order-summary.scss` is the section `order-summary`; `null` for another path. */
 export function sectionOfFile(file: string): string | null {

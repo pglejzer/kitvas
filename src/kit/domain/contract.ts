@@ -70,7 +70,10 @@ const importSchema = z.strictObject({
   default: z.boolean().optional(),
 });
 
-const propSchema = z.strictObject({
+// The parts below are exported by name: `scripts/kit-schema.ts` names them under `$defs` of
+// `reference/kit.schema.json`, and `kit merge` checks a fragment's components and gaps with them.
+
+export const PropSchema = z.strictObject({
   name: text,
   type: z.enum(PROP_TYPES),
   values: z.array(z.string()).optional(),
@@ -81,7 +84,22 @@ const propSchema = z.strictObject({
   description: z.string().optional(),
 });
 
-const componentSchema = z.strictObject({
+/** A controlled pair of props: `value` holds the state, `onChange` sets it. */
+export const StateEntrySchema = z.strictObject({
+  value: text,
+  default: text.optional(),
+  onChange: text,
+});
+
+export const ExampleSchema = z.strictObject({
+  title: text,
+  code: text,
+  imports: z.array(componentName),
+  /** Written kits: the image this example should look like (`kit verify`, step `look`). */
+  reference: z.string().regex(REFERENCE_PATH).optional(),
+});
+
+export const ComponentSchema = z.strictObject({
   name: componentName,
   category: z.enum(CATEGORIES),
   description: text,
@@ -89,24 +107,17 @@ const componentSchema = z.strictObject({
   parts: z.array(componentName).default([]),
   polymorphic: z.strictObject({ prop: text }).optional(),
   styling: z.array(text).default([]),
-  props: z.array(propSchema),
-  state: z
-    .array(z.strictObject({ value: text, default: text.optional(), onChange: text }))
-    .default([]),
-  examples: z
-    .array(
-      z.strictObject({
-        title: text,
-        code: text,
-        imports: z.array(componentName),
-        /** Written kits: the image this example should look like (`kit verify`, step `look`). */
-        reference: z.string().regex(REFERENCE_PATH).optional(),
-      }),
-    )
-    .default([]),
+  props: z.array(PropSchema),
+  state: z.array(StateEntrySchema).default([]),
+  examples: z.array(ExampleSchema).default([]),
   a11y: z.array(text).default([]),
   deprecated: z.boolean().default(false),
 });
+
+export const GAP_REASONS = ['missing', 'unsupported', 'unverified'] as const;
+
+/** Something of the design system the kit does not hold: a component name or a prop path. */
+export const GapSchema = z.strictObject({ path: text, reason: z.enum(GAP_REASONS) });
 
 const runtimeSchema = z.strictObject({
   packages: z.array(z.strictObject({ name: text, version: text })).default([]),
@@ -179,16 +190,14 @@ export const KitSchema = z.strictObject({
   framework: z.literal('react'),
   runtime: runtimeSchema,
   tokens: tokensSchema,
-  components: z.array(componentSchema).min(1),
+  components: z.array(ComponentSchema).min(1),
   icons: iconsSchema.optional(),
   /**
    * The widths (CSS px, ascending) from which the kit's layout changes, for per-width values
    * (spec 4c). Without them the editor uses 768 and 1280, the studio's preset widths.
    */
   breakpoints: z.array(z.number().int().min(200).max(4000)).min(1).max(4).optional(),
-  gaps: z
-    .array(z.strictObject({ path: text, reason: z.enum(['missing', 'unsupported', 'unverified']) }))
-    .default([]),
+  gaps: z.array(GapSchema).default([]),
 });
 
 export type Kit = Zod.infer<typeof KitSchema>;

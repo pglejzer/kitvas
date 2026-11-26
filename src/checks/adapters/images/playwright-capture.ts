@@ -6,6 +6,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Capture, CaptureReport } from '../../ports/browser.ts';
+import { settle } from '../browser/settle.ts';
 import { decodeIn, firstLine, inBlankPage, PROBLEMS } from './playwright-images.ts';
 import { pageSize, REACH_MAX, shadowReach, widened } from './playwright-reach.ts';
 
@@ -19,13 +20,6 @@ const SAY = {
   unmarked: 'the page marked no example as shown',
   empty: 'the example rendered no element',
 };
-
-/** Runs in the page: two frames, so React has painted (the wait `inspect` uses). */
-function settle(): Promise<null> {
-  return new Promise((done) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => done(null))),
-  );
-}
 
 /** Runs in the page: the mark `client/frame/page/example.ts` leaves after rendering an example. */
 function readMark(): string | null {

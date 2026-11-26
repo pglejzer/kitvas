@@ -43,7 +43,7 @@ test('paths and npm scripts named in agent docs exist', () => {
       const path = match[1] ?? '';
       if (!existsSync(join(PLUGIN_ROOT, path))) missing.push(`${doc}: ${path}`);
     }
-    for (const match of text.matchAll(/npm run ([a-z:]+)/g)) {
+    for (const match of text.matchAll(/npm run ([a-z][a-z:-]*)/g)) {
       const name = match[1] ?? '';
       if (!(name in scripts)) missing.push(`${doc}: npm run ${name}`);
     }

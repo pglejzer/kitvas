@@ -1,9 +1,10 @@
 // The fold of the start page's drafts list (markup: `src/studio/pages/start/fold.ts`, rules:
 // `skin/pages/gallery.ts`). The page's inline script has set `data-fold` on `<html>` (`open` or
-// `shut`) before the first paint; the skin cuts the grid to two rows. This script finds which cards
-// the cut hides and marks them `inert`, shows the button only when something is cut, and opens and
-// shuts the list. It looks again when the grid's width changes or a card comes or goes (a delete,
-// the list swapped after a restore). Without it nothing is cut and the button stays hidden.
+// `shut`) before the first paint; the skin cuts every kit's grid to two rows. This script finds
+// which cards the cut hides and marks them `inert`, shows a group's button only when something is
+// cut there, and opens and shuts the lists together. It looks again when a grid's width changes or
+// a card comes or goes (a delete, the list swapped after a restore), and lifts the cut while a
+// search is typed (`search.ts`). Without it nothing is cut and the buttons stay hidden.
 
 /** The session-storage key of the choice; the page's inline script reads the same one. */
 export const FOLD_KEY = 'kitvas-fold';
@@ -83,31 +84,46 @@ export function mountFold(): void {
   if (root.dataset.fold !== 'open' && root.dataset.fold !== 'shut') {
     root.dataset.fold = readFold(storage);
   }
-  let watched: Element | null = null;
+  const watched = new Set<HTMLElement>();
   let pending = false;
 
   const look = (): void => {
     pending = false;
-    const grid = document.querySelector<HTMLElement>('.gallery-grid[data-fold]');
-    const button = document.querySelector<HTMLElement>('[data-fold-toggle]');
-    if (grid !== watched) {
-      if (watched) resize.unobserve(watched);
-      watched = grid;
-      if (grid) resize.observe(grid);
+    // Each kit's group has its own grid and its own button, right after it.
+    const grids = [...document.querySelectorAll<HTMLElement>('.gallery-grid[data-fold]')];
+    for (const old of watched) {
+      if (grids.includes(old)) continue;
+      resize.unobserve(old);
+      watched.delete(old);
     }
-    if (!grid || !button) return;
+    for (const grid of grids) {
+      if (watched.has(grid)) continue;
+      resize.observe(grid);
+      watched.add(grid);
+    }
     const open = root.dataset.fold === 'open';
-    const cards = [...grid.children].filter(
-      (child): child is HTMLElement => child instanceof HTMLElement,
-    );
-    const columns = columnsOf(cards.map((card) => card.getBoundingClientRect().top));
-    const cut = new Set(cutIndexes(columns, cards.length));
-    cards.forEach((card, index) => {
-      card.inert = !open && cut.has(index);
-    });
-    const holder = button.parentElement;
-    if (holder) holder.hidden = cut.size === 0;
-    showButton(button, open);
+    // While a search is typed the cards that match are all shown, whatever the fold says.
+    const searching = document.querySelector('[data-searching]') !== null;
+    for (const grid of grids) {
+      const holder = grid.nextElementSibling;
+      const button = holder?.querySelector<HTMLElement>('[data-fold-toggle]');
+      if (!(holder instanceof HTMLElement) || !button) continue;
+      const children = [...grid.children].filter(
+        (child): child is HTMLElement => child instanceof HTMLElement,
+      );
+      // A card the search hides takes no place in the rows.
+      const cards = children.filter((card) => !card.hidden);
+      for (const card of children) {
+        if (card.hidden) card.inert = false;
+      }
+      const columns = columnsOf(cards.map((card) => card.getBoundingClientRect().top));
+      const cut = new Set(cutIndexes(columns, cards.length));
+      cards.forEach((card, index) => {
+        card.inert = !open && !searching && cut.has(index);
+      });
+      holder.hidden = searching || cut.size === 0;
+      showButton(button, open);
+    }
   };
 
   const later = (): void => {
@@ -127,6 +143,14 @@ export function mountFold(): void {
   });
   // A card that goes (a delete) or a list that is swapped changes what is cut.
   const page = document.querySelector('main');
-  if (page) new MutationObserver(later).observe(page, { childList: true, subtree: true });
+  if (page) {
+    new MutationObserver(later).observe(page, {
+      childList: true,
+      subtree: true,
+      // The search sets and drops `data-searching`, which lifts the cut.
+      attributes: true,
+      attributeFilter: ['data-searching'],
+    });
+  }
   look();
 }

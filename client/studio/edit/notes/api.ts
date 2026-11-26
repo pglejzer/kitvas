@@ -2,27 +2,16 @@
 // Every answer is the whole list, as the server checked it before sending; `null` when the call
 // did not work (a network error too).
 
+import { isRecord } from '../../../../src/shared/values/guards.ts';
 import type { NoteView } from '../../../../src/studio/api/notes/note-schemas.ts';
+import { draftPath, call as send } from '../../api/request.ts';
 
-const base = (slug: string): string => `/api/v1/drafts/${encodeURIComponent(slug)}/notes`;
+const base = (slug: string): string => `${draftPath(slug)}/notes`;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
+/** A GET without a body, a POST with one; the answer is a record or `null`. */
 async function call(path: string, body?: unknown): Promise<Record<string, unknown> | null> {
-  try {
-    const response = await fetch(path, {
-      method: body === undefined ? 'GET' : 'POST',
-      credentials: 'same-origin',
-      headers: body === undefined ? {} : { 'content-type': 'application/json' },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
-    if (!response.ok) return null;
-    const read: unknown = await response.json().catch(() => undefined);
-    return isRecord(read) ? read : null;
-  } catch {
-    return null;
-  }
+  const answer = await send(body === undefined ? 'GET' : 'POST', path, body);
+  return answer.ok && isRecord(answer.body) ? answer.body : null;
 }
 
 // The list is the server's own schema (`NotesSchema`), checked there before it is sent.

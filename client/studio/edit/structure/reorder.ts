@@ -7,6 +7,7 @@
 // reason is said over the canvas (`refusal-note.ts` hears every refused edit).
 
 import type { EditOp } from '../../../../src/edit/index.ts';
+import { samePath } from '../../../../src/shared/values/paths.ts';
 import type { CopyRef } from '../../../channel/edit-protocol.ts';
 import { inspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
@@ -16,9 +17,6 @@ import { text } from '../texts.ts';
 
 /** What the frame says of a dropped item: the copy at `from` of `id` goes to `to`. */
 export type Reorder = { id: string; from: readonly number[]; to: readonly number[] };
-
-const samePath = (a: readonly number[], b: readonly number[]): boolean =>
-  a.length === b.length && a.every((place, index) => place === b[index]);
 
 /**
  * The op a reorder makes: one move of the item in the data, by its path. `null` for an item

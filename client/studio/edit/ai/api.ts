@@ -4,33 +4,19 @@
 // refusal or an answer of another shape gives `null` or `false`; the tab says so.
 
 import type { NewRequest, Requests } from '../../../../src/studio/api/requests/request-schemas.ts';
+import { call, draftPath } from '../../api/request.ts';
 import { readRequests } from './requests.ts';
 
-const base = (slug: string): string => `/api/v1/drafts/${encodeURIComponent(slug)}/requests`;
+const base = (slug: string): string => `${draftPath(slug)}/requests`;
 
 async function post(path: string, body: unknown): Promise<boolean> {
-  try {
-    const response = await fetch(path, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+  return (await call('POST', path, body)).ok;
 }
 
 /** `GET …/requests`: the draft's requests, newest first, and whether a session listens. */
 export async function getRequests(slug: string): Promise<Requests | null> {
-  try {
-    const response = await fetch(base(slug), { credentials: 'same-origin' });
-    if (!response.ok) return null;
-    return readRequests(await response.json().catch((): unknown => undefined));
-  } catch {
-    return null;
-  }
+  const answer = await call('GET', base(slug));
+  return answer.ok ? readRequests(answer.body) : null;
 }
 
 /** `POST …/requests`: kept on disk until Claude answers it (spec 4d, goal 1). */

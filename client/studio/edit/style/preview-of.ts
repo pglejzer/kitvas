@@ -1,11 +1,11 @@
 // What the frame can show of an operation before the build confirms it (plan 13, task E2). Text,
 // a style value and a class show at once; a prop needs the component to render again, and a
 // removed declaration falls back to a value only the stylesheet knows, so both wait for the build.
+// A style value shows as the SCSS gets it: `styleText` of the server's ops (ADR 0080).
 
+import { styleText } from '../../../../src/edit/domain/op-kinds.ts';
 import type { EditOp, StyleContext } from '../../../../src/edit/index.ts';
 import { MAX_STYLE_VALUE, type PreviewChange } from '../../../channel/edit-protocol.ts';
-
-type StyleValue = Extract<EditOp, { op: 'setStyle' }>['value'];
 
 /**
  * The width and state a style op writes (spec 4c); `null` for the base and for any other op. Its
@@ -16,14 +16,6 @@ export function previewContext(op: EditOp): StyleContext | null {
   const { context } = op;
   if (context === undefined || (context.width === null && context.state === null)) return null;
   return context;
-}
-
-/**
- * A style value as the SCSS gets it. The same rule as `styleText` in `src/edit/domain/ops.ts`,
- * repeated here because the client may not import values from `src/`.
- */
-function cssOf(value: StyleValue): string {
-  return 'token' in value ? `var(${value.token})` : value.raw;
 }
 
 /**
@@ -38,7 +30,7 @@ export function previewOf(op: EditOp): PreviewChange | null {
     case 'setText':
       return { id: op.id, kind: 'text', value: op.value };
     case 'setStyle': {
-      const value = cssOf(op.value);
+      const value = styleText(op.value).value;
       return sendable(value) ? { id: op.id, kind: 'style', property: op.property, value } : null;
     }
     case 'addClass':

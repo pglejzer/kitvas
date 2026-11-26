@@ -5,13 +5,7 @@
 // as in stage 4a and are not checked here. Pure: the caller says which images the version has.
 
 import type { StyleValue } from '../ops.ts';
-import {
-  isKeywordProperty,
-  type KeywordProperty,
-  keywordsOf,
-  kindOf,
-  type Refusal,
-} from '../types.ts';
+import { isKeywordProperty, keywordsOf, kindOf, type Refusal } from '../types.ts';
 
 /** A file of the version's `src/img` that a style may name: no folder, quote, space or bracket. */
 export const IMAGE_FILE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
@@ -40,9 +34,9 @@ const SHORT_WORDS: ReadonlyMap<string, string> = new Map([
 
 /**
  * The keyword a kit prop's value stands for: the keyword itself, or the kit's short word for it.
- * `null` when the word names no keyword of the property.
+ * `null` when the word names no keyword of the property, and for a property that takes none.
  */
-export function keywordOfWord(property: KeywordProperty, word: string): string | null {
+export function keywordOfWord(property: string, word: string): string | null {
   const words = keywordsOf(property) ?? [];
   if (words.includes(word)) return word;
   const long = SHORT_WORDS.get(word);

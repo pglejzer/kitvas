@@ -1,8 +1,8 @@
 // One element found again among the elements of another version of its file (spec 4d, goal 5;
-// plan 17, task D): the server twin of ADR 0052's best effort, which the editor runs after Claude
+// plan 17, task D): the server side of ADR 0052's best effort, which the editor runs after Claude
 // changed a file (`client/studio/edit/sync/match.ts`). Pure: the caller reads the files and hands
-// in what each element is. The scores and the threshold are the client's, so the timeline and the
-// selection agree on what "the same element" is.
+// in what each element is. The editor takes the scores and the threshold from here (ADR 0080), so
+// the timeline and the selection agree on what "the same element" is.
 
 /** What the matching reads of one element. */
 export type ElementFacts = {
