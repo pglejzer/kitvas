@@ -11,6 +11,7 @@ test('the entry hands the frame runtime the states, its stamp and a way to mount
       states: ['filled', 'empty'],
       defaultState: 'filled',
       options: [],
+      shared: [],
       themes: [],
       runtime: 'abc123',
     }),
@@ -65,6 +66,7 @@ test('options go to the runtime as data and to the draft as the choice it is ren
       },
     ],
     // Not the option `theme`: the themes stay out of the entry.
+    shared: [],
     themes: [{ id: 'dark', attributes: { 'data-scheme': 'dark' } }],
     runtime: 'r',
   });
@@ -94,6 +96,7 @@ test('with the option theme, the attributes of the themes that have some go to t
         ],
       },
     ],
+    shared: [],
     themes: [
       { id: 'light', attributes: {} },
       { id: 'dark', attributes: { 'data-mui-color-scheme': 'dark' } },
@@ -116,6 +119,7 @@ test('the entry makes no root itself: only `mount` does, when the runtime calls 
     states: ['a'],
     defaultState: 'a',
     options: [],
+    shared: [],
     themes: [],
     runtime: 'r',
   });
@@ -131,6 +135,7 @@ test('the stamp of the runtime is written as a string, whatever it holds', () =>
     states: ['a'],
     defaultState: 'a',
     options: [],
+    shared: [],
     themes: [],
     runtime: '"x',
   });
@@ -146,6 +151,7 @@ test('the providers of the kit wrap the draft, the first outermost', () => {
     states: ['filled'],
     defaultState: 'filled',
     options: [],
+    shared: [],
     themes: [],
     runtime: 'abc123',
   });
@@ -172,6 +178,7 @@ test('a provider bound to a theme export gets it as a prop, its import after the
     states: ['filled'],
     defaultState: 'filled',
     options: [],
+    shared: [],
     themes: [],
     runtime: 'abc123',
   });
@@ -207,4 +214,68 @@ test('output paths sit in folders by file type', () => {
     css: 'v2/build/css/index.css',
     ids: 'v2/build/json/ids.json',
   });
+});
+
+const RANGE = {
+  id: 'range',
+  label: 'Range',
+  default: '30d',
+  values: [
+    { id: '30d', label: '30 days' },
+    { id: '90d', label: '90 days' },
+  ],
+};
+
+test('shared values are held by the entry and the draft is drawn through Held', () => {
+  const source = mountSource({
+    providers: [],
+    states: ['filled'],
+    defaultState: 'filled',
+    options: [],
+    shared: [RANGE],
+    themes: [],
+    runtime: 'r',
+  });
+  assert.ok(source.includes("import { useState } from 'react';"));
+  assert.ok(source.includes("import { holdShared, startFrame } from 'kitvas-frame';"));
+  assert.ok(source.includes('const SHARED = [{"id":"range","label":"Range","default":"30d",'));
+  assert.ok(source.includes('const shared = holdShared(SHARED);'));
+  assert.ok(source.includes('function Held(props: { state: string }) {'));
+  assert.ok(source.includes('const [now, setNow] = useState(shared.get());'));
+  assert.ok(
+    source.includes(
+      '<Draft {...props} shared={now} setShared={(change) => setNow(shared.set(change))} />',
+    ),
+  );
+  assert.ok(source.includes('root.render(<Held state={shown} />)'));
+  assert.ok(!source.includes('root.render(<Draft'));
+});
+
+test('with options and shared values Held takes the choice too', () => {
+  const source = mountSource({
+    providers: [],
+    states: ['filled'],
+    defaultState: 'filled',
+    options: [RANGE],
+    shared: [RANGE],
+    themes: [],
+    runtime: 'r',
+  });
+  assert.ok(source.includes('props: { state: string; options: Record<string, string> }'));
+  assert.ok(source.includes('root.render(<Held state={shown} options={choice} />)'));
+});
+
+test('a draft with no shared values has no trace of them in the entry', () => {
+  const source = mountSource({
+    providers: [],
+    states: ['filled'],
+    defaultState: 'filled',
+    options: [],
+    shared: [],
+    themes: [],
+    runtime: 'r',
+  });
+  for (const word of ['holdShared', 'useState', 'Held', 'SHARED']) {
+    assert.ok(!source.includes(word), word);
+  }
 });

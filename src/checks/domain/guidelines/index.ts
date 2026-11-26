@@ -2,6 +2,7 @@
 
 import { LOCK_GUIDELINES } from '../locks/guideline.ts';
 import { OPTION_GUIDELINES } from '../options/guideline.ts';
+import { SHARED_GUIDELINES } from '../shared-values/guideline.ts';
 import { A11Y_GUIDELINES } from './a11y.ts';
 import { CRAFT_GUIDELINES } from './craft.ts';
 import { DEEP_GUIDELINES } from './deep.ts';
@@ -40,6 +41,7 @@ export const GUIDELINES: readonly Guideline[] = [
   ...CRAFT_GUIDELINES,
   ...LOCK_GUIDELINES,
   ...OPTION_GUIDELINES,
+  ...SHARED_GUIDELINES,
   ...MANUAL_GUIDELINES,
 ];
 

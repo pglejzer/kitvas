@@ -58,7 +58,7 @@ export function noEffectFindings(baseline: string, matches: readonly ShotMatch[]
 }
 
 /** Comments as spaces, newlines kept, so a place in the text stays the place in the file. */
-const blanked = (text: string): string =>
+export const blanked = (text: string): string =>
   text
     .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ' '))
     .replace(/(^|[^:])\/\/[^\n]*/g, (line) => line.replace(/[^\n]/g, ' '));

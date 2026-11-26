@@ -41,6 +41,8 @@ import { type Bundle, createSwap, pagePorts, register, running } from './page/sw
 import { createThemeBody } from './page/theme-body.ts';
 import { setTones } from './tones/tones.ts';
 
+/** The entry of a draft with shared values holds them with this. */
+export { holdShared } from './page/shared-values.ts';
 export type { Mounted } from './page/swap.ts';
 
 /** What the generated entry hands over (`src/render/domain/mount.ts`). */

@@ -2,12 +2,12 @@
 
 Read by the `maker` agent before it writes a section. Each rule has an id; reports cite it.
 
-Also read `reference/anti-slop.md`, in this folder: the generic look a generated screen must not have, and what to do instead.
+Also read two files in this folder. `reference/anti-slop.md`: the generic look a generated screen must not have, and what to do instead. `reference/controls.md`, when the section has a control: how it looks in every state (hover, focus, pressed, on) and what it must do.
 
 ## Structure
 
 - R-COMPOSE-1: Write exactly three files per section: the TSX file and the SCSS file named in `files` of the context, and the reasons file of R-COMPOSE-46. Nothing else, nothing outside the draft folder.
-- R-COMPOSE-2: The TSX exports one function component named as `section.component` in the context. It takes `{ state: string }`, and `{ state: string; options: Options }` when `options` in the context is not empty (`import type { Options } from '../options.ts';`). Nothing else.
+- R-COMPOSE-2: The TSX exports one function component named as `section.component` in the context. It takes `{ state: string }`; add `options: Options` when `options` in the context is not empty (`import type { Options } from '../options.ts';`), and `shared: Shared; setShared: SetShared` when the section reads or sets one of the context's `sharedValues` (`import type { SetShared, Shared } from '../shared.ts';`, R-CONTROL-12 of `reference/controls.md`). Nothing else.
 - R-COMPOSE-3: Never edit the generated entry files `index.tsx` and `index.scss`, and never write another section's files.
 - R-COMPOSE-4: Import only from `@kit`, `react` and the draft's own files (`./` and `../`). Any other import is a `ds/foreign-import` finding.
 - R-COMPOSE-5: Give the section's root element the section id as its class name, for example `className="hero"`. Style it from the SCSS file with that class.

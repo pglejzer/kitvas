@@ -67,6 +67,7 @@ Read by the `patcher` agent. A finding has `rule` (`<check>/<name>`), `severity`
 
 - R-FIND-36: `ux/<name>` findings are about forms, states and actions. Fix them with the kit's field, feedback and button components and their props: a visible label, one primary variant per section, a state's text and one action, a real label for a link or button.
 - R-FIND-44: `ux/dead-control` (review): using the named control changed nothing on the page beyond the control itself (in an `empty`, `loading` or `error` state only buttons are checked). Make it change what the brief says it changes: render the section from the value the control holds, or, when another section shows the result, set a shared value and read it there (R-CONTROL-11, 12 and 27). A control that leads out of the screen answers with a `role="status"` line (R-CONTROL-13). When the brief gives the control nothing to change, take it out and say so in the report (R-CONTROL-25). Never add a change for show (a class, a counter nobody reads).
+- R-FIND-45: `ux/shared-unused` (fix): a value of `v<N>/src/json/shared.json` that no section sets has no control, and one that no section reads changes nothing. Add the missing half in the section the layout names: `setShared({ <id>: … })` at the control, `shared.<id>` where the result shows. Never edit `shared.json`, `shared.ts` or `index.tsx`; a value the screen does not need goes into the report.
 - R-FIND-37: `ux/placeholder-text`: replace the text with real content from the brief. Never reword it to dodge the match.
 
 ## Guideline details
