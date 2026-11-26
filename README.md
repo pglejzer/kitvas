@@ -7,41 +7,19 @@
 
 <p align="center"><strong>Build with your design system. Validate automatically. Edit visually.</strong></p>
 
-kitvas is a Claude Code plugin that builds UI prototypes from your project's own design system, checks them, and shows them in a local studio where you can edit them.
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.0.0-b4571a" alt="Version 1.0.0">
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-PolyForm%20Shield%201.0.0-b4571a" alt="License: PolyForm Shield 1.0.0"></a>
+  <img src="https://img.shields.io/badge/node-24.22.3%2B-b4571a" alt="Node 24.22.3 or later">
+</p>
 
-It is for anyone who builds screens on a design system: a developer with no designer at hand, a product team that has designers, the maintainers of a design system, or someone making their own product. You go from an idea to a checked prototype on your own machine.
+kitvas is a Claude Code plugin that builds UI prototypes from your project's own design system, checks them in a real browser and shows them in a local studio with a visual editor. It is for developers and design-system maintainers who want a screen made of their own components and tokens. You end up with a checked React draft that you can edit, version and hand off to your code. Without a learned kit it builds from the built-in kit, Base.
 
-![A screen asked for in Claude Code, the built and checked draft in the local studio, and a change made in the editor](docs/readme/demo.gif)
+![A request typed in Claude Code, then the generated dashboard in the local studio: the Checks tab with nothing to fix, the phone width, and in the editor a kit button's variant changed and written to the draft's file](docs/readme/demo.gif)
 
-## Why
+[![The kitvas studio showing the generated revenue dashboard, with a play mark and the words "Watch the walk-through"](docs/readme/showcase-poster.png)](docs/readme/showcase.mp4)
 
-- **Generated UI ignores your design system.** kitvas builds only from a kit: the catalog of components, tokens and icons it learned from your project. Without one it uses a built-in kit, Base.
-- **Nobody checks the result.** kitvas builds the draft, type-checks it, applies the kit's rules, and opens the page in a real browser at 390 and 1280 px in every state, measures it at 768 px too, and adds a reflow check at 320 px. `kitvas check --deep` also measures 1024, 1440, 1920 and 2560.
-- **A choice between looks means a copy of the version.** A version can hold options (columns, kinds of card, a light and a dark theme when the kit has them, or when you let kitvas add the missing one to your project's additions, marked as yours); the check visits each value, and hand-off takes the default.
-- **Changing one detail means prompting again.** The studio's editor writes your change into the draft's own TSX or SCSS, touching only the lines it changes.
-- **Generated code lands in your application before anyone has looked at it.** Drafts stay in `.kitvas/`. When one is finished, `/kitvas:handoff code` puts it into your project in the project's own technology, only where you say, or `/kitvas:handoff figma` sends it to your Figma file as editable layers.
-
-## Runs on your machine
-
-The studio is a local process on 127.0.0.1 and needs no account. Everything stays under `.kitvas/` in your project until you export it or hand it off. kitvas writes into your application only through `/kitvas:handoff code`, and only where you say.
-
-kitvas itself calls the network in three cases: the npm install of its own packages, the Chromium download when you ask for it, and a page you ask it to read. kitvas sends your drafts to nobody; `/kitvas:handoff figma` sends one to your own Figma file through your own Figma MCP, after you say yes. Claude Code itself sends what it reads to the model, as in any session.
-
-The rest is in [docs/security.md](docs/security.md).
-
-| The studio's start page                           | The editor                                                                                  | A generated prototype                                      |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| ![The studio's start page](docs/readme/start.png) | ![The editor, where a change is written into the draft's own files](docs/readme/editor.png) | ![A prototype generated from a kit](docs/readme/draft.png) |
-
-## Requirements
-
-- Claude Code.
-- Node 24.22.3 or later in the 24 line, or 26.13.1 or later.
-- Access to the npm registry during the first session.
-- Chrome, Edge or Chromium for the browser checks. `kitvas browser` says which one is used; `kitvas browser install` downloads Chromium when none is found.
-- No MCP server is needed. Two are optional, and both are your own: a Figma MCP to learn a kit from a Figma file or send a draft to one, and a browser MCP (Chrome DevTools or Playwright) only to read a page behind a login.
-
-There is no global `kitvas` command. In these docs `kitvas <command>` means `node <plugin folder>/bin/kitvas.ts <command>`; [Commands](docs/commands.md) says where the plugin folder is.
+[Watch the 54-second walk-through](docs/readme/showcase.mp4). It has captions and no sound. The wait for the build is cut from both recordings, and the draft they show is version 3.
 
 ## Install
 
@@ -62,7 +40,68 @@ In your project folder, in Claude Code:
 2. Choose a kit. If your project has a design system, type `/kitvas:learn`; otherwise go on with Base.
 3. Type `/kitvas:compose` with a description, for example `/kitvas:compose a pricing page with three plans and a FAQ`. Claude asks at most three questions, builds the sections, checks them and fixes what it can.
 4. Open the link Claude gives you. It is a one-time link, valid for 60 seconds, to `http://kitvas.localhost:<port>/`. Your browser then stays signed in for 30 days.
-5. Give feedback in chat, leave a note in the studio, or switch to Edit and change the draft yourself. Each round makes a new version.
+5. Give feedback in chat, leave a note in the studio, or switch to Edit and change the draft yourself. Feedback in chat makes a new version; an editing session makes one too.
+
+## What it does
+
+### Build with your design system
+
+- `/kitvas:learn` reads an npm package, a components folder, a Figma file, a website or screenshots and writes a kit: components, tokens and icons. It then verifies the kit against the real packages and a browser.
+- `/kitvas:compose` writes a brief and a layout, then one agent writes each section in the kit's components and `--kit-*` tokens. Drafts import only from the kit.
+- `/kitvas:rework` takes a page you have, as a URL, a screenshot or a Figma link, builds a better version in your kit and checks it against a list of things that must stay.
+- `/kitvas:craft` draws a missing component, icon or logo as three sketches. The one you pick is added to your project's additions to the kit.
+
+### Validate automatically
+
+- Every draft is checked in a real browser: build, types, the kit's rules, accessibility, layout and runtime errors, at several widths and in every state. Raw colours and sizes are flagged. [docs/checks.md](docs/checks.md) lists the widths and what `--deep` adds.
+- Every control is hovered with a real pointer and given keyboard focus, and the contrast of its text is measured in both. Each button, toggle group, select and search field is used once, and a control that changes nothing is reported.
+
+### Edit visually
+
+- A change in the studio lands in the draft's own TSX and SCSS, or Tailwind classes, touching only the lines it changes. Kit tokens come first, every step can be undone, and a change that cannot be written is refused with the reason.
+- Columns, kinds of card or a theme are options of one version and one build, and the check visits each value. Values a person chooses on the page, such as a date range, can be shared between sections.
+- Each round is a version. Two versions open side by side, and the timeline shows any earlier one read-only.
+- The editor needs no model. To ask Claude from it, with a sentence about what you selected or with Improve, keep a `/kitvas:edit <draft>` session listening.
+
+### Hand off
+
+- `/kitvas:handoff code` puts a finished draft into your project in its own technology, only where you say.
+- `/kitvas:handoff figma` sends editable layers to your Figma file. It needs your own Figma MCP.
+
+## How it works
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/readme/workflow-dark.svg">
+    <img src="docs/readme/workflow.svg" alt="How a screen moves through kitvas: your request and your kit go into Compose, Check and Studio run on your machine with no model and send fix rounds and next versions back to Compose, and a finished draft is handed off to your code or to Figma" width="900">
+  </picture>
+</p>
+
+- You describe a screen. Claude reads the kit and your project's decisions and writes a brief and a layout.
+- Agents write the sections, and kitvas builds the draft and checks it in a browser. Claude reads the screenshots and fixes findings in at most two rounds.
+- The studio opens on 127.0.0.1. There you edit with no model, or ask Claude from the editor.
+- Feedback in chat starts a new version and runs the same path again. When the draft is right, a hand-off puts it into your code or your Figma file.
+
+More in [How it works](docs/how-it-works.md).
+
+## The studio and the editor
+
+![The editor: layers on the left, the dashboard on the canvas with one element selected, its properties on the right](docs/readme/editor.png)
+
+![Version 1 and the latest version of the dashboard side by side, with the count of what changed, was added and was removed](docs/readme/versions.png)
+
+| The start page                                                                   | A generated draft                                                                                                                  | The Checks tab                                                                                               |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| ![The studio's start page with the drafts of the project](docs/readme/start.png) | ![The generated revenue dashboard as a page: filters, four key numbers, two charts and a table of accounts](docs/readme/draft.png) | ![The Checks tab of the first version with its notes, and their marks on the canvas](docs/readme/checks.png) |
+| Drafts grouped by kit, with live thumbnails.                                     | The prototype as a page, built from the kit.                                                                                       | Findings with a place and a hint, marked on the canvas.                                                      |
+
+## Use cases
+
+- A new screen for a product that already has a design system.
+- A page you already have that needs a better version, with its content and purpose kept.
+- A component, icon or logo that your kit does not have yet.
+- A screen for a project with no design system: the built-in kit, Base, is used.
+- A finished draft that has to go into your project, in the project's own technology.
 
 ## Skills
 
@@ -74,13 +113,33 @@ In your project folder, in Claude Code:
 | `/kitvas:craft`                 | A missing component, icon or logo, and an example                            | Three sketches; the one you pick goes into your kit's additions                           |
 | `/kitvas:learn`                 | A design system: a package, a folder, a Figma file, a website or screenshots | A kit in `.kitvas/kits/<id>/`                                                             |
 | `/kitvas:kit`                   | A question about the kit                                                     | Its components, tokens and icons                                                          |
-| `/kitvas:edit <draft>`          | An open studio editor                                                        | Claude answers its requests while you edit                                                |
-| `/kitvas:handoff figma <draft>` | A finished draft and your Figma file                                         | Editable layers in Figma, named by your kit, with its tokens as variables                 |
+| `/kitvas:edit <draft>`          | A draft open in the studio editor                                            | Claude answers the editor's requests while the session listens                            |
+| `/kitvas:handoff figma <draft>` | A finished draft, your Figma file and your Figma MCP                         | Editable layers in Figma, with the kit's tokens as variables                              |
 | `/kitvas:handoff code <draft>`  | A finished draft and where it goes in your project                           | The draft in your project's own technology, checked by your scripts and against the draft |
 
-Rework keeps the content and purpose and may change the layout. The report says how many of the original's problems are gone.
+Rework keeps the content and purpose and may change the layout. For a URL, the report says how many of the original's problems are gone.
 
-## Read more
+## Runs on your machine
+
+The studio and your files are local. The studio is a process on 127.0.0.1 and needs no account; it stops after 240 idle minutes by default. Your drafts, kits and decisions stay under `.kitvas/` in your project. The plugin's own packages, the browser it downloads and its settings are in `~/.kitvas/`. kitvas writes into your application only through `/kitvas:handoff code`, and only where you say. `craft export` writes to a folder you name.
+
+The model is not local. Claude Code sends what a session reads, such as kit files, draft files, screenshots and your notes, to the model, as in any session. The visual editor alone works with no network and no model; asking Claude from it needs a listening `/kitvas:edit` session.
+
+kitvas itself calls the network in these cases: the npm install of its own packages, the Chromium download when you ask for it, and a page you ask it to read. Local and private addresses are refused unless you allow them. Web research by `kitvas:scout` goes through Claude Code's own tools with public terms only. kitvas sends your drafts to nobody; `/kitvas:handoff figma` sends one to your own Figma file through your own Figma MCP, after you say yes.
+
+The rest is in [docs/security.md](docs/security.md).
+
+## Requirements
+
+- Claude Code.
+- Node 24.22.3 or later in the 24 line, or 26.13.1 or later.
+- Access to the npm registry during the first session.
+- Chrome, Edge or Chromium for the browser checks. `kitvas browser` says which one is used; `kitvas browser install` downloads Chromium when none is found. Without a browser the browser checks are skipped with a note.
+- No MCP server is needed. Optional, and all your own: a Figma MCP to learn a kit from a Figma file or send a draft to one, any MCP of yours that can read a page behind a login, and Context7 if it is installed.
+
+There is no global `kitvas` command. In these docs `kitvas <command>` means `node <plugin folder>/bin/kitvas.ts <command>`; [Commands](docs/commands.md) says where the plugin folder is.
+
+## Documentation
 
 - [How it works](docs/how-it-works.md): the path of one screen, where files live, and what each agent writes.
 - [Your design system](docs/kits.md): how to learn a kit from a package, a folder, Figma, a website or screenshots.
@@ -92,7 +151,7 @@ Rework keeps the content and purpose and may change the layout. The report says 
 
 ## Status
 
-1.0.0. Prototypes are React, with SCSS or with Tailwind v4 when the kit uses it, whatever your application is written in. A hand-off puts a finished one into your project in the project's own technology.
+1.0.0. Prototypes are React, with SCSS or with Tailwind v4 when the kit uses it, whatever your application is written in; Tailwind v3 is not supported. A hand-off puts a finished prototype into your project in the project's own technology.
 
 ## Develop
 
@@ -101,8 +160,8 @@ npm ci --ignore-scripts
 npm run check
 ```
 
-`AGENTS.md` has the rules. `docs/adr/README.md` indexes the decisions. `CHANGELOG.md` lists the changes. `evals/README.md` explains the skill evals. [CONTRIBUTING.md](CONTRIBUTING.md) says how to report a problem and what a pull request has to pass; everyone who takes part follows the [code of conduct](CODE_OF_CONDUCT.md).
+The rules are in `AGENTS.md`, the decisions in `docs/adr/README.md`, the changes in `CHANGELOG.md` and the skill evals in `evals/README.md`. [CONTRIBUTING.md](CONTRIBUTING.md) says how to report a problem and what a pull request has to pass; everyone who takes part follows the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-Licensed under the [PolyForm Shield License 1.0.0](LICENSE.md). You may use, modify, and distribute kitvas, including for commercial purposes, provided that you do not use it to offer competing products or services.
+Licensed under the [PolyForm Shield License 1.0.0](LICENSE.md). You may use, modify, and distribute kitvas, including for commercial purposes, provided that you do not use it to offer competing products or services. This is a source-available license, not an OSI-approved open source license.

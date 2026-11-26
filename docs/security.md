@@ -72,8 +72,9 @@ The kitvas studio is a local HTTP server that shows UI prototypes in the user's 
 
 - The studio binds to 127.0.0.1 and needs no account. Pages need a cookie that only a one-time link gives. Prototypes run in a sandboxed frame on a second port.
 - kitvas itself calls the network in three cases: the npm install of its own packages, the Chromium download when you ask for it, and a page you ask it to read. A local or private address is refused unless you pass `--allow-private`.
-- The `kitvas:scout` agent searches the public web through Claude Code's own tools. Its queries carry only the public terms of a question, never your name, paths, code or draft text (`reference/scout.md`).
-- Figma is read, and a draft is sent to it, only through your own Figma MCP, and a send starts only after you say yes. kitvas holds no key and calls no Figma API itself.
+- The `kitvas:scout` agent searches the public web through Claude Code's own search and fetch tools, not a call of kitvas. Its queries carry only the public terms of a question, never your name, paths, code or draft text (`reference/scout.md`).
+- The `kitvas:learner` agent may use a documentation MCP (Context7) for a well-known package, when you have one installed. Without it the agent reads the package alone.
+- Figma is read, and a draft is sent to it, only through your own Figma MCP. A send starts after you say yes, unless a line in the `## Handoff` section of the project's `.kitvas/decisions.md` says to send without asking. kitvas holds no key and calls no Figma API itself.
 - Apart from a Figma send you asked for, kitvas sends your drafts to nobody. Claude Code itself sends what it reads to the model, as in any session. That is not a kitvas feature, and it applies to the files of a draft Claude reads.
 
 ## Reporting

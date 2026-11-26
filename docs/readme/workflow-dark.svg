@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 196" width="1200" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="t">How a screen moves through kitvas</title>
+  <desc id="d">Six parts joined in a row. Your request and your kit go into Compose, where one agent writes each section. Check builds the draft and reads it in a real browser, and sends it back to Compose for fix rounds. The Studio shows it, lets you edit it and compare versions; your feedback or your edits start the next version in Compose. A finished draft is handed off to your code or to Figma. Check and Studio run on your machine, with no model.</desc>
+  <path d="M-1.5 -3.5H1.5A2 2 0 0 1 3.5 -1.5V1.5A2 2 0 0 1 1.5 3.5H-1.5A2 2 0 0 1 -3.5 1.5V-1.5A2 2 0 0 1 -1.5 -3.5Z" transform="translate(518 22) rotate(-15) scale(1.5)" fill="#b4571a"/>
+  <text x="531" y="26.5" font-size="12.5" fill="#e08a4f">runs on your machine, with no model</text>
+  <path d="M19 44H161Q165 44 165 48V72L179 68V92L165 88V112Q165 116 161 116H19Q15 116 15 112V48Q15 44 19 44Z" fill="#e9ebee"/>
+  <text x="33" y="75" font-size="17" font-weight="600" fill="#1d2025">Your request</text>
+  <text x="33" y="96" font-size="12.5" fill="#3d434c">in your own words</text>
+  <path d="M175 44H327Q331 44 331 48V72L345 68V92L331 88V112Q331 116 327 116H175Q171 116 171 112V94.5L185 98.5V61.5L171 65.5V48Q171 44 175 44Z" fill="#e9ebee"/>
+  <text x="201" y="75" font-size="17" font-weight="600" fill="#1d2025">Your kit</text>
+  <text x="201" y="96" font-size="12.5" fill="#3d434c">components, tokens</text>
+  <path d="M341 44H503Q507 44 507 48V72L521 68V92L507 88V112Q507 116 503 116H341Q337 116 337 112V94.5L351 98.5V61.5L337 65.5V48Q337 44 341 44Z" fill="#e9ebee"/>
+  <text x="367" y="75" font-size="17" font-weight="600" fill="#1d2025">Compose</text>
+  <text x="367" y="96" font-size="12.5" fill="#3d434c">one agent a section</text>
+  <path d="M517 44H754Q758 44 758 48V72L772 68V92L758 88V112Q758 116 754 116H517Q513 116 513 112V94.5L527 98.5V61.5L513 65.5V48Q513 44 517 44Z" fill="#b4571a"/>
+  <text x="543" y="75" font-size="17" font-weight="600" fill="#ffffff">Check</text>
+  <text x="543" y="96" font-size="12.5" fill="#ffffff">build, types, kit rules, browser</text>
+  <path d="M768 44H1005Q1009 44 1009 48V72L1023 68V92L1009 88V112Q1009 116 1005 116H768Q764 116 764 112V94.5L778 98.5V61.5L764 65.5V48Q764 44 768 44Z" fill="#b4571a"/>
+  <text x="794" y="75" font-size="17" font-weight="600" fill="#ffffff">Studio</text>
+  <text x="794" y="96" font-size="12.5" fill="#ffffff">look, edit, compare versions</text>
+  <path d="M1019 44H1181Q1185 44 1185 48V112Q1185 116 1181 116H1019Q1015 116 1015 112V94.5L1029 98.5V61.5L1015 65.5V48Q1015 44 1019 44Z" fill="#e9ebee"/>
+  <text x="1045" y="75" font-size="17" font-weight="600" fill="#1d2025">Hand-off</text>
+  <text x="1045" y="96" font-size="12.5" fill="#3d434c">your code or Figma</text>
+  <g fill="none" stroke="#c9ccd1" stroke-width="1.5">
+    <path d="M560 116V138Q560 142 556 142H474Q470 142 470 138V125"/>
+    <path d="M811 116V166Q811 170 807 170H434Q430 170 430 166V125"/>
+  </g>
+  <path d="M465 126L470 117L475 126ZM425 126L430 117L435 126Z" fill="#c9ccd1"/>
+  <text x="572" y="146" font-size="12.5" fill="#e9ebee">fix rounds</text>
+  <text x="823" y="174" font-size="12.5" fill="#e9ebee">next version, from your feedback or your edits</text>
+</svg>
