@@ -134,10 +134,7 @@ test('options write the type file and an entry that passes them on; removing the
     'v1/src/tsx/options.ts',
   ]);
   assert.match(store.readText('shop', 'v1/src/tsx/options.ts') ?? '', /"columns": "3" \| "2"/);
-  assert.match(
-    store.readText('shop', 'v1/src/tsx/index.tsx') ?? '',
-    /<Hero state=\{state\} options=\{options\} \/>/,
-  );
+  assert.match(store.readText('shop', 'v1/src/tsx/index.tsx') ?? '', /<Hero \{\.\.\.props\} \/>/);
 
   store.replaceAll('shop', [{ relPath: 'v1/src/json/options.json', text: null }]);
   const without = checkLayout(store, kits, 'shop');

@@ -40,13 +40,14 @@ export const SKIN_EDITOR_OPTIONS = `
   display: none;
 }
 
-/* The row under the pills. Folded, it is out of the tab order and out of the way. */
+/* The row under the pills. Folded, it is out of the tab order and out of the way. It holds no menu,
+   so it lies one layer under the pills: a pill's menu opens downwards, over the row. */
 .opt-row {
   position: absolute;
   top: var(--opt-top);
   right: var(--st-space-12);
   left: var(--st-space-12);
-  z-index: 3;
+  z-index: 2;
   display: flex;
   align-items: center;
   height: var(--opt-h);

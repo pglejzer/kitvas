@@ -54,13 +54,16 @@ test('no options give the same entry as before, byte for byte', () => {
   assert.equal(entryTsx(SECTIONS, []), entryTsx(SECTIONS));
 });
 
-test('options add the type, the prop of Draft and the prop of every section', () => {
+test('options add the type and the prop of Draft, and every section gets the props whole', () => {
   const text = entryTsx(SECTIONS, OPTIONS);
   assert.ok(text.includes("import type { Options } from './options.ts';"));
   assert.ok(text.includes('export type DraftProps = { state: string; options: Options };'));
-  assert.ok(text.includes('export function Draft({ state, options }: DraftProps) {'));
-  assert.ok(text.includes('      <Hero state={state} options={options} />'));
-  assert.ok(text.includes('      <OrderSummary state={state} options={options} />'));
+  assert.ok(text.includes('export function Draft(props: DraftProps) {'));
+  // A spread, not a named `options`: a section that reads no option keeps `{ state: string }`
+  // and still passes the type check, so a new option touches only the sections that use it.
+  assert.ok(text.includes('      <Hero {...props} />'));
+  assert.ok(text.includes('      <OrderSummary {...props} />'));
+  assert.ok(!text.includes('options={options}'));
 });
 
 test('the Options type has the exact values of each option, written through JSON.stringify', () => {
