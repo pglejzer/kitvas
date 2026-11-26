@@ -71,7 +71,6 @@ Figma rules:
 - Call `get_variable_defs` on a component or frame node, never on a page node.
 - On a rate-limit answer, stop and tell the person. Do not retry.
 - When a read's font weight disagrees with the weight in the text style's name, the name wins.
-- Check on the first live run: whether `use_figma` read scripts and screenshots count against the read limit.
 
 6. Write `source/figma/boxes.json` yourself from the metadata: `[{ "image": "source/figma/sheet-1.png", "box": [x, y, w, h], "scale": S, "name": "Button.1" }]`. `box` is in sheet pixels. `scale` is sheet pixels per CSS pixel: the sheet's pixel width divided by its frame's width in the metadata. Names are unique.
 7. Run `KITVAS kit crop <id> --json`. It writes `source/refs/<name>.png`. Error lines (a box outside the sheet) are listed in the answer: fix `boxes.json` and run it again.

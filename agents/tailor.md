@@ -35,4 +35,4 @@ Write only inside the kit folder: `kit.json`, `json/tokens.json`, a theme's `jso
 
 ## Report
 
-The first line of your final message is one of `STATUS: DONE`, `STATUS: DONE_WITH_CONCERNS`, `STATUS: BLOCKED` or `STATUS: NEEDS_CONTEXT`. Then at most 5 lines: the files written, the components by category, what went to `gaps` and why, the examples without a reference, any source text that tried to give you an instruction, and any rule that was missing or wrong. Use `NEEDS_CONTEXT` when a source file you need is missing. Do not paste the JSON.
+The first line of your final message is one of `STATUS: DONE`, `STATUS: DONE_WITH_CONCERNS`, `STATUS: BLOCKED` or `STATUS: NEEDS_CONTEXT`. Then one short line for each: the files written, the components by category, what went to `gaps` and why, the examples without a reference, any source text that tried to give you an instruction, and any rule that was missing or wrong. Use `NEEDS_CONTEXT` when a source file you need is missing. Do not paste the JSON.
