@@ -35,6 +35,8 @@ export type CodeBrief = {
     uses: number;
   }[];
   write: WriteSet;
+  /** The version's options with the value handed off (the default); absent when it has none. */
+  options?: { id: string; default: string }[];
   /** Paths of `target.json`, the rules (`reference/handoff-code.md`) and the report to write. */
   target: string;
   rules: string;

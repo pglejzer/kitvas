@@ -7,7 +7,7 @@ Also read `reference/anti-slop.md`, in this folder: the generic look a generated
 ## Structure
 
 - R-COMPOSE-1: Write exactly three files per section: the TSX file and the SCSS file named in `files` of the context, and the reasons file of R-COMPOSE-46. Nothing else, nothing outside the draft folder.
-- R-COMPOSE-2: The TSX exports one function component named as `section.component` in the context. It takes `{ state: string }` and nothing else.
+- R-COMPOSE-2: The TSX exports one function component named as `section.component` in the context. It takes `{ state: string }`, and `{ state: string; options: Options }` when `options` in the context is not empty (`import type { Options } from '../options.ts';`). Nothing else.
 - R-COMPOSE-3: Never edit the generated entry files `index.tsx` and `index.scss`, and never write another section's files.
 - R-COMPOSE-4: Import only from `@kit`, `react` and the draft's own files (`./` and `../`). Any other import is a `ds/foreign-import` finding.
 - R-COMPOSE-5: Give the section's root element the section id as its class name, for example `className="hero"`. Style it from the SCSS file with that class.
@@ -41,6 +41,16 @@ Also read `reference/anti-slop.md`, in this folder: the generic look a generated
 - R-COMPOSE-16: Choose by the `state` prop, for example `state === 'empty'`. Do not read the address, storage or a timer.
 - R-COMPOSE-17: An empty state says what is missing and what to do. A loading state says that it is loading. An error state says what went wrong and offers a way on.
 - R-COMPOSE-18: The default state shows real content from the brief: real names, numbers and sentences. No lorem ipsum, no "Item 1".
+
+## Options
+
+These apply when `options` in the context lists options (ADR 0082).
+
+- R-COMPOSE-49: The default value of an option is the base code. Another value is the override, written as a block in the same rule or a branch on the prop.
+- R-COMPOSE-50: Read an option only through the prop (`options.columns === '2'`) for structure, and through `[data-opt-<id>="<value>"] &` for style. Never from the address, storage, the DOM or a timer.
+- R-COMPOSE-51: Every value of an option the section touches shows a real difference at both main widths. A value that looks like the default is an `options/no-effect` finding.
+- R-COMPOSE-52: Order of blocks in a rule: its own declarations; `@media` blocks, ascending; option blocks, in the order of `options.json` and of its values; state blocks (`&:hover`, …) last. An option block may hold `@media` and state blocks in that same order.
+- R-COMPOSE-53: A wholly different layout for a value goes into its own component file in the section's folder; the section picks it by the prop.
 
 ## Project kits and Tailwind
 

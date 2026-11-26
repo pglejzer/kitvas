@@ -362,6 +362,35 @@ test('a kit from a package names the project module and the project variable beh
   assert.deepEqual(byVar, { '--kit-color-ink': '--acme-ink', '--kit-space-sm': null });
 });
 
+test('a version with options hands off the default of each; one without has no options field', () => {
+  const input = {
+    slug: 'shop',
+    write: { to: 'src/app', scope: 'new' as const, files: [] },
+    base: '',
+  };
+  assert.equal('options' in writeBrief(depsFor(screen({}), tiny()), input).brief, false);
+
+  const store = screen({});
+  writeVersionFiles(store, 'shop', 1, {
+    'src/json/options.json': JSON.stringify({
+      schemaVersion: 1,
+      options: [
+        {
+          id: 'columns',
+          label: 'Columns',
+          default: '3',
+          values: [
+            { id: '3', label: 'Three' },
+            { id: '2', label: 'Two' },
+          ],
+        },
+      ],
+    }),
+  });
+  const { brief } = writeBrief(depsFor(store, tiny()), input);
+  assert.deepEqual(brief.options, [{ id: 'columns', default: '3' }]);
+});
+
 test('a rework draft is a screen with its own kind', () => {
   const { brief } = writeBrief(depsFor(screen({ kind: 'rework' }), tiny()), {
     slug: 'shop',

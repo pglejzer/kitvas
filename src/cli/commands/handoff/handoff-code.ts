@@ -258,6 +258,15 @@ export function renderCode(data: CodeView, t: Translate): string {
           to: write.to || '.',
         }),
       ];
+      if (data.brief.options !== undefined) {
+        lines.push(
+          t('handoff.brief.options', {
+            options: data.brief.options
+              .map((option) => `${option.id}=${option.default}`)
+              .join(', '),
+          }),
+        );
+      }
       if (!data.listed) lines.push(t('handoff.brief.unlisted'));
       return lines.join('\n');
     }

@@ -44,7 +44,7 @@ Run `KITVAS request show <id> --json`. It gives `data.request` (its `kind`, `tex
 - `note`: a note for Claude on an element; its whole text is the entry of the draft's `notes.json` whose `id` is `data.request.note`. As `ask`: change the code, then `done`, which marks the note done.
 - `why`: the reasons of a section. Write `why/<Component>.json` of its section in the latest version folder, beside `src/`, by R-COMPOSE-46 of `${CLAUDE_PLUGIN_ROOT}/reference/compose.md`, then `done`.
 
-When a `say` or `improve` needs more than the panel can do (new elements, a moved section, another file), change the code instead and use `done`. When you cannot do a request, run `KITVAS request fail <id> --reason "<why, in one line>" --json`; the person sees the reason. On `REQUEST_NOT_TAKEN` the person dropped the request or it waited too long: go on with the next one.
+When a `say` or `improve` needs more than the panel can do (new elements, a moved section, another file), change the code instead and use `done`. A request that needs a new option or a new value of one is not done from here: never edit `options.json` in this session. Run `request fail` with a reason that says what to ask for in chat ("add an option <name> with <values>": options are added through `/kitvas:compose` as a new version). When you cannot do a request, run `KITVAS request fail <id> --reason "<why, in one line>" --json`; the person sees the reason. On `REQUEST_NOT_TAKEN` the person dropped the request or it waited too long: go on with the next one.
 
 ## 4. Variants
 

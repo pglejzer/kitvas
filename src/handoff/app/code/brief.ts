@@ -10,6 +10,7 @@ import {
   inspectLayout,
   pascalCase,
   pickedFinal,
+  readOptions,
   sectionPaths,
   serializeJson,
   sketchFile,
@@ -223,6 +224,7 @@ export function writeBrief(
   const dir = `${root}/${base}/${CODE_FOLDER}`;
   const own = ownFiles(deps, inspected, root);
   const ids = builtIds(deps.drafts, slug, base);
+  const options = readOptions(deps.drafts, slug, base);
 
   const at = { slug, root, base };
   const tsx = codeOf(deps, { ...at, folder: 'tsx', ending: '.tsx' }, own, own.tsx);
@@ -274,6 +276,9 @@ export function writeBrief(
     components,
     tokens,
     write,
+    ...(options.length === 0
+      ? {}
+      : { options: options.map((option) => ({ id: option.id, default: option.default })) }),
     target: `${dir}/target.json`,
     rules: deps.rules,
     report: `${dir}/fit.json`,

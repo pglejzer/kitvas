@@ -2137,6 +2137,7 @@
   "handoff.target.capped": "A cap cut the reading; the facts are partial.",
   "handoff.brief.ok": "Brief for \"{slug}\" version {version} written to {dir}. The fitter may write {scope} files in \"{to}\".",
   "handoff.brief.unlisted": "The project has too many files to watch; \"handoff changes\" will not list them.",
+  "handoff.brief.options": "The version has options ({options}). Only this default combination is handed off; the other values in the source are not ported.",
   "handoff.changes.head": "\"{slug}\": {inside} files written inside the scope, {outside} outside it, {removed} removed.",
   "handoff.changes.unwatched": "The project was too large to watch, so the lists above may be empty.",
   "handoff.changes.outside": "  outside the scope: {path}",

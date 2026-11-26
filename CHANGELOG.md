@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Options of a version: one version can hold choices (two or three columns, another kind of card), declared in `src/json/options.json`; the build, the check and the hand-off know them (ADR 0082). `kitvas layout` writes the options type and passes `options` to every section; the check visits each other value at two widths, with the rules `options/no-effect` and `options/unknown`; hand-off takes the default combination.
 - License: PolyForm Shield 1.0.0 (LICENSE.md). kitvas may be used, modified and distributed, including for commercial purposes, provided it is not used to offer competing products or services.
 - `kitvas status` and `kitvas init`, each with `--json`.
 - The project's decisions file, `.kitvas/decisions.md`: a short front matter (`kit`, `copy`, `check`) the CLI reads, then dated decisions in five sections that every skill reads and keeps; `kitvas decisions [add | set | replace]` with `--json`, and a `decisions` check in `kitvas doctor` (ADR 0076).
