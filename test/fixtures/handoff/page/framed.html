@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Framed screen</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+      .shell {
+        display: flex;
+        width: 1280px;
+        height: 900px;
+      }
+      aside {
+        flex: none;
+        width: 240px;
+        background: #1b1d24;
+      }
+      main {
+        flex: none;
+        width: 1040px;
+        height: 900px;
+        background: #ffffff;
+      }
+      .band {
+        height: 200px;
+        background: #2f5bea;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside></aside>
+      <main id="screen"><div class="band"></div></main>
+    </div>
+  </body>
+</html>

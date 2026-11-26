@@ -1,6 +1,6 @@
 # 0076. A decisions file with front matter replaces the project's config.json
 
-Date: 2026-11-25. Status: accepted.
+Date: 2026-11-25. Status: accepted, changed in part by ADR 0078.
 
 ## Context
 

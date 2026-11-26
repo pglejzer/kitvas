@@ -18,13 +18,13 @@ It is for anyone who builds screens on a design system: a developer with no desi
 - **Generated UI ignores your design system.** kitvas builds only from a kit: the catalog of components, tokens and icons it learned from your project. Without one it uses a built-in kit, Base.
 - **Nobody checks the result.** kitvas builds the draft, type-checks it, applies the kit's rules, and opens the page in a real browser at 390 and 1280 px in every state, measures it at 768 px too, and adds a reflow check at 320 px. `kitvas check --deep` also measures 1024, 1440, 1920 and 2560.
 - **Changing one detail means prompting again.** The studio's editor writes your change into the draft's own TSX or SCSS, touching only the lines it changes.
-- **Generated code lands in your application.** Drafts stay in `.kitvas/` until you export them.
+- **Generated code lands in your application before anyone has looked at it.** Drafts stay in `.kitvas/`. When one is finished, `/kitvas:handoff code` puts it into your project in the project's own technology, only where you say, or `/kitvas:handoff figma` sends it to your Figma file as editable layers.
 
 ## Runs on your machine
 
-The studio is a local process on 127.0.0.1 and needs no account. Everything stays under `.kitvas/` in your project until you export it, and kitvas never writes into your application.
+The studio is a local process on 127.0.0.1 and needs no account. Everything stays under `.kitvas/` in your project until you export it or hand it off. kitvas writes into your application only through `/kitvas:handoff code`, and only where you say.
 
-kitvas itself calls the network in three cases: the npm install of its own packages, the Chromium download when you ask for it, and a page you ask it to read. kitvas sends your drafts to nobody. Claude Code itself sends what it reads to the model, as in any session.
+kitvas itself calls the network in three cases: the npm install of its own packages, the Chromium download when you ask for it, and a page you ask it to read. kitvas sends your drafts to nobody; `/kitvas:handoff figma` sends one to your own Figma file through your own Figma MCP, after you say yes. Claude Code itself sends what it reads to the model, as in any session.
 
 The rest is in [docs/security.md](docs/security.md).
 
@@ -38,7 +38,7 @@ The rest is in [docs/security.md](docs/security.md).
 - Node 24.22.3 or later in the 24 line, or 26.13.1 or later.
 - Access to the npm registry during the first session.
 - Chrome, Edge or Chromium for the browser checks. `kitvas browser` says which one is used; `kitvas browser install` downloads Chromium when none is found.
-- No MCP server is needed. Two are optional, and both are your own: a Figma MCP to learn a kit from a Figma file, and a browser MCP (Chrome DevTools or Playwright) only to read a page behind a login.
+- No MCP server is needed. Two are optional, and both are your own: a Figma MCP to learn a kit from a Figma file or send a draft to one, and a browser MCP (Chrome DevTools or Playwright) only to read a page behind a login.
 
 There is no global `kitvas` command. In these docs `kitvas <command>` means `node <plugin folder>/bin/kitvas.ts <command>`; [Commands](docs/commands.md) says where the plugin folder is.
 
@@ -65,15 +65,17 @@ In your project folder, in Claude Code:
 
 ## Skills
 
-| Skill                  | You give                                                                     | You get                                                                       |
-| ---------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `/kitvas`              | Nothing                                                                      | Whether kitvas is ready, the kit in use, the workspace                        |
-| `/kitvas:compose`      | A description of a screen, or feedback on a draft                            | A built and checked draft, and a studio link                                  |
-| `/kitvas:rework`       | A page you have: a URL, a screenshot or a Figma link                         | A better version in your kit, checked against a list of things that must stay |
-| `/kitvas:craft`        | A missing component, icon or logo, and an example                            | Three sketches; the one you pick goes into your kit's additions               |
-| `/kitvas:learn`        | A design system: a package, a folder, a Figma file, a website or screenshots | A kit in `.kitvas/kits/<id>/`                                                 |
-| `/kitvas:kit`          | A question about the kit                                                     | Its components, tokens and icons                                              |
-| `/kitvas:edit <draft>` | An open studio editor                                                        | Claude answers its requests while you edit                                    |
+| Skill                           | You give                                                                     | You get                                                                                   |
+| ------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `/kitvas`                       | Nothing                                                                      | Whether kitvas is ready, the kit in use, the workspace                                    |
+| `/kitvas:compose`               | A description of a screen, or feedback on a draft                            | A built and checked draft, and a studio link                                              |
+| `/kitvas:rework`                | A page you have: a URL, a screenshot or a Figma link                         | A better version in your kit, checked against a list of things that must stay             |
+| `/kitvas:craft`                 | A missing component, icon or logo, and an example                            | Three sketches; the one you pick goes into your kit's additions                           |
+| `/kitvas:learn`                 | A design system: a package, a folder, a Figma file, a website or screenshots | A kit in `.kitvas/kits/<id>/`                                                             |
+| `/kitvas:kit`                   | A question about the kit                                                     | Its components, tokens and icons                                                          |
+| `/kitvas:edit <draft>`          | An open studio editor                                                        | Claude answers its requests while you edit                                                |
+| `/kitvas:handoff figma <draft>` | A finished draft and your Figma file                                         | Editable layers in Figma, named by your kit, with its tokens as variables                 |
+| `/kitvas:handoff code <draft>`  | A finished draft and where it goes in your project                           | The draft in your project's own technology, checked by your scripts and against the draft |
 
 Rework keeps the content and purpose and may change the layout. The report says how many of the original's problems are gone.
 
@@ -89,7 +91,7 @@ Rework keeps the content and purpose and may change the layout. The report says 
 
 ## Status
 
-1.0.0. Prototypes are React, with SCSS or with Tailwind v4 when the kit uses it, whatever your application is written in.
+1.0.0. Prototypes are React, with SCSS or with Tailwind v4 when the kit uses it, whatever your application is written in. A hand-off puts a finished one into your project in the project's own technology.
 
 ## Develop
 

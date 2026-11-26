@@ -112,8 +112,48 @@ export function createProjectFiles(project: string): ProjectSetup {
     }
   };
 
+  /** Files under `folder` in name order, skipped folders not entered, at most `cap` of them. */
+  const walkUnder = (
+    folder: string,
+    prefix: string,
+    options: { skip: ReadonlySet<string>; dots: boolean; cap: number },
+    out: string[],
+  ): void => {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(folder, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => (a.name < b.name ? -1 : Number(a.name > b.name)));
+    for (const entry of entries) {
+      if (out.length >= options.cap) return;
+      const path = join(folder, entry.name);
+      const rel = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) {
+        if (options.skip.has(entry.name) || (options.dots && entry.name.startsWith('.'))) continue;
+        walkUnder(path, rel, options, out);
+      } else if (entry.isFile()) {
+        // Never entered through a link, so a plain file is inside the project by construction.
+        out.push(rel);
+      } else if (entry.isSymbolicLink() && isFile(path) && staysInside(path)) {
+        out.push(rel);
+      }
+    }
+  };
+
   return {
     exists: (relPath) => locate(relPath) !== undefined,
+    walk(relPath, { skip, cap }) {
+      if (cap < 1) return [];
+      const folder = relPath === '' ? root : exact(relPath);
+      if (folder === undefined || !isFolder(folder)) return [];
+      if (relPath !== '' && !staysInside(folder)) return [];
+      const files: string[] = [];
+      const names = new Set(skip);
+      walkUnder(folder, '', { skip: names, dots: names.has('.*'), cap }, files);
+      return files.sort((a, b) => (a < b ? -1 : Number(a > b)));
+    },
     listFiles(relPath) {
       const folder = exact(relPath);
       if (folder === undefined || !isFolder(folder) || !staysInside(folder)) return [];

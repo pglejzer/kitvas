@@ -52,7 +52,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0043](0043-guidelines-with-ids-and-sources.md) | Guidelines with ids and sources | 2026-11-23 | accepted |
 | [0044](0044-page-facts-and-extra-passes.md) | Page facts and extra passes | 2026-11-23 | accepted, changed in part by ADR 0073 |
 | [0045](0045-rework-and-craft-draft-kinds.md) | Rework and craft draft kinds | 2026-11-23 | accepted |
-| [0046](0046-project-additions-layer.md) | Project additions layer | 2026-11-23 | accepted |
+| [0046](0046-project-additions-layer.md) | Project additions layer | 2026-11-23 | accepted, changed in part by ADR 0079 |
 | [0047](0047-facts-on-live-pages.md) | Facts on live pages | 2026-11-23 | accepted |
 | [0048](0048-edit-operations.md) | Edit operations | 2026-11-23 | accepted |
 | [0049](0049-editing-session-version.md) | Editing session and version | 2026-11-23 | accepted, changed in part by ADR 0058 |
@@ -82,5 +82,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0073](0073-wide-screens-in-deep-checks.md) | Wide screens in the deep checks | 2026-11-25 | accepted, changed in part by ADR 0074 |
 | [0074](0074-tablet-width-in-every-check.md) | The tablet width in every check | 2026-11-25 | accepted |
 | [0075](0075-insert-pane-previews.md) | Previews in the Insert pane are screenshots made once per kit change | 2026-11-25 | accepted |
-| [0076](0076-project-decisions-file.md) | A decisions file with front matter replaces the project's config.json | 2026-11-25 | accepted |
+| [0076](0076-project-decisions-file.md) | A decisions file with front matter replaces the project's config.json | 2026-11-25 | accepted, changed in part by ADR 0078 |
 | [0077](0077-tools-on-the-canvas.md) | Tools on the canvas: lens pins in the frame, page tools over the stage, one control for Claude | 2026-11-25 | accepted |
+| [0078](0078-draft-to-figma.md) | A draft goes to Figma as scripts kitvas writes and the skill sends through the person's own Figma MCP | 2026-11-25 | accepted |
+| [0079](0079-handoff-to-code.md) | A draft goes into the person's code: facts from kitvas, the files from the fitter agent | 2026-11-25 | accepted |

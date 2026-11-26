@@ -62,6 +62,26 @@ export type Flags = {
   text: string | undefined;
   /** `decisions replace --old <line>`: the decision it swaps. */
   old: string | undefined;
+  /** `handoff figma --widths 1280,390`: the widths of the frames. */
+  widths: string | undefined;
+  /** `handoff figma|compare --state <state>`: the state of the draft to send or compare. */
+  state: string | undefined;
+  /** `handoff figma --sections a,b`: send only these sections. */
+  sections: string | undefined;
+  /** `handoff figma --resume`: answer with the package already on disk. */
+  resume: boolean;
+  /** `handoff sent --result <file>`: the result file the skill wrote. */
+  result: string | undefined;
+  /** `handoff target|brief --in <folder>`: the folder of the project to read. */
+  in: string | undefined;
+  /** `handoff brief --scope new|named|open`: where the fitter may write. */
+  scope: string | undefined;
+  /** `handoff brief --files a,b`: the existing files the person names (scope `named`). */
+  files: string | undefined;
+  /** `handoff brief --again`: take the listing of the project again. */
+  again: boolean;
+  /** `handoff compare --selector <css>`: the region of the page to compare. */
+  selector: string | undefined;
 };
 
 export type ParsedArgs = {
@@ -111,6 +131,16 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         all: { type: 'boolean' },
         text: { type: 'string' },
         old: { type: 'string' },
+        widths: { type: 'string' },
+        state: { type: 'string' },
+        sections: { type: 'string' },
+        resume: { type: 'boolean' },
+        result: { type: 'string' },
+        in: { type: 'string' },
+        scope: { type: 'string' },
+        files: { type: 'string' },
+        again: { type: 'boolean' },
+        selector: { type: 'string' },
       },
     });
     const [command, ...rest] = positionals;
@@ -150,6 +180,16 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         all: values.all === true,
         text: values.text,
         old: values.old,
+        widths: values.widths,
+        state: values.state,
+        sections: values.sections,
+        resume: values.resume === true,
+        result: values.result,
+        in: values.in,
+        scope: values.scope,
+        files: values.files,
+        again: values.again === true,
+        selector: values.selector,
       },
     };
   } catch (cause) {

@@ -27,3 +27,4 @@ Every command takes `--json` and answers `{"ok":true,"data":…}` or `{"ok":fals
 | `inbox`      | Waits for notes and requests from the studio and prints them                             |
 | `request`    | Reads or answers a request from the editor                                               |
 | `guidelines` | Shows the guideline book                                                                 |
+| `handoff`    | Writes a draft's Figma package or the fitter's brief; lists, compares and records hand-offs |

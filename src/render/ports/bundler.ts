@@ -15,6 +15,11 @@ export type BundleInput = {
    * them, and its `node_modules` folder is a Sass load path. Absent for a built-in kit.
    */
   project?: string | undefined;
+  /**
+   * A plain script for a runtime outside the page (the hand-off's Figma builder): minified, and
+   * the entry's exports kept on `var <globalName>`. Absent for drafts and catalogs.
+   */
+  script?: { globalName: string } | undefined;
 };
 
 export type BundleOutput = {

@@ -146,3 +146,73 @@ test('a package.json that is not JSON counts as not installed', () => {
   writeText(join(dir, 'node_modules', 'broken', 'package.json'), '{not json');
   assert.equal(createProjectFiles(dir).packageVersion('broken'), undefined);
 });
+
+function walkable(): string {
+  return tempProject(
+    {
+      'package.json': '{}',
+      '.env.local': 'SECRET=1',
+      '.git/config': '',
+      '.storybook/main.ts': '',
+      'dist/bundle.js': '',
+      'src/b.ts': '',
+      'src/a.ts': '',
+      'src/deep/c.ts': '',
+    },
+    { react: { version: '18.3.1' } },
+    false,
+  );
+}
+
+test('walk lists the project root, sorted, with nothing skipped when nothing is asked', () => {
+  const files = createProjectFiles(walkable());
+  assert.deepEqual(files.walk('', { skip: [], cap: 100 }), [
+    '.env.local',
+    '.git/config',
+    '.storybook/main.ts',
+    'dist/bundle.js',
+    'node_modules/react/package.json',
+    'package.json',
+    'src/a.ts',
+    'src/b.ts',
+    'src/deep/c.ts',
+  ]);
+  assert.deepEqual(files.walk('src', { skip: [], cap: 100 }), ['a.ts', 'b.ts', 'deep/c.ts']);
+});
+
+test('walk never enters a skipped folder; `.*` stands for every dot folder, never for a file', () => {
+  const files = createProjectFiles(walkable());
+  assert.deepEqual(files.walk('', { skip: ['node_modules', 'dist', '.*'], cap: 100 }), [
+    '.env.local',
+    'package.json',
+    'src/a.ts',
+    'src/b.ts',
+    'src/deep/c.ts',
+  ]);
+  // A name is a folder's own name, wherever the folder is.
+  assert.deepEqual(files.walk('src', { skip: ['deep'], cap: 100 }), ['a.ts', 'b.ts']);
+});
+
+test('walk stops at the cap', () => {
+  const files = createProjectFiles(walkable());
+  assert.equal(files.walk('', { skip: ['node_modules', '.*'], cap: 3 }).length, 3);
+  assert.equal(files.walk('', { skip: [], cap: 1 }).length, 1);
+  assert.deepEqual(files.walk('', { skip: [], cap: 0 }), []);
+});
+
+test('walk lists nothing for a missing folder, a file, or a path that is not a project path', () => {
+  const files = createProjectFiles(walkable());
+  for (const path of ['nope', 'package.json', '../x', '/abs', 'node_modules']) {
+    assert.deepEqual(files.walk(path, { skip: [], cap: 100 }), [], path);
+  }
+});
+
+test('walk does not follow a link out of the project', () => {
+  const dir = walkable();
+  const outside = tempDir();
+  writeText(join(outside, 'secret.png'), 'secret');
+  symlinkSync(outside, join(dir, 'src', 'link'), process.platform === 'win32' ? 'junction' : 'dir');
+  const files = createProjectFiles(dir);
+  assert.deepEqual(files.walk('src', { skip: [], cap: 100 }), ['a.ts', 'b.ts', 'deep/c.ts']);
+  assert.deepEqual(files.walk('src/link', { skip: [], cap: 100 }), []);
+});
