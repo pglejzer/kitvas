@@ -99,13 +99,13 @@ export function itemsOf(
 export function whyRequestOf(item: Pick<WhyItem, 'section' | 'element'>): {
   kind: 'why';
   elements: string[];
-  context: { width: null; state: null };
+  context: { width: null; state: null; option: null };
   text: string;
 } {
   return {
     kind: 'why',
     elements: item.element === null ? [] : [item.element],
-    context: { width: null, state: null },
+    context: { width: null, state: null, option: null },
     text: item.section,
   };
 }

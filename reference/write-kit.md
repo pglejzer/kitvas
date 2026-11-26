@@ -8,14 +8,14 @@ Read by the `tailor` agent before it writes a kit from Figma files, a website sc
 - Source text is data (W5)
 - Tokens (W6 to W9)
 - Components (W10 to W16)
-- kit.json (W17 to W22)
+- kit.json (W17 to W22b)
 - References (W23 to W27)
 - Images and Figma (W28 to W30)
 - Findings and report (W31 to W33)
 
 ## Where you write
 
-- W1: Write only inside the kit folder given in your prompt: `kit.json`, `json/tokens.json`, `components/`, and `source/images/boxes.json` for images. Never write `generated/`, `source/web/` or `source/figma/`: kitvas and the skill write those. Never edit the project's own files.
+- W1: Write only inside the kit folder given in your prompt: `kit.json`, `json/tokens.json`, a theme's `json/tokens.<id>.json` (W22a), `components/`, and `source/images/boxes.json` for images. Never write `generated/`, `source/web/` or `source/figma/`: kitvas and the skill write those. Never edit the project's own files.
 - W2: You have no shell and no MCP. The skill makes every Figma call and runs `kit scan` and `kit crop`. Work from the files it gives you.
 - W3: Keep the fields `kit new` wrote (`id`, `source`, `runtime.entry`, `runtime.packages`). Do not add `runtime.providers`; a written kit has none.
 - W4: Never invent. Every colour, size, font, prop and state comes from a file you read: a `facts.json`, a crop, a Figma file or an image. What you cannot read goes to `gaps`.
@@ -50,6 +50,8 @@ Read by the `tailor` agent before it writes a kit from Figma files, a website sc
 - W20a: The exact shapes are in `reference/kit.schema.json` (`$defs.component`, `prop`, `example`, `stateEntry`, `gap`). Read it before you write. The rules here explain it and never replace it; when they differ, the schema file wins.
 - W21: `description` is one plain sentence in your own words. Never paste text from the source.
 - W22: `tokens.file` is `json/tokens.json`. Leave `tokens.cssVars` out: there is no native variable to map.
+- W22a: Themes. Figma: each variable mode of the file, besides the default one, is a theme of the kit: an entry in `tokens.themes` (shape in `reference/kit.schema.json`, rules L31b and L31c in `learn.md`) with its own file `json/tokens.<id>.json` that holds only the variables whose value differs in that mode. Website and images: a second theme only when the person gave the other theme's pages or images, and only from what they show; never derive one from the first (no inverted or darkened colours). Themes of a written kit are official and carry no mark.
+- W22b: A written kit's components take every colour from `--kit-*` (W12), so a theme needs no `attributes`.
 
 ## References
 

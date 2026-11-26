@@ -2,6 +2,7 @@
 // /k/<key>/<kit id>/<folder>/<file> for the built examples of a kit.
 
 import { isSlug } from '../../drafts/index.ts';
+import { OPTION_PARAM, type OptionChoice } from '../../shared/index.ts';
 
 /** The id pattern of `kit.json`. */
 export const KIT_ID = /^[a-z0-9][a-z0-9-]{0,62}$/;
@@ -44,13 +45,18 @@ export type FrameTarget = {
   slug: string;
   version: number;
   state: string;
+  /** The values of the options that differ from the defaults (`opt-<id>=<value>`); none for none. */
+  choice?: OptionChoice | undefined;
 };
 
-/** Where the studio frames a built version, opened in one state. */
+/** Where the studio frames a built version, opened in one state and with one choice. */
 export function frameUrl(target: FrameTarget): string {
-  const { hostname, port, key, slug, version, state } = target;
+  const { hostname, port, key, slug, version, state, choice } = target;
   const page = `/f/${key}/${slug}/v${version}/html/index.html`;
-  return `http://${hostname}:${port}${page}?state=${encodeURIComponent(state)}`;
+  const options = Object.entries(choice ?? {}).map(
+    ([id, value]) => `&${OPTION_PARAM}${encodeURIComponent(id)}=${encodeURIComponent(value)}`,
+  );
+  return `http://${hostname}:${port}${page}?state=${encodeURIComponent(state)}${options.join('')}`;
 }
 
 export type CatalogTarget = {

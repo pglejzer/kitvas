@@ -6,7 +6,7 @@ import type {
 } from '../../../../client/channel/edit-protocol.ts';
 import type { FrameEntry, ScaleStep } from '../../../../client/channel/structure-protocol.ts';
 import type { Drag } from '../../../../client/frame/drag/drag.ts';
-import type { Handles } from '../../../../client/frame/drag/handles.ts';
+import type { Handles } from '../../../../client/frame/drag/handles/handles.ts';
 import { hideCss, lockCss } from '../../../../client/frame/edit/hide.ts';
 import {
   createStructure,

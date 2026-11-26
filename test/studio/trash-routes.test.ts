@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { createFsDraftStore } from '../../src/drafts/adapters/fs-draft-store.ts';
 import { createDraft, type DraftStore } from '../../src/drafts/index.ts';
-import { NOW, shopDraft, TINY } from '../helpers/drafts.ts';
-import { call, pageCookie, studioOver, writeFakeBuild } from '../helpers/studio.ts';
+import { NOW, shopDraft, TINY } from '../helpers/draft/drafts.ts';
+import { call, pageCookie, studioOver, writeFakeBuild } from '../helpers/studio/studio.ts';
 import { tempDir } from '../helpers/tmp.ts';
 
 type Problem = { code: string; status: number };

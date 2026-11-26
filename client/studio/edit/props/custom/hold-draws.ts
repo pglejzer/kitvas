@@ -4,7 +4,7 @@
 // canvas and was never written. The live checks answer about a second after a write, which is
 // when a person is already in the next drag.
 
-import type { DrawScheduler } from '../draw.ts';
+import type { DrawScheduler } from '../panel/draw.ts';
 
 const ARROWS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 

@@ -16,10 +16,10 @@ import {
 import { createDraft } from '../../src/drafts/index.ts';
 import { createFolderKitStore } from '../../src/kit/adapters/folder-store.ts';
 import { KitvasError, PLUGIN_ROOT } from '../../src/shared/index.ts';
-import { fakeBrowser, t } from '../helpers/checks.ts';
-import { NOW, TINY, tempDrafts } from '../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../helpers/kits.ts';
-import { closeRenderTools, renderTools, writeShopSections } from '../helpers/render.ts';
+import { fakeBrowser, t } from '../helpers/draft/checks.ts';
+import { NOW, TINY, tempDrafts } from '../helpers/draft/drafts.ts';
+import { closeRenderTools, renderTools, writeShopSections } from '../helpers/draft/render.ts';
+import { FIXTURE_KITS } from '../helpers/kit/kits.ts';
 import { node, page, text, visit } from './rules/facts.ts';
 
 /** The shop's `<p>`, showing copy left from a template: `ux/placeholder-text`. */

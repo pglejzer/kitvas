@@ -9,7 +9,12 @@
 // and sizes the frames in place; a frame is never moved in the DOM, which would reload it.
 
 import type { States } from '../../../drafts/index.ts';
-import type { Translate } from '../../../shared/index.ts';
+import {
+  type DraftOption,
+  OPTION_PARAM,
+  type OptionChoice,
+  type Translate,
+} from '../../../shared/index.ts';
 import { newChannel } from '../../security/token.ts';
 import {
   CARD_COUNTS,
@@ -29,6 +34,7 @@ import type { IconName } from '../icons/paths.ts';
 import { commandBox } from '../states/command.ts';
 import type { ChoiceLink } from './draft-links.ts';
 import { withChannel } from './frame-channel.ts';
+import { type OptionsInput, optionsPill, optionsRow } from './options-row.ts';
 
 /**
  * The width a card's label names: "Desktop 1280" at a preset, "1000 px" at any other width. The
@@ -170,6 +176,10 @@ export type PillsInput = {
   link: ChoiceLink;
   /** The draft's kit's breakpoints (`kitBreakpoints`): the sizes menu ticks these widths. */
   breakpoints: readonly number[];
+  /** The version's options (`readOptions`); left out or empty: no Options pill and no row. */
+  options?: readonly DraftOption[];
+  /** The kit's themes from the project's additions, and the mark's text (`options-row.ts`). */
+  added?: OptionsInput['added'];
 };
 
 /** A link built by `ChoiceLink` names no custom width; the state links keep the one shown. */
@@ -190,8 +200,9 @@ const SIZE_GROUPS: readonly SizeGroup[] = ['phone', 'tablet', 'desktop'];
 
 /**
  * One row of the sizes in More: its name, then the width, with a tick after it where the kit has a
- * breakpoint. A row links a view (the three presets are buttons of the pill itself); the script
- * sets it in place (`data-dock-size`).
+ * breakpoint. A row links a view; the script sets it in place (`data-dock-size`). The three presets
+ * are buttons of the pill itself too: their rows show only while the pill is narrowed to the width
+ * in use (`data-fit` 2 and 3 on the canvas; the skin).
  */
 function sizeRow({ t, choice, link, breakpoints }: PillsInput, size: (typeof SIZES)[number]): Html {
   const preset = WIDTHS.find((width) => width === size.width);
@@ -203,22 +214,20 @@ function sizeRow({ t, choice, link, breakpoints }: PillsInput, size: (typeof SIZ
   const tick = kit ? html`<span class="pill-tick" aria-hidden="true"></span>` : '';
   const why = kit ? html` title="${t('studio.width.breakpoint')}"` : '';
   const name = t(`studio.width.size.${size.group}.${size.name}`);
-  return html`<a class="k-menu-item pill-size" data-dock-size="${size.width}" href="${href}"${why}${mark}><span>${name}</span><span class="k-meta pill-width">${size.width}${tick}</span></a>`;
+  const kind = preset === undefined ? 'pill-size' : 'pill-size pill-preset';
+  return html`<a class="k-menu-item ${kind}" data-dock-size="${size.width}" href="${href}"${why}${mark}><span>${name}</span><span class="k-meta pill-width">${size.width}${tick}</span></a>`;
 }
 
 /** A section's label in More, above its rows; the group's name is the label for a screen reader. */
 const head = (label: string): Html =>
   html`<p class="k-meta pill-head" aria-hidden="true">${label}</p>`;
 
-/** The sizes More lists, grouped by device: the three presets are buttons of the pill itself. */
+/** The sizes More lists, grouped by device. */
 function sizeGroups(input: PillsInput): Html {
   const { t } = input;
   const groups = SIZE_GROUPS.map((group) => {
     const label = t(`studio.width.group.${group}`);
-    const sizes = SIZES.filter(
-      (size) => size.group === group && !WIDTHS.some((preset) => preset === size.width),
-    );
-    if (sizes.length === 0) return '';
+    const sizes = SIZES.filter((size) => size.group === group);
     const rows = sizes.map((size) => sizeRow(input, size));
     return html`<div class="pill-block" role="group" aria-label="${label}">${head(label)}${rows}</div>`;
   });
@@ -261,7 +270,7 @@ function customBlock(input: PillsInput): Html {
  */
 function moreMenu(input: PillsInput): Html {
   const { t } = input;
-  return html`<details class="pill-menu pill-more" data-dock="more" data-pill-menu><summary class="k-btn" title="${t('studio.width.more')}"><span>${t('studio.edit.canvas.more')}</span>${icon('chevron-down')}</summary><div class="k-pop k-menu pill-sizes">${sizeGroups(input)}${customBlock(input)}${cardsBlock(input)}</div></details>`;
+  return html`<details class="pill-menu pill-more" data-dock="more" data-pill-menu><summary class="k-btn" title="${t('studio.width.more')}"><span class="pill-word">${t('studio.edit.canvas.more')}</span>${icon('chevron-down')}</summary><div class="k-pop k-menu pill-sizes">${sizeGroups(input)}${customBlock(input)}${cardsBlock(input)}</div></details>`;
 }
 
 /**
@@ -299,8 +308,12 @@ function widthField({ t, choice }: PillsInput): Html {
     choice.cards === undefined || choice.cards === 1 || choice.compare !== undefined
       ? ''
       : html`<input type="hidden" name="cards" value="${choice.cards}">`;
+  const options = Object.entries(choice.options ?? {}).map(
+    ([id, value]) =>
+      html`<input type="hidden" name="${OPTION_PARAM}${id}" value="${value}" data-dock-option>`,
+  );
   const label = t('studio.edit.canvas.width');
-  return html`<form class="pill-field" data-dock="view" method="get" action=""><input type="hidden" name="version" value="${choice.version}"><input type="hidden" name="state" value="${choice.state}"><input type="hidden" name="width" value="${choice.width}">${compare}${cards}<input class="k-field pill-number" type="number" name="view" data-dock-view min="${MIN_VIEW}" max="${MAX_VIEW}" step="1" inputmode="numeric" value="${choice.view ?? choice.width}" aria-label="${label}"><span aria-hidden="true">${t('studio.edit.canvas.px')}</span></form>`;
+  return html`<form class="pill-field" data-dock="view" method="get" action=""><input type="hidden" name="version" value="${choice.version}"><input type="hidden" name="state" value="${choice.state}"><input type="hidden" name="width" value="${choice.width}">${compare}${cards}${options}<input class="k-field pill-number" type="number" name="view" data-dock-view min="${MIN_VIEW}" max="${MAX_VIEW}" step="1" inputmode="numeric" value="${choice.view ?? choice.width}" aria-label="${label}"><span aria-hidden="true">${t('studio.edit.canvas.px')}</span></form>`;
 }
 
 /**
@@ -323,31 +336,43 @@ function statesPill({ t, choice, states, link }: PillsInput): Html {
 
 /**
  * The pills over the canvas: one row at the top right, the state pill (when the draft has more than
- * one state) then the width pill, `390 | 768 | 1280 | More`; More holds the other sizes, the custom
+ * one state), the Options pill (when the version has options; its row follows the pills,
+ * `options-row.ts`), then the width pill, `390 | 768 | 1280 | More`; More holds the other sizes, the custom
  * width and the cards. At the end of the width pill a mark while the checks' marks are hidden, at a
- * width that is not a preset (its words on hover, as a toast on a press, and as a status); at the
- * bottom right the zoom (`div[data-dock="zoom"]`, filled by the page script). The top left and the
- * bottom centre stay free.
+ * width that is not a preset (its words on hover, as a toast on a press, and as a status). The top
+ * left is the lens pill's (`canvasTools`); the row narrows itself when the room is short (the fit,
+ * `client/studio/canvas/fit/`).
  */
 export function pills(input: PillsInput): Html {
-  const { t, choice } = input;
+  const { t, choice, link } = input;
+  // Options are the version's own: a compare of two versions shows none.
+  const options = choice.compare === undefined ? (input.options ?? []) : [];
+  const own = {
+    t,
+    options,
+    differ: choice.options ?? {},
+    ...(input.added === undefined ? {} : { added: input.added }),
+    hrefFor: (differ: OptionChoice): string =>
+      withCards(withView(link({ options: differ }), choice.view), choice),
+  };
   const hidden = choice.view === undefined ? html` hidden` : '';
   const said = t('studio.edit.canvas.marksHidden');
   const note = html`<button type="button" class="k-icon-btn pill-mark" data-dock-note aria-label="${said}" title="${said}"${hidden}>${icon('eye-off')}</button><span class="k-sr" role="status" data-dock-said>${choice.view === undefined ? '' : said}</span>`;
   const width = html`<div class="k-pop k-pill" data-dock="width">${widthLinks(input)}${moreMenu(input)}${note}</div>`;
-  const row = html`<div class="pill-row" data-shell="dock" role="group" aria-label="${t('studio.edit.canvas.controls')}">${statesPill(input)}${width}</div>`;
-  const zoom = html`<div class="k-pop k-pill pill-zoom" data-dock="zoom" role="group" aria-label="${t('studio.edit.zoom.label')}"></div>`;
-  return html`${row}${zoom}`;
+  return html`<div class="pill-row" data-shell="dock" role="group" aria-label="${t('studio.edit.canvas.controls')}">${statesPill(input)}${optionsPill(own)}${width}</div>${optionsRow(own)}`;
 }
 
 /**
  * The hosts of the tools on the canvas (plan 19), empty: the page script fills them. The lens pill
- * at the top left, in Preview and in Edit; the ask bar at the bottom centre, hidden until Edit
- * shows it; and the place of the action bar and the variant pill, which follows the selection.
+ * at the top left, in Preview and in Edit; the bottom row, a grid of two (the ask bar, hidden until
+ * Edit shows it, then the zoom pill, `div[data-dock="zoom"]`), so the ask bar narrows and never
+ * goes under the zoom; and the place of the action bar and the variant pill, which follows the
+ * selection.
  */
 export function canvasTools(t: Translate): Html {
   const lens = html`<div class="k-pop k-pill pill-lens" data-lens-pill role="toolbar" aria-label="${t('studio.edit.lens.label')}"></div>`;
   const ask = html`<form class="k-pop ask-bar" data-ask-bar aria-label="${t('studio.edit.ask.label')}" hidden></form>`;
+  const zoom = html`<div class="k-pop k-pill pill-zoom" data-dock="zoom" role="group" aria-label="${t('studio.edit.zoom.label')}"></div>`;
   const tools = html`<div class="sel-tools" data-sel-tools role="group" aria-label="${t('studio.edit.seltools.label')}"></div>`;
-  return html`${lens}${ask}${tools}`;
+  return html`${lens}<div class="stage-foot">${ask}${zoom}</div>${tools}`;
 }

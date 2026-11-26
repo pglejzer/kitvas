@@ -20,7 +20,7 @@ import type {
   CatalogReport,
 } from '../../../src/render/index.ts';
 import { catalogDir, PLUGIN_ROOT, projectKitsDir } from '../../../src/shared/index.ts';
-import { tinyKitJson } from '../../helpers/kits.ts';
+import { tinyKitJson } from '../../helpers/kit/kits.ts';
 
 /** A project that exists nowhere: the fakes never touch the disk. */
 export const PROJECT = join(PLUGIN_ROOT, 'no-such-project');
@@ -30,6 +30,13 @@ export function acmeKitJson(): Record<string, unknown> {
   const file = join(PLUGIN_ROOT, 'test', 'fixtures', 'projects', 'acme-npm', 'kit', 'kit.json');
   return JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
 }
+
+/** The theme fields of a kit without themes or added tokens; a function, so no fake shares a list. */
+const noThemes = (): Pick<LoadedKit, 'themes' | 'themeTokens' | 'addedTokens'> => ({
+  themes: { default: 'default', list: [] },
+  themeTokens: {},
+  addedTokens: [],
+});
 
 export type LoadedOptions = {
   tokens?: FlatToken[];
@@ -55,6 +62,7 @@ export function acmeLoaded(
     additions: [],
     additionsDir: undefined,
     entry: join(dir, 'generated', 'kit.ts'),
+    ...noThemes(),
   };
 }
 
@@ -72,6 +80,7 @@ export function tinyLoaded(): LoadedKit {
     additions: [],
     additionsDir: undefined,
     entry: join(dir, 'tsx', 'index.ts'),
+    ...noThemes(),
   };
 }
 
@@ -97,6 +106,7 @@ export function writtenLoaded(reference: string | null = REFERENCE): LoadedKit {
     additions: [],
     additionsDir: undefined,
     entry: join(dir, 'tsx', 'index.ts'),
+    ...noThemes(),
   };
 }
 

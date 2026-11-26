@@ -1,6 +1,6 @@
 # 0055. The editor at every width and state, live checks, waivers, lists and uploads
 
-Date: 2026-11-24. Status: accepted, changed in part by ADR 0080. ADR 0065 changed it in part before. Spec: `docs/specs/2026-11-24-kitvas-stage-4c-editor-design.md`. Builds on ADRs 0048 to 0054. Makes the Tailwind style edits of ADR 0050 writable, and lifts the `.map` refusal of ADR 0051 for literal arrays.
+Date: 2026-11-24. Status: accepted, changed in part by ADR 0082. ADRs 0065 and 0080 changed it in part before. Spec: `docs/specs/2026-11-24-kitvas-stage-4c-editor-design.md`. Builds on ADRs 0048 to 0054. Makes the Tailwind style edits of ADR 0050 writable, and lifts the `.map` refusal of ADR 0051 for literal arrays.
 
 ## Context
 

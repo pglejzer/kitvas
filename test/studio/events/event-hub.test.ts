@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
 import { createEventHub, type EventLimits } from '../../../src/studio/events/event-hub.ts';
-import { openEvents } from '../../helpers/events.ts';
+import { openEvents } from '../../helpers/studio/events.ts';
 import { until } from '../../helpers/wait.ts';
 
 /** A plain server whose every request is an events stream of one hub. */

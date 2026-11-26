@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { ChecksFileSchema, FACTS_NODE_CAP } from '../../src/checks/index.ts';
-import { checkShop, fakeBrowser, t } from '../helpers/checks.ts';
-import { HERO_TSX } from '../helpers/render.ts';
+import { checkShop, fakeBrowser, t } from '../helpers/draft/checks.ts';
+import { HERO_TSX } from '../helpers/draft/render.ts';
 import { node, page, text } from './rules/facts.ts';
 
 /** The shop's `<p>` (src/tsx/sections/Hero.tsx line 7), showing copy left from a template. */

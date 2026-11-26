@@ -6,6 +6,7 @@
 
 import type { EditOp } from '../../../../src/edit/index.ts';
 import { isRecord as isObject } from '../../../../src/shared/values/guards.ts';
+import { OPTION_ID, OPTION_VALUE } from '../../../../src/shared/values/options.ts';
 import type { Gesture } from '../store.ts';
 import type { ChangeChip, StepEntry } from './chips.ts';
 
@@ -26,6 +27,10 @@ const optional =
   (check: Check): Check =>
   (value) =>
     value === undefined || check(value);
+const matching =
+  (pattern: RegExp): Check =>
+  (value) =>
+    typeof value === 'string' && pattern.test(value);
 const oneOf =
   (...words: string[]): Check =>
   (value) =>
@@ -50,6 +55,9 @@ const styleValue: Check = (value) => {
 const context = shaped({
   width: orNull(width),
   state: orNull(oneOf('hover', 'focus-visible', 'active')),
+  // The value of one option the edit is for (ADR 0082); a context kept without the field is of
+  // an earlier editor and drops the list.
+  option: orNull(shaped({ id: matching(OPTION_ID), value: matching(OPTION_VALUE) })),
 });
 const place = oneOf('before', 'after', 'first', 'last');
 /**
@@ -161,6 +169,12 @@ export function readGesture(value: unknown): Gesture | null {
   if (value.item !== undefined) {
     if (typeof value.item !== 'number' || !index(value.item)) return null;
     gesture.item = value.item;
+  }
+  // A redo step: the change list's line its undo took out.
+  if (value.line !== undefined) {
+    const line = readChange(value.line);
+    if (line === null) return null;
+    gesture.line = line;
   }
   return gesture;
 }

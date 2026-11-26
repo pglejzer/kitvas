@@ -4,7 +4,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { plainValue } from '../../../../../client/studio/edit/props/kinds.ts';
+import { plainValue } from '../../../../../client/studio/edit/props/values/kinds.ts';
 import { isOwn, utilityFor } from '../../../../../client/studio/edit/style/utility-ops.ts';
 import {
   contextOfVariants,
@@ -22,11 +22,11 @@ import {
   type TokenOption,
 } from '../../../../../src/edit/index.ts';
 
-const BASE: StyleContext = { width: null, state: null };
-const AT_768: StyleContext = { width: 768, state: null };
-const HOVER: StyleContext = { width: null, state: 'hover' };
-const FOCUS_1280: StyleContext = { width: 1280, state: 'focus-visible' };
-const ACTIVE_900: StyleContext = { width: 900, state: 'active' };
+const BASE: StyleContext = { width: null, state: null, option: null };
+const AT_768: StyleContext = { width: 768, state: null, option: null };
+const HOVER: StyleContext = { width: null, state: 'hover', option: null };
+const FOCUS_1280: StyleContext = { width: 1280, state: 'focus-visible', option: null };
+const ACTIVE_900: StyleContext = { width: 900, state: 'active', option: null };
 
 const TOKENS: TokenOption[] = [
   { var: '--kit-space-md', path: 'space.md', type: 'dimension', css: '12px' },

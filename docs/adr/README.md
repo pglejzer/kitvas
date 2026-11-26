@@ -52,7 +52,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0043](0043-guidelines-with-ids-and-sources.md) | Guidelines with ids and sources | 2026-11-23 | accepted |
 | [0044](0044-page-facts-and-extra-passes.md) | Page facts and extra passes | 2026-11-23 | accepted, changed in part by ADR 0073 |
 | [0045](0045-rework-and-craft-draft-kinds.md) | Rework and craft draft kinds | 2026-11-23 | accepted |
-| [0046](0046-project-additions-layer.md) | Project additions layer | 2026-11-23 | accepted, changed in part by ADR 0079 |
+| [0046](0046-project-additions-layer.md) | Project additions layer | 2026-11-23 | accepted, changed in part by ADR 0083 |
 | [0047](0047-facts-on-live-pages.md) | Facts on live pages | 2026-11-23 | accepted |
 | [0048](0048-edit-operations.md) | Edit operations | 2026-11-23 | accepted |
 | [0049](0049-editing-session-version.md) | Editing session and version | 2026-11-23 | accepted, changed in part by ADR 0058 |
@@ -61,7 +61,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0052](0052-element-identity.md) | Element identity | 2026-11-23 | accepted |
 | [0053](0053-canvas-tools.md) | Canvas tools | 2026-11-23 | accepted, changed in part by ADR 0059 |
 | [0054](0054-editor-screen.md) | The editor screen | 2026-11-24 | accepted |
-| [0055](0055-editor-widths-states-live.md) | The editor at every width and state, live checks, waivers, lists and uploads | 2026-11-24 | accepted, changed in part by ADR 0080 |
+| [0055](0055-editor-widths-states-live.md) | The editor at every width and state, live checks, waivers, lists and uploads | 2026-11-24 | accepted, changed in part by ADR 0082 |
 | [0056](0056-editor-claude-notes-locks-time.md) | The editor with Claude: requests, variants, notes, locks, time, suggestions and reasons | 2026-11-24 | accepted |
 | [0057](0057-studio-theme.md) | The studio's own theme | 2026-11-24 | accepted, changed in part by ADR 0068 |
 | [0058](0058-live-swap.md) | A build is taken into the frame in place | 2026-11-24 | accepted |
@@ -88,3 +88,5 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0079](0079-handoff-to-code.md) | A draft goes into the person's code: facts from kitvas, the files from the fitter agent | 2026-11-25 | accepted |
 | [0080](0080-client-imports-pure-src.md) | The client imports values from package-free files of `src/` | 2026-11-26 | accepted |
 | [0081](0081-learn-a-whole-package.md) | Learning a whole package: the schema as a file, the exports read from the package, fragments merged by kitvas | 2026-11-26 | accepted |
+| [0082](0082-options-of-a-version.md) | Options of a version: conditions in one source | 2026-11-26 | accepted |
+| [0083](0083-themes-and-token-additions.md) | Themes are token sets of the kit; the project adds tokens and theme values | 2026-11-26 | accepted |

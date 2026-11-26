@@ -6,8 +6,8 @@ import { VERIFY_FILE, type VerifyFile } from '../../../src/checks/index.ts';
 import { loadKit } from '../../../src/kit/index.ts';
 import { catalogDir } from '../../../src/shared/index.ts';
 import { pageRoutes } from '../../../src/studio/pages/routes.ts';
-import { tempDrafts } from '../../helpers/drafts.ts';
-import { builtinKits } from '../../helpers/kits.ts';
+import { tempDrafts } from '../../helpers/draft/drafts.ts';
+import { builtinKits } from '../../helpers/kit/kits.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 import { t } from '../../helpers/translate.ts';
 

@@ -1,6 +1,6 @@
 // A lost gesture's log, frame to studio (ADR 0066): the last changes of state of the frame's drag
 // session or of a handle, posted once when a gesture ends without its drop or its write. The frame
-// keeps the log (`client/frame/drag/gesture-log.ts`); the studio says over the canvas why a
+// keeps the log (`client/frame/drag/gesture/gesture-log.ts`); the studio says over the canvas why a
 // gesture ended early (`client/studio/edit/structure/gesture-note.ts`).
 
 import { isRecord as isObject } from '../../src/shared/values/guards.ts';

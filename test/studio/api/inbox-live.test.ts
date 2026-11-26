@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { openEvents } from '../../helpers/events.ts';
-import { call, shopStudio } from '../../helpers/studio.ts';
+import { openEvents } from '../../helpers/studio/events.ts';
+import { call, shopStudio } from '../../helpers/studio/studio.ts';
 
 type Item = { id: string; text: string; slug: string | null; element: string | null };
 

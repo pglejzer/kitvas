@@ -17,10 +17,10 @@ import {
   type GestureLog,
   type GestureLogMessage,
   type GestureTool,
-} from '../drag/gesture-log.ts';
-import { createHandles, type Handles } from '../drag/handles.ts';
-import { slotAt } from '../drag/slot-read.ts';
-import { createIndicator, type Indicator } from '../drag/slots.ts';
+} from '../drag/gesture/gesture-log.ts';
+import { createHandles, type Handles } from '../drag/handles/handles.ts';
+import { slotAt } from '../drag/slots/slot-read.ts';
+import { createIndicator, type Indicator } from '../drag/slots/slots.ts';
 import { createHide, type Hide } from './hide.ts';
 import { type Chosen, chosenOf, copyOfPick, soleCopy } from './items.ts';
 import { MENU, pressedElement } from './row-pick.ts';

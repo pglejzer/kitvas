@@ -11,7 +11,7 @@ import {
   parseSourceFlag,
   sourceIssues,
 } from '../../src/kit/domain/sources.ts';
-import { tinyKitJson } from '../helpers/kits.ts';
+import { tinyKitJson } from '../helpers/kit/kits.ts';
 import { type Json, npmKitJson, repoKitJson } from './helpers/project-kit.ts';
 
 const kitOf = (raw: Json): Kit => parseKit(raw, String(raw.id));

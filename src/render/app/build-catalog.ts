@@ -8,7 +8,7 @@ import {
   type LoadedKit,
   requireKit,
   syncGeneratedEntry,
-  tokensToCss,
+  tokenSheet,
 } from '../../kit/index.ts';
 import { PLUGIN_ROOT } from '../../shared/index.ts';
 import {
@@ -235,10 +235,7 @@ export async function buildCatalog(
   fs.writeText(join(dir, 'build', 'js', 'index.js'), bundle.js);
   fs.writeText(
     join(dir, 'build', 'css', 'index.css'),
-    catalogCss(
-      tokensToCss(loaded.tokens, ':root', loaded.cssVarMap),
-      joinSheets([utility?.css ?? '', sheets.css, bundle.css]),
-    ),
+    catalogCss(tokenSheet(loaded), joinSheets([utility?.css ?? '', sheets.css, bundle.css])),
   );
   // The images the examples should look like, for the studio's kit page; a missing file is skipped.
   fs.remove(join(dir, 'build', 'img', 'refs'));

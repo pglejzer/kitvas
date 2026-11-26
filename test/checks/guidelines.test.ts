@@ -7,6 +7,7 @@ import {
   DEEP_RULES,
   GUIDELINES,
   LOCK_RULE_IDS,
+  OPTION_RULE_IDS,
   REWORK_RULE_IDS,
   SOURCE_RULE_IDS,
   STATE_RULES,
@@ -34,6 +35,7 @@ const ruleIds = [
   ...REWORK_RULE_IDS,
   ...CRAFT_RULES.map((rule) => rule.id),
   ...LOCK_RULE_IDS,
+  ...OPTION_RULE_IDS,
 ];
 
 test('ids are unique and start with their check', () => {

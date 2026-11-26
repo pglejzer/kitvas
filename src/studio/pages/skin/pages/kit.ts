@@ -123,6 +123,8 @@ export const SKIN_KIT = `
 /* Spacing and radius, drawn: a bar as long as the token, a corner as round as it. */
 .kit-scale, .kit-corners, .kit-types, .kit-other { margin: 0; padding: 0; list-style: none; }
 .kit-scale { display: grid; gap: var(--st-space-8); }
+/* The note of the added tokens: the mark and its words. */
+.kit-added-note { display: flex; align-items: center; gap: var(--st-space-6); margin: 0; }
 .kit-scale-row {
   display: grid;
   grid-template-columns: minmax(120px, 200px) 56px minmax(0, 1fr);

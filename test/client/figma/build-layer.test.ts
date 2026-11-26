@@ -8,7 +8,11 @@ import {
 } from '../../../client/figma/build-layer.ts';
 import type { Scope } from '../../../client/figma/build-text.ts';
 import { loadFonts, type WantedFont } from '../../../client/figma/fonts.ts';
-import { createFigmaFake, type FakeNodeData, type FigmaFake } from '../../helpers/figma-fake.ts';
+import {
+  createFigmaFake,
+  type FakeNodeData,
+  type FigmaFake,
+} from '../../helpers/handoff/figma-fake.ts';
 
 /** The kit's variables as `10-variables.js` makes them; a layer binds them by index. */
 const VARIABLES: [string, 'COLOR' | 'FLOAT' | 'STRING', VariableValue][] = [

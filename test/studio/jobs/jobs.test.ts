@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { KitvasError } from '../../../src/shared/index.ts';
 import type { Job, JobOutcome, RunningJob } from '../../../src/studio/jobs/job.ts';
 import { createJobs } from '../../../src/studio/jobs/jobs.ts';
-import { NOW } from '../../helpers/drafts.ts';
+import { NOW } from '../../helpers/draft/drafts.ts';
 import { t } from '../../helpers/translate.ts';
 
 type Started = { args: string[]; finish(outcome: JobOutcome): void; cancelled: number };

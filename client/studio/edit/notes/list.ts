@@ -5,7 +5,7 @@
 // focus to show the choice For me / For Claude. A pinned note's number selects its element.
 // Drawing only; `notes.ts` acts.
 
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import { MAX_NOTE_TEXT, type NoteRow, type NoteStatus } from './model.ts';
 

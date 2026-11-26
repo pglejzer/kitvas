@@ -10,6 +10,7 @@ import {
   inspectLayout,
   pascalCase,
   pickedFinal,
+  readOptions,
   sectionPaths,
   serializeJson,
   sketchFile,
@@ -23,7 +24,7 @@ import {
 } from '../../../kit/index.ts';
 import type { IdsFile } from '../../../render/index.ts';
 import { KitvasError } from '../../../shared/index.ts';
-import type { CodeBrief } from '../../domain/code/brief.ts';
+import { type CodeBrief, splitAddedTokens } from '../../domain/code/brief.ts';
 import type { ProjectListing, WriteSet } from '../../domain/code/listing.ts';
 import { isInsideProject, isProtectedPath, normalizeFolder } from '../../domain/code/scope.ts';
 import type { TargetFacts } from '../../domain/code/target.ts';
@@ -223,6 +224,7 @@ export function writeBrief(
   const dir = `${root}/${base}/${CODE_FOLDER}`;
   const own = ownFiles(deps, inspected, root);
   const ids = builtIds(deps.drafts, slug, base);
+  const options = readOptions(deps.drafts, slug, base);
 
   const at = { slug, root, base };
   const tsx = codeOf(deps, { ...at, folder: 'tsx', ending: '.tsx' }, own, own.tsx);
@@ -239,20 +241,21 @@ export function writeBrief(
     };
   });
   const byVar = new Map(loaded.tokens.map((token) => [cssVarName(token.path), token] as const));
-  const tokens = tokenUsesOf([...tsx, ...scss]).flatMap((used) => {
-    const token = byVar.get(used.var);
+  const used = tokenUsesOf([...tsx, ...scss]).flatMap((one) => {
+    const token = byVar.get(one.var);
     if (token === undefined) return [];
     const path = token.path.join('.');
     return [
       {
-        var: used.var,
+        var: one.var,
         path,
         css: formatTokenValue(token),
         project: loaded.cssVarMap[path] ?? null,
-        uses: used.uses,
+        uses: one.uses,
       },
     ];
   });
+  const { tokens, added } = splitAddedTokens(used, loaded.addedTokens);
   const shots = listed(deps, root, `${base}/build/shots`).flatMap((path) => {
     const match = SHOT.exec(path.slice(path.lastIndexOf('/') + 1));
     return match ? [{ state: match[1] ?? '', width: Number(match[2]), path }] : [];
@@ -273,7 +276,11 @@ export function writeBrief(
     },
     components,
     tokens,
+    ...(added.length === 0 ? {} : { added }),
     write,
+    ...(options.length === 0
+      ? {}
+      : { options: options.map((option) => ({ id: option.id, default: option.default })) }),
     target: `${dir}/target.json`,
     rules: deps.rules,
     report: `${dir}/fit.json`,

@@ -7,7 +7,7 @@ import {
   nearestColourToken,
   tokenLabel,
 } from '../../../../../client/studio/edit/checks/nearest.ts';
-import { nearestToken } from '../../../../../client/studio/edit/props/kit-value.ts';
+import { nearestToken } from '../../../../../client/studio/edit/props/values/kit-value.ts';
 import type { TokenOption } from '../../../../../src/edit/index.ts';
 
 const token = (path: string, css: string): TokenOption => ({

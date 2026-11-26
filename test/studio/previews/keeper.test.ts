@@ -5,8 +5,8 @@ import { KitvasError } from '../../../src/shared/index.ts';
 import type { JobOutcome, RunningJob } from '../../../src/studio/jobs/job.ts';
 import { createJobs } from '../../../src/studio/jobs/jobs.ts';
 import { createPreviewsKeeper } from '../../../src/studio/previews/keeper.ts';
-import { NOW } from '../../helpers/drafts.ts';
-import { previewsStamp } from '../../helpers/previews.ts';
+import { NOW } from '../../helpers/draft/drafts.ts';
+import { previewsStamp } from '../../helpers/kit/previews.ts';
 import { t } from '../../helpers/translate.ts';
 
 const OLD = 'a'.repeat(64);

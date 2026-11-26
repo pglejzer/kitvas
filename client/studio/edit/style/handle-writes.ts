@@ -12,7 +12,7 @@ import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import type { HandleValue, ScaleStep } from '../../../channel/structure-protocol.ts';
 import { inspect as readInspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
-import { PROPERTIES, styleValueOf, tokensFor } from '../props/steps.ts';
+import { PROPERTIES, styleValueOf, tokensFor } from '../props/values/steps.ts';
 import { text } from '../texts.ts';
 import { opsForStyle, readOnlyReason } from './ops.ts';
 

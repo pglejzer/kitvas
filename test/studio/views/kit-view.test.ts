@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import { loadKit } from '../../../src/kit/index.ts';
 import { groupComponents, swatchRules } from '../../../src/studio/views/kit-view.ts';
-import { builtinKits, FIXTURE_KITS } from '../../helpers/kits.ts';
+import { builtinKits, FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 
 const tiny = () => loadKit(createFolderKitStore(FIXTURE_KITS), 'tiny');
 

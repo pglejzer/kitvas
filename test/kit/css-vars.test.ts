@@ -6,13 +6,19 @@ import {
   cssVarName,
   formatTokenValue,
   readCssVarMap,
-  tokensToCss,
+  tokenSheet,
 } from '../../src/kit/domain/css-vars.ts';
-import { flattenTokens } from '../../src/kit/domain/tokens.ts';
+import { type FlatToken, flattenTokens } from '../../src/kit/domain/tokens.ts';
 import { PLUGIN_ROOT } from '../../src/shared/index.ts';
 
 const file = join(PLUGIN_ROOT, 'test', 'fixtures', 'kits', 'tiny', 'json', 'tokens.json');
 const { tokens } = flattenTokens(JSON.parse(readFileSync(file, 'utf8')));
+
+const sheet = (
+  base: FlatToken[],
+  cssVarMap: Record<string, string> = {},
+  themeTokens: Record<string, FlatToken[]> = {},
+): string => tokenSheet({ tokens: base, cssVarMap, themeTokens });
 
 test('names are --kit- plus the path in kebab case', () => {
   assert.equal(cssVarName(['color', 'inkSoft']), '--kit-color-ink-soft');
@@ -40,9 +46,9 @@ test('a zero duration keeps its unit', () => {
   assert.equal(formatTokenValue(token), '0ms');
 });
 
-test('the sheet lists every token under one selector', () => {
+test('a kit without a map or themes has every token under :root', () => {
   assert.equal(
-    tokensToCss(tokens),
+    sheet(tokens),
     [
       ':root {',
       '  --kit-color-ink: #1d2025;',
@@ -57,26 +63,56 @@ test('the sheet lists every token under one selector', () => {
       '',
     ].join('\n'),
   );
-  assert.match(
-    tokensToCss(tokens.slice(0, 1), '.draft'),
-    /^\.draft \{\n {2}--kit-color-ink: #1d2025;\n\}\n$/,
-  );
+  assert.equal(sheet([]), '');
 });
 
-test('a mapped token follows the design system variable; a bad name keeps the value', () => {
+test('a mapped token follows the design system variable on :root and body; a bad name keeps the value', () => {
   const map = {
     'color.ink': '--brand-ink',
     'space.sm': 'red; } body {',
     'font.body': '--brand-font',
   };
   assert.equal(
-    tokensToCss(tokens.slice(0, 4), undefined, map),
+    sheet(tokens.slice(0, 4), map),
     [
       ':root {',
-      '  --kit-color-ink: var(--brand-ink);',
       '  --kit-color-accent: #1d2025;',
       '  --kit-color-veil: rgb(0 0 0 / 0.5);',
       '  --kit-space-sm: 8px;',
+      '}',
+      // A var() is worked out where it is declared: a theme's attributes are on the body.
+      ':root, body {',
+      '  --kit-color-ink: var(--brand-ink);',
+      '}',
+      '',
+    ].join('\n'),
+  );
+});
+
+test("each theme's tokens come after the base, under its value of the option theme", () => {
+  const dark = flattenTokens({
+    color: {
+      $type: 'color',
+      ink: { $value: { colorSpace: 'srgb', components: [0.8, 0.8, 0.8] } },
+      veil: { $value: { colorSpace: 'srgb', components: [1, 1, 1], alpha: 0.5 } },
+    },
+  }).tokens;
+  assert.equal(
+    sheet(tokens.slice(0, 3), { 'color.ink': '--brand-ink' }, { light: [], dark }),
+    [
+      ':root {',
+      '  --kit-color-accent: #1d2025;',
+      '  --kit-color-veil: rgb(0 0 0 / 0.5);',
+      '}',
+      ':root, body {',
+      '  --kit-color-ink: var(--brand-ink);',
+      '}',
+      '[data-opt-theme="dark"] {',
+      '  --kit-color-veil: rgb(255 255 255 / 0.5);',
+      '}',
+      // The theme's own value of a mapped token: on the body too, or the base's var() would win there.
+      '[data-opt-theme="dark"], [data-opt-theme="dark"] body {',
+      '  --kit-color-ink: #cccccc;',
       '}',
       '',
     ].join('\n'),

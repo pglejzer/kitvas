@@ -13,16 +13,16 @@ import { createInbox, type Inbox } from '../../../src/studio/inbox/inbox.ts';
 import type { Timers } from '../../../src/studio/requests/listening.ts';
 import { readRequests } from '../../../src/studio/requests/request-file.ts';
 import { createRequestService } from '../../../src/studio/requests/requests.ts';
-import { NOW, shopDraft, TINY, tempDrafts } from '../../helpers/drafts.ts';
-import { fakeClock } from '../../helpers/fake-clock.ts';
-import { builtinKits } from '../../helpers/kits.ts';
+import { NOW, shopDraft, TINY, tempDrafts } from '../../helpers/draft/drafts.ts';
+import { builtinKits } from '../../helpers/kit/kits.ts';
+import { fakeClock } from '../../helpers/studio/fake-clock.ts';
 import { t } from '../../helpers/translate.ts';
 
 const BUTTON = 'sections/Hero:section/Button';
 const SAY: NewRequest = {
   kind: 'say',
   elements: [BUTTON],
-  context: { width: null, state: null },
+  context: { width: null, state: null, option: null },
   text: 'Make it stand out',
 };
 const VARIANTS = {

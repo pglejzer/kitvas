@@ -9,7 +9,7 @@ import { dirname, join } from 'node:path';
 import { type TestContext, test } from 'node:test';
 import type { ChecksReport } from '../../src/checks/index.ts';
 import type { BuildView, DraftView, KitView, LayoutView, Status } from '../../src/cli/index.ts';
-import { type FixtureName, fixtureDraftDir } from '../helpers/projects.ts';
+import { type FixtureName, fixtureDraftDir } from '../helpers/kit/projects.ts';
 import { kitvas, type Sandbox } from './helpers/cli.ts';
 import { call, iframes, mainTag } from './helpers/http.ts';
 import { type FixtureBox, fixtureBox, removeFixtureBox } from './helpers/project-box.ts';

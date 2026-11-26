@@ -11,9 +11,9 @@ import type {
   RequestView,
 } from '../../../../src/studio/api/requests/request-schemas.ts';
 import type { InboxTake } from '../../../../src/studio/requests/inbox-take.ts';
-import { NOW, tempDrafts } from '../../../helpers/drafts.ts';
-import { openEvents } from '../../../helpers/events.ts';
-import { call, studioOver } from '../../../helpers/studio.ts';
+import { NOW, tempDrafts } from '../../../helpers/draft/drafts.ts';
+import { openEvents } from '../../../helpers/studio/events.ts';
+import { call, studioOver } from '../../../helpers/studio/studio.ts';
 
 const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';
@@ -67,7 +67,7 @@ const REQUESTS = '/api/v1/drafts/shop/requests';
 const SAY = {
   kind: 'say',
   elements: [STACK],
-  context: { width: null, state: null },
+  context: { width: null, state: null, option: null },
   text: '  More air between the plans  ',
 };
 const ROOMY = {

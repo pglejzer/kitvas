@@ -4,7 +4,7 @@
 // earlier ones left them. The draft's kit is here too: its catalog says what takes children and
 // what is interactive, and its names are what the kit import lists (decision 8).
 
-import { type DraftStore, loadDraft, versionFolder } from '../../drafts/index.ts';
+import { type DraftStore, loadDraft, readOptions, versionFolder } from '../../drafts/index.ts';
 import {
   DEFAULT_BREAKPOINTS,
   type KitComponent,
@@ -13,6 +13,7 @@ import {
   type LoadedKit,
 } from '../../kit/index.ts';
 import { elementIds, readSites } from '../../render/index.ts';
+import type { DraftOption } from '../../shared/index.ts';
 import { fileOfId } from '../domain/ops.ts';
 import type { SiteId } from '../domain/structure/renames.ts';
 import { parentOf } from '../domain/structure/subtree.ts';
@@ -117,6 +118,10 @@ export function breakpointsOf(work: Work): readonly number[] {
   const { loaded } = kitOf(work);
   return loaded === null ? DEFAULT_BREAKPOINTS : kitBreakpoints(loaded.kit);
 }
+
+/** The version's options in their file's order (ADR 0082); none without a readable file. */
+export const optionsOf = (work: Work): DraftOption[] =>
+  readOptions(work.deps.drafts, work.slug, versionFolder(work.version));
 
 /** A file of the request, read once from the version; a missing one has `read: null`. */
 export function stateOf(work: Work, file: string): FileState {

@@ -9,7 +9,7 @@ import {
   MAX_WAIT_MS,
   QUIET_MS,
 } from '../../../src/studio/live/watcher.ts';
-import { fakeClock } from '../../helpers/fake-clock.ts';
+import { fakeClock } from '../../helpers/studio/fake-clock.ts';
 
 const HERO = 'src/tsx/sections/Hero.tsx';
 const HERO_SCSS = 'src/scss/sections/hero.scss';

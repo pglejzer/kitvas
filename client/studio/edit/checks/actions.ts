@@ -4,18 +4,20 @@
 // text buttons at most (`action-plan.ts`); Ask Claude is an icon in the head beside a fix. The
 // button of each is drawn from the store, so a card follows the mode, the kit and a running edit.
 
+import { choiceStoreOf } from '../../options/choice.ts';
 import { iconButton } from '../../ui/icon.ts';
 import { postRequest } from '../ai/api.ts';
 import { inspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
 import { fixOps, reasonKey } from '../live/fix.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import type { EditorState } from '../store.ts';
 import { text } from '../texts.ts';
 import { toast } from '../toast.ts';
 import { planActions } from './action-plan.ts';
 import { askRequest } from './ask-text.ts';
 import { type Evidence, evidenceOf, type FindingFacts } from './evidence.ts';
+import { choiceOf } from './option-chip.ts';
 import { colourProperty, fixToken, planOf, type TokenFix, tokenOf } from './token-fix.ts';
 
 /** The findings Claude was asked about, by the finding, for as long as the page lives. */
@@ -132,6 +134,9 @@ export function actionsOf(
   if (plan.show && element !== null) {
     const show = small(text('checks.show'), '');
     show.addEventListener('click', () => {
+      // A finding seen only with option values shows them first, so the element is on the page.
+      const seenWith = facts.options ?? [];
+      if (seenWith.length > 0) choiceStoreOf(ctx.main)?.set(choiceOf(seenWith));
       ctx.store.set({ selection: [element] });
       // The frame handles messages in order: it scrolls, then the ring flashes where it now is.
       ctx.bridge.reveal?.(element);

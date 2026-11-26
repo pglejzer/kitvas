@@ -12,7 +12,7 @@ import {
 } from '../../../src/checks/index.ts';
 import { compareHandoff } from '../../../src/handoff/app/code/compare.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
-import { shopDraft } from '../../helpers/drafts.ts';
+import { shopDraft } from '../../helpers/draft/drafts.ts';
 
 const lookup = async (): Promise<string[]> => ['93.184.216.34'];
 

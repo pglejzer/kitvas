@@ -25,8 +25,17 @@ export type RawFinding = {
   /** Browser checks: the states and widths it was seen in. Empty for checks that read files. */
   states: string[];
   widths: number[];
+  /**
+   * Browser checks: the option values it was seen with (plan 25); a finding of the default
+   * combination, and every finding of a check that reads files, has none. Left out is none.
+   */
+  options?: FindingOption[] | undefined;
 };
 
+/** One option value a finding was seen with: `columns` at `2`. */
+export type FindingOption = { id: string; value: string };
+
+/** The finding as `checks.json` keeps it: in words; `translateFinding` always writes its options. */
 export type Finding = Omit<RawFinding, 'message' | 'hint'> & { message: string; hint: string };
 
 /** A finding the person accepted on purpose, with the reason (spec 4c, goal 6; `waived.ts`). */
@@ -65,6 +74,7 @@ export const toolText = (text: string): Message => ({ key: 'checkRule.tool', par
 
 export const translateFinding = (raw: RawFinding, t: Translate): Finding => ({
   ...raw,
+  options: raw.options ?? [],
   message: t(raw.message.key, raw.message.params),
   hint: t(raw.hint.key, raw.hint.params),
 });
@@ -80,18 +90,37 @@ const placeKey = (finding: Finding): string =>
     finding.message,
   ]);
 
-/** One finding per rule, place and message; the states and widths of the others are joined. */
+/**
+ * One finding per rule, place and message; the states and widths of the others are joined. The
+ * options are joined too, except that a finding seen in the default combination (none) stays so.
+ */
 export function mergeFindings(findings: Finding[]): Finding[] {
   const merged = new Map<string, Finding>();
   for (const finding of findings) {
     const key = placeKey(finding);
     const seen = merged.get(key);
+    const options = finding.options ?? [];
     if (!seen) {
-      merged.set(key, { ...finding, states: [...finding.states], widths: [...finding.widths] });
+      merged.set(key, {
+        ...finding,
+        states: [...finding.states],
+        widths: [...finding.widths],
+        options: [...options],
+      });
       continue;
     }
     for (const state of finding.states) if (!seen.states.includes(state)) seen.states.push(state);
     for (const width of finding.widths) if (!seen.widths.includes(width)) seen.widths.push(width);
+    const known = seen.options ?? [];
+    if (known.length === 0 || options.length === 0) {
+      seen.options = [];
+      continue;
+    }
+    for (const option of options) {
+      if (!known.some((one) => one.id === option.id && one.value === option.value)) {
+        known.push(option);
+      }
+    }
   }
   return [...merged.values()];
 }

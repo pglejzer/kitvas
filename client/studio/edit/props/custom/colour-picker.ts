@@ -13,7 +13,7 @@
 import type { TokenOption } from '../../../../../src/edit/index.ts';
 import { iconButton } from '../../../ui/icon.ts';
 import { text } from '../../texts.ts';
-import { nearestToken } from '../kit-value.ts';
+import { nearestToken } from '../values/kit-value.ts';
 import { formatColour, type Hsva, hsvOf, readColour, rgbaOf } from './colour-math.ts';
 import { el, field } from './dom.ts';
 import { createGesture } from './gesture.ts';

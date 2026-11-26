@@ -2,6 +2,7 @@
 
 import type { LookEntry, VerifyFile, VerifyIssue } from '../../checks/index.ts';
 import type { KitSource } from '../../kit/index.ts';
+import type { Translate } from '../../shared/index.ts';
 
 /** The `studio.kit.source.*` key and its parameters for a kit's source. */
 export function sourceLine(source: KitSource): { key: string; params: Record<string, string> } {
@@ -21,6 +22,24 @@ export function sourceLine(source: KitSource): { key: string; params: Record<str
       return { key: 'studio.kit.source.web', params: { host: hostsOf(source.urls) } };
     case 'images':
       return { key: 'studio.kit.source.images', params: {} };
+  }
+}
+
+/** What a kit is made from, as a noun for "Not part of {source}": the package, folder, host or file. */
+export function sourceNoun(t: Translate, source: KitSource): string {
+  switch (source.type) {
+    case 'builtin':
+      return t('studio.added.source.builtin');
+    case 'npm':
+      return source.package;
+    case 'repo':
+      return source.path;
+    case 'figma':
+      return t('studio.added.source.figma');
+    case 'web':
+      return hostsOf(source.urls);
+    case 'images':
+      return t('studio.added.source.images');
   }
 }
 

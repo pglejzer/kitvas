@@ -8,6 +8,8 @@ export type SelectItem = {
   detail: string | null;
   swatch: string | null;
   warn: string | null;
+  /** The words of the mark of an item the project added to its kit (`ui/added-mark.ts`); none: no mark. */
+  added?: string | null;
 };
 
 /** From this many items the list opens with a search field. */

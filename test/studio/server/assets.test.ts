@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { call, fakeAssets, pageCookie, shopStudio } from '../../helpers/studio.ts';
+import { call, fakeAssets, pageCookie, shopStudio } from '../../helpers/studio/studio.ts';
 
 test('the scripts need the page cookie, like the pages that load them', async () => {
   const { studio } = await shopStudio();

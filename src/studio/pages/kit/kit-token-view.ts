@@ -5,6 +5,7 @@
 
 import type { Translate } from '../../../shared/index.ts';
 import type { ColorRow, KitTokens, ValueRow } from '../../views/kit-tokens.ts';
+import { addedMark } from '../added-mark.ts';
 import { type Html, html } from '../html.ts';
 
 /** The sections the page's left side links to, with their counts. */
@@ -92,12 +93,29 @@ function other(t: Translate, rows: ValueRow[]): Html | '' {
   );
 }
 
-export function tokenSections(t: Translate, tokens: KitTokens): Html {
-  return html`${colors(t, tokens.colors)}${spacing(t, tokens.spacing)}${radius(t, tokens.radius)}${typeSection(t, tokens)}${other(t, tokens.other)}`;
+/** The tokens a project added to the kit: their own card, its note the mark's text (`added-mark.ts`). */
+export type AddedTokens = { rows: ValueRow[]; note: string };
+
+function addedSection(t: Translate, added: AddedTokens | undefined): Html | '' {
+  if (added === undefined || added.rows.length === 0) return '';
+  const lines = added.rows.map(
+    (row) => html`<li class="kit-other-row"><code>${row.name}</code><span>${row.value}</span></li>`,
+  );
+  const note = html`<p class="k-meta kit-added-note">${addedMark(added.note)}<span>${added.note}</span></p>`;
+  return cardPart(
+    'kit-added',
+    t('studio.kit.section.added'),
+    added.rows.length,
+    html`${note}<ul class="kit-other" role="list">${lines}</ul>`,
+  );
+}
+
+export function tokenSections(t: Translate, tokens: KitTokens, added?: AddedTokens): Html {
+  return html`${colors(t, tokens.colors)}${spacing(t, tokens.spacing)}${radius(t, tokens.radius)}${typeSection(t, tokens)}${other(t, tokens.other)}${addedSection(t, added)}`;
 }
 
 /** The token sections that exist, for the links on the page's left. */
-export function tokenAnchors(t: Translate, tokens: KitTokens): Anchor[] {
+export function tokenAnchors(t: Translate, tokens: KitTokens, added?: AddedTokens): Anchor[] {
   const typeCount = tokens.sizes.length + tokens.weights.length + tokens.families.length;
   const all: Anchor[] = [
     { id: 'kit-colors', label: t('studio.kit.tokenType.color'), count: tokens.colors.length },
@@ -105,6 +123,7 @@ export function tokenAnchors(t: Translate, tokens: KitTokens): Anchor[] {
     { id: 'kit-radius', label: t('studio.kit.section.radius'), count: tokens.radius.length },
     { id: 'kit-type', label: t('studio.kit.section.type'), count: typeCount },
     { id: 'kit-other', label: t('studio.kit.section.other'), count: tokens.other.length },
+    { id: 'kit-added', label: t('studio.kit.section.added'), count: added?.rows.length ?? 0 },
   ];
   return all.filter((anchor) => anchor.count > 0);
 }

@@ -3,7 +3,7 @@
 // faint outline of every list a dragged item can go to. In viewport pixels like everything in
 // `slots.ts`, which re-exports it.
 
-import type { Box, Point, Slot } from '../drag/slots.ts';
+import type { Box, Point, Slot } from '../drag/slots/slots.ts';
 import { overlayHostStyle } from '../page/overlay-host.ts';
 import { toned } from '../tones/tones.ts';
 

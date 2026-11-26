@@ -8,9 +8,9 @@ import { loadKit } from '../../../src/kit/index.ts';
 import { catalogDir } from '../../../src/shared/index.ts';
 import { pageRoutes } from '../../../src/studio/pages/routes.ts';
 import { studioHeaders } from '../../../src/studio/security/response-headers.ts';
-import { BASE_STAMP, writeCatalog } from '../../helpers/catalog.ts';
-import { tempDrafts } from '../../helpers/drafts.ts';
-import { copyKit, tinyKitJson } from '../../helpers/kits.ts';
+import { tempDrafts } from '../../helpers/draft/drafts.ts';
+import { BASE_STAMP, writeCatalog } from '../../helpers/kit/catalog.ts';
+import { copyKit, tinyKitJson } from '../../helpers/kit/kits.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 import { t } from '../../helpers/translate.ts';
 

@@ -6,7 +6,7 @@
 // `op-limits.ts`, and what an op does without its schema in `op-kinds.ts`. This file re-exports
 // both, so the rest of `src/` imports the ops from here alone.
 
-import { type Zod, z } from '../../shared/index.ts';
+import { OPTION_ID, OPTION_VALUE, type Zod, z } from '../../shared/index.ts';
 import {
   CLASS_NAME,
   COMPONENT_TAG,
@@ -38,13 +38,21 @@ export const ElementIdSchema = z.string().max(200).regex(ELEMENT_ID);
 /**
  * Where a style edit applies (spec 4c, goal 1). `width`: from this breakpoint up (a kit breakpoint,
  * `@media (min-width: <width>px)`), `null` for all widths. `state`: `null` for the resting state.
- * An op without a context is the base, as in 4a.
+ * `option` (ADR 0082): one value of one of the version's options, the block
+ * `[data-opt-<id>="<value>"] &`; `null` for every option. A context written before options has no
+ * such field and reads as `null`. An op without a context is the base, as in 4a.
  */
 export const StyleContextSchema = z.strictObject({
   width: z.number().int().min(1).max(MAX_BREAKPOINT).nullable(),
   state: z.enum(STYLE_STATES).nullable(),
+  option: z
+    .strictObject({ id: z.string().regex(OPTION_ID), value: z.string().regex(OPTION_VALUE) })
+    .nullable()
+    .default(null),
 });
 export type StyleContext = Zod.infer<typeof StyleContextSchema>;
+/** The option value a context names (ADR 0082). */
+export type ContextOption = NonNullable<StyleContext['option']>;
 /** The place of an item in a `.map`: 0 for the first rendered element of that id. */
 const ItemSchema = z.number().int().min(0).max(10_000);
 /** A copy's place in each `.map` around its element, outer first (ADR 0060). */

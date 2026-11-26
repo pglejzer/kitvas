@@ -21,7 +21,7 @@ Your prompt holds the kit folder (`.kitvas/kits/<id>/`), the project folder, the
 
 ## Write
 
-Write only these files inside the kit folder: `kit.json`, `json/tokens.json`, `json/css-var-map.json`. When your prompt names a fragment file, write only that file (rule L8b) and never `kit.json`. Never write `generated/`: kitvas writes it. Never edit the project's files or anything in `node_modules`. Nothing outside the kit folder.
+Write only these files inside the kit folder: `kit.json`, `json/tokens.json`, `json/css-var-map.json`, a theme's token file `json/tokens.<id>.json` and, only in the case of rule L31e, `theme.ts`. When your prompt names a fragment file, write only that file (rule L8b) and never `kit.json`. Never write `generated/`: kitvas writes it. Never edit the project's files or anything in `node_modules`. Nothing outside the kit folder.
 
 ## Rules in short
 
@@ -29,9 +29,10 @@ Write only these files inside the kit folder: `kit.json`, `json/tokens.json`, `j
 - Cover the core set first, or only the components you were asked for.
 - The shapes are in the schema file (L8a); it wins over any prose.
 - Colours are DTCG srgb values; dimensions are `{ value, unit }`.
+- The system's own themes are the kit's themes (L31b to L35a). Their values are the system's own, never made up. Look up how a scheme switches; never guess it.
 - Keep `id`, `source`, `runtime.entry` and `runtime.packages` as `kit new` wrote them.
 - The full rules are in the learner rules file; follow it when it is stricter than this list.
 
 ## Report
 
-The first line of your final message is one of `STATUS: DONE`, `STATUS: DONE_WITH_CONCERNS`, `STATUS: BLOCKED` or `STATUS: NEEDS_CONTEXT`. Then at most 5 lines: the files written, the components by category, what went to `gaps` and why, any rule that was missing or wrong, and what is missing (for example a package that is not installed). Do not paste the JSON.
+The first line of your final message is one of `STATUS: DONE`, `STATUS: DONE_WITH_CONCERNS`, `STATUS: BLOCKED` or `STATUS: NEEDS_CONTEXT`. Then at most 5 lines: the files written, the components by category, what went to `gaps` and why, the themes found and why one was not learned, any rule that was missing or wrong, and what is missing (for example a package that is not installed). Do not paste the JSON.

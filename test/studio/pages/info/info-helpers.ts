@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import type { CheckResult } from '../../../../src/doctor/index.ts';
 import { createFolderKitStore } from '../../../../src/kit/adapters/folder-store.ts';
 import { pageRoutes } from '../../../../src/studio/pages/routes.ts';
-import { tempDrafts } from '../../../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../../../helpers/kits.ts';
+import { tempDrafts } from '../../../helpers/draft/drafts.ts';
+import { FIXTURE_KITS } from '../../../helpers/kit/kits.ts';
 import { t } from '../../../helpers/translate.ts';
 
 export type DoctorFn = () => Promise<{ checks: CheckResult[]; report: string }>;

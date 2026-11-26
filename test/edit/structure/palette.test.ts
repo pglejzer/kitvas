@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import { createDraft } from '../../../src/drafts/index.ts';
 import { readPalette } from '../../../src/edit/app/structure/palette.ts';
 import type { KitStore } from '../../../src/kit/index.ts';
-import { NOW, TINY, tempDrafts, writeVersionFiles } from '../../helpers/drafts.ts';
-import { builtinKits } from '../../helpers/kits.ts';
+import { NOW, TINY, tempDrafts, writeVersionFiles } from '../../helpers/draft/drafts.ts';
+import { builtinKits } from '../../helpers/kit/kits.ts';
 
 const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
 

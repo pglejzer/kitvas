@@ -4,8 +4,8 @@ import { KitvasError } from '../../../src/shared/index.ts';
 import { apiRoutes } from '../../../src/studio/api/routes.ts';
 import type { RunningJob } from '../../../src/studio/jobs/job.ts';
 import { createJobs } from '../../../src/studio/jobs/jobs.ts';
-import { apiDeps } from '../../helpers/api.ts';
-import { NOW } from '../../helpers/drafts.ts';
+import { NOW } from '../../helpers/draft/drafts.ts';
+import { apiDeps } from '../../helpers/studio/api.ts';
 import { t } from '../../helpers/translate.ts';
 
 function setup() {

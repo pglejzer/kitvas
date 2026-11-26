@@ -13,8 +13,8 @@ import {
 } from '../../../src/edit/index.ts';
 import { KitvasError, PLUGIN_ROOT } from '../../../src/shared/index.ts';
 import { etagOf } from '../../../src/studio/http/etag.ts';
-import { NOW, tempDrafts, writeVersionFiles } from '../../helpers/drafts.ts';
-import { builtinKits } from '../../helpers/kits.ts';
+import { NOW, tempDrafts, writeVersionFiles } from '../../helpers/draft/drafts.ts';
+import { builtinKits } from '../../helpers/kit/kits.ts';
 
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());

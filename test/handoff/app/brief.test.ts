@@ -6,13 +6,20 @@ import {
   handoffDecisions,
   writeBrief,
 } from '../../../src/handoff/app/code/brief.ts';
+import { splitAddedTokens } from '../../../src/handoff/domain/code/brief.ts';
 import type { ProjectListing } from '../../../src/handoff/domain/code/listing.ts';
 import type { TargetFacts } from '../../../src/handoff/domain/code/target.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import type { KitStore, ProjectSetup } from '../../../src/kit/index.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
-import { GOOD_LAYOUT, NOW, TINY, tempDrafts, writeVersionFiles } from '../../helpers/drafts.ts';
-import { FIXTURE_KITS, tinyKitJson } from '../../helpers/kits.ts';
+import {
+  GOOD_LAYOUT,
+  NOW,
+  TINY,
+  tempDrafts,
+  writeVersionFiles,
+} from '../../helpers/draft/drafts.ts';
+import { FIXTURE_KITS, tinyKitJson } from '../../helpers/kit/kits.ts';
 
 const D = '.kitvas/drafts/shop/v1';
 const RULES = '/plugin/reference/handoff-code.md';
@@ -284,6 +291,26 @@ test('each component and token is listed once, with its uses and where it comes 
   ]);
 });
 
+test('a token the project added is listed apart, to create, and a draft with none has no such field', () => {
+  const used = [
+    { var: '--kit-color-ink', path: 'color.ink', css: '#1d2025', project: null, uses: 2 },
+    { var: '--kit-space-wide', path: 'space.wide', css: '48px', project: '--wide', uses: 1 },
+  ];
+  const split = splitAddedTokens(used, ['space.wide']);
+  assert.deepEqual(split.tokens, [used[0]]);
+  assert.deepEqual(split.added, [
+    { var: '--kit-space-wide', path: 'space.wide', css: '48px', uses: 1 },
+  ]);
+  assert.deepEqual(splitAddedTokens(used, []).added, []);
+  // The tiny kit has no additions: no field.
+  const { brief } = writeBrief(depsFor(screen({}), tiny()), {
+    slug: 'shop',
+    write: { to: 'src/app', scope: 'new', files: [] },
+    base: '',
+  });
+  assert.equal('added' in brief, false);
+});
+
 test('a component that is a project addition says so', () => {
   const kits = withKit(() => {}, {
     additions: {
@@ -354,6 +381,35 @@ test('a kit from a package names the project module and the project variable beh
   assert.deepEqual(byName, { Badge: null, Button: '@acme/ui#Button', Icon: '@acme/ui/Icon' });
   const byVar = Object.fromEntries(brief.tokens.map((item) => [item.var, item.project]));
   assert.deepEqual(byVar, { '--kit-color-ink': '--acme-ink', '--kit-space-sm': null });
+});
+
+test('a version with options hands off the default of each; one without has no options field', () => {
+  const input = {
+    slug: 'shop',
+    write: { to: 'src/app', scope: 'new' as const, files: [] },
+    base: '',
+  };
+  assert.equal('options' in writeBrief(depsFor(screen({}), tiny()), input).brief, false);
+
+  const store = screen({});
+  writeVersionFiles(store, 'shop', 1, {
+    'src/json/options.json': JSON.stringify({
+      schemaVersion: 1,
+      options: [
+        {
+          id: 'columns',
+          label: 'Columns',
+          default: '3',
+          values: [
+            { id: '3', label: 'Three' },
+            { id: '2', label: 'Two' },
+          ],
+        },
+      ],
+    }),
+  });
+  const { brief } = writeBrief(depsFor(store, tiny()), input);
+  assert.deepEqual(brief.options, [{ id: 'columns', default: '3' }]);
 });
 
 test('a rework draft is a screen with its own kind', () => {

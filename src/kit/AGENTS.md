@@ -6,7 +6,14 @@ Reads kits and checks them against the kit contract.
 - A problem inside a kit is a `KitIssue` with a message key (`kitIssue.<name>` in `locales/en.json`), not thrown text. Only a kit.json that fails the schema, or is not JSON, throws `KIT_INVALID`.
 - `loadKit` returns the kit with its issues; `requireKit` refuses a kit that has any. Code that builds from a kit uses `requireKit`.
 - Tokens are DTCG 2025.10. `domain/tokens.ts` reads six types; a new type needs a shape there and a case in `domain/css-vars.ts`.
-- Prototype styles use `--kit-*` names only; `cssVarName` is the one place that builds them. A token mapped in `tokens.cssVars.map` is written as `var(<native>)` by `tokensToCss`.
+- Prototype styles use `--kit-*` names only; `cssVarName` is the one place that builds them. `tokenSheet` (`domain/css-vars.ts`) is the one writer of the token sheet, for every build and `kit css`: the base under `:root`, a token mapped in `tokens.cssVars.map` as `var(<native>)` under `:root, body`, then each theme under `optionSelector('theme', id)`.
+
+## Themes and added tokens (ADR 0083)
+
+- `domain/themes.ts` (`layTokens`) is the one place that reads theme files and the additions' token files. The default theme is the base file and has no `file` or `attributes`; another theme's file sets only paths and types the base has. Every file is laid on the base token by token, so `$type` and aliases of the base hold.
+- The additions folder may hold `tokens.json` (new tokens; a path or group the kit has is refused) and `tokens.<theme>.json` (one theme's values; an id the kit lacks is a new theme labelled from its id, a value the kit's own theme file sets is refused, the default theme is refused). A kit without `tokens.themes` gets the default theme `default` once the project adds one.
+- `LoadedKit.tokens` holds the added tokens too; `addedTokens` names them, `themes.list[].added` marks a theme the additions brought or gave values to, and `themeTokens` holds per theme only the tokens whose values differ.
+- A refusal is a `KitIssue` whose `path` is the file; a broken file of the additions never throws. Theme files and the additions' token files are part of the kit's hash, pushed only when there are some, so other kits keep theirs.
 - Tests use the fixture kit in `test/fixtures/kits/tiny/`; project kits in tests come from `test/kit/helpers/project-kit.ts`.
 
 ## Project kits

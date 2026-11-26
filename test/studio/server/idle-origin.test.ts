@@ -3,10 +3,10 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import type { StudioDeps } from '../../../src/studio/index.ts';
-import { openEvents } from '../../helpers/events.ts';
-import { fakeCli } from '../../helpers/fake-cli.ts';
-import { fakeClock } from '../../helpers/fake-clock.ts';
-import { call, shopStudio } from '../../helpers/studio.ts';
+import { openEvents } from '../../helpers/studio/events.ts';
+import { fakeCli } from '../../helpers/studio/fake-cli.ts';
+import { fakeClock } from '../../helpers/studio/fake-clock.ts';
+import { call, shopStudio } from '../../helpers/studio/studio.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 import { t } from '../../helpers/translate.ts';
 

@@ -7,7 +7,7 @@
 // byte, the hunks undo the request.
 
 import { versionFolder } from '../../../drafts/index.ts';
-import { fileOfId, inverseAll, type SimpleOp } from '../../domain/ops.ts';
+import { fileOfId, inverseAll, isBaseContext, type SimpleOp } from '../../domain/ops.ts';
 import {
   applyScss,
   IMAGE_FILE,
@@ -20,7 +20,7 @@ import {
 import { tokenGroupsOf } from '../../domain/style/source.ts';
 import { isStyleProperty } from '../../domain/types.ts';
 import { tokenOptions } from '../edit-state.ts';
-import { kitOf, type Work } from '../request-state.ts';
+import { kitOf, optionsOf, type Work } from '../request-state.ts';
 
 type Version = Pick<Work, 'deps' | 'slug' | 'version'>;
 
@@ -44,16 +44,24 @@ function varKindFor(work: Work): VarKind {
   };
 }
 
-/** What a style op of the request is applied with: its options, its images, its token types. */
+/**
+ * What a style op of the request is applied with: its options, its images, its token types, and
+ * the version's options, which place a new option's block (ADR 0082).
+ */
 export function scssOptions(work: Work): ScssOptions {
-  return { ...work.options, hasImage: imagesOf(work), varKind: varKindFor(work) };
+  return {
+    ...work.options,
+    hasImage: imagesOf(work),
+    varKind: varKindFor(work),
+    versionOptions: () => optionsOf(work),
+  };
 }
 
-/** A style op of a width or a state (spec 4c). */
+/** A style op of a width, a state or an option (spec 4c, ADR 0082). */
 const inContext = (op: SimpleOp): boolean =>
   (op.op === 'setStyle' || op.op === 'removeStyle') &&
   op.context !== undefined &&
-  (op.context.width !== null || op.context.state !== null);
+  !isBaseContext(op.context);
 
 /** A style op of a property a shorthand may hold: it may have written into one (ADR 0070). */
 const maybeInShorthand = (op: SimpleOp): boolean =>
@@ -72,6 +80,7 @@ function scssUndoExact(work: Work, ops: readonly SimpleOp[]): boolean {
     force: false,
     hasImage: imagesOf(work),
     varKind: varKindFor(work),
+    versionOptions: () => optionsOf(work),
   };
   const texts = new Map<string, string>();
   for (const op of inverseAll(ops)) {

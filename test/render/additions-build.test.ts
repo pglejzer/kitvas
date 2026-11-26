@@ -12,10 +12,15 @@ import { createFolderKitWriter } from '../../src/kit/adapters/folder-writer.ts';
 import { createLayeredKitStore } from '../../src/kit/adapters/layered-store.ts';
 import { buildCatalog, buildDraft } from '../../src/render/index.ts';
 import { catalogDir, projectKitsDir } from '../../src/shared/index.ts';
-import { shopDraft } from '../helpers/drafts.ts';
-import { builtinKits } from '../helpers/kits.ts';
-import { fixtureProject, removeFixture } from '../helpers/projects.ts';
-import { closeRenderTools, HERO_TSX, renderTools, writeShopSections } from '../helpers/render.ts';
+import { shopDraft } from '../helpers/draft/drafts.ts';
+import {
+  closeRenderTools,
+  HERO_TSX,
+  renderTools,
+  writeShopSections,
+} from '../helpers/draft/render.ts';
+import { builtinKits } from '../helpers/kit/kits.ts';
+import { fixtureProject, removeFixture } from '../helpers/kit/projects.ts';
 import { additionsProject, STAR_PATH, star, starFile } from '../kit/helpers/additions.ts';
 
 /** sha256 of every file under `dir`, by its path from `dir`. */

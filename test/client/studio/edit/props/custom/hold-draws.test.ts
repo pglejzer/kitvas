@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createGestureHold } from '../../../../../../client/studio/edit/props/custom/hold-draws.ts';
-import { createDrawScheduler } from '../../../../../../client/studio/edit/props/draw.ts';
+import { createDrawScheduler } from '../../../../../../client/studio/edit/props/panel/draw.ts';
 
 function setup() {
   const frames: (() => void)[] = [];

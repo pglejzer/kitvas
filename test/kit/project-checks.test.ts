@@ -7,7 +7,7 @@ import {
   parseKit,
   projectIssues,
 } from '../../src/kit/index.ts';
-import { tinyKitJson } from '../helpers/kits.ts';
+import { tinyKitJson } from '../helpers/kit/kits.ts';
 import { type Json, npmKitJson, repoKitJson } from './helpers/project-kit.ts';
 
 type Disk = {
@@ -37,6 +37,9 @@ const loadedOf = (raw: Json): LoadedKit => {
     additions: [],
     additionsDir: undefined,
     entry: 'kit/generated/kit.ts',
+    themes: { default: 'default', list: [] },
+    themeTokens: {},
+    addedTokens: [],
   };
 };
 

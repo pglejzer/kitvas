@@ -15,9 +15,9 @@ import type {
 } from '../../../src/checks/ports/browser.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import type { RenderDeps } from '../../../src/render/index.ts';
-import { shopDraft } from '../../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../../helpers/kits.ts';
-import { closeRenderTools, renderTools, writeShopSections } from '../../helpers/render.ts';
+import { shopDraft } from '../../helpers/draft/drafts.ts';
+import { closeRenderTools, renderTools, writeShopSections } from '../../helpers/draft/render.ts';
+import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 
 const BUILD_MS = 120_000;
 

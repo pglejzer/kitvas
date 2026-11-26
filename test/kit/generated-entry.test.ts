@@ -13,7 +13,7 @@ import {
   syncGeneratedEntry,
 } from '../../src/kit/index.ts';
 import { KitvasError } from '../../src/shared/index.ts';
-import { tinyKitJson } from '../helpers/kits.ts';
+import { tinyKitJson } from '../helpers/kit/kits.ts';
 import { tempDir } from '../helpers/tmp.ts';
 import { type Json, npmKitJson, repoKitJson, webKitJson } from './helpers/project-kit.ts';
 
@@ -35,6 +35,9 @@ const loadedOf = (kit: Kit, project: string | undefined, folder = kit.id): Loade
     additions: [],
     additionsDir: undefined,
     entry: join(dir, ...kit.runtime.entry.split('/')),
+    themes: { default: 'default', list: [] },
+    themeTokens: {},
+    addedTokens: [],
   };
 };
 

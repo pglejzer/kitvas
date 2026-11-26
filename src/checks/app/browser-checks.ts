@@ -2,11 +2,19 @@
 // ui, ux and a11y rules over what each visit measured (ADR 0044).
 
 import { join } from 'node:path';
+import type { DraftOption } from '../../shared/index.ts';
 import type { IdEntry } from '../domain/code/ids.ts';
 import type { RawFinding, Shot } from '../domain/findings/finding.ts';
 import { MAX_FINDINGS_PER_RULE } from '../domain/guidelines/index.ts';
 import { DEEP_VIEWPORTS, TABLET_VIEWPORT } from '../domain/page/facts.ts';
-import { a11yFindings, componentsOf, runtimeFindings, VIEWPORTS } from '../domain/page/page.ts';
+import {
+  a11yFindings,
+  componentsOf,
+  type PageReport,
+  runtimeFindings,
+  type Seen,
+  VIEWPORTS,
+} from '../domain/page/page.ts';
 import { type CatalogComponent, usageFindings } from '../domain/page/usage.ts';
 import {
   CRAFT_RULES,
@@ -37,11 +45,15 @@ export type BrowserInput = {
   baseline: string;
   /** The draft's kind; `'screen'` when not given. A craft board is visited with the `craft` pass. */
   kind?: 'screen' | 'rework' | 'craft';
+  /** The version's options (plan 25); each value other than its default is visited once more. */
+  options?: readonly DraftOption[];
 };
 
 export type BrowserResult = {
   findings: RawFinding[];
   shots: Shot[];
+  /** The shots of the other option values, each with the default combination's shot beside it. */
+  optionShots: OptionShot[];
   browser: string;
   /** Some visit measured only the first FACTS_NODE_CAP elements. */
   truncated: boolean;
@@ -147,12 +159,23 @@ export async function browserChecks(
   const visits: VisitInput[] = [];
   let truncated = false;
   const page = join(input.versionDir, 'build', 'html', 'index.html');
+  const optionShots: OptionShot[] = [];
+  /** The visits of each other value, kept apart: their rules run with the value as their option. */
+  const byValue = new Map<string, { value: OtherValue; visits: VisitInput[] }>();
   try {
     for (const state of input.states) {
       for (const { width, height, passes, shot } of visitPlan(input.deep, input.kind)) {
         const file = `build/shots/${state}-${width}.png`;
         const screenshot = shot ? join(input.versionDir, ...file.split('/')) : null;
-        const report = await session.visit({ page, state, width, height, screenshot, passes });
+        const report = await session.visit({
+          page,
+          state,
+          width,
+          height,
+          screenshot,
+          passes,
+          options: {},
+        });
         const seen = {
           state,
           width,
@@ -160,19 +183,7 @@ export async function browserChecks(
           components: componentsOf(report.usage),
         };
         // The deep widths add the layout rules only; errors, axe and usage are the same page's.
-        if (isMainWidth(width)) {
-          findings.push(
-            ...runtimeFindings(report, seen),
-            ...a11yFindings(report.violations, seen),
-            ...usageFindings({
-              usage: report.usage,
-              catalog: input.catalog,
-              ids: input.ids,
-              state,
-              width,
-            }),
-          );
-        }
+        if (isMainWidth(width)) findings.push(...pageFindings(report, seen, input));
         if (screenshot !== null && report.shot) shots.push({ state, width, file });
         // A page that did not load measured nothing: the runtime findings say why.
         if (report.facts === null) continue;
@@ -187,11 +198,93 @@ export async function browserChecks(
         });
       }
     }
+    // Each option's other values, one at a time, in the baseline state at the two main widths:
+    // never the product of the options (plan 25, C7). A craft board has no options.
+    const others = input.kind === 'craft' ? [] : otherValues(input.options ?? []);
+    for (const other of others) {
+      for (const { width, height, passes, shot } of visitPlan(input.deep, input.kind)) {
+        if (!shot) continue;
+        const stem = `build/shots/${input.baseline}-${width}`;
+        const file = `${stem}.${other.id}-${other.value}.png`;
+        const screenshot = join(input.versionDir, ...file.split('/'));
+        const report = await session.visit({
+          page,
+          state: input.baseline,
+          width,
+          height,
+          screenshot,
+          passes,
+          options: { [other.id]: other.value },
+        });
+        const seen = {
+          state: input.baseline,
+          width,
+          ids: input.ids,
+          components: componentsOf(report.usage),
+        };
+        findings.push(...tagged(pageFindings(report, seen, input), other));
+        if (report.shot) optionShots.push({ ...other, width, file, base: `${stem}.png` });
+        if (report.facts === null) continue;
+        if (report.facts.truncated) truncated = true;
+        const group = byValue.get(`${other.id}=${other.value}`) ?? { value: other, visits: [] };
+        group.visits.push({
+          facts: report.facts,
+          report,
+          seen,
+          catalog: input.catalog,
+          screen: input.screen,
+          stateKind: 'baseline',
+        });
+        byValue.set(`${other.id}=${other.value}`, group);
+      }
+    }
   } finally {
     await session.close();
   }
   // A craft board is laid out by kitvas: only the craft rules judge it, never the screen rules.
   const used = input.kind === 'craft' ? { ...rules, visit: [], states: [], deep: [] } : rules;
   findings.push(...runRules(visits, used));
-  return { findings, shots, browser: session.name, truncated, visits };
+  // A value's visits are no states: the rules that compare states never see them.
+  for (const group of byValue.values()) {
+    findings.push(...tagged(runRules(group.visits, { ...used, states: [] }), group.value));
+  }
+  return { findings, shots, optionShots, browser: session.name, truncated, visits };
+}
+
+/** One value of an option other than its default. */
+export type OtherValue = { id: string; value: string };
+
+/** The shot of an option's value, with the default combination's shot it is held against. */
+export type OptionShot = OtherValue & {
+  width: number;
+  /** Relative to the draft version, like the shots of `checks.json`. */
+  file: string;
+  base: string;
+};
+
+/** Every value that is not its option's default, in the options' order. */
+export function otherValues(options: readonly DraftOption[]): OtherValue[] {
+  return options.flatMap((option) =>
+    option.values
+      .filter((value) => value.id !== option.default)
+      .map((value) => ({ id: option.id, value: value.id })),
+  );
+}
+
+const tagged = (found: RawFinding[], other: OtherValue): RawFinding[] =>
+  found.map((finding) => ({ ...finding, options: [{ id: other.id, value: other.value }] }));
+
+/** What one visit's report says on its own: errors, axe and the kit's components in use. */
+function pageFindings(report: PageReport, seen: Seen, input: BrowserInput): RawFinding[] {
+  return [
+    ...runtimeFindings(report, seen),
+    ...a11yFindings(report.violations, seen),
+    ...usageFindings({
+      usage: report.usage,
+      catalog: input.catalog,
+      ids: input.ids,
+      state: seen.state,
+      width: seen.width,
+    }),
+  ];
 }

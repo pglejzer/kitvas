@@ -8,7 +8,7 @@ import type { TokenOption } from '../../../../src/edit/index.ts';
 import { icon } from '../../ui/icon.ts';
 import type { Evidence as LiveEvidence } from '../live/evidence.ts';
 import { isColourValue, quotedValue } from '../live/row-words.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import { BAR_MARK, barFill, type Evidence, evidenceOf } from './evidence.ts';
 

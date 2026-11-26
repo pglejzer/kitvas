@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readChecks } from '../../src/checks/index.ts';
 import { type DraftStore, serializeJson } from '../../src/drafts/index.ts';
-import { shopDraft } from '../helpers/drafts.ts';
-import { checksOf, finding } from '../helpers/findings.ts';
+import { shopDraft } from '../helpers/draft/drafts.ts';
+import { checksOf, finding } from '../helpers/studio/findings.ts';
 
 const PATH = 'v1/build/json/checks.json';
 

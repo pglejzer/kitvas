@@ -59,39 +59,33 @@ const widthPill = (text: string): string =>
 const rows = (text: string): Map<number, string> => {
   const found = new Map<number, string>();
   for (const match of text.matchAll(
-    /<a class="k-menu-item pill-size" data-dock-size="(\d+)"[^>]*>.*?<\/a>/g,
+    /<a class="k-menu-item pill-size(?: pill-preset)?" data-dock-size="(\d+)"[^>]*>.*?<\/a>/g,
   )) {
     found.set(Number(match[1]), match[0]);
   }
   return found;
 };
 
-test('one row at the top right: the state pill, then the width pill, and the zoom pill apart', () => {
+test('one row at the top right: the state pill, then the width pill; the zoom pill is not here', () => {
   const text = docked();
   assert.ok(text.startsWith('<div class="pill-row" data-shell="dock" role="group"'));
   assert.ok(text.includes(`aria-label="${escapeHtml(t('studio.edit.canvas.controls'))}"`));
   assert.equal(count(text, 'class="pill-row"'), 1);
   const states = text.indexOf('data-dock="states"');
   const width = text.indexOf('data-dock="width"');
-  const zoom = text.indexOf('data-dock="zoom"');
-  assert.ok(states > 0 && width > states && zoom > width);
+  assert.ok(states > 0 && width > states);
   // The second row of pills (cards, a states bar) is gone.
   assert.ok(!text.includes('class="k-pop k-pill" data-dock="cards"'));
   assert.ok(!text.includes('<nav class="k-pop k-pill" data-dock="states"'));
-  assert.ok(
-    text.endsWith(
-      `<div class="k-pop k-pill pill-zoom" data-dock="zoom" role="group" aria-label="${escapeHtml(t('studio.edit.zoom.label'))}"></div>`,
-    ),
-  );
-  // The pill row closes before the zoom pill: the zoom is not in the row.
-  assert.ok(text.indexOf('class="k-pop k-pill pill-zoom"') > text.indexOf('data-dock="width"'));
+  // The zoom pill is in the bottom row with the ask bar (`canvasTools`).
+  assert.ok(!text.includes('data-dock="zoom"'));
 });
 
 test('the pill shows 390, 768 and 1280 and More', () => {
   const pill = widthPill(docked());
   const shown = [...pill.matchAll(/data-dock-width="(\d+)"/g)].map((match) => match[1]);
   assert.deepEqual(shown, ['390', '768', '1280']);
-  assert.match(docked(), /<summary class="k-btn"[^>]*><span>[^<]+<\/span><svg/);
+  assert.match(docked(), /<summary class="k-btn"[^>]*><span class="pill-word">[^<]+<\/span><svg/);
   assert.ok(docked().indexOf('data-dock="more"') > docked().indexOf('data-dock-width="1280"'));
   // No size of the menu is a button of the pill.
   assert.ok(!/data-dock-width="(320|430|1024|1440|1920|2560)"/.test(pill));
@@ -116,11 +110,16 @@ test('the presets are links to the same view with a device icon, the current one
   }
 });
 
-test('More holds the other sizes, the custom width, Cards 1 2 3 and Every width', () => {
+test('More holds every size, the custom width, Cards 1 2 3 and Every width', () => {
   const menu = more(docked());
   assert.ok(menu.includes('data-pill-menu'));
-  // The sizes, by device, without the three presets.
-  assert.deepEqual([...rows(menu).keys()], [320, 430, 1024, 1440, 1920, 2560]);
+  // The sizes, by device; the three presets too, for the pill that shows only the width in use.
+  assert.deepEqual([...rows(menu).keys()], [320, 390, 430, 768, 1024, 1280, 1440, 1920, 2560]);
+  const presets = menu.matchAll(/pill-size pill-preset" data-dock-size="(\d+)"/g);
+  assert.deepEqual(
+    [...presets].map((match) => match[1]),
+    ['390', '768', '1280'],
+  );
   const heads = [...menu.matchAll(/class="k-meta pill-head" aria-hidden="true">([^<]*)</g)].map(
     (match) => match[1],
   );

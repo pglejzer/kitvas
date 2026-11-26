@@ -23,7 +23,7 @@ import {
   syncGeneratedEntry,
 } from '../../src/kit/index.ts';
 import { projectKitsDir } from '../../src/shared/index.ts';
-import { FIXTURE_KITS, tinyKitJson } from '../helpers/kits.ts';
+import { FIXTURE_KITS, tinyKitJson } from '../helpers/kit/kits.ts';
 import { tempDir } from '../helpers/tmp.ts';
 import {
   additionsProject,

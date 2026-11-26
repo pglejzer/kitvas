@@ -9,6 +9,7 @@
 
 import { samePath as samePathOf } from '../../../../src/shared/values/paths.ts';
 import { type EditFrameMessage, textEditOf } from '../../../channel/edit-protocol.ts';
+import { choiceStoreOf } from '../../options/choice.ts';
 import type { Mode } from '../../shell/layout.ts';
 import { inspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
@@ -236,6 +237,14 @@ export function mountMode(ctx: EditorContext): void {
         onText(message.id, message.value);
         break;
     }
+  });
+
+  // Other values of the options show in place, with no build and no tree: the computed values of
+  // the selection are of the values shown before. The frame hears the switch first.
+  choiceStoreOf(main)?.subscribe(() => {
+    const state = store.get();
+    const first = state.selection[0];
+    if (state.on && first !== undefined) sendInspectToFrame(first);
   });
 
   renderMode(store.get().on);

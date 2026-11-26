@@ -88,6 +88,8 @@ Write `v<N>/md/layout.md` as in the compose skill: a `Screen: <kind>` line under
 - The order serves the purpose: the main action in the first screen, the reading order a person needs. This is a design choice from the kit and the guideline book, not from taste: run `KITVAS guidelines --mode manual --screen <kind> --json` and let its entries steer the order.
 - When the original has problems, `before/problems.json` lists the rules that fired. Read it (it is JSON, `counts` by rule id) and plan the layout so those problems are gone from the start. They are the first thing to fix.
 
+When the layout needs what the kit lacks (a theme, tokens), follow "What the kit lacks" in step 3 of `${CLAUDE_PLUGIN_ROOT}/skills/compose/SKILL.md`: ask once before the makers, add nothing without a yes.
+
 Then run `KITVAS layout <slug> --json`, and fix the lines in `data.issues` until `data.valid` is true.
 
 ## 6. Build, check, look, fix

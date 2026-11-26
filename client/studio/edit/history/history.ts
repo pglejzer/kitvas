@@ -38,7 +38,6 @@ import {
   remapStack,
   sameStep,
 } from '../sync/remap.ts';
-import { text } from '../texts.ts';
 import { appliedNote } from './applied.ts';
 import { valuesOf } from './change-chips.ts';
 import { opChips, type StepEntry } from './chips.ts';
@@ -274,25 +273,34 @@ export function createHistory(deps: HistoryDeps, io: HistoryIo = realIo): Histor
         ? {}
         : { selection: moved.selection ?? state.selection, copies: kept };
     const view = { ...moved, ...chosen };
-    // After an undo the step's own ops name the element as it is again; hunks name none.
-    const label = text(`history.${kind}`, { label: sent.label });
-    const id = firstElement(original.ops) ?? firstElement(sent.ops);
-    const changes = [...(view.changes ?? state.changes), entry(sent.ops, label, id)];
+    const listed = view.changes ?? state.changes;
     if (kind === 'undo') {
+      // The list holds what differs from the saved version, and every count reads it: an undone
+      // step leaves it. The redo step keeps the line, so a redo puts the same one back.
+      const at = listed.findLastIndex(
+        (line) => line.by === 'person' && line.label === original.label,
+      );
+      const line = listed[at];
       store.set({
         etags,
         edit,
         ...view,
-        changes,
+        changes: listed.filter((_, index) => index !== at),
         undo: withoutStep(state.undo, original),
-        redo: [...state.redo, step],
+        redo: [...state.redo, line ? { ...step, line } : step],
       });
     } else {
+      // The undo's ops name the element as it is again after the redo; hunks name none.
+      const id = firstElement(original.ops) ?? firstElement(sent.ops);
+      const kept = original.line;
+      const line = kept
+        ? { ...kept, id: id ?? kept.id, at: io.now() }
+        : entry(sent.ops, sent.label, id);
       store.set({
         etags,
         edit,
         ...view,
-        changes,
+        changes: [...listed, line],
         redo: withoutStep(state.redo, original),
         undo: [...state.undo, step],
       });

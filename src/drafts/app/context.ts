@@ -10,11 +10,12 @@ import {
   type KitStore,
   type LoadedKit,
 } from '../../kit/index.ts';
-import { KitvasError } from '../../shared/index.ts';
+import { type DraftOption, KitvasError } from '../../shared/index.ts';
 import { pascalCase, versionFolder } from '../domain/names.ts';
 import { DEFAULT_STATES, type States, StatesSchema } from '../domain/states.ts';
 import type { DraftStore } from '../ports/draft-store.ts';
 import { inspectLayout, sectionPaths } from './layout.ts';
+import { readOptions } from './options.ts';
 import { lockedIdsNow } from './view.ts';
 
 export type ContextToken = {
@@ -35,6 +36,8 @@ export type SectionContext = {
   /** The text of md/brief.md. */
   brief: string;
   states: States;
+  /** The version's options (`src/json/options.json`); empty for none. */
+  options: DraftOption[];
   kit: {
     id: string;
     /** Catalog entries of the components this section may use. */
@@ -133,6 +136,7 @@ export function sectionContext(
     outline: layout.sections.map(({ id, purpose }) => ({ id, purpose })),
     brief: store.readText(slug, `${base}/md/brief.md`) ?? '',
     states: states.success ? states.data : DEFAULT_STATES,
+    options: readOptions(store, slug, base),
     kit: {
       id: kit.kit.id,
       components,

@@ -52,7 +52,7 @@ The sizes of the panels are kept.
 
 ## Selecting
 
-- Click an element, or find it in the layers list.
+- Click an element, or find it in the layers list. A click on empty page, or on the canvas beside the cards, clears the selection.
 - Shift, Ctrl or Cmd with a click adds an element to the selection, on the page and in Layers.
 - Press and drag on the page to move an element (see Structure). Drag a rectangle over empty space to select several elements. It takes the elements it touches that do not hold it whole, the outermost of those, never a locked element. A rectangle with Shift, Ctrl or Cmd held adds to the selection. A rectangle that takes nothing clears it.
 - A locked element is picked in the layers list only: a click on it in the prototype selects what is under it.
@@ -98,6 +98,18 @@ A page lives at several widths and in several states, and the editor sees both:
 - The state bar (Default, Hover, Focus, Active) forces that state on the selected element in every card and sends your edits to it. They are written as `&:hover`, `&:focus-visible` or `&:active`, or as a `hover:` utility. A forced state is only a preview: it never reaches the build, and it ends with Edit or with the selection.
 - Each style row says where its value comes from (set here, from all widths, from 768 up, or the kit) and offers "Remove for this width" and "Apply to all widths".
 
+## Options
+
+A version can hold choices, such as a light and a dark theme, two or three columns, or an outlined or a filled card (`src/json/options.json`; Claude writes it when you ask for them). A version without options has no Options pill and no row.
+
+- The Options pill stands in the pill row before the width pill. It shows how many options the version has and a dot while the values shown are not the defaults; it opens and folds the row under the pills (one line, as wide as the canvas). The row stays as you left it in this browser. Opening it moves the page down by the row's height, as a panel fold does; nothing else moves.
+- Each option is its name and its values. Press a value and every card of the page switches in place: the frames never reload, so your selection, your locks and your notes stay. The label above each card names the values that differ, and the address keeps them (`opt-columns=2`), so a reload, a link and the other pills keep the choice. Every value is also a plain link, so the row works without the script. Values that do not fit scroll sideways; the end of the row stays in view.
+- At the end of the row: "Default" while every value is the default; otherwise "Reset", which shows the defaults and writes nothing, and, in Edit on the latest version, "Make default", which writes the values shown as the defaults of the version. Make default is an edit: one step of Undo and Redo, and the first edit of a session starts a version.
+- A style edit goes where the value comes from. Under the width and the states Properties has a third control: "All options", or "Only <Option>: <Value>" for each value shown that is not its option's default. On "All options" a value that an option's block sets is changed in that block, and every other value in the rule itself, for every option. On "Only Cards: Filled" the edit is written for that value alone, as `[data-opt-cards="filled"] & { … }` in the section's SCSS. A row whose value comes from such a block says so ("Only Cards: Filled") and offers "Remove for this option" and "Apply to all options". A prop has one value for every option, and a Tailwind draft has no such control.
+- A theme or a token that this project added to the kit (`.kitvas/additions/<kit>/`) carries a small plus: "Added by this project. Not part of <the kit's source>." It shows on the theme's value in the Options row and on the token in the lists and swatches of Properties. The checks treat an added token as part of the kit.
+- Options are not part of Compare: while two versions are compared the pill and the row are not shown.
+- When the canvas is narrow the pill keeps its icon, its count and its dot, and loses its word first (the fit of the canvas's bars).
+
 ## Live checks
 
 After each edit's build the editor measures the changed elements in every card (text contrast, target size, content that overflows or is cut) and checks the code it wrote (values outside the kit, plain controls). A finding shows in the Checks tab, as a mark on the canvas and in the line above Properties. That line is there for as long as an element is selected and keeps one height, so a finding that comes or goes never moves the pane under your pointer; press it to open the findings as cards, and it stays as you left it. A colour or size option that would fail warns you before you pick it. The Properties panel also has an accessibility card: role, name, focus order, contrast and target size of the selected element.
@@ -114,7 +126,7 @@ An image file (PNG, JPEG, WebP, AVIF or GIF, up to 5 MB; never SVG) can be uploa
 
 The first edit starts a new version, and later edits go into it. "Save version" ends the session; the next edit starts another version. Claude can edit the same files while you work: you see its changes live, and when you both changed the same place you choose between yours and theirs.
 
-Undo and redo work with Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y. The undo history and the change list are kept in the browser per draft, so a reload of the page does not empty them. Save version ends the session and clears them; Undo save brings them back. A change that cannot be saved leaves the history as it was and the bar says so: "The change could not be saved. Try again."
+Undo and redo work with Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y. The change list holds what differs from the last saved version: an undone step leaves it and a redo puts it back, so the counts in the bar, on the Changes tab and on the Changes lens say how many changes are in effect. The undo history and the change list are kept in the browser per draft, so a reload of the page does not empty them. Save version ends the session and clears them; Undo save brings them back. A change that cannot be saved leaves the history as it was and the bar says so: "The change could not be saved. Try again."
 
 ## With Claude
 

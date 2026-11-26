@@ -8,7 +8,7 @@ import {
   type ViewStore,
 } from '../../../src/shared/settings/config.ts';
 import type { Studio } from '../../../src/studio/index.ts';
-import { call, pageCookie, shopStudio } from '../../helpers/studio.ts';
+import { call, pageCookie, shopStudio } from '../../helpers/studio/studio.ts';
 
 const PATH = '/api/v1/settings/view';
 const DARK: ViewSettings = { theme: 'dark', panels: 'flush', accent: 'teal' };

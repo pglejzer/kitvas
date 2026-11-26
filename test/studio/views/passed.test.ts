@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { clickedFilter } from '../../../client/studio/edit/live/filter.ts';
 import { type ChecksFile, GUIDELINES } from '../../../src/checks/index.ts';
 import { passedCount } from '../../../src/studio/views/status.ts';
-import { finding } from '../../helpers/findings.ts';
+import { finding } from '../../helpers/studio/findings.ts';
 
 const file = (over: Partial<ChecksFile>): ChecksFile => ({
   schemaVersion: 1,

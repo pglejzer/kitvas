@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createFigmaFake, runScript } from '../helpers/figma-fake.ts';
+import { createFigmaFake, runScript } from '../helpers/handoff/figma-fake.ts';
 
 const FONT = "await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });";
 const SVG = '<svg width="16" height="16" viewBox="0 0 16 16"><path d="M0 0h16v16H0z"/></svg>';

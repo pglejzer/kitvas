@@ -7,7 +7,7 @@ import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts'
 import { createLayeredKitStore } from '../../../src/kit/adapters/layered-store.ts';
 import type { KitStore } from '../../../src/kit/index.ts';
 import { projectKitsDir } from '../../../src/shared/index.ts';
-import { FIXTURE_KITS } from '../../helpers/kits.ts';
+import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 
 export type Json = Record<string, unknown>;

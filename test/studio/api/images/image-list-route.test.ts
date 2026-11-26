@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createImageStore } from '../../../../src/edit/adapters/image-files.ts';
-import { shopDraft } from '../../../helpers/drafts.ts';
-import { call, studioOver, writeFakeBuild } from '../../../helpers/studio.ts';
+import { shopDraft } from '../../../helpers/draft/drafts.ts';
+import { call, studioOver, writeFakeBuild } from '../../../helpers/studio/studio.ts';
 
 type Listed = { version: number; files: string[] };
 

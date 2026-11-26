@@ -5,10 +5,10 @@ import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts'
 import { buildDraft } from '../../../src/render/index.ts';
 import { defaultDepRoots, loadDep, PLUGIN_ROOT } from '../../../src/shared/index.ts';
 import { createEsbuildAssets } from '../../../src/studio/adapters/esbuild-assets.ts';
-import { shopDraft } from '../../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../../helpers/kits.ts';
-import { renderTools, writeShopSections } from '../../helpers/render.ts';
-import { fakeAssets, openLinkUrl, studioOver } from '../../helpers/studio.ts';
+import { shopDraft } from '../../helpers/draft/drafts.ts';
+import { renderTools, writeShopSections } from '../../helpers/draft/render.ts';
+import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
+import { fakeAssets, openLinkUrl, studioOver } from '../../helpers/studio/studio.ts';
 
 type Playwright = typeof import('playwright-core');
 

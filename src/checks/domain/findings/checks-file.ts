@@ -17,6 +17,8 @@ const FindingSchema = z.object({
   hint: z.string(),
   states: z.array(z.string()),
   widths: z.array(z.number().int()),
+  // A file written before plan 25 has none: it reads as the default combination.
+  options: z.array(z.object({ id: z.string(), value: z.string() })).default([]),
 });
 
 const WaivedSchema = FindingSchema.extend({ reason: z.string() });

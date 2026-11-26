@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { ScaleStep } from '../../../../client/channel/structure-protocol.ts';
-import { distances, labelOf, nearestStep } from '../../../../client/frame/drag/guides.ts';
+import { distances, labelOf, nearestStep } from '../../../../client/frame/drag/handles/guides.ts';
 import {
   candidatesFor,
   MAGNET,
@@ -12,7 +12,7 @@ import {
   type Scales,
   snapTo,
   tracksOf,
-} from '../../../../client/frame/drag/magnet.ts';
+} from '../../../../client/frame/drag/handles/magnet.ts';
 
 type Box = { left: number; top: number; width: number; height: number };
 

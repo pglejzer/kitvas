@@ -134,7 +134,8 @@ export function contextOfVariants(variants: readonly string[]): StyleContext | n
     else if (named !== undefined && state === null) state = named;
     else return null;
   }
-  return { width, state };
+  // A Tailwind draft's options act through the prop only (plan 25): no utility names one.
+  return { width, state, option: null };
 }
 
 /** The prefixes of a context, the screen first: `md:hover:`; none for the base. */

@@ -6,7 +6,7 @@ import {
   type FixtureProject,
   fixtureProject,
   removeFixture,
-} from '../../helpers/projects.ts';
+} from '../../helpers/kit/projects.ts';
 import { type Sandbox, sandbox } from './cli.ts';
 
 export type FixtureBox = { box: Sandbox; fixture: FixtureProject };

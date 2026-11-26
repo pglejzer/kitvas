@@ -8,8 +8,8 @@ import {
   stampOf,
   stampsNow,
 } from '../../../src/studio/requests/stamps.ts';
-import { shopDraft } from '../../helpers/drafts.ts';
-import { builtinKits } from '../../helpers/kits.ts';
+import { shopDraft } from '../../helpers/draft/drafts.ts';
+import { builtinKits } from '../../helpers/kit/kits.ts';
 
 const STAMPED: Stamped = {
   tag: 'Button',

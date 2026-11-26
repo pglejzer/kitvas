@@ -6,7 +6,7 @@ import { PLUGIN_ROOT } from '../../../src/shared/env/paths.ts';
 import { createEsbuildAssets } from '../../../src/studio/adapters/esbuild-assets.ts';
 import { FONT_CACHE } from '../../../src/studio/pages/asset-routes.ts';
 import { FONT_FILES } from '../../../src/studio/pages/fonts.ts';
-import { call, fakeAssets, pageCookie, shopStudio } from '../../helpers/studio.ts';
+import { call, fakeAssets, pageCookie, shopStudio } from '../../helpers/studio/studio.ts';
 
 test('a font is served as woff2, and the browser may keep it for this person', async () => {
   const { studio } = await shopStudio();

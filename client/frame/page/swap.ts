@@ -8,13 +8,15 @@
 // The steps and their rules are in `createSwap`, over injected ports, so they are tested without a
 // browser; `pagePorts` is the DOM around them.
 
+import type { DraftOption, OptionChoice } from '../../../src/shared/values/options.ts';
 import type { Scroll, SwapStep } from '../../channel/protocol.ts';
 import { idle } from './busy.ts';
+import type { ThemeAttributes } from './theme-body.ts';
 
 /** A draft rendered into `#root` by one bundle's own React. */
 export type Mounted = {
-  /** Renders one state; when it returns, the state is in the DOM. */
-  render(state: string): void;
+  /** Renders one state with the values of the options; when it returns, they are in the DOM. */
+  render(state: string, choice: OptionChoice): void;
   /** Takes the draft out of the page; when it returns, `#root` is empty. */
   unmount(): void;
 };
@@ -22,6 +24,10 @@ export type Mounted = {
 /** What a bundle's entry hands the frame runtime (`src/render/domain/mount.ts`). */
 export type Bundle = {
   states: string[];
+  /** The version's options; `[]` for none. */
+  options: DraftOption[];
+  /** What each theme sets on the body (ADR 0083); left out by a build that has no such theme. */
+  themes?: ThemeAttributes;
   initial: string;
   /** Makes a fresh root on `#root`. */
   mount(): Mounted;

@@ -16,7 +16,7 @@ import type { KitStore } from '../../src/kit/index.ts';
 import { createNodeBuildFs } from '../../src/render/adapters/node-build-fs.ts';
 import type { Bundler, StylePipeline, UtilityCss } from '../../src/render/index.ts';
 import { KitvasError } from '../../src/shared/index.ts';
-import { checkShop, t } from '../helpers/checks.ts';
+import { checkShop, t } from '../helpers/draft/checks.ts';
 import { tempDir } from '../helpers/tmp.ts';
 
 const HERO = [

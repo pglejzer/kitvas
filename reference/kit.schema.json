@@ -297,25 +297,53 @@
           "type": "string",
           "const": "dtcg-2025.10"
         },
-        "modes": {
+        "themes": {
           "type": "object",
           "properties": {
-            "theme": {
+            "default": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,30}$"
+            },
+            "list": {
               "minItems": 1,
               "type": "array",
               "items": {
-                "type": "string",
-                "minLength": 1
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,30}$"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "file": {
+                    "type": "string",
+                    "pattern": "^(?!\\/)(?!.*\\.\\.)[A-Za-z0-9_./-]+$"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^(?:class|data-[a-z][a-z0-9-]*)$"
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "label"
+                ],
+                "additionalProperties": false
               }
-            },
-            "default": {
-              "type": "string",
-              "minLength": 1
             }
           },
           "required": [
-            "theme",
-            "default"
+            "default",
+            "list"
           ],
           "additionalProperties": false
         },

@@ -8,8 +8,8 @@ import { createEsbuildCompiler } from '../../../src/edit/adapters/esbuild-compil
 import { type KitLensView, readKitLens } from '../../../src/edit/app/kit-lens/kit-lens.ts';
 import type { EditCompiler } from '../../../src/edit/index.ts';
 import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
-import { NOW, tempDrafts } from '../../helpers/drafts.ts';
-import { builtinKits } from '../../helpers/kits.ts';
+import { NOW, tempDrafts } from '../../helpers/draft/drafts.ts';
+import { builtinKits } from '../../helpers/kit/kits.ts';
 
 const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';

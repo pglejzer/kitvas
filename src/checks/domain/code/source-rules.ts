@@ -59,7 +59,7 @@ function masked(text: string, blankStrings: boolean): string {
   return out;
 }
 
-function placeOf(text: string, index: number): Place {
+export function placeOf(text: string, index: number): Place {
   const before = text.slice(0, index);
   return { line: before.split('\n').length, column: index - before.lastIndexOf('\n') };
 }

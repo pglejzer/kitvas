@@ -16,7 +16,7 @@ import {
   type SlotSource,
   slotFrom,
   trackCount,
-} from '../../../../client/frame/drag/slots.ts';
+} from '../../../../client/frame/drag/slots/slots.ts';
 
 const box = (left: number, top: number, width: number, height: number): Box => ({
   left,

@@ -53,6 +53,7 @@ export function editKit(kits: KitStore, id: string): LoadedKit | null {
 /** The kit's tokens as the pickers offer them: `--kit-space-md`, `space.md`, `12px`. */
 export function tokenOptions(kit: LoadedKit | null): TokenOption[] {
   if (kit === null) return [];
+  const added = new Set(kit.addedTokens);
   return (
     kit.tokens
       .map((token) => ({
@@ -60,6 +61,7 @@ export function tokenOptions(kit: LoadedKit | null): TokenOption[] {
         path: token.path.join('.'),
         type: token.type,
         css: formatTokenValue(token),
+        added: added.has(token.path.join('.')),
       }))
       // A name too long for an edit operation could never be written, so it is not offered.
       .filter((option) => TOKEN_VAR.test(option.var))

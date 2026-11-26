@@ -27,9 +27,12 @@ import { LiveCodeFindingSchema } from './live-schemas.ts';
 /** A path inside the version: `src/tsx/sections/Hero.tsx`, `src/scss/sections/hero.scss`. */
 export const SOURCE_PATH =
   /^src\/(?:tsx|scss)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.(?:tsx|scss)$/;
-/** A file an edit may change: a source file, or the layout the section ops change (spec 4b). */
+/**
+ * A file an edit may change: a source file, the layout the section ops change (spec 4b), or the
+ * options file "Make default" and its Undo write (plan 25).
+ */
 export const EDIT_PATH =
-  /^(?:src\/(?:tsx|scss)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.(?:tsx|scss)|md\/layout\.md)$/;
+  /^(?:src\/(?:tsx|scss)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.(?:tsx|scss)|md\/layout\.md|src\/json\/options\.json)$/;
 /** A strong ETag as `etagOf` writes it (http/etag.ts). */
 export const ETAG = /^"[A-Za-z0-9_-]{27}"$/;
 
@@ -51,6 +54,7 @@ export const TokenOptionSchema = z.strictObject({
   path: z.string(),
   type: z.enum(['color', 'dimension', 'duration', 'fontFamily', 'fontWeight', 'number']),
   css: z.string(),
+  added: z.boolean().optional(),
 });
 
 export const StyleSourceSchema = z.discriminatedUnion('kind', [

@@ -8,7 +8,7 @@ import {
   type StoredRequest,
   writeRequests,
 } from '../../../src/studio/requests/request-file.ts';
-import { shopDraft } from '../../helpers/drafts.ts';
+import { shopDraft } from '../../helpers/draft/drafts.ts';
 
 const idOf = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
@@ -18,7 +18,7 @@ function stored(n: number, over: Partial<StoredRequest> = {}): StoredRequest {
     kind: 'ask',
     elements: ['sections/Hero:section/Button'],
     stamps: ['b'.repeat(64)],
-    context: { width: 768, state: 'hover' },
+    context: { width: 768, state: 'hover', option: null },
     text: 'Make it wrap',
     ops: [
       {
@@ -64,6 +64,18 @@ test('a broken file holds no requests, and a broken entry costs only itself', ()
     JSON.stringify({ schemaVersion: 1, requests: [good, { ...stored(2), status: 'lost' }] }),
   );
   assert.deepEqual(readRequests(store, 'shop'), [good]);
+});
+
+test('a request written before options reads its context as one for every option', () => {
+  const { store } = shopDraft();
+  const older = { width: 768, state: 'hover' };
+  const written = { ...stored(1), context: older };
+  store.writeText('shop', REQUESTS_FILE, JSON.stringify({ schemaVersion: 1, requests: [written] }));
+  assert.deepEqual(readRequests(store, 'shop'), [stored(1)]);
+  // A value the patterns of an option do not allow costs the entry, as any broken field does.
+  const odd = { ...stored(2), context: { ...older, option: { id: 'Columns', value: '2' } } };
+  store.writeText('shop', REQUESTS_FILE, JSON.stringify({ schemaVersion: 1, requests: [odd] }));
+  assert.deepEqual(readRequests(store, 'shop'), []);
 });
 
 test('every open request is kept, and only the newest closed ones', () => {

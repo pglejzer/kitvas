@@ -17,8 +17,8 @@ import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts'
 import { createFolderKitWriter } from '../../../src/kit/adapters/folder-writer.ts';
 import { CATALOG_STAMP, readCatalogStamp } from '../../../src/render/index.ts';
 import { catalogDir, KitvasError, projectKitsDir } from '../../../src/shared/index.ts';
-import { copyKit, tinyKitJson } from '../../helpers/kits.ts';
-import { closeRenderTools, renderTools } from '../../helpers/render.ts';
+import { closeRenderTools, renderTools } from '../../helpers/draft/render.ts';
+import { copyKit, tinyKitJson } from '../../helpers/kit/kits.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 
 type FakeShooter = { browser: Browser; batches: ShotBatch[]; opened: number; closed: number };

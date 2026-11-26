@@ -70,7 +70,7 @@ Run `KITVAS context <slug> --save --json`. A craft draft takes no `--section`. `
 
 Start one `kitvas:sketcher` agent on model Sonnet. Its prompt has: the draft folder and its latest version folder `v<N>`, the subject, the name and the description, the path of `reference/craft.md`, the path of the saved context, your note on the example, the paths of the images in `reference/`, and the lines: the three sketches A, B and C each differ in one clear idea (say which in the report), and each gets a one-line reasons file `why/A.json` (and B, C); the `locked` ids of the context, if any, are never changed; the example is style only, never traced; the look comes from the kit. For a component add the path of `reference/compose.md`.
 
-Do not start three agents for three sketches: one agent writes all three, so they stay distinct from each other.
+Do not start three agents for three sketches: one agent writes all three, so they stay distinct from each other. When a sketch needs tokens or a theme the kit lacks, follow "What the kit lacks" in step 3 of `${CLAUDE_PLUGIN_ROOT}/skills/compose/SKILL.md` before you start the sketcher; the component's own addition (step 8) is a different thing.
 
 When it is done, check the three files are there. A missing sketch: start the agent again for that one.
 

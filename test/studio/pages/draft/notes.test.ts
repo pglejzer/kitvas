@@ -9,7 +9,7 @@ import {
   notesSection,
 } from '../../../../src/studio/pages/draft/notes.ts';
 import { escapeHtml } from '../../../../src/studio/pages/html.ts';
-import { finding } from '../../../helpers/findings.ts';
+import { finding } from '../../../helpers/studio/findings.ts';
 import { t } from '../../../helpers/translate.ts';
 
 /** Names the key it was asked for, so the markup is checked apart from the English texts. */

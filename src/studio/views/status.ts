@@ -55,7 +55,8 @@ export function statusLine(status: DraftStatus): StatusLine {
 export function passedCount(checks: ChecksFile): number {
   const found = new Set([...checks.findings, ...(checks.waived ?? [])].map((one) => one.rule));
   return GUIDELINES.filter((rule) => {
-    if (rule.check === 'edit' || checks.checks[rule.check] !== 'ran') return false;
+    if (rule.check === 'edit' || rule.check === 'options') return false;
+    if (checks.checks[rule.check] !== 'ran') return false;
     const ran = rule.mode === 'auto' || (rule.mode === 'deep' && checks.deep === true);
     return ran && !found.has(rule.id);
   }).length;

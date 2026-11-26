@@ -26,9 +26,9 @@ import {
 const ID = 'sections/Plans:section/Stack';
 const KIT: ScssOptions = { force: false, breakpoints: () => [768, 1280] };
 
-const AT_768: StyleContext = { width: 768, state: null };
-const AT_1280: StyleContext = { width: 1280, state: null };
-const HOVER: StyleContext = { width: null, state: 'hover' };
+const AT_768: StyleContext = { width: 768, state: null, option: null };
+const AT_1280: StyleContext = { width: 1280, state: null, option: null };
+const HOVER: StyleContext = { width: null, state: 'hover', option: null };
 
 const token = (name: string): StyleValue => ({ token: `--kit-${name}` });
 const raw = (value: string): StyleValue => ({ raw: value });

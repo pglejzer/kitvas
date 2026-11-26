@@ -5,8 +5,8 @@ import { createEsbuildCompiler } from '../../../../src/edit/adapters/esbuild-com
 import { PLUGIN_ROOT } from '../../../../src/shared/index.ts';
 import type { EditDeps } from '../../../../src/studio/api/edit/edit-routes.ts';
 import type { NoteView } from '../../../../src/studio/api/notes/note-schemas.ts';
-import { NOW, tempDrafts } from '../../../helpers/drafts.ts';
-import { call, studioOver } from '../../../helpers/studio.ts';
+import { NOW, tempDrafts } from '../../../helpers/draft/drafts.ts';
+import { call, studioOver } from '../../../helpers/studio/studio.ts';
 
 const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';

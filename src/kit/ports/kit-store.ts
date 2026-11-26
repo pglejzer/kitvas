@@ -32,8 +32,12 @@ export interface KitStore {
   shadowedIds?(): string[];
   /**
    * The project's additions to kit `id`, for project and built-in kits alike: the parsed
-   * `<project>/.kitvas/additions/<id>/additions.json` (`null` when it is not JSON) and the absolute
-   * path of its folder; `undefined` when there is none. Only the layered store knows the project.
+   * `<project>/.kitvas/additions/<id>/additions.json` (`undefined` when it is missing, `null` when
+   * it is not JSON), the absolute path of its folder and, when it has any, its token files by name
+   * (`tokens.json`, `tokens.<theme>.json`; `null` for one that is not JSON). `undefined` when the
+   * folder has neither. Only the layered store knows the project.
    */
-  readAdditions?(id: string): { json: unknown; dir: string } | undefined;
+  readAdditions?(
+    id: string,
+  ): { json: unknown; dir: string; tokens?: Record<string, unknown> } | undefined;
 }

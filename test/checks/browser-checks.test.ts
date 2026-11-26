@@ -20,7 +20,7 @@ import {
   type VisitRule,
   visitPlan,
 } from '../../src/checks/index.ts';
-import { fakeBrowser } from '../helpers/checks.ts';
+import { fakeBrowser } from '../helpers/draft/checks.ts';
 import { node, page, text, visit } from './rules/facts.ts';
 
 const DIR = join('drafts', 'shop', 'v1');

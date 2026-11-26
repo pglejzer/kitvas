@@ -17,7 +17,7 @@ import {
 } from '../../../../../client/studio/edit/sync/live-frame.ts';
 import type { Frame } from '../../../../../client/studio/frames.ts';
 import type { EditState } from '../../../../../src/studio/api/edit/edit-schemas.ts';
-import { fakeClock } from '../../../../helpers/fake-clock.ts';
+import { fakeClock } from '../../../../helpers/studio/fake-clock.ts';
 
 const HERO = 'src/tsx/sections/Hero.tsx';
 const CHANNEL = 'c'.repeat(20);

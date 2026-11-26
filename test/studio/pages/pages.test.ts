@@ -11,9 +11,9 @@ import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts'
 import { KitvasError } from '../../../src/shared/index.ts';
 import { escapeHtml, html } from '../../../src/studio/pages/html.ts';
 import { pageRoutes } from '../../../src/studio/pages/routes.ts';
-import { NOW, shopDraft, TINY, tempDrafts } from '../../helpers/drafts.ts';
-import { checksOf, finding } from '../../helpers/findings.ts';
-import { FIXTURE_KITS } from '../../helpers/kits.ts';
+import { NOW, shopDraft, TINY, tempDrafts } from '../../helpers/draft/drafts.ts';
+import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
+import { checksOf, finding } from '../../helpers/studio/findings.ts';
 import { t } from '../../helpers/translate.ts';
 
 type Ask = { params?: Record<string, string>; query?: string; host?: string };

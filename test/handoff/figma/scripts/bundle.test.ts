@@ -5,7 +5,7 @@ import { bundleFigmaBuilder } from '../../../../src/handoff/app/figma/bundle.ts'
 import { FIGMA_BUILDER_GLOBAL } from '../../../../src/handoff/domain/figma/scripts/scripts.ts';
 import { createEsbuildBundler } from '../../../../src/render/adapters/esbuild-bundler.ts';
 import { PLUGIN_ROOT } from '../../../../src/shared/index.ts';
-import { JSX_RUNTIME } from '../../../helpers/render.ts';
+import { JSX_RUNTIME } from '../../../helpers/draft/render.ts';
 
 test('the builder bundles to one plain script with its six steps on B', async () => {
   const bundler = createEsbuildBundler({ roots: [PLUGIN_ROOT], jsxRuntime: JSX_RUNTIME });

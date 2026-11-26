@@ -6,11 +6,15 @@ import {
   contextWidthOf,
   forceBody,
   forceOf,
+  keptOption,
+  optionKey,
+  optionWords,
   previewApplies,
   restContext,
   stateName,
   widthWords,
 } from '../../../../../client/studio/edit/style/context-rules.ts';
+import type { DraftOption } from '../../../../../src/shared/values/options.ts';
 
 test('without kit breakpoints the context uses 768 and 1280, sorted and once each', () => {
   assert.deepEqual(breakpointsOf(null), [768, 1280]);
@@ -61,15 +65,62 @@ test('the bar says All widths at the base, and "768 and up" from a breakpoint', 
   assert.deepEqual(widthWords(768), { key: 'context.width.up', params: { width: 768 } });
 });
 
-test('another selection or leaving Edit lets the state rest; the width stays', () => {
-  const hover = { width: 768, state: 'hover' as const };
+test('another selection or leaving Edit lets the state rest; the width and the option stay', () => {
+  const option = { id: 'theme', value: 'dark' };
+  const hover = { width: 768, state: 'hover' as const, option };
   const before = { on: true, selection: ['a'], context: hover };
-  assert.deepEqual(restContext({ ...before, selection: ['b'] }, before), {
-    width: 768,
-    state: null,
-  });
-  assert.deepEqual(restContext({ ...before, on: false }, before), { width: 768, state: null });
+  const rested = { width: 768, state: null, option };
+  assert.deepEqual(restContext({ ...before, selection: ['b'] }, before), rested);
+  assert.deepEqual(restContext({ ...before, on: false }, before), rested);
   assert.equal(restContext({ ...before, selection: ['a'] }, before), null, 'the same ids');
-  const resting = { ...before, context: { width: 768, state: null } };
+  const resting = { ...before, context: rested };
   assert.equal(restContext({ ...resting, selection: ['b'] }, resting), null);
+});
+
+// ---- Options (plan 25) --------------------------------------------------------------------------
+
+const OPTIONS: DraftOption[] = [
+  {
+    id: 'columns',
+    label: 'Columns',
+    default: '3',
+    values: [
+      { id: '3', label: 'Three' },
+      { id: '2', label: 'Two' },
+    ],
+  },
+  {
+    id: 'theme',
+    label: 'Theme',
+    default: 'light',
+    values: [
+      { id: 'light', label: 'Light' },
+      { id: 'dark', label: 'Dark' },
+    ],
+  },
+];
+const TWO = { id: 'columns', value: '2' };
+const DARK = { id: 'theme', value: 'dark' };
+
+test('the bar keeps its option while the page shows it off its default, else All options', () => {
+  const both = { columns: '2', theme: 'dark' };
+  assert.deepEqual(keptOption(DARK, OPTIONS, both), DARK);
+  assert.equal(keptOption(null, OPTIONS, both), null);
+  // The page switched the theme back, or to a value the bar does not name.
+  assert.equal(keptOption(DARK, OPTIONS, { columns: '2', theme: 'light' }), null);
+  assert.deepEqual(keptOption(TWO, OPTIONS, { columns: '2', theme: 'light' }), TWO);
+  assert.equal(keptOption(TWO, OPTIONS, {}), null);
+  // A value that became the default ("Make default") is every option's now.
+  const made = OPTIONS.map((one) => (one.id === 'theme' ? { ...one, default: 'dark' } : one));
+  assert.equal(keptOption(DARK, made, both), null);
+});
+
+test("a target of the bar is named by the options row's labels, and keyed by its ids", () => {
+  assert.deepEqual(optionWords(OPTIONS, TWO), { option: 'Columns', value: 'Two' });
+  assert.deepEqual(optionWords(OPTIONS, { id: 'cards', value: 'filled' }), {
+    option: 'cards',
+    value: 'filled',
+  });
+  assert.equal(optionKey(TWO), 'columns=2');
+  assert.equal(optionKey(null), '');
 });

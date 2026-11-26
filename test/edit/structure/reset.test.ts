@@ -10,7 +10,7 @@ import {
 import { createEsbuildCompiler } from '../../../src/edit/adapters/esbuild-compiler.ts';
 import { resolveReset } from '../../../src/edit/app/structure/reset.ts';
 import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
-import { shopDraft, writeVersionFiles } from '../../helpers/drafts.ts';
+import { shopDraft, writeVersionFiles } from '../../helpers/draft/drafts.ts';
 
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());

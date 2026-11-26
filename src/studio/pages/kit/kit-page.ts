@@ -5,9 +5,10 @@
 import { type KitStore, loadKit } from '../../../kit/index.ts';
 import type { Translate } from '../../../shared/index.ts';
 import { readStampFile, readVerifyJson, refFileExists } from '../../frame/catalog-files.ts';
-import { lookView, sourceLine, verifyView } from '../../views/kit-status.ts';
-import { scaleRules, splitTokens, typeRules } from '../../views/kit-tokens.ts';
+import { lookView, sourceLine, sourceNoun, verifyView } from '../../views/kit-status.ts';
+import { partitionAdded, scaleRules, splitTokens, typeRules } from '../../views/kit-tokens.ts';
 import { groupComponents, swatchRules } from '../../views/kit-view.ts';
+import { addedNote } from '../added-mark.ts';
 import { catalogRefSrc, catalogSrc, type FrameOrigin } from '../draft/frame-src.ts';
 import { type Html, html, trusted } from '../html.ts';
 import { BY_HAND, commandCard, infoBlock, infoGroup } from '../info/layout.ts';
@@ -125,7 +126,12 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
   };
   const ready = stamp === undefined ? 'missing' : 'ready';
 
-  const tokens = splitTokens(loaded.tokens);
+  const split = partitionAdded(loaded.tokens, loaded.addedTokens);
+  const tokens = splitTokens(split.own);
+  const added = {
+    rows: split.added,
+    note: addedNote(t, sourceNoun(t, kit.source)),
+  };
   const groups = groupComponents(kit.components);
   const sections: Anchor[] = [
     ...(loaded.issues.length === 0
@@ -133,7 +139,7 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
       : [
           { id: 'kit-problems', label: t('studio.kit.problemsTitle'), count: loaded.issues.length },
         ]),
-    ...tokenAnchors(t, tokens),
+    ...tokenAnchors(t, tokens, added),
     ...(kit.components.length === 0
       ? []
       : [
@@ -170,7 +176,7 @@ ${side}
 <div class="kit-main">
 ${verifyIssuesCard(t, provenance.verify)}
 ${problemsSection(t, loaded.issues)}
-${tokenSections(t, tokens)}
+${tokenSections(t, tokens, added)}
 ${componentsSection(t, groups, catalog)}
 </div>
 </div>

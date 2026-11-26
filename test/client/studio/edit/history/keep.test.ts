@@ -56,7 +56,7 @@ const styled: Gesture = {
       value: { token: '--kit-color-ink-mid' },
       before: { raw: '#999', mark: false },
       newRule: false,
-      context: { width: 768, state: 'hover' },
+      context: { width: 768, state: 'hover', option: null },
       newBlock: true,
     },
   ],
@@ -245,6 +245,20 @@ test('every op kind has its fields checked', () => {
   assert.equal(readChange({ ...claude, by: 'someone' }), null);
 });
 
+test('a kept style step keeps the option value it was for, and a context that names none drops it', () => {
+  const [op] = styled.ops;
+  const forOption = {
+    ...op,
+    context: { width: null, state: null, option: { id: 'theme', value: 'dark' } },
+  };
+  assert.equal(isOp(forOption), true);
+  assert.deepEqual(readGesture({ ops: [forOption], label: 'Edit' })?.ops, [forOption]);
+  assert.equal(isOp({ ...op, context: { width: null, state: null } }), false);
+  assert.equal(isOp({ ...op, context: { width: null, state: null, option: 'dark' } }), false);
+  const badId = { width: null, state: null, option: { id: 'Theme', value: 'dark' } };
+  assert.equal(isOp({ ...op, context: badId }), false);
+});
+
 test('a kept "This item" step keeps its copy, and a copy that is no place drops the step', () => {
   const own = { op: 'addItemClass', id: ID, path: [1], className: 'plans__card--pro' };
   assert.equal(isOp(own), true);
@@ -253,6 +267,17 @@ test('a kept "This item" step keeps its copy, and a copy that is no place drops 
   assert.equal(readGesture({ ops: [own], label: 'Edit' })?.item, undefined);
   assert.equal(readGesture({ ops: [own], label: 'Edit', item: -1 }), null);
   assert.equal(readGesture({ ops: [own], label: 'Edit', item: '1' }), null);
+});
+
+test('a kept redo step keeps the line it took out of the change list', () => {
+  const line = { by: 'person', id: ID, label: 'Set gap', files: [], offKit: true, at: 1_000 };
+  const step = {
+    ops: [{ op: 'setText', id: ID, value: 'New', before: 'Old' }],
+    label: 'Set gap',
+    line,
+  };
+  assert.deepEqual(readGesture(step)?.line, line);
+  assert.equal(readGesture({ ...step, line: { ...line, by: 'someone' } }), null);
 });
 
 test('the editor reads the kept history once the edit state is known', async () => {

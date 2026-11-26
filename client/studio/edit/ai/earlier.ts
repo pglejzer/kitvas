@@ -5,7 +5,7 @@
 // draws the rows with `textContent` only.
 
 import type { RequestView } from '../../../../src/studio/api/requests/request-schemas.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import type { RequestModel } from './tab.ts';
 

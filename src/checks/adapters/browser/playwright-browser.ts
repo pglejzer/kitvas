@@ -3,7 +3,7 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { KitvasError, loadDep, resolveDep } from '../../../shared/index.ts';
+import { KitvasError, loadDep, OPTION_PARAM, resolveDep } from '../../../shared/index.ts';
 import { AXE_TAGS, type AxeViolation, type PageReport } from '../../domain/page/page.ts';
 import type { UsageRecord } from '../../domain/page/usage.ts';
 import type {
@@ -154,6 +154,7 @@ function createSession(
       height,
       screenshot,
       passes,
+      options,
     }: Visit): Promise<PageReport> {
       const context = await browser.newContext({
         viewport: { width, height },
@@ -190,7 +191,10 @@ function createSession(
           });
         });
 
-        const url = `${pathToFileURL(file).href}?state=${encodeURIComponent(state)}`;
+        const asked = Object.entries(options).map(
+          ([id, value]) => `&${OPTION_PARAM}${id}=${encodeURIComponent(value)}`,
+        );
+        const url = `${pathToFileURL(file).href}?state=${encodeURIComponent(state)}${asked.join('')}`;
         try {
           await page.goto(url, { waitUntil: 'load' });
         } catch (cause) {

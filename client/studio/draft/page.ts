@@ -34,6 +34,7 @@ import {
 } from '../frames.ts';
 import { type LensPage, mountLens } from '../lens/mount.ts';
 import { reloadWhenJobsEnd } from '../live/live.ts';
+import { mountOptions } from '../options/row.ts';
 import { diffElements, type ElementDiff } from './diff.ts';
 import { markStateOption, sameOriginHref, stateLinkOf, swapSections, writeSummary } from './dom.ts';
 import { pageMarks } from './marks.ts';
@@ -341,8 +342,14 @@ export function startDraftPage(main: HTMLElement): void {
       onEvery: () => canvas?.everyWidth(),
     });
   }
+  // Plan 25: the options of the version, before the editor starts so its panels find the store.
+  const options = mountOptions(main, {
+    frames: () => list?.frames() ?? (current ? [current] : []),
+    cards: list,
+  });
   const editor = current && !page.compare ? startEditor(main, current) : undefined;
   if (canvas && editor) joinEditor(canvas, editor);
+  if (editor) options?.joinEditor(editor.store);
   // Plan 19: the lenses, in Preview and in Edit, on a version that cannot be edited too.
   const lensPage: LensPage = {
     main,
@@ -364,6 +371,12 @@ export function startDraftPage(main: HTMLElement): void {
     const heard = frameMessage([...page.frames, ...extras], event);
     if (!heard) return;
     const { frame, message } = heard;
+    // A frame that loaded again or took a build in shows the options it was built with: it is
+    // told the ones the page shows. The width shown answers a switch with what it shows.
+    if (message.type === 'ready') options?.control.frameReady(frame, message.choice);
+    else if (message.type === 'shown' && frame === current) {
+      options?.control.frameShown(message.choice);
+    }
     if (isCanvasFrame(message)) {
       canvas?.hear(frame, message);
       return;

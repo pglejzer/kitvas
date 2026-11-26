@@ -75,7 +75,7 @@ test('a why request names the section as its text and its root as the element', 
   assert.deepEqual(whyRequestOf({ section: 'Hero', element: 'sections/Hero:section' }), {
     kind: 'why',
     elements: ['sections/Hero:section'],
-    context: { width: null, state: null },
+    context: { width: null, state: null, option: null },
     text: 'Hero',
   });
   assert.deepEqual(whyRequestOf({ section: 'Hero', element: null }).elements, []);

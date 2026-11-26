@@ -9,7 +9,7 @@ import {
   edgeScroll,
   MAX_SPEED,
   MIN_SPEED,
-} from '../../../../client/frame/drag/autoscroll.ts';
+} from '../../../../client/frame/drag/gesture/autoscroll.ts';
 
 test('the page scrolls only with the pointer within 48 px of the top or the bottom edge', () => {
   assert.equal(EDGE_ZONE, 48);

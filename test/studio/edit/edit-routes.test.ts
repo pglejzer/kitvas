@@ -13,8 +13,8 @@ import type {
   TextSource,
 } from '../../../src/studio/api/edit/edit-schemas.ts';
 import { etagOf } from '../../../src/studio/http/etag.ts';
-import { NOW, tempDrafts } from '../../helpers/drafts.ts';
-import { call, studioOver } from '../../helpers/studio.ts';
+import { NOW, tempDrafts } from '../../helpers/draft/drafts.ts';
+import { call, studioOver } from '../../helpers/studio/studio.ts';
 
 const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';
@@ -107,7 +107,8 @@ test("the edit state names the version, the session, the files' ETags and the to
     });
     assert.deepEqual(
       state.tokens.find((token) => token.var === '--kit-space-md'),
-      { var: '--kit-space-md', path: 'space.md', type: 'dimension', css: '12px' },
+      // `added`: the kit's own token, not one the project added (plan 25, C8).
+      { var: '--kit-space-md', path: 'space.md', type: 'dimension', css: '12px', added: false },
     );
   } finally {
     await studio.close();

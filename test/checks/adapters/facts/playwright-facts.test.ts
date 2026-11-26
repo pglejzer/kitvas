@@ -36,6 +36,7 @@ async function visit(file: string, passes: Pass[] = []): Promise<PageReport | un
     height: 844,
     screenshot: null,
     passes,
+    options: {},
   });
 }
 

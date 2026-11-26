@@ -2,7 +2,14 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { DraftStore } from '../../../src/drafts/index.ts';
 import { etagOf } from '../../../src/studio/http/etag.ts';
-import { call, pageCookie, raw, rawCall, shopStudio, studioOver } from '../../helpers/studio.ts';
+import {
+  call,
+  pageCookie,
+  raw,
+  rawCall,
+  shopStudio,
+  studioOver,
+} from '../../helpers/studio/studio.ts';
 
 const SECURITY = [
   'content-security-policy',
@@ -330,6 +337,7 @@ test('status and the generated OpenAPI document', async () => {
       '/api/v1/drafts/{slug}/notes/{id}',
       '/api/v1/drafts/{slug}/notes/{id}/delete',
       '/api/v1/drafts/{slug}/off-kit',
+      '/api/v1/drafts/{slug}/options/default',
       '/api/v1/drafts/{slug}/palette',
       '/api/v1/drafts/{slug}/requests',
       '/api/v1/drafts/{slug}/requests/{id}/drop',

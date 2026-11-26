@@ -11,7 +11,7 @@
 import type { TokenOption } from '../../../../../src/edit/index.ts';
 import { type SelectItem, studioSelect } from '../../../ui/select/select.ts';
 import { text } from '../../texts.ts';
-import { tokenNameOf } from '../stepper.ts';
+import { tokenNameOf } from '../values/stepper.ts';
 import { el, field } from './dom.ts';
 import {
   AUTO,

@@ -6,7 +6,7 @@ import {
   type StreamEvent,
   type StreamHealth,
 } from '../../../../client/studio/live/sse.ts';
-import { fakeClock } from '../../../helpers/fake-clock.ts';
+import { fakeClock } from '../../../helpers/studio/fake-clock.ts';
 
 /** A watch over a fake timer; `done` lists what it did to the page, in order. */
 function watch() {

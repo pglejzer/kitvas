@@ -11,9 +11,9 @@ import {
   previewsAnswer,
 } from '../../../src/studio/previews/answer.ts';
 import { createPreviewsKeeper } from '../../../src/studio/previews/keeper.ts';
-import { apiDeps } from '../../helpers/api.ts';
-import { NOW } from '../../helpers/drafts.ts';
-import { previewsStamp } from '../../helpers/previews.ts';
+import { NOW } from '../../helpers/draft/drafts.ts';
+import { previewsStamp } from '../../helpers/kit/previews.ts';
+import { apiDeps } from '../../helpers/studio/api.ts';
 import { t } from '../../helpers/translate.ts';
 
 const KEY = 'c'.repeat(64);

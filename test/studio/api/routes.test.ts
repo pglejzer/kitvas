@@ -5,8 +5,8 @@ import { DEFAULT_STATES } from '../../../src/drafts/index.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
 import { apiRoutes } from '../../../src/studio/api/routes.ts';
 import { etagOf } from '../../../src/studio/http/etag.ts';
-import { apiDeps } from '../../helpers/api.ts';
-import { NOW, shopDraft } from '../../helpers/drafts.ts';
+import { NOW, shopDraft } from '../../helpers/draft/drafts.ts';
+import { apiDeps } from '../../helpers/studio/api.ts';
 
 type RunInput = { params?: Record<string, string>; headers?: IncomingHttpHeaders; body?: unknown };
 

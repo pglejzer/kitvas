@@ -30,7 +30,7 @@ function request(id: string, overrides: Partial<RequestView> = {}): RequestView 
     id,
     kind: 'say',
     elements: [ID],
-    context: { width: null, state: null },
+    context: { width: null, state: null, option: null },
     text: 'Make it stand out',
     version: 2,
     at: '2026-11-24T10:00:00.000Z',

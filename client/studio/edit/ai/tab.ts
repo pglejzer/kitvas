@@ -16,7 +16,7 @@ import { icon } from '../../ui/icon.ts';
 import { chipRow } from '../history/chip-view.ts';
 import type { ChangeChip } from '../history/chips.ts';
 import { agoWords } from '../history/entry-view.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import { isEarlier, renderEarlier } from './earlier.ts';
 import type { CheckResult } from './preview.ts';

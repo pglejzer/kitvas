@@ -5,6 +5,7 @@
 // write and the ops one request may carry are the server's (`PROP_NAME` and `MAX_OPS` of
 // `src/edit/domain/op-limits.ts`, ADR 0080).
 
+import { BASE_CONTEXT, isBaseContext, sameContext } from '../../../../src/edit/domain/op-kinds.ts';
 import { PROP_NAME } from '../../../../src/edit/domain/op-limits.ts';
 import type {
   EditOp,
@@ -17,8 +18,8 @@ import type {
   TokenOption,
 } from '../../../../src/edit/index.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
-import { imageOfUrl, imageUrl, KIND, keywordsOf, propValueOf } from '../props/kinds.ts';
-import { styleValueOf } from '../props/steps.ts';
+import { imageOfUrl, imageUrl, KIND, keywordsOf, propValueOf } from '../props/values/kinds.ts';
+import { styleValueOf } from '../props/values/steps.ts';
 import type { Refused } from '../store.ts';
 import { opsForUtility } from './utility-ops.ts';
 
@@ -26,9 +27,10 @@ export { MAX_OPS, PROP_NAME } from '../../../../src/edit/domain/op-limits.ts';
 
 export type Format = 'scss' | 'tailwind';
 /**
- * `context`: the width and state the edit is for (`store.context`); none is the base, and the ops
- * are then exactly those of stage 4a. `tokens`: the kit's tokens (`EditState.tokens`), which name
- * a token's utility class in a Tailwind draft; without them a token there gives no ops.
+ * `context`: the width, state and option value the edit is for (`targetContext` of
+ * `context-ops.ts` over `store.context`); none is the base, and the ops are then exactly those of
+ * stage 4a. `tokens`: the kit's tokens (`EditState.tokens`), which name a token's utility class
+ * in a Tailwind draft; without them a token there gives no ops.
  */
 export type StyleOptions = {
   format?: Format | undefined;
@@ -36,9 +38,8 @@ export type StyleOptions = {
   tokens?: readonly TokenOption[] | undefined;
 };
 
-const BASE: StyleContext = { width: null, state: null };
 const isBase = (context: StyleContext | undefined): boolean =>
-  context === undefined || (context.width === null && context.state === null);
+  context === undefined || isBaseContext(context);
 
 const sameProp = (a: PropValue, b: PropValue): boolean => a.kind === b.kind && a.value === b.value;
 
@@ -207,10 +208,7 @@ function opsInContext(
   if (!scss || !styleClass) return [];
   const { className } = styleClass;
   const there = (inspected.overrides ?? []).filter(
-    (each) =>
-      each.utility === null &&
-      each.context.width === context.width &&
-      each.context.state === context.state,
+    (each) => each.utility === null && sameContext(each.context, context),
   );
   const held = there.find((each) => each.property === property);
   const before = held ? styleValueOf(held.value, held.offKit) : null;
@@ -278,7 +276,7 @@ function styleOps(
     return next === null ? [] : opsForProp(inspected, source.prop, next);
   }
   if (format === 'tailwind') {
-    return opsForUtility(inspected, property, value, context ?? BASE, options.tokens ?? []);
+    return opsForUtility(inspected, property, value, context ?? BASE_CONTEXT, options.tokens ?? []);
   }
   if (context !== undefined && !isBase(context)) {
     return opsInContext(inspected, property, value, context);

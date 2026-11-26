@@ -7,10 +7,10 @@ import type { FrameEntry } from '../../channel/structure-protocol.ts';
 import { copyOf, copyPath, PAGE, type PathReader } from '../edit/items.ts';
 import { elementsWith } from '../edit/tree.ts';
 import { boxOf, type RectItem } from '../page/rect.ts';
-import { type ItemList, listsOf, type OwnPlace } from './item-slots.ts';
 import type { Family } from './session.ts';
-import { flowAt } from './slot-read.ts';
-import { distance, type Point } from './slots.ts';
+import { type ItemList, listsOf, type OwnPlace } from './slots/item-slots.ts';
+import { flowAt } from './slots/slot-read.ts';
+import { distance, type Point } from './slots/slots.ts';
 
 const MARKED = '[data-ks]';
 /** The most copies of a list item a dropped part of its template is moved in before the build. */

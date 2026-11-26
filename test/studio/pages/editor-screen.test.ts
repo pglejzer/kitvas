@@ -4,7 +4,7 @@ import { editBlock } from '../../../src/studio/pages/editor/editor-bar.ts';
 import { html } from '../../../src/studio/pages/html.ts';
 import { pausedView } from '../../../src/studio/pages/paused.ts';
 import { page } from '../../../src/studio/pages/shell.ts';
-import { SKIN_EDITOR_BODY } from '../../../src/studio/pages/skin/editor/body.ts';
+import { SKIN_EDITOR_BODY } from '../../../src/studio/pages/skin/editor/shell/body.ts';
 import { t } from '../../helpers/translate.ts';
 
 // The screen's own rules; what an area's rules may hold at all is in skin/area-rules.test.ts.

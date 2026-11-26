@@ -7,7 +7,7 @@ import { applyToken, canUse } from '../checks/actions.ts';
 import { evidenceOf, type FindingFacts } from '../checks/evidence.ts';
 import { fixToken, type TokenFix } from '../checks/token-fix.ts';
 import type { EditorContext } from '../context.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import type { LiveRow } from './items.ts';
 

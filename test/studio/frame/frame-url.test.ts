@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   catalogFrameUrl,
+  frameUrl,
   parseCatalogPath,
   parseFrameAddress,
 } from '../../../src/studio/frame/frame-url.ts';
@@ -55,6 +56,17 @@ test('both kinds of address are told apart by their first segment', () => {
   });
   assert.equal(parseFrameAddress(['api', 'v1']), undefined);
   assert.equal(parseFrameAddress(['f', 'KEY', 'shop', 'html', 'index.html']), undefined);
+});
+
+test('a version address carries the state and only the option values it is given', () => {
+  const target = { hostname: 'localhost', port: 5001, key: 'KEY', slug: 'shop', version: 2 };
+  const page = 'http://localhost:5001/f/KEY/shop/v2/html/index.html';
+  assert.equal(frameUrl({ ...target, state: 'filled' }), `${page}?state=filled`);
+  assert.equal(frameUrl({ ...target, state: 'filled', choice: {} }), `${page}?state=filled`);
+  assert.equal(
+    frameUrl({ ...target, state: 'empty', choice: { columns: '2', 'card-style': 'filled' } }),
+    `${page}?state=empty&opt-columns=2&opt-card-style=filled`,
+  );
 });
 
 test('an example address encodes the example key', () => {

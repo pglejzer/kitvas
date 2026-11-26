@@ -5,9 +5,9 @@ import { test } from 'node:test';
 import { createFolderKitStore } from '../../src/kit/adapters/folder-store.ts';
 import { type BuildReport, buildDraft } from '../../src/render/index.ts';
 import { KitvasError } from '../../src/shared/index.ts';
-import { shopDraft } from '../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../helpers/kits.ts';
-import { HERO_TSX, renderTools, writeShopSections } from '../helpers/render.ts';
+import { shopDraft } from '../helpers/draft/drafts.ts';
+import { HERO_TSX, renderTools, writeShopSections } from '../helpers/draft/render.ts';
+import { FIXTURE_KITS } from '../helpers/kit/kits.ts';
 import { at, keysAt, parseJson } from './helpers/json.ts';
 
 const kits = createFolderKitStore(FIXTURE_KITS);
@@ -114,6 +114,37 @@ test('nothing changed: the build is skipped; a change builds again', async () =>
 
     rmSync(join(shop.dir, 'v1', 'build', 'html', 'index.html'));
     assert.equal((await shop.build()).cached, false);
+  } finally {
+    await shop.close();
+  }
+});
+
+test('the options of the version go into the bundle; none leaves the bundle without them', async () => {
+  const shop = workshop();
+  try {
+    await shop.build();
+    assert.ok(!shop.read('build', 'js', 'index.js').includes('"columns"'));
+
+    const options = [
+      {
+        id: 'columns',
+        label: 'Columns',
+        default: '3',
+        values: [
+          { id: '3', label: 'Three' },
+          { id: '2', label: 'Two' },
+        ],
+      },
+    ];
+    shop.store.writeText(
+      'shop',
+      'v1/src/json/options.json',
+      JSON.stringify({ schemaVersion: 1, options }),
+    );
+    const report = await shop.build();
+    assert.equal(report.cached, false, 'a new options file builds again');
+    assert.ok(shop.read('build', 'js', 'index.js').includes('"columns"'));
+    assert.ok(existsSync(join(shop.dir, 'v1', 'src', 'tsx', 'options.ts')));
   } finally {
     await shop.close();
   }

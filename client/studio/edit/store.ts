@@ -11,7 +11,7 @@ import type { Listening, RequestView } from '../../../src/studio/api/requests/re
 import type { Waiver } from '../../../src/studio/api/waivers/waiver-schemas.ts';
 import type { CopyRef, TreeNode } from '../../channel/edit-protocol.ts';
 import type { A11yCard } from '../../channel/live-protocol.ts';
-import type { StateHeld } from './props/state-held.ts';
+import type { StateHeld } from './props/context/state-held.ts';
 import { settle } from './select/copies.ts';
 
 /**
@@ -35,6 +35,8 @@ export type Gesture = {
   /** ADR 0072: the copy a "This item" change is for; its previews go to that copy only. */
   item?: number;
   renames?: Readonly<Record<string, string>>;
+  /** On the redo stack: the change list's line the undo took out, which a redo puts back. */
+  line?: ChangeEntry;
 };
 
 /** What copy and cut keep (task D4): each element's source and the TSX file it came from. */
@@ -139,7 +141,10 @@ export type EditorState = {
    * layers list, a key).
    */
   copies: CopyRef[];
-  /** Where style edits go: the edit card's width (`null` all widths) and the state bar's state. */
+  /**
+   * Where style edits go: the edit card's width (`null` all widths), the state bar's state, and
+   * the bar's option value (`null`: "All options", plan 25).
+   */
   context: StyleContext;
   /** The session's live findings: the frame's measurements and the code checks of changed files. */
   live: LiveItem[];
@@ -214,7 +219,7 @@ export function initialState(slug: string): EditorState {
     locked: [],
     item: null,
     copies: [],
-    context: { width: null, state: null },
+    context: { width: null, state: null, option: null },
     live: [],
     waivers: [],
     applied: null,

@@ -2,6 +2,7 @@
 // contract 1), and the messages the page sends them. The lens's messages (plan 19) have readers of
 // their own (`lens-protocol.ts`): `lensMessage` checks one as `frameMessage` checks the others.
 
+import type { OptionChoice } from '../../src/shared/values/options.ts';
 import type { EditStudioBody } from '../channel/edit-protocol.ts';
 import {
   type LensFrameMessage,
@@ -96,6 +97,11 @@ export function sendFlash(frame: Frame, ids: readonly string[]): void {
 
 export function sendState(frame: Frame, state: string): void {
   post(frame, { kitvas: 1, channel: frame.channel, type: 'state', state });
+}
+
+/** Shows these values of the version's options in the frame, in place; it answers `shown`. */
+export function sendOptions(frame: Frame, choice: OptionChoice): void {
+  post(frame, { kitvas: 1, channel: frame.channel, type: 'options', choice });
 }
 
 /**

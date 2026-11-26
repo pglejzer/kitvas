@@ -5,7 +5,7 @@
 // (`entries.ts`).
 
 import type { EditorContext } from '../context.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import { askWhy, getWhy } from './api.ts';
 import { itemsOf, type WhyItem, type WhyReport } from './entries.ts';

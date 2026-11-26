@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { call, openLinkUrl, pageCookie, shopStudio } from '../../helpers/studio.ts';
+import { call, openLinkUrl, pageCookie, shopStudio } from '../../helpers/studio/studio.ts';
 
 test('pages without the cookie get the locked page, with the security headers', async () => {
   const { studio } = await shopStudio();

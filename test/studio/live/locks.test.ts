@@ -18,8 +18,8 @@ import {
   viewOf,
   watchLocks,
 } from '../../../src/studio/live/locks.ts';
-import { NOW, tempDrafts, writeVersionFiles } from '../../helpers/drafts.ts';
-import { builtinKits } from '../../helpers/kits.ts';
+import { NOW, tempDrafts, writeVersionFiles } from '../../helpers/draft/drafts.ts';
+import { builtinKits } from '../../helpers/kit/kits.ts';
 
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());

@@ -2,7 +2,7 @@
 // it is for, opened by "Note…" in the context menu and by Edit in the Notes list. Escape and
 // Cancel close it; Save sends it and closes it when the studio took it.
 
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import { text } from '../texts.ts';
 import { MAX_NOTE_TEXT, noteText } from './model.ts';
 import { type Box, placeBeside, placeBesidePanel, savesNote } from './place.ts';

@@ -4,6 +4,7 @@
 // piece of a line with one space after it. A class with no rule gets one nested as `&__part` in
 // the rule of its block when it has one (ADR 0067), else a top-level one at the end of the file.
 
+import type { DraftOption } from '../../../shared/index.ts';
 import { type EditOp, OFF_KIT_MARKER, type StyleValue, styleText } from '../ops.ts';
 import type { ApplyOptions, ApplyResult, Span } from '../types.ts';
 import {
@@ -25,12 +26,14 @@ export type ScssOp = Extract<EditOp, { op: 'setStyle' | 'removeStyle' }>;
  * since nothing says the file is there. `breakpoints`: the kit's widths; with it a context of
  * another width is refused (`not-breakpoint`). `varKind`: what types a `var(--kit-…)` in a
  * `border`, an `outline` or a `background` (ADR 0070); without it such a shorthand does not split,
- * so nothing is written into it.
+ * so nothing is written into it. `versionOptions`: the version's options in their file's order
+ * (ADR 0082), which a new option block keeps; without them it goes after the option blocks there.
  */
 export type ScssOptions = ApplyOptions & {
   hasImage?: ((file: string) => boolean) | undefined;
   breakpoints?: (() => readonly number[]) | undefined;
   varKind?: VarKind | undefined;
+  versionOptions?: (() => readonly DraftOption[]) | undefined;
 };
 
 export const splice = (text: string, start: number, end: number, insert: string): string =>

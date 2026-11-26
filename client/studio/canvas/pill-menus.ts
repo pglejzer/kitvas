@@ -1,5 +1,6 @@
-// The canvas pills' two menus, the state menu and "More" (plan 18f, task 5). Both are a `<details>`
-// the server drew (`details[data-pill-menu]`), so they open without the script; this adds what a
+// The canvas pills' menus, the state menu, "More" and the narrowed Lens pill's (plan 18f, task 5;
+// plan 25). The first two are a `<details>` the server drew (`details[data-pill-menu]`), so they
+// open without the script; the third the lens pill's script draws the same way. This adds what a
 // menu does for a keyboard: the arrows walk the rows, Home and End jump, Escape closes and puts the
 // focus back on the button, a pick closes, Tab out and a click elsewhere close, and one menu open
 // closes the other.
@@ -7,8 +8,9 @@
 import { isPlainClick } from '../clicks.ts';
 
 const MENU = 'details[data-pill-menu]';
-/** What a pick is: a size, a state, a card count, "Every width". */
-const CHOOSE = 'a[data-dock-size], a[data-state], a[data-dock-cards], button[data-dock-every]';
+/** What a pick is: a size, a state, a card count, "Every width", a lens. */
+const CHOOSE =
+  'a[data-dock-size], a[data-state], a[data-dock-cards], button[data-dock-every], button[data-lens-pick]';
 const ITEMS = 'a[href], button:not(:disabled), input:not([type="hidden"])';
 
 /**
@@ -29,11 +31,16 @@ function close(menu: HTMLDetailsElement, focus: boolean): void {
   if (focus) menu.querySelector('summary')?.focus();
 }
 
-/** The rows a person can reach in an open menu, in order. */
+/**
+ * The rows a person can reach in an open menu, in order: not those the markup hides, nor those the
+ * skin hides at a step of the fit (the presets in More while the pill shows them itself).
+ */
 function itemsOf(menu: HTMLDetailsElement): HTMLElement[] {
   const list = menu.querySelector('.pill-sizes');
   const rows = list ? list.querySelectorAll<HTMLElement>(ITEMS) : [];
-  return [...rows].filter((row) => row.closest('[hidden]') === null);
+  return [...rows].filter(
+    (row) => row.closest('[hidden]') === null && row.getClientRects().length > 0,
+  );
 }
 
 function menuOf(target: EventTarget | null, main: HTMLElement): HTMLDetailsElement | null {

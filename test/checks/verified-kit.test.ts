@@ -45,6 +45,9 @@ const kitOf = (project: string | undefined, hash = 'h1'): LoadedKit => {
     additions: [],
     additionsDir: undefined,
     entry: '/kits/acme/generated/kit.ts',
+    themes: { default: 'default', list: [] },
+    themeTokens: {},
+    addedTokens: [],
   };
 };
 

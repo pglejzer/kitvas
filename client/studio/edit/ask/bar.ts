@@ -10,7 +10,7 @@ import { iconButton } from '../../ui/icon.ts';
 import { aiControl } from '../ai/control.ts';
 import { commandOf } from '../ai/status.ts';
 import type { EditorContext } from '../context.ts';
-import { el } from '../props/controls.ts';
+import { el } from '../props/controls/controls.ts';
 import type { EditorState } from '../store.ts';
 import { runAction } from '../structure/actions.ts';
 import { text } from '../texts.ts';

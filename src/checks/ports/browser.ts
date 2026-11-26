@@ -1,5 +1,6 @@
 // A browser that opens a built page and reports what it saw.
 
+import type { OptionChoice } from '../../shared/index.ts';
 import type { Pixels } from '../domain/kit/look-score.ts';
 import type { PageFacts } from '../domain/page/facts.ts';
 import type { LayerFacts } from '../domain/page/layers.ts';
@@ -17,6 +18,8 @@ export type Visit = {
   screenshot: string | null;
   /** The extra passes after axe, in the order of ADR 0044. */
   passes: Pass[];
+  /** The option values that differ from the defaults (plan 25); `{}` is the default combination. */
+  options: OptionChoice;
 };
 
 /** `reflow` runs only at 390: the page resized to 320×568. `deep` only with `kitvas check --deep`. */

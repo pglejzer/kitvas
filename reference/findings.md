@@ -12,6 +12,7 @@ Read by the `patcher` agent. A finding has `rule` (`<check>/<name>`), `severity`
 - ux
 - Guideline details
 - runtime
+- options
 - Not fixed
 
 ## General rules
@@ -77,6 +78,11 @@ Read by the `patcher` agent. A finding has `rule` (`<check>/<name>`), `severity`
 - R-FIND-23: `runtime/page-error` and `runtime/console-error`: read the message, find the code that throws in the files of the draft, and fix the cause.
 - R-FIND-24: `runtime/request-failed`: a file or address could not load. Use a file in the version's `v<n>/src/img` folder and refer to it as `../img/<file>`.
 - R-FIND-25: `runtime/console-warning` is a `review` finding. Fix it when the cause is plain, such as a missing `key` on list items.
+
+## options
+
+- R-FIND-41: `options/no-effect` (review): both main-width shots of a value equal the default's. Make the value's block or branch show a real difference with tokens, or report that the value is not needed; never delete the option.
+- R-FIND-42: `options/unknown` (fix): the SCSS holds a `data-opt-<id>` that `options.json` does not declare. Correct the id or value to a declared one, or remove the block. Never add it to `options.json`.
 
 ## Not fixed
 

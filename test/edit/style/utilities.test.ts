@@ -20,12 +20,21 @@ import {
   type EditOp,
   inverse,
   type SimpleOp,
+  type StyleContext,
+  type StyleState,
   type TokenOption,
 } from '../../../src/edit/index.ts';
 
 const ID = 'sections/Hero:div';
 const PLAIN = { force: false };
 const FORCE = { force: true };
+
+/** A width and a state: a Tailwind draft's options act through the prop only (plan 25). */
+const at = (width: number | null, state: StyleState | null): StyleContext => ({
+  width,
+  state,
+  option: null,
+});
 
 type UtilityOp = Extract<EditOp, { op: 'setUtility' }>;
 
@@ -91,31 +100,28 @@ test('a class splits into its variants and its utility, colons in brackets left 
 });
 
 test('the variants of a context are one screen and one state, in any order', () => {
-  assert.deepEqual(contextOfVariants([]), { width: null, state: null });
-  assert.deepEqual(contextOfVariants(['md']), { width: 768, state: null });
-  assert.deepEqual(contextOfVariants(['xl', 'hover']), { width: 1280, state: 'hover' });
-  assert.deepEqual(contextOfVariants(['focus-visible', 'lg']), {
-    width: 1024,
-    state: 'focus-visible',
-  });
-  assert.deepEqual(contextOfVariants(['min-[900px]', 'active']), { width: 900, state: 'active' });
+  assert.deepEqual(contextOfVariants([]), at(null, null));
+  assert.deepEqual(contextOfVariants(['md']), at(768, null));
+  assert.deepEqual(contextOfVariants(['xl', 'hover']), at(1280, 'hover'));
+  assert.deepEqual(contextOfVariants(['focus-visible', 'lg']), at(1024, 'focus-visible'));
+  assert.deepEqual(contextOfVariants(['min-[900px]', 'active']), at(900, 'active'));
   for (const other of [['dark'], ['md', 'xl'], ['hover', 'active'], ['group-hover'], ['focus']]) {
     assert.equal(contextOfVariants(other), null, other.join(':'));
   }
 });
 
 test('a context is written with the Tailwind screen of its width, then the state', () => {
-  assert.equal(variantPrefix({ width: null, state: null }), '');
-  assert.equal(variantPrefix({ width: 768, state: null }), 'md:');
-  assert.equal(variantPrefix({ width: 1280, state: null }), 'xl:');
-  assert.equal(variantPrefix({ width: null, state: 'hover' }), 'hover:');
-  assert.equal(variantPrefix({ width: 768, state: 'hover' }), 'md:hover:');
-  assert.equal(variantPrefix({ width: 1280, state: 'focus-visible' }), 'xl:focus-visible:');
+  assert.equal(variantPrefix(at(null, null)), '');
+  assert.equal(variantPrefix(at(768, null)), 'md:');
+  assert.equal(variantPrefix(at(1280, null)), 'xl:');
+  assert.equal(variantPrefix(at(null, 'hover')), 'hover:');
+  assert.equal(variantPrefix(at(768, 'hover')), 'md:hover:');
+  assert.equal(variantPrefix(at(1280, 'focus-visible')), 'xl:focus-visible:');
   // A breakpoint Tailwind has no screen for is written as its min width.
   assert.equal(screenOf(900), 'min-[900px]');
-  assert.equal(variantPrefix({ width: 900, state: 'active' }), 'min-[900px]:active:');
+  assert.equal(variantPrefix(at(900, 'active')), 'min-[900px]:active:');
   for (const width of [640, 768, 900, 1024, 1280, 1536]) {
-    const context = { width, state: 'hover' as const };
+    const context = at(width, 'hover');
     const variants = variantPrefix(context)
       .split(':')
       .filter((part) => part !== '');
@@ -170,22 +176,14 @@ test('prefixed classes are the overrides of their context, with the value they h
     found
       .filter((each) => each.property === property)
       .map((each) => [each.context, each.value, each.offKit, each.utility]);
-  assert.deepEqual(of('padding'), [
-    [{ width: 768, state: null }, 'var(--kit-space-md)', false, 'md:p-md'],
-  ]);
+  assert.deepEqual(of('padding'), [[at(768, null), 'var(--kit-space-md)', false, 'md:p-md']]);
   // `p-` sets every side, so the side's row shows it too; only the own row may swap it.
-  assert.deepEqual(of('padding-top'), [
-    [{ width: 768, state: null }, 'var(--kit-space-md)', false, 'md:p-md'],
-  ]);
+  assert.deepEqual(of('padding-top'), [[at(768, null), 'var(--kit-space-md)', false, 'md:p-md']]);
   assert.deepEqual(of('background-color'), [
-    [{ width: 768, state: 'hover' }, 'var(--kit-color-primary)', false, 'md:hover:bg-primary'],
+    [at(768, 'hover'), 'var(--kit-color-primary)', false, 'md:hover:bg-primary'],
   ]);
-  assert.deepEqual(of('flex-direction'), [
-    [{ width: 1280, state: null }, 'column', false, 'xl:flex-col'],
-  ]);
-  assert.deepEqual(of('width'), [
-    [{ width: null, state: 'hover' }, '13px', true, 'hover:w-[13px]'],
-  ]);
+  assert.deepEqual(of('flex-direction'), [[at(1280, null), 'column', false, 'xl:flex-col']]);
+  assert.deepEqual(of('width'), [[at(null, 'hover'), '13px', true, 'hover:w-[13px]']]);
   // The base classes and a variant kitvas does not write are no overrides.
   assert.deepEqual(of('display'), []);
   assert.equal(

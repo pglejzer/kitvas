@@ -6,7 +6,7 @@ import { notesSection } from '../../../src/studio/pages/draft/notes.ts';
 import { html } from '../../../src/studio/pages/html.ts';
 import { lockedPage } from '../../../src/studio/pages/locked.ts';
 import { page } from '../../../src/studio/pages/shell.ts';
-import { finding } from '../../helpers/findings.ts';
+import { finding } from '../../helpers/studio/findings.ts';
 import { t } from '../../helpers/translate.ts';
 
 test('the channel ends the frame address with the studio port taken from the host', () => {

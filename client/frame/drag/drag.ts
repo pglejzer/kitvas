@@ -22,11 +22,12 @@ import { carried, copyOfPick } from '../edit/items.ts';
 import { elementsWith } from '../edit/tree.ts';
 import { hold } from '../page/busy.ts';
 import { takenBy } from '../page/rect.ts';
-import { createAutoScroll } from './autoscroll.ts';
-import { createCursor } from './cursor.ts';
-import { createDropRecord } from './drop-record.ts';
-import type { GestureEnd, GestureLog } from './gesture-log.ts';
-import { ITEM_REACH, type ItemList, type ListSlot, listSlot } from './item-slots.ts';
+import { createAutoScroll } from './gesture/autoscroll.ts';
+import { createCursor } from './gesture/cursor.ts';
+import type { GestureEnd, GestureLog } from './gesture/gesture-log.ts';
+import { createRectLayer } from './gesture/rect-layer.ts';
+import { createDropRecord } from './motion/drop-record.ts';
+import { dim, placeDrop, placeholderOf, showDrop } from './motion/preview.ts';
 import {
   chainOf,
   draggedOf,
@@ -42,11 +43,10 @@ import {
   readLists,
   readRect,
 } from './page-read.ts';
-import { dim, placeDrop, placeholderOf, showDrop } from './preview.ts';
-import { createRectLayer } from './rect-layer.ts';
 import { createSession, pressOf } from './session.ts';
-import type { slotAt } from './slot-read.ts';
-import { HOME_REACH, type Indicator, type Point, type Slot } from './slots.ts';
+import { ITEM_REACH, type ItemList, type ListSlot, listSlot } from './slots/item-slots.ts';
+import type { slotAt } from './slots/slot-read.ts';
+import { HOME_REACH, type Indicator, type Point, type Slot } from './slots/slots.ts';
 
 export type DragDeps = {
   /** A drag also posts the `pick` of the element it takes, so the message is any edit message. */

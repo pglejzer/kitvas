@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { createBrowserInstaller } from '../../src/checks/adapters/browser/browser-installer.ts';
 import { createPlaywrightBrowser } from '../../src/checks/adapters/browser/playwright-browser.ts';
 import { KitvasError, PLUGIN_ROOT } from '../../src/shared/index.ts';
-import { checkShop } from '../helpers/checks.ts';
+import { checkShop } from '../helpers/draft/checks.ts';
 import { tempDir } from '../helpers/tmp.ts';
 
 const browser = createPlaywrightBrowser({

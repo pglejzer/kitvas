@@ -12,8 +12,8 @@ import {
 import { hashOf } from '../../../src/edit/domain/ops.ts';
 import { KitvasError, PLUGIN_ROOT } from '../../../src/shared/index.ts';
 import { etagOf } from '../../../src/studio/http/etag.ts';
-import { NOW, tempDrafts } from '../../helpers/drafts.ts';
-import { builtinKits } from '../../helpers/kits.ts';
+import { NOW, tempDrafts } from '../../helpers/draft/drafts.ts';
+import { builtinKits } from '../../helpers/kit/kits.ts';
 
 const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
 const PRICING_FILE = 'src/tsx/sections/Pricing.tsx';

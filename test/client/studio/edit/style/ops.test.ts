@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { plainValue } from '../../../../../client/studio/edit/props/kinds.ts';
+import { plainValue } from '../../../../../client/studio/edit/props/values/kinds.ts';
 import {
   allowedValue,
   heldBySides,
@@ -225,8 +225,8 @@ test('several elements share the rows none of them has read-only', () => {
 
 // ---- A width or a state (spec 4c, goal 2) -------------------------------------------------------
 
-const AT_768: StyleContext = { width: 768, state: null };
-const HOVER_768: StyleContext = { width: 768, state: 'hover' };
+const AT_768: StyleContext = { width: 768, state: null, option: null };
+const HOVER_768: StyleContext = { width: 768, state: 'hover', option: null };
 const MD: StyleValue = { token: '--kit-space-md' };
 
 type Override = NonNullable<Inspect['overrides']>[number];
@@ -259,6 +259,22 @@ test('a new value of a width may make its block, a changed one goes where it is'
     { op: 'setStyle', ...at, value: MD, before: { raw: '2px' }, newRule: false, newBlock: false },
   ]);
   assert.deepEqual(opsForStyle(held, 'gap', { raw: '2px' }, { context: AT_768 }), []);
+});
+
+test("an option's value is another block, whose own value is the change's before", () => {
+  const view = ruled(ID, 'plans', []);
+  const dark: StyleContext = { ...AT_768, option: { id: 'theme', value: 'dark' } };
+  const at = { id: ID, className: 'plans', property: 'gap', context: dark };
+  // The rule's own 768 value is not the option's.
+  const own = { ...view, overrides: [override(AT_768, 'gap', '2px')] };
+  assert.deepEqual(opsForStyle(own, 'gap', MD, { context: dark }), [
+    { op: 'setStyle', ...at, value: MD, before: null, newRule: false, newBlock: true },
+  ]);
+  const both = [override(AT_768, 'gap', '2px'), override(dark, 'gap', '4px')];
+  const held = { ...view, overrides: both };
+  assert.deepEqual(opsForStyle(held, 'gap', MD, { context: dark }), [
+    { op: 'setStyle', ...at, value: MD, before: { raw: '4px' }, newRule: false, newBlock: false },
+  ]);
 });
 
 test('a removed value of a width takes its block along, and never the rule', () => {
@@ -303,7 +319,7 @@ test('an element without a class gets the class, the rule and the block in one g
 
 test('the base context gives the ops of stage 4a', () => {
   const view = ruled(ID, 'plans', []);
-  const base = { width: null, state: null };
+  const base = { width: null, state: null, option: null };
   assert.deepEqual(opsForStyle(view, 'gap', MD, { context: base }), opsForStyle(view, 'gap', MD));
   assert.equal('context' in (opsForStyle(view, 'gap', MD, { context: base })[0] ?? {}), false);
 });

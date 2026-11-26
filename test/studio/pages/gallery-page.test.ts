@@ -10,9 +10,9 @@ import {
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import { dotOf, galleryPage } from '../../../src/studio/pages/gallery.ts';
 import { escapeHtml } from '../../../src/studio/pages/html.ts';
-import { NOW, shopDraft, TINY, tempDrafts } from '../../helpers/drafts.ts';
-import { checksOf, finding } from '../../helpers/findings.ts';
-import { FIXTURE_KITS } from '../../helpers/kits.ts';
+import { NOW, shopDraft, TINY, tempDrafts } from '../../helpers/draft/drafts.ts';
+import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
+import { checksOf, finding } from '../../helpers/studio/findings.ts';
 import { t } from '../../helpers/translate.ts';
 
 type Options = { query?: string; kit?: string; now?: Date };

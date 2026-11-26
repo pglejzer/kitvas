@@ -12,6 +12,7 @@
 // The lens pins (plan 19, `lens/pins.ts`) have a reader of their own (`lens-protocol.ts`), asked
 // before the others; their overlay is made first, so its listeners on the window run first.
 
+import { choiceFromQuery } from '../../src/shared/values/options.ts';
 import { isCanvasStudio } from '../channel/canvas-protocol.ts';
 import { type LensPin, readLensStudio } from '../channel/lens-protocol.ts';
 import {
@@ -21,7 +22,7 @@ import {
   type NotePin,
 } from '../channel/live-protocol.ts';
 import { type FrameMessage, type Mark, parseStudioMessage, readHash } from '../channel/protocol.ts';
-import { createMotion } from './drag/motion.ts';
+import { createMotion } from './drag/motion/motion.ts';
 import { createEdit } from './edit/edit.ts';
 import { createPreview } from './edit/preview.ts';
 import { createStructure } from './edit/structure.ts';
@@ -34,7 +35,10 @@ import { createCanvas } from './page/canvas.ts';
 import { hushed } from './page/hush.ts';
 import { createMarks } from './page/marks.ts';
 import { measureElements, settle } from './page/measure.ts';
+import { createChoices } from './page/options.ts';
+import { createShow } from './page/show.ts';
 import { type Bundle, createSwap, pagePorts, register, running } from './page/swap.ts';
+import { createThemeBody } from './page/theme-body.ts';
 import { setTones } from './tones/tones.ts';
 
 export type { Mounted } from './page/swap.ts';
@@ -57,8 +61,17 @@ export function startFrame(input: FrameInput): void {
   }
   const { initial, runtime } = input;
   let { states } = input;
+  // The values of the options the address asks for (else the defaults) are on the root before the
+  // first render, which gets them as its prop; the theme's own attributes are on the body.
+  const themeBody = createThemeBody(document.body, input.themes ?? {});
+  const choices = createChoices(
+    document.documentElement,
+    input.options,
+    choiceFromQuery(input.options, new URLSearchParams(location.search)),
+    themeBody,
+  );
   let mounted = input.mount();
-  mounted.render(initial);
+  mounted.render(initial, choices.get());
   const link = readHash(location.hash);
   // A page the studio loaded again opens where it was, once; a shorter page ends at its bottom.
   if (link?.scroll) {
@@ -101,7 +114,7 @@ export function startFrame(input: FrameInput): void {
       shownPins.hush(on);
       shownLens.hush(on);
     },
-    // A gesture that was lost (`drag/gesture-log.ts`): its last steps, for whoever reads them.
+    // A gesture that was lost (`drag/gesture/gesture-log.ts`): its last steps, for whoever reads them.
     report: (message) => studio.postMessage(message, studioOrigin),
   });
   // The screen's canvas (plan 15): forwards the zoom wheel, Space and the screen's keys.
@@ -110,24 +123,25 @@ export function startFrame(input: FrameInput): void {
   const force = createForce();
   // The ring on an element a change was just applied to (ADR 0057).
   const flash = createFlash();
-  let current = initial;
   let heard = false;
   /** What the studio forced last, to force it again on the elements of a new render. */
   let forced: { ids: string[]; state: ForceState } | null = null;
 
-  const show = (state: string): void => {
-    if (!states.includes(state)) return;
-    if (state !== current) {
-      const moved = motion.change(() => mounted.render(state));
-      current = state;
+  // Another state and other values of the options take one path.
+  const shown = createShow({
+    choices,
+    states: () => states,
+    initial,
+    change: (render) => motion.change(render),
+    render: (state, choice) => mounted.render(state, choice),
+    changed(state, moved) {
       document.documentElement.dataset.state = state;
       marks.follow(moved);
       edit.follow(moved);
       lensPins.follow(moved);
-    }
-    // Also when the state did not change, so the studio is never left waiting.
-    post({ kitvas: 1, channel, type: 'shown', state });
-  };
+    },
+    answer: (state, choice) => post({ kitvas: 1, channel, type: 'shown', state, choice }),
+  });
 
   const answer = async (request: number): Promise<void> => {
     await settle();
@@ -148,8 +162,11 @@ export function startFrame(input: FrameInput): void {
       mounted = bundle.mount();
       states = bundle.states;
       // A state the new build no longer has: the one its own page would open with.
-      if (!states.includes(current)) current = bundle.initial;
-      mounted.render(current);
+      if (!states.includes(shown.current())) shown.reset(bundle.initial);
+      // The new build's themes; `choices.swap` writes the one that shows.
+      themeBody.use(bundle.themes ?? {});
+      // An option or a value the new build no longer has shows its own default.
+      mounted.render(shown.current(), choices.swap(bundle.options));
       // The page was empty for a moment, which took its scroll.
       window.scrollTo({ left, top, behavior: 'instant' });
       // The twins were made from the sheet that left, and the attribute sat on elements that did.
@@ -170,7 +187,16 @@ export function startFrame(input: FrameInput): void {
         );
       }
       // As after a load: the studio tells this page again what it draws, and reads its tree.
-      else post({ kitvas: 1, channel, type: 'ready', state: current, live: build });
+      else {
+        post({
+          kitvas: 1,
+          channel,
+          type: 'ready',
+          state: shown.current(),
+          choice: choices.get(),
+          live: build,
+        });
+      }
     },
   });
   register(swap.hand);
@@ -188,7 +214,8 @@ export function startFrame(input: FrameInput): void {
     if (!message) return;
     heard = true;
     if (message.type === 'measure') answer(message.request);
-    else if (message.type === 'state') show(message.state);
+    else if (message.type === 'state') shown.show(message.state);
+    else if (message.type === 'options') shown.show(shown.current(), message.choice);
     else if (message.type === 'marks') shownMarks.set(message.marks);
     else if (message.type === 'tones') setTones({ theme: message.theme, accent: message.accent });
     else if (message.type === 'flash') flash.show(message.ids);
@@ -238,7 +265,9 @@ export function startFrame(input: FrameInput): void {
   });
 
   const announce = (): void => {
-    if (!heard) post({ kitvas: 1, channel, type: 'ready', state: current });
+    if (!heard) {
+      post({ kitvas: 1, channel, type: 'ready', state: shown.current(), choice: choices.get() });
+    }
   };
   // `render` has committed the first state by now.
   announce();

@@ -19,9 +19,9 @@ import { createDraft } from '../../src/drafts/index.ts';
 import { GENERATED_ENTRY, type KitWriter, loadKit } from '../../src/kit/index.ts';
 import { buildCatalog, buildDraft, type CatalogReport } from '../../src/render/index.ts';
 import { catalogDir, PLUGIN_ROOT, projectKitsDir, workspaceDir } from '../../src/shared/index.ts';
-import { NOW } from '../helpers/drafts.ts';
-import { type FixtureName, fixtureProject } from '../helpers/projects.ts';
-import { closeRenderTools, projectKitStore, renderTools } from '../helpers/render.ts';
+import { NOW } from '../helpers/draft/drafts.ts';
+import { closeRenderTools, projectKitStore, renderTools } from '../helpers/draft/render.ts';
+import { type FixtureName, fixtureProject } from '../helpers/kit/projects.ts';
 import { parseJson } from './helpers/json.ts';
 
 const FIXTURES = join(PLUGIN_ROOT, 'test', 'fixtures', 'projects');
@@ -104,7 +104,8 @@ test('a Tailwind draft: tokens onto the theme, utilities of the draft and the ki
     assert.deepEqual(report.errors, []);
     assert.equal(report.built, true);
     const css = shad.read('build', 'css', 'index.css');
-    assert.match(css, /^:root \{\n {2}--kit-/);
+    // Every token of this kit is mapped, so all of them are declared on the body too.
+    assert.match(css, /^:root, body \{\n {2}--kit-/);
     for (const part of [
       '--kit-color-primary: var(--primary);',
       '--primary: oklch(0.21 0.006 285.885)',

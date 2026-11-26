@@ -15,9 +15,9 @@ import {
 } from '../../src/checks/index.ts';
 import { createFolderKitStore } from '../../src/kit/adapters/folder-store.ts';
 import { KitvasError } from '../../src/shared/index.ts';
-import { fakeBrowser, t } from '../helpers/checks.ts';
-import { NOW, tempDrafts } from '../helpers/drafts.ts';
-import { FIXTURE_KITS } from '../helpers/kits.ts';
+import { fakeBrowser, t } from '../helpers/draft/checks.ts';
+import { NOW, tempDrafts } from '../helpers/draft/drafts.ts';
+import { FIXTURE_KITS } from '../helpers/kit/kits.ts';
 import { tempDir } from '../helpers/tmp.ts';
 import { node, page, text } from './rules/facts.ts';
 

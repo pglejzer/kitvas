@@ -1,6 +1,6 @@
 // The kit contract: what kit.json may contain. One schema, the types derive from it.
 
-import { KitvasError, type Zod, z } from '../../shared/index.ts';
+import { KitvasError, OPTION_VALUE, type Zod, z } from '../../shared/index.ts';
 
 export const PROP_TYPES = [
   'enum',
@@ -144,10 +144,29 @@ const runtimeSchema = z.strictObject({
   clientOnly: z.boolean().default(false),
 });
 
+/**
+ * What a theme may put on the page's body for the design system's own switch (ADR 0083): `class`
+ * or a `data-…` name.
+ */
+export const THEME_ATTRIBUTE = /^(?:class|data-[a-z][a-z0-9-]*)$/;
+
+/** A theme id is a value of the option `theme`: `data-opt-theme="dark"`. */
+const themeId = z.string().regex(OPTION_VALUE);
+
+const themeSchema = z.strictObject({
+  id: themeId,
+  label: text,
+  /** Only the tokens whose values differ from the base, at its paths. The default theme has none. */
+  file: relPath.optional(),
+  /** Set on `<body>` while the theme shows. The default theme has none. */
+  attributes: z.record(z.string().regex(THEME_ATTRIBUTE), z.string()).optional(),
+});
+
 const tokensSchema = z.strictObject({
   file: relPath,
   format: z.literal('dtcg-2025.10'),
-  modes: z.strictObject({ theme: z.array(text).min(1), default: text }).optional(),
+  /** The kit's themes; the default one is the base token file (`file`). */
+  themes: z.strictObject({ default: themeId, list: z.array(themeSchema).min(1) }).optional(),
   cssVars: z.strictObject({ prefix: text, map: relPath }).optional(),
 });
 

@@ -12,7 +12,7 @@ import { test } from 'node:test';
 import type { ChecksReport } from '../../src/checks/index.ts';
 import type { BuildView, DraftView, LayoutView, Status } from '../../src/cli/index.ts';
 import { PLUGIN_ROOT } from '../../src/shared/env/paths.ts';
-import { fixtureDraftDir } from '../helpers/projects.ts';
+import { fixtureDraftDir } from '../helpers/kit/projects.ts';
 import { describeRun, kitvas, runKitvas, type Sandbox } from './helpers/cli.ts';
 import { fixtureBox, removeFixtureBox } from './helpers/project-box.ts';
 

@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { SharedBrowser } from '../../../src/checks/index.ts';
 import type { StudioDeps } from '../../../src/studio/index.ts';
-import { openEvents } from '../../helpers/events.ts';
-import { ECHO_CLI, fakeCli, SLOW_CLI } from '../../helpers/fake-cli.ts';
-import { call, shopStudio } from '../../helpers/studio.ts';
+import { openEvents } from '../../helpers/studio/events.ts';
+import { ECHO_CLI, fakeCli, SLOW_CLI } from '../../helpers/studio/fake-cli.ts';
+import { call, shopStudio } from '../../helpers/studio/studio.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 
 type JobBody = {

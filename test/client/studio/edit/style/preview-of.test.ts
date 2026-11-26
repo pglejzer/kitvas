@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { parseEditStudio } from '../../../../../client/channel/edit-protocol.ts';
 import { previewContext, previewOf } from '../../../../../client/studio/edit/style/preview-of.ts';
-import { type EditOp, type StyleValue, styleText } from '../../../../../src/edit/index.ts';
+import {
+  type EditOp,
+  type StyleContext,
+  type StyleValue,
+  styleText,
+} from '../../../../../src/edit/index.ts';
 
 const ID = 'sections/Pricing:section/Stack/Card.2';
 const STYLE = { id: ID, className: 'card', property: 'gap' };
@@ -53,10 +58,11 @@ test('a removed declaration has no preview: the build shows what the sheet falls
   assert.equal(previewOf(op), null);
 });
 
-test('an op of a width or a state names the cards its preview is for', () => {
-  const wide = { width: 768, state: null };
-  const hover = { width: null, state: 'hover' as const };
-  const set = (context?: { width: number | null; state: 'hover' | null }): EditOp => ({
+test('an op of a width, a state or an option value names the cards its preview is for', () => {
+  const wide = { width: 768, state: null, option: null };
+  const hover = { width: null, state: 'hover' as const, option: null };
+  const dark = { width: null, state: null, option: { id: 'theme', value: 'dark' } };
+  const set = (context?: StyleContext): EditOp => ({
     op: 'setStyle',
     ...STYLE,
     value: { raw: '13px' },
@@ -66,9 +72,10 @@ test('an op of a width or a state names the cards its preview is for', () => {
   });
   assert.deepEqual(previewContext(set(wide)), wide);
   assert.deepEqual(previewContext(set(hover)), hover);
+  assert.deepEqual(previewContext(set(dark)), dark);
   // The base, written out or left out, is every card's.
   assert.equal(previewContext(set()), null);
-  assert.equal(previewContext(set({ width: null, state: null })), null);
+  assert.equal(previewContext(set({ width: null, state: null, option: null })), null);
   assert.equal(previewContext({ op: 'addClass', id: ID, className: 'card' }), null);
   assert.equal(previewContext({ op: 'setUtility', id: ID, value: 'md:p-6', before: null }), null);
   // The value itself previews as in the base.

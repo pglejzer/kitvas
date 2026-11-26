@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
 import { forceKill, isAlive } from '../../../src/studio/run/processes.ts';
-import { call } from '../../helpers/studio.ts';
+import { call } from '../../helpers/studio/studio.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 import { until } from '../../helpers/wait.ts';
 
