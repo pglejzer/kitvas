@@ -1,26 +1,15 @@
 // The part of a recording's stage that runs in the page: a pointer that glides, a line of words under
-// the picture, a card for the first and the last picture and a play mark. Every part is made with DOM
-// calls and style properties, so the studio's content policy stays as it is.
+// the picture and a card for the first picture. Every part is made with DOM calls and style
+// properties, so the studio's content policy stays as it is.
 
-/** `typing` leaves a caret after the last line, for `write` to type behind. */
-export type Card = {
-  logo: boolean;
-  title: string;
-  label: string;
-  lines: string[];
-  typing: boolean;
-  foot: string;
-};
 export type StageSetup = { logo: string; unit: number };
 
 type InPage = {
-  put(x: number, y: number): void;
   glide(x: number, y: number, ms: number): Promise<void>;
   press(): void;
   say(text: string, code: string): void;
-  card(card: Card | null, fade: boolean): Promise<void>;
+  card(label: string | null): Promise<void>;
   write(text: string, perLetter: number): Promise<void>;
-  play(label: string): void;
 };
 
 declare global {
@@ -41,7 +30,6 @@ export function install(setup: StageSetup): void {
   let line: HTMLDivElement | null = null;
   let cover: HTMLDivElement | null = null;
   let typed: HTMLSpanElement | null = null;
-  let mark: HTMLDivElement | null = null;
   let layers = 0;
   let lineTimer = 0;
   const place = { x: -80, y: -80 };
@@ -145,10 +133,6 @@ export function install(setup: StageSetup): void {
     });
 
   window.kitvasStage = {
-    put(x, y) {
-      stage();
-      put(x, y);
-    },
     glide(x, y, ms) {
       stage();
       const from = { ...place };
@@ -208,11 +192,11 @@ export function install(setup: StageSetup): void {
       if (shown || text === '') paint(el, { opacity: '0', transform: 'translate(-50%, 8px)' });
       if (text !== '') lineTimer = window.setTimeout(show, shown ? 240 : 0);
     },
-    async card(card, fade) {
+    async card(label) {
       const before = cover;
       cover = null;
       typed = null;
-      if (card === null) {
+      if (label === null) {
         if (before) await fadeOut(before, 520);
         return;
       }
@@ -232,79 +216,53 @@ export function install(setup: StageSetup): void {
         'align-items': 'center',
         'justify-content': 'center',
       });
-      paint(next, { opacity: fade ? '0' : '1', transition: 'opacity 480ms ease' });
-      if (card.logo) {
-        const logo = document.createElement('img');
-        logo.src = setup.logo;
-        logo.alt = 'kitvas';
-        paint(logo, { height: u(66), 'margin-bottom': u(8) });
-        next.append(logo);
-      }
-      if (card.title)
-        next.append(
-          make(
-            { 'font-size': u(30), 'font-weight': '600', 'letter-spacing': '-0.01em' },
-            card.title,
-          ),
-        );
-      if (card.label)
-        next.append(
-          make({ 'font-size': u(21), color: '#a9afb8', 'font-weight': '500' }, card.label),
-        );
-      if (card.lines.length > 0) {
-        const box = make({
-          'font-family': mono,
-          'font-size': u(22),
-          'line-height': '1.75',
-          'white-space': 'pre',
-        });
-        paint(box, {
-          background: '#1d2025',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          color: '#f2f3f5',
-        });
-        paint(box, {
-          'border-radius': u(14),
-          padding: `${u(20)} ${u(28)}`,
-          'box-sizing': 'border-box',
-        });
-        paint(box, { 'min-width': card.typing ? u(1130) : u(700) });
-        for (const text of card.lines) {
-          const row = make({ display: 'flex', 'align-items': 'center' });
-          typed = document.createElement('span');
-          typed.textContent = text;
-          row.append(typed);
-          box.append(row);
-        }
-        if (card.typing) {
-          const caret = document.createElement('span');
-          paint(caret, {
-            display: 'inline-block',
-            width: '0.55em',
-            height: '1.15em',
-            background: copper,
-          });
-          paint(caret, { 'margin-left': '2px', 'border-radius': '2px' });
-          const blink = [
-            { opacity: 1 },
-            { opacity: 1, offset: 0.5 },
-            { opacity: 0, offset: 0.51 },
-            { opacity: 0 },
-          ];
-          caret.animate(blink, { duration: 1060, iterations: Number.POSITIVE_INFINITY });
-          typed?.after(caret);
-        }
-        next.append(box);
-      }
-      if (card.foot) next.append(make({ 'font-size': u(18), color: '#a9afb8' }, card.foot));
+      const logo = document.createElement('img');
+      logo.src = setup.logo;
+      logo.alt = 'kitvas';
+      paint(logo, { height: u(66), 'margin-bottom': u(8) });
+      const words = make({ 'font-size': u(21), color: '#a9afb8', 'font-weight': '500' }, label);
+      const box = make({
+        'font-family': mono,
+        'font-size': u(22),
+        'line-height': '1.75',
+        'white-space': 'pre',
+      });
+      paint(box, {
+        background: '#1d2025',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        color: '#f2f3f5',
+      });
+      paint(box, {
+        'border-radius': u(14),
+        padding: `${u(20)} ${u(28)}`,
+        'box-sizing': 'border-box',
+      });
+      paint(box, { 'min-width': u(1130) });
+      const row = make({ display: 'flex', 'align-items': 'center' });
+      typed = document.createElement('span');
+      typed.textContent = '> ';
+      // A caret after the prompt, for `write` to type behind.
+      const caret = document.createElement('span');
+      paint(caret, {
+        display: 'inline-block',
+        width: '0.55em',
+        height: '1.15em',
+        background: copper,
+      });
+      paint(caret, { 'margin-left': '2px', 'border-radius': '2px' });
+      const blink = [
+        { opacity: 1 },
+        { opacity: 1, offset: 0.5 },
+        { opacity: 0, offset: 0.51 },
+        { opacity: 0 },
+      ];
+      caret.animate(blink, { duration: 1060, iterations: Number.POSITIVE_INFINITY });
+      row.append(typed, caret);
+      box.append(row);
+      next.append(logo, words, box);
       stage().prepend(next);
       cover = next;
       before?.remove();
-      if (fade) {
-        next.getBoundingClientRect();
-        paint(next, { opacity: '1' });
-        await new Promise((done) => setTimeout(done, 520));
-      }
     },
     write(text, perLetter) {
       const target = typed;
@@ -321,53 +279,6 @@ export function install(setup: StageSetup): void {
         };
         next();
       });
-    },
-    play(label) {
-      mark?.remove();
-      mark = null;
-      if (label === '') return;
-      mark = make({
-        position: 'absolute',
-        inset: '0',
-        background: 'rgba(10, 11, 13, 0.42)',
-        display: 'flex',
-        gap: u(22),
-      });
-      paint(mark, {
-        'flex-direction': 'column',
-        'align-items': 'center',
-        'justify-content': 'center',
-      });
-      const disc = make({
-        width: u(112),
-        height: u(112),
-        'border-radius': '50%',
-        background: copper,
-        display: 'flex',
-      });
-      paint(disc, {
-        'align-items': 'center',
-        'justify-content': 'center',
-        'box-shadow': '0 14px 40px rgba(0, 0, 0, 0.45)',
-      });
-      const arrow = make({
-        width: '0',
-        height: '0',
-        'margin-left': u(8),
-        'border-left': `${u(34)} solid #ffffff`,
-      });
-      paint(arrow, {
-        'border-top': `${u(21)} solid transparent`,
-        'border-bottom': `${u(21)} solid transparent`,
-      });
-      disc.append(arrow);
-      const words = make(
-        { 'font-size': u(26), 'font-weight': '600', padding: `${u(10)} ${u(20)}` },
-        label,
-      );
-      paint(words, { background: 'rgba(22, 24, 28, 0.92)', 'border-radius': u(12) });
-      mark.append(disc, words);
-      stage().prepend(mark);
     },
   };
 }

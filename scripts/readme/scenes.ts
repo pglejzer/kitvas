@@ -1,7 +1,7 @@
 // The takes of the README's media, played on a real studio. They are written for one draft: a revenue
-// dashboard named `saas-analytics`, built from the Base kit, with the states `empty` and `loading`,
-// the option `layout` (split, stacked) and at least two earlier versions. Another draft needs scenes
-// of its own. Every number a caption shows is read from the page or from the draft's files.
+// dashboard named `saas-analytics`, built from the Base kit, with an "Export CSV" button, a chart
+// titled "MRR over 12 weeks" and at least two earlier versions. Another draft needs scenes of its
+// own. Every number a caption shows is read from the page or from the draft's files.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -32,24 +32,16 @@ export type Spec = {
   /** Under 1 for a quicker take: it scales the waits, the glides and the typing. */
   pace: number;
   run(ctx: Ctx): Promise<Film | null>;
-  film?: { file: string; width: number; height: number };
   gif?: { file: string; width: number; fps: number };
 };
 
-// The request in short. The draft on the screen is a later version of it, and the film says which.
+// The request in short. The draft on the screen is a later version of it, and the GIF says which.
 const REQUEST = '/kitvas:compose a SaaS analytics dashboard with revenue, plans and accounts';
-const TAGLINE = 'Build with your design system. Validate automatically. Edit visually.';
-const INSTALL = [
-  'claude plugin marketplace add pglejzer/kitvas',
-  'claude plugin install kitvas@kitvas',
-];
 
 const draftUrl = (ctx: Ctx, query = 'width=1280'): string =>
   `${ctx.studio}/drafts/${ctx.slug}?${query}`;
 const prototype = (ctx: Ctx): Locator => ctx.page.locator('iframe[data-frame="current"]');
 const inside = (ctx: Ctx, inner: string): Target => ({ frame: prototype(ctx), inner });
-const prop = (ctx: Ctx, control: string): Locator =>
-  ctx.page.locator(`[data-edit="props"] [data-control="${control}"]`);
 
 function versions(draftDir: string): string[] {
   return readdirSync(draftDir)
@@ -98,31 +90,16 @@ function written(draftDir: string): string {
   return pick.length > 62 ? `${pick.slice(0, 61)}…` : pick;
 }
 
-async function ready(ctx: Ctx, withPrototype: boolean): Promise<void> {
+async function open(ctx: Ctx, url: string, withPrototype = true): Promise<void> {
+  await ctx.page.goto(url);
   await ctx.page.waitForLoadState('load');
   if (withPrototype) await prototype(ctx).waitFor({ state: 'visible' });
   await new Promise((done) => setTimeout(done, 1500));
 }
 
-async function open(ctx: Ctx, url: string, withPrototype = true): Promise<void> {
-  await ctx.page.goto(url);
-  await ready(ctx, withPrototype);
-}
-
-/** Leaves a page load out of the film and draws the stage again on the new page. */
-async function through(ctx: Ctx, take: Take, go: () => Promise<unknown>): Promise<void> {
-  take.cut();
-  await go();
-  await ready(ctx, true);
-  await ctx.stage.restore();
-  await ctx.stage.rest(250);
-  take.resume();
-}
-
 async function intro(ctx: Ctx): Promise<Take> {
   const { stage } = ctx;
-  const label = 'You ask in Claude Code';
-  await stage.card({ logo: true, title: '', label, lines: ['> '], typing: true, foot: '' });
+  await stage.card('You ask in Claude Code');
   const take = await startTake(ctx.page, ctx.filmDir);
   await stage.rest(700);
   await stage.write(REQUEST);
@@ -130,11 +107,11 @@ async function intro(ctx: Ctx): Promise<Take> {
   return take;
 }
 
-/** `later` says that the wait for the build was left out, where nothing before has said it. */
-async function built(ctx: Ctx, later: boolean): Promise<void> {
+/** "Later" says that the wait for the build was left out. */
+async function built(ctx: Ctx): Promise<void> {
   const name = (await ctx.page.locator('[data-version-name]').first().textContent())?.trim();
   const version = name ?? 'The latest version';
-  const start = later ? `Later: ${version.charAt(0).toLowerCase()}${version.slice(1)}` : version;
+  const start = `Later: ${version.charAt(0).toLowerCase()}${version.slice(1)}`;
   await ctx.stage.say(`${start} of the draft, built from the Base kit`);
 }
 
@@ -145,19 +122,6 @@ async function look(ctx: Ctx): Promise<void> {
   await stage.rest(900);
   await stage.wheel(-620, 1000);
   await stage.rest(300);
-}
-
-async function options(ctx: Ctx): Promise<void> {
-  const { page, stage } = ctx;
-  const value = (name: string): Locator =>
-    page.locator(`[data-options-row] a[data-value="${name}"]`);
-  if (!(await value('stacked').isVisible()))
-    await stage.click(page.locator('[data-options-toggle]'));
-  await stage.say('One version holds its alternatives');
-  await stage.click(value('stacked'));
-  await stage.rest(1800);
-  await stage.click(value('split'));
-  await stage.rest(900);
 }
 
 async function checks(ctx: Ctx): Promise<void> {
@@ -171,19 +135,6 @@ async function checks(ctx: Ctx): Promise<void> {
   await stage.rest(2400);
 }
 
-async function compare(ctx: Ctx, take: Take): Promise<void> {
-  const { page, stage } = ctx;
-  await stage.say('Any two versions, side by side');
-  await stage.click(page.locator('[data-shell="compare"] summary'));
-  await stage.rest(450);
-  await stage.click(page.locator('[data-shell="compare"] a[href*="compare=1"]'));
-  await through(ctx, take, () => page.waitForURL(/compare=1/));
-  const summary = await page.locator('[data-compare-summary]').first().textContent();
-  await stage.say(`Version 1 beside the latest: ${summary?.trim() ?? ''}`);
-  await stage.rest(3000);
-  await through(ctx, take, () => page.goto(draftUrl(ctx)));
-}
-
 async function phone(ctx: Ctx): Promise<void> {
   const { page, stage } = ctx;
   await stage.say('At phone width too');
@@ -191,19 +142,8 @@ async function phone(ctx: Ctx): Promise<void> {
   await stage.rest(1500);
 }
 
-async function states(ctx: Ctx): Promise<void> {
-  const { page, stage } = ctx;
-  await stage.say('And in every state: no data yet, loading');
-  for (const state of ['empty', 'loading', 'filled']) {
-    await stage.click(page.locator('[data-dock="states"] summary'));
-    await stage.rest(350);
-    await stage.click(page.locator(`[data-dock="states"] a[data-state="${state}"]`));
-    await stage.rest(state === 'filled' ? 500 : 1500);
-  }
-}
-
 /** In the phone's card an edit applies to all widths, so a kit component's props can be set. */
-async function edit(ctx: Ctx, alsoToken: boolean): Promise<void> {
+async function edit(ctx: Ctx): Promise<void> {
   const { page, stage } = ctx;
   await stage.say("Edit on the canvas: the kit's own props and tokens");
   await stage.click(page.locator('[data-shell-mode="edit"]'));
@@ -212,17 +152,6 @@ async function edit(ctx: Ctx, alsoToken: boolean): Promise<void> {
   await stage.rest(900);
   const outline = '[data-edit="props"] [data-row="prop:variant"] [data-control="opt-outline"]';
   await stage.click(page.locator(outline));
-  await stage.rest(1700);
-  if (!alsoToken) return;
-  const full = prop(ctx, 'stop---kit-radius-full');
-  await stage.move(page.locator('[data-edit="props"] h4[data-row="group:text"]'));
-  const box = await full.boundingBox();
-  const view = page.viewportSize();
-  if (box && view && box.y > view.height - 190) {
-    await stage.wheel(box.y - (view.height - 330), 800);
-    await stage.rest(300);
-  }
-  await stage.click(full);
   await stage.rest(1700);
 }
 
@@ -233,53 +162,6 @@ async function changes(ctx: Ctx): Promise<void> {
   await stage.rest(3200);
 }
 
-async function outro(ctx: Ctx): Promise<void> {
-  const { page, stage } = ctx;
-  const view = page.viewportSize() ?? { width: 1600, height: 900 };
-  await stage.say('');
-  await stage.move({ x: view.width + 60, y: view.height * 0.62 }, 520);
-  const foot = 'github.com/pglejzer/kitvas';
-  await stage.card(
-    { logo: true, title: TAGLINE, label: '', lines: INSTALL, typing: false, foot },
-    true,
-  );
-  await stage.rest(3600);
-}
-
-const showcase: Spec = {
-  view: { width: 1600, height: 900, scale: 1.2 },
-  unit: 1,
-  pace: 0.85,
-  film: { file: 'showcase.mp4', width: 1920, height: 1080 },
-  async run(ctx) {
-    const { page, stage } = ctx;
-    await open(ctx, draftUrl(ctx));
-    await stage.play('Watch the walk-through');
-    await page.screenshot({ path: join(ctx.outDir, 'showcase-poster.png') });
-    await stage.play('');
-    await open(ctx, `${ctx.studio}/`, false);
-    const take = await intro(ctx);
-    await stage.card(null);
-    await stage.say('Later (the wait for the build is cut), in the local studio');
-    await stage.rest(2000);
-    await stage.click(page.locator(`a[href*="/drafts/${ctx.slug}"]`).first());
-    await through(ctx, take, () =>
-      page.waitForURL(/\/drafts\//).then(() => page.goto(draftUrl(ctx))),
-    );
-    await built(ctx, false);
-    await look(ctx);
-    await options(ctx);
-    await checks(ctx);
-    await compare(ctx, take);
-    await phone(ctx);
-    await states(ctx);
-    await edit(ctx, true);
-    await changes(ctx);
-    await outro(ctx);
-    return take.stop();
-  },
-};
-
 const demo: Spec = {
   view: { width: 1280, height: 800, scale: 1 },
   unit: 0.9,
@@ -289,11 +171,11 @@ const demo: Spec = {
     await open(ctx, draftUrl(ctx));
     const take = await intro(ctx);
     await ctx.stage.card(null);
-    await built(ctx, true);
+    await built(ctx);
     await look(ctx);
     await checks(ctx);
     await phone(ctx);
-    await edit(ctx, false);
+    await edit(ctx);
     await changes(ctx);
     return take.stop();
   },
@@ -334,4 +216,4 @@ const shots: Spec = {
   },
 };
 
-export const TAKES: Record<string, Spec> = { demo, showcase, shots };
+export const TAKES: Record<string, Spec> = { demo, shots };
