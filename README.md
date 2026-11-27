@@ -16,9 +16,9 @@
 
 kitvas is a Claude Code plugin that builds UI prototypes from your project's own design system, checks them in a real browser and shows them in a local studio with a visual editor. It is for developers and design-system maintainers who want a screen made of their own components and tokens. You end up with a checked React draft that you can edit, version and hand off to your code. Without a learned kit it builds from the built-in kit, the kitvas UI kit.
 
-![A request typed in Claude Code, then the generated dashboard in the local studio: the Checks tab with nothing to fix, the phone width, and in the editor a kit button's variant changed and written to the draft's file](docs/readme/demo.gif)
+![A request typed in Claude Code, then the generated revenue dashboard in the local studio: its controls answer, the kit's dark themes switch in place, the Checks tab has nothing to fix, and at the phone width a kit button's variant is changed in the editor and written to the draft's file](docs/readme/demo.gif)
 
-The GIF leaves out the wait for the build; the draft it shows is version 3.
+The GIF leaves out the wait for the build; the draft it shows is version 1.
 
 ## Install
 
@@ -87,12 +87,12 @@ More in [How it works](docs/how-it-works.md).
 
 ![The editor: layers on the left, the dashboard on the canvas with one element selected, its properties on the right](docs/readme/editor.png)
 
-![Version 1 and the latest version of the dashboard side by side, with the count of what changed, was added and was removed](docs/readme/versions.png)
+![Version 1 and version 2 of the dashboard side by side, with the one change marked on the page and counted](docs/readme/versions.png)
 
-| The start page                                                                   | A generated draft                                                                                                                  | The Checks tab                                                                                               |
-| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| ![The studio's start page with the drafts of the project](docs/readme/start.png) | ![The generated revenue dashboard as a page: filters, four key numbers, two charts and a table of accounts](docs/readme/draft.png) | ![The Checks tab of the first version with its notes, and their marks on the canvas](docs/readme/checks.png) |
-| Drafts grouped by kit, with live thumbnails.                                     | The prototype as a page, built from the kit.                                                                                       | Findings with a place and a hint, marked on the canvas.                                                      |
+| The start page                                                                   | A generated draft                                                                                                                                 | The Checks tab                                                                                                        |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| ![The studio's start page with the drafts of the project](docs/readme/start.png) | ![The generated revenue dashboard as a page: a top bar, filters, four key numbers, a chart, plans and a table of accounts](docs/readme/draft.png) | ![The Checks tab of the dashboard: nothing to fix, two notes to review, marked on the canvas](docs/readme/checks.png) |
+| Drafts grouped by kit, with live thumbnails.                                     | The prototype as a page, built from the kit.                                                                                                      | Findings with a place and a hint, marked on the canvas.                                                               |
 
 ## Use cases
 
