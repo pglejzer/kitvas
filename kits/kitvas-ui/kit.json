@@ -1,0 +1,3505 @@
+{
+  "schemaVersion": 1,
+  "id": "kitvas-ui",
+  "name": "kitvas UI",
+  "version": "1.0.0",
+  "source": {
+    "type": "builtin"
+  },
+  "framework": "react",
+  "runtime": {
+    "packages": [
+      {
+        "name": "react",
+        "version": "19.3.1"
+      }
+    ],
+    "entry": "tsx/index.ts",
+    "styles": {
+      "files": ["scss/index.scss"]
+    }
+  },
+  "tokens": {
+    "file": "json/tokens.json",
+    "format": "dtcg-2025.10",
+    "themes": {
+      "default": "light",
+      "list": [
+        {
+          "id": "light",
+          "label": "Light"
+        },
+        {
+          "id": "dark",
+          "label": "Dark",
+          "file": "json/tokens.dark.json"
+        },
+        {
+          "id": "light-teal",
+          "label": "Light, teal",
+          "file": "json/tokens.light-teal.json"
+        },
+        {
+          "id": "dark-teal",
+          "label": "Dark, teal",
+          "file": "json/tokens.dark-teal.json"
+        },
+        {
+          "id": "light-coral",
+          "label": "Light, coral",
+          "file": "json/tokens.light-coral.json"
+        },
+        {
+          "id": "dark-coral",
+          "label": "Dark, coral",
+          "file": "json/tokens.dark-coral.json"
+        },
+        {
+          "id": "light-rose",
+          "label": "Light, rose",
+          "file": "json/tokens.light-rose.json"
+        },
+        {
+          "id": "dark-rose",
+          "label": "Dark, rose",
+          "file": "json/tokens.dark-rose.json"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "name": "Button",
+      "category": "action",
+      "description": "Starts an action or submits a form.",
+      "import": {
+        "from": "@kit",
+        "name": "Button"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "variant",
+          "type": "enum",
+          "values": ["solid", "soft", "outline", "plain"],
+          "default": "solid"
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["sm", "md", "lg"],
+          "default": "sm",
+          "description": "Control height: 28, 36 or 44 px."
+        },
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["neutral", "accent", "danger"],
+          "default": "neutral",
+          "description": "accent paints the solid and soft variants with the accent, danger with the fix colour."
+        },
+        {
+          "name": "type",
+          "type": "enum",
+          "values": ["button", "submit", "reset"],
+          "default": "button"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "onClick",
+          "type": "callback"
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "The main action",
+          "code": "<Button tone=\"accent\">Save</Button>",
+          "imports": ["Button"]
+        },
+        {
+          "title": "Secondary, outlined",
+          "code": "<Button variant=\"outline\">Cancel</Button>",
+          "imports": ["Button"]
+        },
+        {
+          "title": "Large, for touch",
+          "code": "<Button tone=\"accent\" size=\"lg\">Continue</Button>",
+          "imports": ["Button"]
+        },
+        {
+          "title": "Destructive",
+          "code": "<Button variant=\"soft\" tone=\"danger\">Delete</Button>",
+          "imports": ["Button"]
+        }
+      ],
+      "a11y": [
+        "A button that shows only an icon needs aria-label.",
+        "A button that switches something on and off takes aria-pressed."
+      ]
+    },
+    {
+      "name": "IconButton",
+      "category": "action",
+      "description": "A square button that shows only an icon.",
+      "import": {
+        "from": "@kit",
+        "name": "IconButton"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "icon",
+          "type": "enum",
+          "values": [
+            "chevron-down",
+            "chevron-up",
+            "chevron-left",
+            "chevron-right",
+            "arrow-up",
+            "arrow-right",
+            "arrow-left",
+            "arrow-down",
+            "undo",
+            "redo",
+            "sliders",
+            "more",
+            "compare",
+            "keyboard",
+            "help",
+            "layers",
+            "insert",
+            "why",
+            "note",
+            "tab-properties",
+            "tab-changes",
+            "tab-checks",
+            "tab-claude",
+            "tab-sketches",
+            "panel",
+            "search",
+            "filter",
+            "clock",
+            "component",
+            "section",
+            "box",
+            "text",
+            "image",
+            "lock",
+            "unlock",
+            "eye",
+            "eye-off",
+            "copy",
+            "duplicate",
+            "trash",
+            "drag",
+            "pin",
+            "upload",
+            "external",
+            "refresh",
+            "plus",
+            "minus",
+            "close",
+            "check",
+            "check-circle",
+            "alert",
+            "info",
+            "fit",
+            "phone",
+            "tablet",
+            "laptop",
+            "align-start",
+            "align-center",
+            "align-end",
+            "align-stretch",
+            "align-between",
+            "pipette",
+            "home",
+            "menu",
+            "grid",
+            "list",
+            "settings",
+            "user",
+            "users",
+            "bell",
+            "inbox",
+            "log-out",
+            "cart",
+            "bag",
+            "tag",
+            "credit-card",
+            "wallet",
+            "truck",
+            "gift",
+            "mail",
+            "message",
+            "send",
+            "share",
+            "link",
+            "chart-bar",
+            "chart-line",
+            "chart-pie",
+            "trending-up",
+            "trending-down",
+            "calendar",
+            "map-pin",
+            "globe",
+            "building",
+            "file",
+            "folder",
+            "download",
+            "paperclip",
+            "cloud",
+            "briefcase",
+            "edit",
+            "star",
+            "heart",
+            "bookmark",
+            "flag",
+            "key",
+            "zap",
+            "play",
+            "pause",
+            "camera",
+            "mic",
+            "sun",
+            "moon"
+          ],
+          "required": true
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The accessible name and the tooltip text."
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["sm", "md", "lg"],
+          "default": "sm",
+          "description": "Control height and width: 28, 36 or 44 px."
+        },
+        {
+          "name": "variant",
+          "type": "enum",
+          "values": ["plain", "soft", "outline"],
+          "default": "plain"
+        },
+        {
+          "name": "pressed",
+          "type": "boolean",
+          "description": "Marks a button that switches something on and off; sets aria-pressed."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "onClick",
+          "type": "callback"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Close",
+          "code": "<IconButton icon=\"close\" label=\"Close\" />",
+          "imports": ["IconButton"]
+        },
+        {
+          "title": "A toggle",
+          "code": "<IconButton icon=\"pin\" label=\"Pin\" variant=\"soft\" pressed />",
+          "imports": ["IconButton"]
+        },
+        {
+          "title": "Large, for touch",
+          "code": "<IconButton icon=\"plus\" label=\"Add item\" size=\"lg\" variant=\"outline\" />",
+          "imports": ["IconButton"]
+        }
+      ],
+      "a11y": ["label is required: it is the accessible name and the tooltip."]
+    },
+    {
+      "name": "Link",
+      "category": "action",
+      "description": "A link to another page or site, underlined with the accent.",
+      "import": {
+        "from": "@kit",
+        "name": "Link"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "href",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "external",
+          "type": "boolean",
+          "default": false,
+          "description": "Opens in a new tab, adds an icon and a hidden note."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "Inside text",
+          "code": "<Text>Read the <Link href=\"/terms\">terms</Link> first.</Text>",
+          "imports": ["Link", "Text"]
+        },
+        {
+          "title": "Another site",
+          "code": "<Link href=\"https://example.com\" external>Documentation</Link>",
+          "imports": ["Link"]
+        }
+      ],
+      "a11y": ["The link text says where it goes; avoid \"click here\"."]
+    },
+    {
+      "name": "Text",
+      "category": "typography",
+      "description": "Body text, in any step of the font size scale.",
+      "import": {
+        "from": "@kit",
+        "name": "Text"
+      },
+      "polymorphic": {
+        "prop": "as"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "as",
+          "type": "enum",
+          "values": ["p", "span", "div"],
+          "default": "p"
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["xs", "sm", "label", "md", "lg", "xl", "2xl", "3xl", "4xl", "5xl"],
+          "default": "md",
+          "description": "A step of the font size scale."
+        },
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["default", "muted", "danger"],
+          "default": "default",
+          "description": "muted and danger are for text on a ground, not on a soft fill."
+        },
+        {
+          "name": "weight",
+          "type": "enum",
+          "values": ["regular", "medium", "bold"],
+          "default": "regular"
+        },
+        {
+          "name": "mono",
+          "type": "boolean",
+          "default": false,
+          "description": "The monospace face, for code, ids and numbers."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "Muted note",
+          "code": "<Text tone=\"muted\" size=\"sm\">Built 12 minutes ago</Text>",
+          "imports": ["Text"]
+        },
+        {
+          "title": "An id in monospace",
+          "code": "<Text as=\"span\" mono>INV-2041</Text>",
+          "imports": ["Text"]
+        }
+      ]
+    },
+    {
+      "name": "Heading",
+      "category": "typography",
+      "description": "A heading of level 1 to 4, in any step of the font size scale.",
+      "import": {
+        "from": "@kit",
+        "name": "Heading"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "level",
+          "type": "number",
+          "required": true,
+          "description": "1, 2, 3 or 4."
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["xs", "sm", "label", "md", "lg", "xl", "2xl", "3xl", "4xl", "5xl"],
+          "description": "Defaults to the size that matches the level: 3xl, 2xl, xl, lg."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "Page title",
+          "code": "<Heading level={1}>Rent a bike</Heading>",
+          "imports": ["Heading"]
+        },
+        {
+          "title": "A large display line",
+          "code": "<Heading level={1} size=\"5xl\">Ship it</Heading>",
+          "imports": ["Heading"]
+        }
+      ],
+      "a11y": ["Keep levels in order; do not skip from 1 to 3."]
+    },
+    {
+      "name": "Kbd",
+      "category": "typography",
+      "description": "A key of a keyboard shortcut.",
+      "import": {
+        "from": "@kit",
+        "name": "Kbd"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "One key",
+          "code": "<Kbd>Esc</Kbd>",
+          "imports": ["Kbd"]
+        },
+        {
+          "title": "Beside a label",
+          "code": "<Text>Save <Kbd>Ctrl</Kbd> <Kbd>S</Kbd></Text>",
+          "imports": ["Kbd", "Text"]
+        }
+      ]
+    },
+    {
+      "name": "Stack",
+      "category": "layout",
+      "description": "Lays children out in a column or a row with even gaps.",
+      "import": {
+        "from": "@kit",
+        "name": "Stack"
+      },
+      "polymorphic": {
+        "prop": "as"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "as",
+          "type": "enum",
+          "values": ["div", "section", "main", "header", "footer", "nav"],
+          "default": "div"
+        },
+        {
+          "name": "direction",
+          "type": "enum",
+          "values": ["column", "row"],
+          "default": "column"
+        },
+        {
+          "name": "gap",
+          "type": "enum",
+          "values": [
+            "none",
+            "2",
+            "4",
+            "6",
+            "8",
+            "10",
+            "12",
+            "14",
+            "16",
+            "24",
+            "32",
+            "48",
+            "64",
+            "96"
+          ],
+          "default": "12",
+          "description": "A step of the space scale, in px."
+        },
+        {
+          "name": "align",
+          "type": "enum",
+          "values": ["start", "center", "end", "stretch"]
+        },
+        {
+          "name": "justify",
+          "type": "enum",
+          "values": ["start", "center", "end", "between"]
+        },
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "Row of actions",
+          "code": "<Stack direction=\"row\" gap=\"8\"><Button tone=\"accent\">Save</Button><Button variant=\"outline\">Cancel</Button></Stack>",
+          "imports": ["Stack", "Button"]
+        },
+        {
+          "title": "A form column",
+          "code": "<Stack gap=\"16\"><Input label=\"Name\" /><Input label=\"Email\" type=\"email\" /></Stack>",
+          "imports": ["Stack", "Input"]
+        }
+      ]
+    },
+    {
+      "name": "Grid",
+      "category": "layout",
+      "description": "Equal columns: three or more become two under 960px, and one column under 640px.",
+      "import": {
+        "from": "@kit",
+        "name": "Grid"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "columns",
+          "type": "number",
+          "default": 2,
+          "description": "1 to 12."
+        },
+        {
+          "name": "gap",
+          "type": "enum",
+          "values": [
+            "none",
+            "2",
+            "4",
+            "6",
+            "8",
+            "10",
+            "12",
+            "14",
+            "16",
+            "24",
+            "32",
+            "48",
+            "64",
+            "96"
+          ],
+          "default": "12",
+          "description": "A step of the space scale, in px."
+        },
+        {
+          "name": "collapse",
+          "type": "boolean",
+          "default": true,
+          "description": "Two columns under 960px when there are three or more; one column under 640px."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "Three cards",
+          "code": "<Grid columns={3} gap=\"16\"><Card><Text>One</Text></Card><Card><Text>Two</Text></Card><Card><Text>Three</Text></Card></Grid>",
+          "imports": ["Grid", "Card", "Text"]
+        },
+        {
+          "title": "Two fields",
+          "code": "<Grid><Input label=\"First name\" /><Input label=\"Last name\" /></Grid>",
+          "imports": ["Grid", "Input"]
+        }
+      ]
+    },
+    {
+      "name": "Card",
+      "category": "layout",
+      "description": "A raised surface that groups related content.",
+      "import": {
+        "from": "@kit",
+        "name": "Card"
+      },
+      "polymorphic": {
+        "prop": "as"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "as",
+          "type": "enum",
+          "values": ["div", "section", "article"],
+          "default": "div"
+        },
+        {
+          "name": "padding",
+          "type": "enum",
+          "values": ["none", "md", "lg"],
+          "default": "md",
+          "description": "md is 16 px, lg is 24 px."
+        },
+        {
+          "name": "elevation",
+          "type": "enum",
+          "values": ["none", "low", "island"],
+          "default": "none",
+          "description": "The shadow under the card: none, a low one, or the island's."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "With text",
+          "code": "<Card><Text>Total today</Text></Card>",
+          "imports": ["Card", "Text"]
+        },
+        {
+          "title": "Lifted, with a form",
+          "code": "<Card elevation=\"low\" padding=\"lg\"><Input label=\"Email\" type=\"email\" /></Card>",
+          "imports": ["Card", "Input"]
+        }
+      ]
+    },
+    {
+      "name": "Island",
+      "category": "layout",
+      "description": "A panel on the page with a title line, a large radius and the island shadow.",
+      "import": {
+        "from": "@kit",
+        "name": "Island"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "description": "Rendered as a level 2 heading at the start of the head line."
+        },
+        {
+          "name": "actions",
+          "type": "node",
+          "description": "Controls at the end of the head line."
+        },
+        {
+          "name": "padding",
+          "type": "enum",
+          "values": [
+            "none",
+            "2",
+            "4",
+            "6",
+            "8",
+            "10",
+            "12",
+            "14",
+            "16",
+            "24",
+            "32",
+            "48",
+            "64",
+            "96"
+          ],
+          "default": "16",
+          "description": "A step of the space scale, in px."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "With an action",
+          "code": "<Island title=\"Invoices\" actions={<Button variant=\"outline\">Export</Button>}><Text>12 open</Text></Island>",
+          "imports": ["Island", "Button", "Text"]
+        },
+        {
+          "title": "A plain panel",
+          "code": "<Island padding=\"24\"><Text>Quiet content</Text></Island>",
+          "imports": ["Island", "Text"]
+        }
+      ],
+      "a11y": ["title is a level 2 heading: place an Island under a level 1 heading."]
+    },
+    {
+      "name": "Group",
+      "category": "layout",
+      "description": "A titled group of rows that the person folds and unfolds.",
+      "import": {
+        "from": "@kit",
+        "name": "Group"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "open",
+          "type": "boolean",
+          "default": true,
+          "description": "Whether it starts open."
+        },
+        {
+          "name": "count",
+          "type": "number",
+          "description": "A number shown beside the title."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "Open by default",
+          "code": "<Group title=\"Layout\"><Row label=\"Width\"><Input label=\"Width\" hideLabel /></Row></Group>",
+          "imports": ["Group", "Row", "Input"]
+        },
+        {
+          "title": "Folded, with a count",
+          "code": "<Group title=\"Notes\" count={3} open={false}><Text>Three notes</Text></Group>",
+          "imports": ["Group", "Text"]
+        }
+      ],
+      "a11y": [
+        "Built on details and summary: the keyboard and assistive technology work without script."
+      ]
+    },
+    {
+      "name": "Row",
+      "category": "layout",
+      "description": "A label beside its control, with an optional hint under the label.",
+      "import": {
+        "from": "@kit",
+        "name": "Row"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "hint",
+          "type": "string",
+          "description": "A short note under the label."
+        },
+        {
+          "name": "children",
+          "type": "element",
+          "required": true,
+          "description": "The one control beside the label. The label here names it."
+        }
+      ],
+      "examples": [
+        {
+          "title": "A field",
+          "code": "<Row label=\"Width\"><Input label=\"Width\" hideLabel /></Row>",
+          "imports": ["Row", "Input"]
+        },
+        {
+          "title": "With a hint",
+          "code": "<Row label=\"Radius\" hint=\"In pixels\"><Input label=\"Radius\" hideLabel type=\"number\" /></Row>",
+          "imports": ["Row", "Input"]
+        }
+      ],
+      "a11y": [
+        "The row's label is the name of the control inside. Pass the control its own label too and hide it with hideLabel."
+      ]
+    },
+    {
+      "name": "Separator",
+      "category": "layout",
+      "description": "A thin divider between groups of controls or blocks.",
+      "import": {
+        "from": "@kit",
+        "name": "Separator"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "orientation",
+          "type": "enum",
+          "values": ["horizontal", "vertical"],
+          "default": "horizontal"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Between blocks",
+          "code": "<Stack><Text>One</Text><Separator /><Text>Two</Text></Stack>",
+          "imports": ["Stack", "Text", "Separator"]
+        },
+        {
+          "title": "Between actions",
+          "code": "<Stack direction=\"row\" align=\"center\"><Button variant=\"plain\">Edit</Button><Separator orientation=\"vertical\" /><Button variant=\"plain\">Share</Button></Stack>",
+          "imports": ["Stack", "Button", "Separator"]
+        }
+      ]
+    },
+    {
+      "name": "Bar",
+      "category": "layout",
+      "description": "A bar of the kit's bar height with a start, a middle and an end slot.",
+      "import": {
+        "from": "@kit",
+        "name": "Bar"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "start",
+          "type": "node"
+        },
+        {
+          "name": "middle",
+          "type": "node"
+        },
+        {
+          "name": "end",
+          "type": "node"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Title and action",
+          "code": "<Bar start={<Heading level={2} size=\"md\">Dashboard</Heading>} end={<Button tone=\"accent\">New</Button>} />",
+          "imports": ["Bar", "Heading", "Button"]
+        },
+        {
+          "title": "Three slots",
+          "code": "<Bar start={<IconButton icon=\"panel\" label=\"Toggle sidebar\" />} middle={<Text>Project</Text>} end={<IconButton icon=\"help\" label=\"Help\" />} />",
+          "imports": ["Bar", "IconButton", "Text"]
+        }
+      ]
+    },
+    {
+      "name": "Inverse",
+      "category": "layout",
+      "description": "A block drawn in the colours of the other theme, light on dark or dark on light.",
+      "import": {
+        "from": "@kit",
+        "name": "Inverse"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "padding",
+          "type": "enum",
+          "values": [
+            "none",
+            "2",
+            "4",
+            "6",
+            "8",
+            "10",
+            "12",
+            "14",
+            "16",
+            "24",
+            "32",
+            "48",
+            "64",
+            "96"
+          ],
+          "default": "16",
+          "description": "A step of the space scale, in px."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "A dark banner",
+          "code": "<Inverse><Stack gap=\"8\"><Heading level={2}>Go further</Heading><Button tone=\"accent\">Upgrade</Button></Stack></Inverse>",
+          "imports": ["Inverse", "Stack", "Heading", "Button"]
+        },
+        {
+          "title": "A callout",
+          "code": "<Inverse><Text>Everything inside reads the inverted colours.</Text></Inverse>",
+          "imports": ["Inverse", "Text"]
+        }
+      ],
+      "a11y": ["Inverse paints only the colours; add padding with a Stack or a className."]
+    },
+    {
+      "name": "Input",
+      "category": "input",
+      "description": "A one-line text field with its label, hint and error.",
+      "import": {
+        "from": "@kit",
+        "name": "Input"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "hint",
+          "type": "string"
+        },
+        {
+          "name": "error",
+          "type": "string",
+          "description": "Replaces the hint and marks the field invalid."
+        },
+        {
+          "name": "hideLabel",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["sm", "md", "lg"],
+          "default": "sm",
+          "description": "Control height: 28, 36 or 44 px."
+        },
+        {
+          "name": "type",
+          "type": "enum",
+          "values": ["text", "email", "tel", "number", "password", "search", "url"],
+          "default": "text"
+        },
+        {
+          "name": "value",
+          "type": "string"
+        },
+        {
+          "name": "defaultValue",
+          "type": "string"
+        },
+        {
+          "name": "placeholder",
+          "type": "string"
+        },
+        {
+          "name": "autoComplete",
+          "type": "string",
+          "description": "What the browser may fill in, such as 'email', 'name' or 'off'."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "required",
+          "type": "boolean"
+        },
+        {
+          "name": "onChange",
+          "type": "callback"
+        }
+      ],
+      "state": [
+        {
+          "value": "value",
+          "default": "defaultValue",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Phone",
+          "code": "<Input label=\"Phone number\" type=\"tel\" />",
+          "imports": ["Input"]
+        },
+        {
+          "title": "With an error",
+          "code": "<Input label=\"Email\" type=\"email\" error=\"Enter a valid email address\" />",
+          "imports": ["Input"]
+        },
+        {
+          "title": "Large, with a hint",
+          "code": "<Input label=\"Name\" size=\"lg\" hint=\"As on your card\" />",
+          "imports": ["Input"]
+        }
+      ],
+      "a11y": [
+        "Always pass label; use hideLabel to hide it visually.",
+        "Other attributes go to the input element; className goes to the wrapper."
+      ]
+    },
+    {
+      "name": "Textarea",
+      "category": "input",
+      "description": "A multi-line text field with its label, hint and error, which the person can resize by dragging.",
+      "import": {
+        "from": "@kit",
+        "name": "Textarea"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "hint",
+          "type": "string"
+        },
+        {
+          "name": "error",
+          "type": "string",
+          "description": "Replaces the hint and marks the field invalid."
+        },
+        {
+          "name": "hideLabel",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["sm", "md", "lg"],
+          "default": "sm",
+          "description": "Text size and padding: the 28, 36 or 44 px control steps."
+        },
+        {
+          "name": "rows",
+          "type": "number",
+          "default": 3,
+          "description": "The lines shown before the person resizes the field."
+        },
+        {
+          "name": "value",
+          "type": "string"
+        },
+        {
+          "name": "defaultValue",
+          "type": "string"
+        },
+        {
+          "name": "placeholder",
+          "type": "string"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "required",
+          "type": "boolean"
+        },
+        {
+          "name": "onChange",
+          "type": "callback"
+        }
+      ],
+      "state": [
+        {
+          "value": "value",
+          "default": "defaultValue",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "A message",
+          "code": "<Textarea label=\"Message\" rows={5} hint=\"We reply within a day\" />",
+          "imports": ["Textarea"]
+        },
+        {
+          "title": "With an error",
+          "code": "<Textarea label=\"Notes\" error=\"Add at least one line\" required />",
+          "imports": ["Textarea"]
+        }
+      ],
+      "a11y": [
+        "Always pass label; use hideLabel to hide it visually.",
+        "Other attributes go to the textarea element; className goes to the wrapper."
+      ]
+    },
+    {
+      "name": "Search",
+      "category": "input",
+      "description": "A search field with the search icon inside its box and a label that only assistive technology reads.",
+      "import": {
+        "from": "@kit",
+        "name": "Search"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The accessible name, hidden to the eye."
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["sm", "md", "lg"],
+          "default": "sm",
+          "description": "Control height: 28, 36 or 44 px."
+        },
+        {
+          "name": "value",
+          "type": "string"
+        },
+        {
+          "name": "defaultValue",
+          "type": "string"
+        },
+        {
+          "name": "placeholder",
+          "type": "string"
+        },
+        {
+          "name": "onChange",
+          "type": "callback"
+        }
+      ],
+      "state": [
+        {
+          "value": "value",
+          "default": "defaultValue",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Search a list",
+          "code": "<Search label=\"Search customers\" placeholder=\"Search customers\" />",
+          "imports": ["Search"]
+        },
+        {
+          "title": "Large, with a start value",
+          "code": "<Search label=\"Search the docs\" size=\"lg\" defaultValue=\"invoices\" />",
+          "imports": ["Search"]
+        }
+      ],
+      "a11y": [
+        "label is required: the field shows only the icon and the placeholder, so the label is its name for assistive technology.",
+        "Other attributes go to the input element; className goes to the wrapper."
+      ]
+    },
+    {
+      "name": "Select",
+      "category": "input",
+      "description": "A native select with its label, hint and error. Its list is drawn in the page from the kit's tokens where the browser can do that; elsewhere the system's own list opens.",
+      "import": {
+        "from": "@kit",
+        "name": "Select"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "required": true,
+          "description": "Array of { value: string, label: string, disabled?: boolean }."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "description": "Shown as an empty first option."
+        },
+        {
+          "name": "hint",
+          "type": "string"
+        },
+        {
+          "name": "error",
+          "type": "string",
+          "description": "Replaces the hint and marks the field invalid."
+        },
+        {
+          "name": "hideLabel",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["sm", "md", "lg"],
+          "default": "sm",
+          "description": "Control height: 28, 36 or 44 px."
+        },
+        {
+          "name": "value",
+          "type": "string"
+        },
+        {
+          "name": "defaultValue",
+          "type": "string"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "required",
+          "type": "boolean"
+        },
+        {
+          "name": "onChange",
+          "type": "callback"
+        }
+      ],
+      "state": [
+        {
+          "value": "value",
+          "default": "defaultValue",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "A few options",
+          "code": "<Select label=\"Plan\" placeholder=\"Choose a plan\" options={[{ value: 'free', label: 'Free' }, { value: 'team', label: 'Team' }, { value: 'business', label: 'Business' }]} />",
+          "imports": ["Select"]
+        },
+        {
+          "title": "Taller, with an error",
+          "code": "<Select label=\"Country\" size=\"md\" error=\"Choose a country\" options={[{ value: 'pl', label: 'Poland' }, { value: 'de', label: 'Germany' }, { value: 'fr', label: 'France' }]} />",
+          "imports": ["Select"]
+        }
+      ],
+      "a11y": ["Always pass label; use hideLabel to hide it visually."]
+    },
+    {
+      "name": "DateField",
+      "category": "input",
+      "description": "A date field with its label, hint and error, using the browser's own date input.",
+      "import": {
+        "from": "@kit",
+        "name": "DateField"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "hint",
+          "type": "string"
+        },
+        {
+          "name": "error",
+          "type": "string",
+          "description": "Replaces the hint and marks the field invalid."
+        },
+        {
+          "name": "hideLabel",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["sm", "md", "lg"],
+          "default": "sm",
+          "description": "Control height: 28, 36 or 44 px."
+        },
+        {
+          "name": "min",
+          "type": "string",
+          "description": "The earliest day, as YYYY-MM-DD."
+        },
+        {
+          "name": "max",
+          "type": "string",
+          "description": "The latest day, as YYYY-MM-DD."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "description": "A day as YYYY-MM-DD."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "required",
+          "type": "boolean"
+        },
+        {
+          "name": "onChange",
+          "type": "callback"
+        }
+      ],
+      "state": [
+        {
+          "value": "value",
+          "default": "defaultValue",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "A due date",
+          "code": "<DateField label=\"Due date\" min=\"2026-01-01\" hint=\"Not before January\" />",
+          "imports": ["DateField"]
+        },
+        {
+          "title": "With a start value",
+          "code": "<DateField label=\"Start\" defaultValue=\"2026-06-15\" size=\"md\" />",
+          "imports": ["DateField"]
+        }
+      ],
+      "a11y": [
+        "Always pass label; use hideLabel to hide it visually.",
+        "The calendar is the browser's own picker; the kit does not draw one."
+      ]
+    },
+    {
+      "name": "Stepper",
+      "category": "input",
+      "description": "A number field with a minus and a plus button at its ends, read as one box.",
+      "import": {
+        "from": "@kit",
+        "name": "Stepper"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "number"
+        },
+        {
+          "name": "defaultValue",
+          "type": "number"
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "description": "The least value; the minus button is disabled at it."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "description": "The greatest value; the plus button is disabled at it."
+        },
+        {
+          "name": "step",
+          "type": "number",
+          "default": 1,
+          "description": "What each button adds or takes away."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "onChange",
+          "type": "callback",
+          "description": "Called with the new value, a number."
+        }
+      ],
+      "state": [
+        {
+          "value": "value",
+          "default": "defaultValue",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Quantity",
+          "code": "<Stepper label=\"Quantity\" defaultValue={1} min={1} max={10} />",
+          "imports": ["Stepper"]
+        },
+        {
+          "title": "In halves",
+          "code": "<Stepper label=\"Hours\" defaultValue={2} step={0.5} min={0} />",
+          "imports": ["Stepper"]
+        }
+      ],
+      "a11y": [
+        "label is required; the buttons are named \"Decrease <label>\" and \"Increase <label>\".",
+        "The middle is a native number input, so the arrow keys and typing work too."
+      ]
+    },
+    {
+      "name": "Checkbox",
+      "category": "input",
+      "description": "A native checkbox with its label, drawn with a real edge and the accent when checked.",
+      "import": {
+        "from": "@kit",
+        "name": "Checkbox"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "node",
+          "required": true
+        },
+        {
+          "name": "checked",
+          "type": "boolean"
+        },
+        {
+          "name": "defaultChecked",
+          "type": "boolean"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "onChange",
+          "type": "callback"
+        }
+      ],
+      "state": [
+        {
+          "value": "checked",
+          "default": "defaultChecked",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Option",
+          "code": "<Checkbox label=\"Add a helmet\" />",
+          "imports": ["Checkbox"]
+        },
+        {
+          "title": "Checked at the start",
+          "code": "<Checkbox label=\"Send me the receipt\" defaultChecked />",
+          "imports": ["Checkbox"]
+        }
+      ],
+      "a11y": [
+        "The label is the checkbox's name; always pass it.",
+        "className goes to the label row, other attributes to the input."
+      ]
+    },
+    {
+      "name": "Radio",
+      "category": "input",
+      "description": "A group of native radio inputs in a fieldset, one choice of several, each with an optional hint.",
+      "import": {
+        "from": "@kit",
+        "name": "Radio"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The legend of the group."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "The form field name shared by the options."
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "required": true,
+          "description": "Array of { value: string, label: string, hint?: string }."
+        },
+        {
+          "name": "value",
+          "type": "string"
+        },
+        {
+          "name": "defaultValue",
+          "type": "string"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "onChange",
+          "type": "callback",
+          "description": "Called with the chosen value."
+        }
+      ],
+      "state": [
+        {
+          "value": "value",
+          "default": "defaultValue",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Delivery",
+          "code": "<Radio label=\"Delivery\" name=\"delivery\" defaultValue=\"post\" options={[{ value: 'post', label: 'Post' }, { value: 'pickup', label: 'Pickup' }]} />",
+          "imports": ["Radio"]
+        },
+        {
+          "title": "With hints",
+          "code": "<Radio label=\"Plan\" name=\"plan\" options={[{ value: 'free', label: 'Free', hint: 'For one project' }, { value: 'team', label: 'Team', hint: 'Up to ten people' }]} />",
+          "imports": ["Radio"]
+        }
+      ],
+      "a11y": [
+        "label is the legend and names the group; always pass it.",
+        "The arrow keys move the choice inside the group; Tab leaves it."
+      ]
+    },
+    {
+      "name": "Switch",
+      "category": "input",
+      "description": "A native checkbox with role switch, for a setting that is on or off right away.",
+      "import": {
+        "from": "@kit",
+        "name": "Switch"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "checked",
+          "type": "boolean"
+        },
+        {
+          "name": "defaultChecked",
+          "type": "boolean"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "onChange",
+          "type": "callback",
+          "description": "Called with the new checked value (a boolean)."
+        }
+      ],
+      "state": [
+        {
+          "value": "checked",
+          "default": "defaultChecked",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "A setting",
+          "code": "<Switch label=\"Email notifications\" defaultChecked />",
+          "imports": ["Switch"]
+        },
+        {
+          "title": "Unavailable",
+          "code": "<Switch label=\"Sync over mobile data\" disabled />",
+          "imports": ["Switch"]
+        }
+      ],
+      "a11y": [
+        "The label is the switch's name; always pass it.",
+        "Use a Switch for a setting that applies at once, a Checkbox for a choice sent with a form."
+      ]
+    },
+    {
+      "name": "Slider",
+      "category": "input",
+      "description": "A native range input with its label and the current value beside it.",
+      "import": {
+        "from": "@kit",
+        "name": "Slider"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "number"
+        },
+        {
+          "name": "defaultValue",
+          "type": "number"
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "default": 100
+        },
+        {
+          "name": "step",
+          "type": "number",
+          "default": 1
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "onChange",
+          "type": "callback",
+          "description": "Called with the new value (a number)."
+        }
+      ],
+      "state": [
+        {
+          "value": "value",
+          "default": "defaultValue",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Volume",
+          "code": "<Slider label=\"Volume\" defaultValue={40} />",
+          "imports": ["Slider"]
+        },
+        {
+          "title": "Steps of a quarter",
+          "code": "<Slider label=\"Opacity\" min={0} max={1} step={0.25} defaultValue={0.5} />",
+          "imports": ["Slider"]
+        }
+      ],
+      "a11y": [
+        "The label names the slider; always pass it.",
+        "The arrow keys change the value by step, Home and End jump to the ends."
+      ]
+    },
+    {
+      "name": "SegmentedControl",
+      "category": "input",
+      "description": "One choice of a few short options in a joined track; the chosen one carries the accent edge.",
+      "import": {
+        "from": "@kit",
+        "name": "SegmentedControl"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The group's name for assistive technology; it is not drawn."
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "required": true,
+          "description": "Array of { value: string, label: string, icon?: an icon name of the kit }."
+        },
+        {
+          "name": "value",
+          "type": "string"
+        },
+        {
+          "name": "defaultValue",
+          "type": "string"
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["sm", "md", "lg"],
+          "default": "sm",
+          "description": "Control height: 28, 36 or 44 px."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean"
+        },
+        {
+          "name": "onChange",
+          "type": "callback",
+          "description": "Called with the chosen value."
+        }
+      ],
+      "state": [
+        {
+          "value": "value",
+          "default": "defaultValue",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "View",
+          "code": "<SegmentedControl label=\"View\" defaultValue=\"list\" options={[{ value: 'list', label: 'List' }, { value: 'grid', label: 'Grid' }]} />",
+          "imports": ["SegmentedControl"]
+        },
+        {
+          "title": "Device, with icons",
+          "code": "<SegmentedControl label=\"Device\" size=\"md\" defaultValue=\"phone\" options={[{ value: 'phone', label: 'Phone', icon: 'phone' }, { value: 'laptop', label: 'Laptop', icon: 'laptop' }]} />",
+          "imports": ["SegmentedControl"]
+        }
+      ],
+      "a11y": [
+        "label names the group; always pass it.",
+        "Built on radio inputs: one Tab stop, the arrow keys move the choice."
+      ]
+    },
+    {
+      "name": "Tabs",
+      "category": "navigation",
+      "description": "A row of tabs over one panel; the tabs scroll sideways inside their own box on a narrow screen.",
+      "import": {
+        "from": "@kit",
+        "name": "Tabs"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "tabs",
+          "type": "object",
+          "required": true,
+          "description": "Array of { id: string, label: string, count?: number }."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "description": "The id of the chosen tab, when you control it."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "description": "The tab chosen first; the first tab when absent."
+        },
+        {
+          "name": "onChange",
+          "type": "callback",
+          "description": "Called with the id of the tab the person chose."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "description": "The content of the chosen tab: show the panel that belongs to value."
+        }
+      ],
+      "state": [
+        {
+          "value": "value",
+          "default": "defaultValue",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Two views",
+          "code": "<Tabs tabs={[{ id: 'overview', label: 'Overview' }, { id: 'activity', label: 'Activity', count: 12 }]} defaultValue=\"overview\"><Text>Overview of the project.</Text></Tabs>",
+          "imports": ["Tabs", "Text"]
+        },
+        {
+          "title": "Controlled",
+          "code": "<Tabs tabs={[{ id: 'all', label: 'All', count: 24 }, { id: 'open', label: 'Open', count: 7 }, { id: 'done', label: 'Done', count: 17 }]} value=\"open\" onChange={() => {}}><Text>Seven open items.</Text></Tabs>",
+          "imports": ["Tabs", "Text"]
+        }
+      ],
+      "a11y": [
+        "Arrow keys, Home and End move between the tabs; only the chosen tab is in the tab order.",
+        "The children are the one panel of the chosen tab: render the content that belongs to it."
+      ]
+    },
+    {
+      "name": "Nav",
+      "category": "navigation",
+      "description": "A list of places, as a narrow icon rail or a list with labels and counts.",
+      "import": {
+        "from": "@kit",
+        "name": "Nav"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The accessible name of the navigation."
+        },
+        {
+          "name": "items",
+          "type": "object",
+          "required": true,
+          "description": "Array of { id: string, label: string, icon?: icon name, href?: string, count?: number }. An item with href is a link."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "description": "The id of the chosen item."
+        },
+        {
+          "name": "onChange",
+          "type": "callback",
+          "description": "Called with the id of the item the person chose."
+        },
+        {
+          "name": "variant",
+          "type": "enum",
+          "values": ["rail", "list"],
+          "default": "list",
+          "description": "rail is 52 px wide and shows icons only; list shows icon, label and count."
+        }
+      ],
+      "examples": [
+        {
+          "title": "Sidebar list",
+          "code": "<Nav label=\"Main\" value=\"inbox\" items={[{ id: 'inbox', label: 'Inbox', icon: 'note', count: 4 }, { id: 'sent', label: 'Sent', icon: 'arrow-right' }, { id: 'trash', label: 'Trash', icon: 'trash' }]} />",
+          "imports": ["Nav"]
+        },
+        {
+          "title": "Icon rail",
+          "code": "<Nav label=\"Tools\" variant=\"rail\" value=\"layers\" items={[{ id: 'layers', label: 'Layers', icon: 'layers' }, { id: 'search', label: 'Search', icon: 'search' }]} />",
+          "imports": ["Nav"]
+        }
+      ],
+      "a11y": [
+        "Always pass label: it names the navigation for assistive technology.",
+        "The chosen item has aria-current; in the rail the item's label is its accessible name and its tooltip."
+      ]
+    },
+    {
+      "name": "Menu",
+      "category": "navigation",
+      "description": "A button that opens a list of actions; it closes after a choice, on Escape and on a press outside.",
+      "import": {
+        "from": "@kit",
+        "name": "Menu"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The text of the button that opens the menu."
+        },
+        {
+          "name": "icon",
+          "type": "enum",
+          "description": "An icon name shown before the label.",
+          "values": [
+            "chevron-down",
+            "chevron-up",
+            "chevron-left",
+            "chevron-right",
+            "arrow-up",
+            "arrow-right",
+            "arrow-left",
+            "arrow-down",
+            "undo",
+            "redo",
+            "sliders",
+            "more",
+            "compare",
+            "keyboard",
+            "help",
+            "layers",
+            "insert",
+            "why",
+            "note",
+            "tab-properties",
+            "tab-changes",
+            "tab-checks",
+            "tab-claude",
+            "tab-sketches",
+            "panel",
+            "search",
+            "filter",
+            "clock",
+            "component",
+            "section",
+            "box",
+            "text",
+            "image",
+            "lock",
+            "unlock",
+            "eye",
+            "eye-off",
+            "copy",
+            "duplicate",
+            "trash",
+            "drag",
+            "pin",
+            "upload",
+            "external",
+            "refresh",
+            "plus",
+            "minus",
+            "close",
+            "check",
+            "check-circle",
+            "alert",
+            "info",
+            "fit",
+            "phone",
+            "tablet",
+            "laptop",
+            "align-start",
+            "align-center",
+            "align-end",
+            "align-stretch",
+            "align-between",
+            "pipette",
+            "home",
+            "menu",
+            "grid",
+            "list",
+            "settings",
+            "user",
+            "users",
+            "bell",
+            "inbox",
+            "log-out",
+            "cart",
+            "bag",
+            "tag",
+            "credit-card",
+            "wallet",
+            "truck",
+            "gift",
+            "mail",
+            "message",
+            "send",
+            "share",
+            "link",
+            "chart-bar",
+            "chart-line",
+            "chart-pie",
+            "trending-up",
+            "trending-down",
+            "calendar",
+            "map-pin",
+            "globe",
+            "building",
+            "file",
+            "folder",
+            "download",
+            "paperclip",
+            "cloud",
+            "briefcase",
+            "edit",
+            "star",
+            "heart",
+            "bookmark",
+            "flag",
+            "key",
+            "zap",
+            "play",
+            "pause",
+            "camera",
+            "mic",
+            "sun",
+            "moon"
+          ]
+        },
+        {
+          "name": "items",
+          "type": "object",
+          "required": true,
+          "description": "Array of { id: string, label: string, icon?: icon name, danger?: boolean, disabled?: boolean } or { separator: true }."
+        },
+        {
+          "name": "onSelect",
+          "type": "callback",
+          "description": "Called with the id of the chosen item."
+        }
+      ],
+      "examples": [
+        {
+          "title": "Row actions",
+          "code": "<Menu label=\"Actions\" items={[{ id: 'edit', label: 'Edit', icon: 'note' }, { id: 'copy', label: 'Duplicate', icon: 'duplicate' }, { separator: true }, { id: 'delete', label: 'Delete', icon: 'trash', danger: true }]} onSelect={() => {}} />",
+          "imports": ["Menu"]
+        },
+        {
+          "title": "With a disabled item",
+          "code": "<Menu label=\"Share\" icon=\"external\" items={[{ id: 'link', label: 'Copy link', icon: 'copy' }, { id: 'export', label: 'Export', disabled: true }]} />",
+          "imports": ["Menu"]
+        }
+      ],
+      "a11y": [
+        "Arrow keys, Home and End move between items; Escape closes the menu and returns the focus to the button.",
+        "A menu near the right edge of the page opens toward the left so it stays in view."
+      ]
+    },
+    {
+      "name": "Breadcrumbs",
+      "category": "navigation",
+      "description": "The path to the current page; every item but the last is a link.",
+      "import": {
+        "from": "@kit",
+        "name": "Breadcrumbs"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "items",
+          "type": "object",
+          "required": true,
+          "description": "Array of { label: string, href?: string }. The last item is the current page; with an href it is a link marked as the current page."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": "Breadcrumb",
+          "description": "The accessible name of the navigation."
+        }
+      ],
+      "examples": [
+        {
+          "title": "Three levels",
+          "code": "<Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Projects', href: '/projects' }, { label: 'Atlas' }]} />",
+          "imports": ["Breadcrumbs"]
+        },
+        {
+          "title": "Two levels",
+          "code": "<Breadcrumbs label=\"You are here\" items={[{ label: 'Settings', href: '/settings' }, { label: 'Billing' }]} />",
+          "imports": ["Breadcrumbs"]
+        }
+      ],
+      "a11y": [
+        "The last item carries aria-current=\"page\"; the separators are hidden from assistive technology."
+      ]
+    },
+    {
+      "name": "Pagination",
+      "category": "navigation",
+      "description": "Previous and next buttons with page numbers and gaps between them.",
+      "import": {
+        "from": "@kit",
+        "name": "Pagination"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "page",
+          "type": "number",
+          "required": true,
+          "description": "The current page, counted from 1."
+        },
+        {
+          "name": "pages",
+          "type": "number",
+          "required": true,
+          "description": "How many pages there are."
+        },
+        {
+          "name": "onChange",
+          "type": "callback",
+          "description": "Called with the page the person chose."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The accessible name of the navigation."
+        }
+      ],
+      "state": [
+        {
+          "value": "page",
+          "onChange": "onChange"
+        }
+      ],
+      "examples": [
+        {
+          "title": "In the middle of many",
+          "code": "<Pagination label=\"Results\" page={5} pages={20} onChange={() => {}} />",
+          "imports": ["Pagination"]
+        },
+        {
+          "title": "A few pages",
+          "code": "<Pagination label=\"Orders\" page={1} pages={3} />",
+          "imports": ["Pagination"]
+        }
+      ],
+      "a11y": [
+        "The current page has aria-current=\"page\"; previous and next are disabled at the ends."
+      ]
+    },
+    {
+      "name": "Dialog",
+      "category": "overlay",
+      "description": "A modal dialog with a title and a close button.",
+      "import": {
+        "from": "@kit",
+        "name": "Dialog"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "onClose",
+          "type": "callback",
+          "required": true
+        },
+        {
+          "name": "closeLabel",
+          "type": "string",
+          "default": "Close"
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "state": [
+        {
+          "value": "open",
+          "onChange": "onClose"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Confirm",
+          "code": "<Dialog open title=\"Remove item\" onClose={() => {}}><Text>This cannot be undone.</Text></Dialog>",
+          "imports": ["Dialog", "Text"]
+        },
+        {
+          "title": "With actions",
+          "code": "<Dialog open title=\"Discard changes\" onClose={() => {}}><Stack gap=\"12\"><Text>Your edits will be lost.</Text><Button tone=\"danger\">Discard</Button></Stack></Dialog>",
+          "imports": ["Dialog", "Stack", "Text", "Button"]
+        }
+      ],
+      "a11y": [
+        "Esc and the close button call onClose; set open to false there. The focus stays inside while it is open."
+      ]
+    },
+    {
+      "name": "Popover",
+      "category": "overlay",
+      "description": "A button that opens a small panel of content beside it.",
+      "import": {
+        "from": "@kit",
+        "name": "Popover"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The text of the button that opens the panel."
+        },
+        {
+          "name": "icon",
+          "type": "enum",
+          "description": "An icon name shown before the label.",
+          "values": [
+            "chevron-down",
+            "chevron-up",
+            "chevron-left",
+            "chevron-right",
+            "arrow-up",
+            "arrow-right",
+            "arrow-left",
+            "arrow-down",
+            "undo",
+            "redo",
+            "sliders",
+            "more",
+            "compare",
+            "keyboard",
+            "help",
+            "layers",
+            "insert",
+            "why",
+            "note",
+            "tab-properties",
+            "tab-changes",
+            "tab-checks",
+            "tab-claude",
+            "tab-sketches",
+            "panel",
+            "search",
+            "filter",
+            "clock",
+            "component",
+            "section",
+            "box",
+            "text",
+            "image",
+            "lock",
+            "unlock",
+            "eye",
+            "eye-off",
+            "copy",
+            "duplicate",
+            "trash",
+            "drag",
+            "pin",
+            "upload",
+            "external",
+            "refresh",
+            "plus",
+            "minus",
+            "close",
+            "check",
+            "check-circle",
+            "alert",
+            "info",
+            "fit",
+            "phone",
+            "tablet",
+            "laptop",
+            "align-start",
+            "align-center",
+            "align-end",
+            "align-stretch",
+            "align-between",
+            "pipette",
+            "home",
+            "menu",
+            "grid",
+            "list",
+            "settings",
+            "user",
+            "users",
+            "bell",
+            "inbox",
+            "log-out",
+            "cart",
+            "bag",
+            "tag",
+            "credit-card",
+            "wallet",
+            "truck",
+            "gift",
+            "mail",
+            "message",
+            "send",
+            "share",
+            "link",
+            "chart-bar",
+            "chart-line",
+            "chart-pie",
+            "trending-up",
+            "trending-down",
+            "calendar",
+            "map-pin",
+            "globe",
+            "building",
+            "file",
+            "folder",
+            "download",
+            "paperclip",
+            "cloud",
+            "briefcase",
+            "edit",
+            "star",
+            "heart",
+            "bookmark",
+            "flag",
+            "key",
+            "zap",
+            "play",
+            "pause",
+            "camera",
+            "mic",
+            "sun",
+            "moon"
+          ]
+        },
+        {
+          "name": "placement",
+          "type": "enum",
+          "values": ["bottom-start", "bottom-end"],
+          "default": "bottom-start",
+          "description": "Which edge of the button the panel lines up with; it flips when it would leave the page."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The content of the panel."
+        }
+      ],
+      "examples": [
+        {
+          "title": "Filter panel",
+          "code": "<Popover label=\"Filters\" icon=\"filter\"><Stack gap=\"8\"><Checkbox label=\"Only open\" /><Checkbox label=\"Mine\" /></Stack></Popover>",
+          "imports": ["Popover", "Stack", "Checkbox"]
+        },
+        {
+          "title": "At the end of a bar",
+          "code": "<Popover label=\"Details\" placement=\"bottom-end\"><Text>Created on Monday by the team.</Text></Popover>",
+          "imports": ["Popover", "Text"]
+        }
+      ],
+      "a11y": ["Escape and a press outside close it; Escape returns the focus to the button."]
+    },
+    {
+      "name": "Tooltip",
+      "category": "overlay",
+      "description": "A short hint over the one element it wraps, shown on hover and on focus.",
+      "import": {
+        "from": "@kit",
+        "name": "Tooltip"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "description": "The hint."
+        },
+        {
+          "name": "children",
+          "type": "element",
+          "required": true,
+          "description": "The one element the hint describes."
+        }
+      ],
+      "examples": [
+        {
+          "title": "On an icon button",
+          "code": "<Tooltip text=\"Copy the link\"><IconButton icon=\"copy\" label=\"Copy link\" /></Tooltip>",
+          "imports": ["Tooltip", "IconButton"]
+        },
+        {
+          "title": "On a button",
+          "code": "<Tooltip text=\"Saved a minute ago\"><Button variant=\"outline\">Save</Button></Tooltip>",
+          "imports": ["Tooltip", "Button"]
+        }
+      ],
+      "a11y": [
+        "Escape closes it. The element gets aria-describedby.",
+        "Never a control's only name: an icon button still needs its own label."
+      ]
+    },
+    {
+      "name": "Toast",
+      "category": "overlay",
+      "description": "A short message that floats at the bottom of the page, with an optional action and close button.",
+      "import": {
+        "from": "@kit",
+        "name": "Toast"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["neutral", "good", "review", "fix"],
+          "default": "neutral",
+          "description": "Shown as an icon and a bar in the tone's colour."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "description": "A line of text under the title."
+        },
+        {
+          "name": "action",
+          "type": "node",
+          "description": "A button or link, such as Undo."
+        },
+        {
+          "name": "onClose",
+          "type": "callback",
+          "description": "Shows a close button; called when it is pressed."
+        },
+        {
+          "name": "closeLabel",
+          "type": "string",
+          "default": "Dismiss",
+          "description": "The close button's accessible name."
+        }
+      ],
+      "examples": [
+        {
+          "title": "Saved",
+          "code": "<Toast tone=\"good\" title=\"Changes saved\" onClose={() => {}} />",
+          "imports": ["Toast"]
+        },
+        {
+          "title": "With undo",
+          "code": "<Toast title=\"Item deleted\" action={<Button variant=\"plain\">Undo</Button>}>It was moved to the trash.</Toast>",
+          "imports": ["Toast", "Button"]
+        }
+      ],
+      "a11y": [
+        "It is a status region: a screen reader reads it when it appears without moving the focus."
+      ]
+    },
+    {
+      "name": "Alert",
+      "category": "feedback",
+      "description": "A message that sits in the page, tinted by its tone, with an optional action.",
+      "import": {
+        "from": "@kit",
+        "name": "Alert"
+      },
+      "styling": ["className"],
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["neutral", "good", "review", "fix"],
+          "default": "neutral",
+          "description": "Shown as an icon, a bar and a soft fill in the tone's colour."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "description": "A line of text under the title."
+        },
+        {
+          "name": "action",
+          "type": "node",
+          "description": "A button or link that answers the message."
+        }
+      ],
+      "examples": [
+        {
+          "title": "An error",
+          "code": "<Alert tone=\"fix\" title=\"Payment failed\">Check the card number and try again.</Alert>",
+          "imports": ["Alert"]
+        },
+        {
+          "title": "A note with an action",
+          "code": "<Alert title=\"A new version is ready\" action={<Button variant=\"outline\">Reload</Button>} />",
+          "imports": ["Alert", "Button"]
+        }
+      ],
+      "a11y": [
+        "Tones review and fix use role=\"alert\" and are read at once; neutral and good use role=\"status\"."
+      ]
+    },
+    {
+      "name": "Icon",
+      "category": "display",
+      "description": "One of the kit's line icons, drawn on a 16 px grid.",
+      "import": {
+        "from": "@kit",
+        "name": "Icon"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "name",
+          "type": "enum",
+          "values": [
+            "chevron-down",
+            "chevron-up",
+            "chevron-left",
+            "chevron-right",
+            "arrow-up",
+            "arrow-right",
+            "arrow-left",
+            "arrow-down",
+            "undo",
+            "redo",
+            "sliders",
+            "more",
+            "compare",
+            "keyboard",
+            "help",
+            "layers",
+            "insert",
+            "why",
+            "note",
+            "tab-properties",
+            "tab-changes",
+            "tab-checks",
+            "tab-claude",
+            "tab-sketches",
+            "panel",
+            "search",
+            "filter",
+            "clock",
+            "component",
+            "section",
+            "box",
+            "text",
+            "image",
+            "lock",
+            "unlock",
+            "eye",
+            "eye-off",
+            "copy",
+            "duplicate",
+            "trash",
+            "drag",
+            "pin",
+            "upload",
+            "external",
+            "refresh",
+            "plus",
+            "minus",
+            "close",
+            "check",
+            "check-circle",
+            "alert",
+            "info",
+            "fit",
+            "phone",
+            "tablet",
+            "laptop",
+            "align-start",
+            "align-center",
+            "align-end",
+            "align-stretch",
+            "align-between",
+            "pipette",
+            "home",
+            "menu",
+            "grid",
+            "list",
+            "settings",
+            "user",
+            "users",
+            "bell",
+            "inbox",
+            "log-out",
+            "cart",
+            "bag",
+            "tag",
+            "credit-card",
+            "wallet",
+            "truck",
+            "gift",
+            "mail",
+            "message",
+            "send",
+            "share",
+            "link",
+            "chart-bar",
+            "chart-line",
+            "chart-pie",
+            "trending-up",
+            "trending-down",
+            "calendar",
+            "map-pin",
+            "globe",
+            "building",
+            "file",
+            "folder",
+            "download",
+            "paperclip",
+            "cloud",
+            "briefcase",
+            "edit",
+            "star",
+            "heart",
+            "bookmark",
+            "flag",
+            "key",
+            "zap",
+            "play",
+            "pause",
+            "camera",
+            "mic",
+            "sun",
+            "moon"
+          ],
+          "required": true
+        },
+        {
+          "name": "size",
+          "type": "number",
+          "default": 16,
+          "description": "Width and height in px."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "description": "Accessible name. Without it the icon is hidden from assistive technology."
+        }
+      ],
+      "examples": [
+        {
+          "title": "Check",
+          "code": "<Icon name=\"check\" />",
+          "imports": ["Icon"]
+        },
+        {
+          "title": "Large, with a name",
+          "code": "<Icon name=\"alert\" size={24} label=\"Warning\" />",
+          "imports": ["Icon"]
+        }
+      ],
+      "a11y": ["Pass label when the icon carries meaning that no nearby text gives."]
+    },
+    {
+      "name": "Badge",
+      "category": "display",
+      "description": "A short status label on a soft fill.",
+      "import": {
+        "from": "@kit",
+        "name": "Badge"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["neutral", "fix", "review", "good"],
+          "default": "neutral"
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "Needs a fix",
+          "code": "<Badge tone=\"fix\">1 to fix</Badge>",
+          "imports": ["Badge"]
+        },
+        {
+          "title": "Quiet",
+          "code": "<Badge>Draft</Badge>",
+          "imports": ["Badge"]
+        }
+      ],
+      "a11y": ["Do not rely on colour alone; the text must say the status."]
+    },
+    {
+      "name": "Chip",
+      "category": "display",
+      "description": "A small tag, optionally with a button that removes it.",
+      "import": {
+        "from": "@kit",
+        "name": "Chip"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["neutral", "accent", "good", "review", "fix"],
+          "default": "neutral",
+          "description": "A tone adds its soft fill and a dot of its colour; the text stays ink."
+        },
+        {
+          "name": "onRemove",
+          "type": "callback",
+          "description": "Shows a remove button that calls this."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "A tag",
+          "code": "<Chip tone=\"accent\">Design</Chip>",
+          "imports": ["Chip"]
+        },
+        {
+          "title": "Removable",
+          "code": "<Chip onRemove={() => {}}>Mobile</Chip>",
+          "imports": ["Chip"]
+        }
+      ],
+      "a11y": [
+        "The remove button is named \"Remove <text>\" when the children are a string, else \"Remove\"."
+      ]
+    },
+    {
+      "name": "Pill",
+      "category": "display",
+      "description": "A rounded label that becomes a toggle button when it has onClick.",
+      "import": {
+        "from": "@kit",
+        "name": "Pill"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "icon",
+          "type": "enum",
+          "values": [
+            "chevron-down",
+            "chevron-up",
+            "chevron-left",
+            "chevron-right",
+            "arrow-up",
+            "arrow-right",
+            "arrow-left",
+            "arrow-down",
+            "undo",
+            "redo",
+            "sliders",
+            "more",
+            "compare",
+            "keyboard",
+            "help",
+            "layers",
+            "insert",
+            "why",
+            "note",
+            "tab-properties",
+            "tab-changes",
+            "tab-checks",
+            "tab-claude",
+            "tab-sketches",
+            "panel",
+            "search",
+            "filter",
+            "clock",
+            "component",
+            "section",
+            "box",
+            "text",
+            "image",
+            "lock",
+            "unlock",
+            "eye",
+            "eye-off",
+            "copy",
+            "duplicate",
+            "trash",
+            "drag",
+            "pin",
+            "upload",
+            "external",
+            "refresh",
+            "plus",
+            "minus",
+            "close",
+            "check",
+            "check-circle",
+            "alert",
+            "info",
+            "fit",
+            "phone",
+            "tablet",
+            "laptop",
+            "align-start",
+            "align-center",
+            "align-end",
+            "align-stretch",
+            "align-between",
+            "pipette",
+            "home",
+            "menu",
+            "grid",
+            "list",
+            "settings",
+            "user",
+            "users",
+            "bell",
+            "inbox",
+            "log-out",
+            "cart",
+            "bag",
+            "tag",
+            "credit-card",
+            "wallet",
+            "truck",
+            "gift",
+            "mail",
+            "message",
+            "send",
+            "share",
+            "link",
+            "chart-bar",
+            "chart-line",
+            "chart-pie",
+            "trending-up",
+            "trending-down",
+            "calendar",
+            "map-pin",
+            "globe",
+            "building",
+            "file",
+            "folder",
+            "download",
+            "paperclip",
+            "cloud",
+            "briefcase",
+            "edit",
+            "star",
+            "heart",
+            "bookmark",
+            "flag",
+            "key",
+            "zap",
+            "play",
+            "pause",
+            "camera",
+            "mic",
+            "sun",
+            "moon"
+          ],
+          "description": "An icon before the text."
+        },
+        {
+          "name": "pressed",
+          "type": "boolean",
+          "description": "On or off, for a pill with onClick. A pressed pill takes the accent border."
+        },
+        {
+          "name": "onClick",
+          "type": "callback",
+          "description": "Makes the pill a button."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "A filter that switches",
+          "code": "<Pill icon=\"filter\" pressed onClick={() => {}}>Open only</Pill>",
+          "imports": ["Pill"]
+        },
+        {
+          "title": "A plain label",
+          "code": "<Pill>3 days left</Pill>",
+          "imports": ["Pill"]
+        }
+      ],
+      "a11y": [
+        "A pill with onClick is a button and carries aria-pressed when pressed is given.",
+        "Without onClick it is only text."
+      ]
+    },
+    {
+      "name": "Count",
+      "category": "display",
+      "description": "A round number, for a list's length or unread items.",
+      "import": {
+        "from": "@kit",
+        "name": "Count"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "value",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "default": 99,
+          "description": "Above this the count shows as \"<max>+\"."
+        },
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["neutral", "review", "fix"],
+          "default": "neutral"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Open issues",
+          "code": "<Count value={4} tone=\"fix\" />",
+          "imports": ["Count"]
+        },
+        {
+          "title": "Capped",
+          "code": "<Count value={240} />",
+          "imports": ["Count"]
+        }
+      ],
+      "a11y": ["Put the count beside the text that says what it counts."]
+    },
+    {
+      "name": "Dot",
+      "category": "display",
+      "description": "A small coloured dot that shows a state; its label is read out.",
+      "import": {
+        "from": "@kit",
+        "name": "Dot"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum",
+          "values": ["neutral", "accent", "good", "review", "fix"],
+          "default": "neutral"
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "What the dot says, read out by assistive technology."
+        },
+        {
+          "name": "pulse",
+          "type": "boolean",
+          "default": false,
+          "description": "Fades in and out while work is in progress."
+        }
+      ],
+      "examples": [
+        {
+          "title": "Online",
+          "code": "<Dot tone=\"good\" label=\"Online\" />",
+          "imports": ["Dot"]
+        },
+        {
+          "title": "Working",
+          "code": "<Dot tone=\"accent\" label=\"Working\" pulse />",
+          "imports": ["Dot"]
+        }
+      ],
+      "a11y": ["The dot is hidden from assistive technology; label is read out instead."]
+    },
+    {
+      "name": "Swatch",
+      "category": "display",
+      "description": "A colour sample, optionally a button that picks the colour.",
+      "import": {
+        "from": "@kit",
+        "name": "Swatch"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "color",
+          "type": "string",
+          "required": true,
+          "description": "Any CSS colour."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "What the colour is called: its accessible name and tooltip."
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "onClick",
+          "type": "callback",
+          "description": "Makes the swatch a button with aria-pressed."
+        }
+      ],
+      "examples": [
+        {
+          "title": "A palette entry",
+          "code": "<Swatch color=\"var(--kit-color-accent)\" label=\"Accent\" />",
+          "imports": ["Swatch"]
+        },
+        {
+          "title": "A picker choice",
+          "code": "<Swatch color=\"#2f8f83\" label=\"Teal\" selected onClick={() => {}} />",
+          "imports": ["Swatch"]
+        }
+      ],
+      "a11y": ["label is the name of the colour; a swatch never carries meaning by colour alone."]
+    },
+    {
+      "name": "Avatar",
+      "category": "display",
+      "description": "A round picture of a person, or their initials when there is none.",
+      "import": {
+        "from": "@kit",
+        "name": "Avatar"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "The person's name: the alt text and the source of the initials."
+        },
+        {
+          "name": "src",
+          "type": "string",
+          "description": "A picture; without it the initials show."
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "values": ["sm", "md", "lg"],
+          "default": "sm",
+          "description": "28, 36 or 44 px."
+        }
+      ],
+      "examples": [
+        {
+          "title": "Initials",
+          "code": "<Avatar name=\"Ada Lovelace\" />",
+          "imports": ["Avatar"]
+        },
+        {
+          "title": "Large",
+          "code": "<Avatar name=\"Grace Hopper\" size=\"lg\" />",
+          "imports": ["Avatar"]
+        }
+      ],
+      "a11y": ["The name is read out; the initials themselves are hidden."]
+    },
+    {
+      "name": "Table",
+      "category": "display",
+      "description": "A data table with sortable columns that scrolls sideways inside its own box.",
+      "import": {
+        "from": "@kit",
+        "name": "Table"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "caption",
+          "type": "string",
+          "required": true,
+          "description": "Names the table and its scrolling region."
+        },
+        {
+          "name": "hideCaption",
+          "type": "boolean",
+          "default": false,
+          "description": "Hides the caption to the eye; assistive technology still reads it."
+        },
+        {
+          "name": "columns",
+          "type": "object",
+          "required": true,
+          "description": "Array of { id: string, label: string, align?: 'start' | 'end', sortable?: boolean }. Use align 'end' for numbers."
+        },
+        {
+          "name": "rows",
+          "type": "object",
+          "required": true,
+          "description": "Array of objects keyed by column id; a value may be any node. A row with an id field keeps its key across sorts."
+        },
+        {
+          "name": "sort",
+          "type": "object",
+          "description": "{ column: string, direction: 'asc' | 'desc' }: the column that is sorted now."
+        },
+        {
+          "name": "onSort",
+          "type": "callback",
+          "description": "Called with a column id when its header is pressed. The table does not reorder rows itself."
+        }
+      ],
+      "examples": [
+        {
+          "title": "Orders",
+          "code": "<Table caption=\"Orders\" columns={[{ id: 'name', label: 'Customer' }, { id: 'total', label: 'Total', align: 'end' }]} rows={[{ id: 1, name: 'Ada', total: '$40' }, { id: 2, name: 'Grace', total: '$25' }]} />",
+          "imports": ["Table"]
+        },
+        {
+          "title": "Sortable",
+          "code": "<Table caption=\"Orders\" hideCaption columns={[{ id: 'name', label: 'Customer', sortable: true }, { id: 'total', label: 'Total', align: 'end', sortable: true }]} rows={[{ id: 1, name: 'Ada', total: '$40' }]} sort={{ column: 'total', direction: 'desc' }} onSort={() => {}} />",
+          "imports": ["Table"]
+        }
+      ],
+      "a11y": [
+        "caption is required; it names the table and the scrolling region.",
+        "A sortable header is a button and its cell carries aria-sort."
+      ]
+    },
+    {
+      "name": "Progress",
+      "category": "display",
+      "description": "A progress bar with a label; it moves along the track while the length is not known.",
+      "import": {
+        "from": "@kit",
+        "name": "Progress"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "Shown above the bar, with the value as a percentage."
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "description": "0 to 100. Leave it out while the length is not known."
+        }
+      ],
+      "examples": [
+        {
+          "title": "Upload",
+          "code": "<Progress label=\"Uploading\" value={60} />",
+          "imports": ["Progress"]
+        },
+        {
+          "title": "Length not known",
+          "code": "<Progress label=\"Preparing\" />",
+          "imports": ["Progress"]
+        }
+      ],
+      "a11y": ["label names the bar; aria-valuenow is left out while value is absent."]
+    },
+    {
+      "name": "EmptyState",
+      "category": "display",
+      "description": "A centred message that says nothing is here yet and what to do next.",
+      "import": {
+        "from": "@kit",
+        "name": "EmptyState"
+      },
+      "styling": ["className", "style"],
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "icon",
+          "type": "enum",
+          "values": [
+            "chevron-down",
+            "chevron-up",
+            "chevron-left",
+            "chevron-right",
+            "arrow-up",
+            "arrow-right",
+            "arrow-left",
+            "arrow-down",
+            "undo",
+            "redo",
+            "sliders",
+            "more",
+            "compare",
+            "keyboard",
+            "help",
+            "layers",
+            "insert",
+            "why",
+            "note",
+            "tab-properties",
+            "tab-changes",
+            "tab-checks",
+            "tab-claude",
+            "tab-sketches",
+            "panel",
+            "search",
+            "filter",
+            "clock",
+            "component",
+            "section",
+            "box",
+            "text",
+            "image",
+            "lock",
+            "unlock",
+            "eye",
+            "eye-off",
+            "copy",
+            "duplicate",
+            "trash",
+            "drag",
+            "pin",
+            "upload",
+            "external",
+            "refresh",
+            "plus",
+            "minus",
+            "close",
+            "check",
+            "check-circle",
+            "alert",
+            "info",
+            "fit",
+            "phone",
+            "tablet",
+            "laptop",
+            "align-start",
+            "align-center",
+            "align-end",
+            "align-stretch",
+            "align-between",
+            "pipette",
+            "home",
+            "menu",
+            "grid",
+            "list",
+            "settings",
+            "user",
+            "users",
+            "bell",
+            "inbox",
+            "log-out",
+            "cart",
+            "bag",
+            "tag",
+            "credit-card",
+            "wallet",
+            "truck",
+            "gift",
+            "mail",
+            "message",
+            "send",
+            "share",
+            "link",
+            "chart-bar",
+            "chart-line",
+            "chart-pie",
+            "trending-up",
+            "trending-down",
+            "calendar",
+            "map-pin",
+            "globe",
+            "building",
+            "file",
+            "folder",
+            "download",
+            "paperclip",
+            "cloud",
+            "briefcase",
+            "edit",
+            "star",
+            "heart",
+            "bookmark",
+            "flag",
+            "key",
+            "zap",
+            "play",
+            "pause",
+            "camera",
+            "mic",
+            "sun",
+            "moon"
+          ]
+        },
+        {
+          "name": "action",
+          "type": "node",
+          "description": "What to do next, usually a Button."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "description": "A line of text under the title."
+        }
+      ],
+      "examples": [
+        {
+          "title": "No results",
+          "code": "<EmptyState icon=\"search\" title=\"No results\">Try another word.</EmptyState>",
+          "imports": ["EmptyState"]
+        },
+        {
+          "title": "With an action",
+          "code": "<EmptyState title=\"No projects yet\" action={<Button tone=\"accent\">New project</Button>} />",
+          "imports": ["EmptyState", "Button"]
+        }
+      ],
+      "a11y": [
+        "The title is plain text, not a heading; wrap the state in a section with its own heading when needed."
+      ]
+    }
+  ],
+  "icons": {
+    "source": "component",
+    "component": "Icon",
+    "names": [
+      "chevron-down",
+      "chevron-up",
+      "chevron-left",
+      "chevron-right",
+      "arrow-up",
+      "arrow-right",
+      "arrow-left",
+      "arrow-down",
+      "undo",
+      "redo",
+      "sliders",
+      "more",
+      "compare",
+      "keyboard",
+      "help",
+      "layers",
+      "insert",
+      "why",
+      "note",
+      "tab-properties",
+      "tab-changes",
+      "tab-checks",
+      "tab-claude",
+      "tab-sketches",
+      "panel",
+      "search",
+      "filter",
+      "clock",
+      "component",
+      "section",
+      "box",
+      "text",
+      "image",
+      "lock",
+      "unlock",
+      "eye",
+      "eye-off",
+      "copy",
+      "duplicate",
+      "trash",
+      "drag",
+      "pin",
+      "upload",
+      "external",
+      "refresh",
+      "plus",
+      "minus",
+      "close",
+      "check",
+      "check-circle",
+      "alert",
+      "info",
+      "fit",
+      "phone",
+      "tablet",
+      "laptop",
+      "align-start",
+      "align-center",
+      "align-end",
+      "align-stretch",
+      "align-between",
+      "pipette",
+      "home",
+      "menu",
+      "grid",
+      "list",
+      "settings",
+      "user",
+      "users",
+      "bell",
+      "inbox",
+      "log-out",
+      "cart",
+      "bag",
+      "tag",
+      "credit-card",
+      "wallet",
+      "truck",
+      "gift",
+      "mail",
+      "message",
+      "send",
+      "share",
+      "link",
+      "chart-bar",
+      "chart-line",
+      "chart-pie",
+      "trending-up",
+      "trending-down",
+      "calendar",
+      "map-pin",
+      "globe",
+      "building",
+      "file",
+      "folder",
+      "download",
+      "paperclip",
+      "cloud",
+      "briefcase",
+      "edit",
+      "star",
+      "heart",
+      "bookmark",
+      "flag",
+      "key",
+      "zap",
+      "play",
+      "pause",
+      "camera",
+      "mic",
+      "sun",
+      "moon"
+    ]
+  },
+  "gaps": []
+}

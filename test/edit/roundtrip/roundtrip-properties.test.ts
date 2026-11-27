@@ -1,6 +1,6 @@
 // Every property added after stage 4a (plan 15, ADR 0067), written at each of its places and then
 // undone, gives the file back byte for byte (src/edit/AGENTS.md): a new declaration, a new value
-// in one, a new rule, and the kit prop that covers it (Base's Stack `direction`, `align`,
+// in one, a new rule, and the kit prop that covers it (the kit's Stack `direction`, `align`,
 // `justify` and `wrap`).
 
 import assert from 'node:assert/strict';
@@ -47,13 +47,13 @@ type SetStyle = Extract<ScssOp, { op: 'setStyle' }>;
 
 const SCSS = [
   '.hero {',
-  '  padding: var(--kit-space-md);',
+  '  padding: var(--kit-space-12);',
   '  display: grid;',
   '  align-items: start;',
   '}',
   '',
   '.card {',
-  '  gap: var(--kit-space-sm);',
+  '  gap: var(--kit-space-8);',
   '}',
   '',
 ].join('\n');
@@ -80,7 +80,7 @@ function valuesOf(property: StyleProperty): StyleValue[] {
   if (kind === 'keyword') return (keywordsOf(property) ?? []).map((word) => plainValue(word));
   if (kind === 'image') return [plainValue(imageUrl('hero.png'))];
   if (kind === 'color') return [{ token: '--kit-color-ink' }, { raw: '#123456' }];
-  return [{ token: '--kit-space-md' }, { raw: '13px' }];
+  return [{ token: '--kit-space-12' }, { raw: '13px' }];
 }
 
 /** How the file spells a value, and whether it carries the off-kit marker. */
@@ -222,7 +222,7 @@ test('an image the version lacks, a marked keyword and a token keyword are refus
   const refused: ScssOp[] = [
     op('background-image', plainValue(imageUrl('gone.png'))),
     op('display', { raw: 'flex' }),
-    op('justify-content', { token: '--kit-space-md' }),
+    op('justify-content', { token: '--kit-space-12' }),
     op('text-align', plainValue('start')),
   ];
   for (const one of refused) {
@@ -233,9 +233,9 @@ test('an image the version lacks, a marked keyword and a token keyword are refus
   assert.deepEqual(applyScss(SCSS, image, { force: false }), { refused: 'invalid' });
 });
 
-// The kit prop that covers a property: Base's Stack.
+// The kit prop that covers a property: the kit's Stack.
 
-const base = requireKit(createFolderKitStore(join(PLUGIN_ROOT, 'kits')), 'base');
+const base = requireKit(createFolderKitStore(join(PLUGIN_ROOT, 'kits')), 'kitvas-ui');
 const stack = base.kit.components.find((component) => component.name === 'Stack');
 const groups = tokenGroupsOf(
   base.tokens.map((token) => ({ path: token.path.join('.'), type: token.type })),
@@ -247,7 +247,7 @@ const TSX = [
   '',
   'export function Hero() {',
   '  return (',
-  '    <Stack direction="row" gap="md">',
+  '    <Stack direction="row" gap="12">',
   '      <Stack>',
   '        <h1>Shop</h1>',
   '      </Stack>',

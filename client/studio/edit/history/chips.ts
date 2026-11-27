@@ -28,7 +28,7 @@ export const MAX_CHIP_TEXT = 24;
 const clip = (value: string): string =>
   value.length <= MAX_CHIP_TEXT ? value : `${value.slice(0, MAX_CHIP_TEXT - 1)}…`;
 
-/** `space.md` for `var(--kit-space-md)`; a raw value as it is written. */
+/** `space.12` for `var(--kit-space-12)`; a raw value as it is written. */
 export function styleWords(value: StyleValue): string {
   return 'token' in value ? value.token.replace(/^--kit-/, '').replace('-', '.') : clip(value.raw);
 }

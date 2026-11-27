@@ -232,7 +232,7 @@ test('a project kit exports its additions from its own generated entry; the proj
   assert.deepEqual(projectIssues(files, loaded), []);
 });
 
-test('ADDITION_EXISTS for a name the kit has, Base Button included, even with replace', () => {
+test('ADDITION_EXISTS for a name the kit has, kitvas UI Button included, even with replace', () => {
   const shop = additionsProject();
   const button = star({ name: 'Button', import: { from: 'components/Button', name: 'Button' } });
   const file = { path: 'components/Button.tsx', text: 'export function Button() {}\n' };
@@ -244,13 +244,13 @@ test('ADDITION_EXISTS for a name the kit has, Base Button included, even with re
   }
   assert.equal(existsSync(shop.additionsDir('tiny')), false);
 
-  // The writer `src/main.ts` makes reads the kits shipped with the plugin: Base has a Button.
+  // The writer `src/main.ts` makes reads the kits shipped with the plugin: kitvas UI has a Button.
   const project = tempProject();
   const writer = createFolderKitWriter(projectKitsDir(project));
   for (const replace of [false, true]) {
     assert.throws(
-      () => writer.writeAddition('base', button, [file], replace),
-      refused('ADDITION_EXISTS', { kit: 'base', name: 'Button' }),
+      () => writer.writeAddition('kitvas-ui', button, [file], replace),
+      refused('ADDITION_EXISTS', { kit: 'kitvas-ui', name: 'Button' }),
     );
   }
   assert.equal(existsSync(join(project, '.kitvas', 'additions')), false);

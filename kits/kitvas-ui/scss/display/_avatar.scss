@@ -1,0 +1,39 @@
+@use "../core/mixins";
+
+.kit-avatar {
+  --_size: 28px;
+
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--_size);
+  height: var(--_size);
+  overflow: hidden;
+  border-radius: var(--kit-radius-full);
+  background: #{mixins.quiet-strong()};
+  color: var(--kit-color-ink);
+  font-size: var(--kit-font-size-sm);
+  font-weight: var(--kit-font-weight-medium);
+  line-height: 1;
+  user-select: none;
+
+  &--md {
+    --_size: 36px;
+
+    font-size: var(--kit-font-size-sm);
+  }
+
+  &--lg {
+    --_size: 44px;
+
+    font-size: var(--kit-font-size-md);
+  }
+
+  &__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}

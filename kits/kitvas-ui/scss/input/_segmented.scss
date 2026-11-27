@@ -1,0 +1,81 @@
+@use "../core/mixins";
+
+// One of several as a joined track of radio inputs. The track is a quiet field with a real edge.
+// The chosen segment is the studio's `.k-opts` chip: `accentSoft` fill, `ink` text and a 1 px
+// `accent` border (kept `transparent` on the others), because a step of fill alone is too weak.
+.kit-segmented {
+  @include mixins.boundary;
+
+  --_control: var(--kit-size-control);
+
+  display: inline-flex;
+  gap: var(--kit-space-2);
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  padding: var(--kit-space-2);
+  border-radius: calc(var(--kit-radius-sm) + var(--kit-space-2));
+  background: mixins.quiet();
+  font-family: var(--kit-font-body);
+
+  &:disabled {
+    @include mixins.disabled;
+  }
+
+  &--md {
+    --_control: var(--kit-size-control-md);
+  }
+
+  &--lg {
+    --_control: var(--kit-size-control-lg);
+  }
+
+  &__item {
+    position: relative;
+    display: inline-flex;
+    cursor: pointer;
+  }
+
+  &__input {
+    appearance: none;
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    border-radius: var(--kit-radius-sm);
+    cursor: inherit;
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+    }
+  }
+
+  &__face {
+    @include mixins.hit;
+
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--kit-space-4);
+    box-sizing: border-box;
+    min-height: max(var(--kit-size-target), calc(var(--_control) - 8px));
+    padding: 0 var(--kit-space-8);
+    border: 1px solid transparent;
+    border-radius: var(--kit-radius-sm);
+    color: var(--kit-color-ink-mid);
+    font-size: var(--kit-font-size-md);
+    white-space: nowrap;
+    transition: color var(--kit-motion-fast) var(--_ease-out);
+  }
+
+  &__item:hover &__face {
+    color: var(--kit-color-ink);
+  }
+
+  &__input:checked + &__face {
+    border-color: var(--kit-color-accent);
+    background: var(--kit-color-accent-soft);
+    color: var(--kit-color-ink);
+    font-weight: var(--kit-font-weight-medium);
+  }
+}

@@ -9,12 +9,12 @@ import { catalogDir } from '../../../src/shared/index.ts';
 import { pageRoutes } from '../../../src/studio/pages/routes.ts';
 import { studioHeaders } from '../../../src/studio/security/response-headers.ts';
 import { tempDrafts } from '../../helpers/draft/drafts.ts';
-import { BASE_STAMP, writeCatalog } from '../../helpers/kit/catalog.ts';
+import { KIT_STAMP, writeCatalog } from '../../helpers/kit/catalog.ts';
 import { copyKit, tinyKitJson } from '../../helpers/kit/kits.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 import { t } from '../../helpers/translate.ts';
 
-const STAMP = { ...BASE_STAMP, kit: 'tiny', shown: ['Button.1'], skipped: [] };
+const STAMP = { ...KIT_STAMP, kit: 'tiny', shown: ['Button.1'], skipped: [] };
 
 /** A written kit whose first example has a reference, with a project and its built catalog. */
 function setup(source: Record<string, unknown>) {
@@ -43,7 +43,7 @@ function pageOf(setupResult: ReturnType<typeof setup>): string {
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
     version: '1.0.0',
-    projectKit: () => 'base',
+    projectKit: () => 'kitvas-ui',
   });
   const route = routes.find((candidate) => candidate.id === 'kit');
   assert.ok(route);

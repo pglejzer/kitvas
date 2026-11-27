@@ -1,0 +1,70 @@
+{
+  "color": {
+    "$type": "color",
+    "accent": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.784,
+          0.267,
+          0.059
+        ]
+      }
+    },
+    "accentSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.784,
+          0.267,
+          0.059
+        ],
+        "alpha": 0.1
+      }
+    },
+    "select": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.816,
+          0.278,
+          0.082
+        ]
+      }
+    }
+  },
+  "inverse": {
+    "$type": "color",
+    "accent": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          0.416,
+          0.239
+        ]
+      }
+    },
+    "onAccent": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.102,
+          0.051,
+          0.027
+        ]
+      }
+    },
+    "accentSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          0.416,
+          0.239
+        ],
+        "alpha": 0.16
+      }
+    }
+  }
+}

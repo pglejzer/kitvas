@@ -74,9 +74,9 @@ function assertNear(actual: Box, expected: Box, label: string): void {
 const movedIndexes = (entries: Entry[]): number[] =>
   planMotion(entries).moves.map((move) => move.index);
 
-test('the motion follows Base: 240 ms, ease-out, a 120 ms fade for less motion', () => {
+test('the motion follows the kit: 240 ms, ease-out, a 140 ms fade for less motion', () => {
   assert.equal(MOTION_MS, 240);
-  assert.equal(FADE_MS, 120);
+  assert.equal(FADE_MS, 140);
   assert.equal(EASING, 'ease-out');
 });
 

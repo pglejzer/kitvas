@@ -1,7 +1,7 @@
 // Records the README's GIF and screenshots from a real studio:
 //
 //   node scripts/readme/record.ts --project <folder with .kitvas> [--only demo,shots]
-//     [--draft saas-analytics] [--out docs/readme] [--ffmpeg <program>] [--work <folder>]
+//     [--draft revenue-overview] [--out docs/readme] [--ffmpeg <program>] [--work <folder>]
 //
 // The project's `.kitvas` is copied for each take, so a take changes nothing in the project. The
 // browser is the one kitvas checks with; ffmpeg must be on the machine (`--ffmpeg` names it when it
@@ -24,7 +24,7 @@ type Browser = import('playwright-core').Browser;
 const { values } = parseArgs({
   options: {
     project: { type: 'string' },
-    draft: { type: 'string', default: 'saas-analytics' },
+    draft: { type: 'string', default: 'revenue-overview' },
     out: { type: 'string', default: join(PLUGIN_ROOT, 'docs', 'readme') },
     only: { type: 'string', default: Object.keys(TAKES).join(',') },
     ffmpeg: { type: 'string', default: 'ffmpeg' },
@@ -98,6 +98,7 @@ async function main(): Promise<void> {
         studio: String(studio.url),
         slug: values.draft,
         draftDir: join(copy, '.kitvas', 'drafts', values.draft),
+        kitvas: (args) => kitvas(copy, args),
         outDir: out,
         filmDir: join(values.work, name),
       };

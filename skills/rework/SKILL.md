@@ -32,8 +32,8 @@ Then run `KITVAS decisions --json` and follow `data.settings` and `data.text` (t
 Run `KITVAS kit detect --json`. It reads only. It answers the project's kits (with `source` and `stale`), the active kit and `signs` of a design system that is not learned yet (`components`, `packages`, `figma`).
 
 - A kit exists and is active: use it. If it is `stale`, offer `/kitvas:learn` to refresh it first, and go on with it when the person says no.
-- No kit, but `signs` has entries: the project has a design system that kitvas has not learned. Say what you found, in plain words, and offer to learn it before anything else: `/kitvas:learn` for a components folder or a package, the written-kit flow of the learn skill for a Figma file. Never fall back to Base silently. Use Base only when the person says there is no design system, or says to go on with Base.
-- No kit and no signs: Base is the kit. Tell the person so in one line.
+- No kit, but `signs` has entries: the project has a design system that kitvas has not learned. Say what you found, in plain words, and offer to learn it before anything else: `/kitvas:learn` for a components folder or a package, the written-kit flow of the learn skill for a Figma file. Never fall back to the built-in kit silently. Use it only when the person says there is no design system, or says to go on with it.
+- No kit and no signs: the built-in kitvas UI kit is the kit. Tell the person so in one line.
 
 If the person has more than one kit and `data.from.kit` of the decisions is `default`, ask which one, with the active kit as the default, and offer to keep the answer (`KITVAS decisions set kit <id> --json`). Pass it as `--kit <id>` in step 3.
 

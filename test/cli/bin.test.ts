@@ -17,7 +17,7 @@ function run(script: string, args: string[], cwd: string, home: string) {
 test('the real entry point answers status --json', () => {
   const result = run('bin/kitvas.ts', ['status', '--json'], tempDir(), tempDir());
   assert.equal(result.status, 0, result.stderr);
-  assert.equal((JSON.parse(result.stdout) as { data: { kit: string } }).data.kit, 'base');
+  assert.equal((JSON.parse(result.stdout) as { data: { kit: string } }).data.kit, 'kitvas-ui');
 });
 
 test('the entry point passes exit codes through', () => {

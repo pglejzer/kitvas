@@ -128,6 +128,24 @@ function wideCard(): { card: Frame; element: { src: string } } {
   return { card, element };
 }
 
+test('the frame address names the option values the page shows, not the ones it was loaded with', () => {
+  const loaded = `${DRAFT}/v2/html/index.html?state=default&opt-theme=dark&opt-cards=big${HASH}`;
+  assert.equal(
+    frameAddress(loaded, {
+      version: 3,
+      state: 'default',
+      live: 2,
+      page: `${PAGE}&opt-theme=dark-teal`,
+    }),
+    `${DRAFT}/v3/html/index.html?state=default&opt-theme=dark-teal&live=2${HASH}`,
+  );
+  // A page that shows the defaults names none.
+  assert.equal(
+    frameAddress(loaded, { version: 3, state: 'default', live: 2, page: PAGE }),
+    `${DRAFT}/v3/html/index.html?state=default&live=2${HASH}`,
+  );
+});
+
 test('the frame address changes only its version, state and live number', () => {
   assert.equal(
     frameAddress(FRAME, { version: 12, state: 'empty', live: 4 }),
@@ -137,7 +155,8 @@ test('the frame address changes only its version, state and live number', () => 
     frameAddress(FRAME, { version: 3, state: undefined, live: 1 }),
     `${DRAFT}/v3/html/index.html?state=default&live=1${HASH}`,
   );
-  const kitFrame = 'http://kitvas.localhost:5174/k/key123/base/html/index.html?example=Button.1';
+  const kitFrame =
+    'http://kitvas.localhost:5174/k/key123/kitvas-ui/html/index.html?example=Button.1';
   assert.equal(frameAddress(kitFrame, { version: 3, state: 'default', live: 1 }), undefined);
   assert.equal(
     frameAddress('not an address', { version: 3, state: 'default', live: 1 }),

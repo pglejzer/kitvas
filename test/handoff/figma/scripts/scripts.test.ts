@@ -180,7 +180,7 @@ function treeOf(frames: TreeFrame[]): HandoffTree {
     schemaVersion: 1,
     slug: 'pricing',
     version: 3,
-    kit: 'base',
+    kit: 'kitvas-ui',
     state: 'default',
     sendId: 'k7x2m9qa',
     frames,
@@ -325,7 +325,7 @@ test('every script of a three-section tree runs in order on the fake and builds 
   assert.equal(named(doc, 'Icon')[0]?.frame?.svg, SVG);
   assert.deepEqual(
     doc.collections.map((collection) => [collection.name, collection.modes]),
-    [['kitvas · base', ['Default']]],
+    [['kitvas · kitvas-ui', ['Default']]],
   );
   assert.deepEqual(
     doc.variables.map((each) => [each.name, each.scopes, each.codeSyntax.WEB]),

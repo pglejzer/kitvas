@@ -26,7 +26,7 @@ function pages(store: DraftStore) {
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
     version: '1.0.0',
-    projectKit: () => 'base',
+    projectKit: () => 'kitvas-ui',
   });
   return async (id: string, ask: Ask = {}): Promise<string> => {
     const route = routes.find((candidate) => candidate.id === id);

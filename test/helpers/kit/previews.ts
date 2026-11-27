@@ -7,13 +7,13 @@ import {
   SHEET_FILE,
 } from '../../../src/checks/index.ts';
 
-/** The previews of `base` shot from the catalog build `catalog`: a Button and two icons. */
+/** The previews of `kitvas-ui` shot from the catalog build `catalog`: a Button and two icons. */
 export const previewsStamp = (
   catalog: string,
   over: Partial<PreviewsStamp> = {},
 ): PreviewsStamp => ({
   schemaVersion: 1,
-  kit: 'base',
+  kit: 'kitvas-ui',
   format: PREVIEWS_FORMAT,
   catalog,
   folder: previewFolder(catalog),

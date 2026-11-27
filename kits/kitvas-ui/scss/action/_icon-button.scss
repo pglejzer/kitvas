@@ -1,0 +1,60 @@
+@use "../core/mixins";
+
+// A square button that shows an icon only. Chosen (`aria-pressed`, `aria-expanded`) it takes the
+// accent fill, an accent border as the mark and an `ink` icon. Under the pointer only the fill and
+// the colour change. The edge is a border, never a shadow.
+.kit-icon-button {
+  @include mixins.control;
+  @include mixins.hit;
+
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--_control);
+  padding: 0;
+  border: 1px solid var(--_edge, transparent);
+  border-radius: var(--kit-radius-sm);
+  background: transparent;
+  color: var(--kit-color-ink-mid);
+  cursor: pointer;
+  transition:
+    background-color var(--kit-motion-fast) var(--_ease-out),
+    color var(--kit-motion-fast) var(--_ease-out),
+    border-color var(--kit-motion-fast) var(--_ease-out);
+
+  &:focus-visible {
+    @include mixins.focus-ring;
+  }
+
+  &:disabled {
+    @include mixins.disabled;
+  }
+
+  &--soft {
+    background: mixins.quiet();
+  }
+
+  &--outline {
+    --_edge: var(--kit-color-ink-mid);
+  }
+
+  &:hover:not(:disabled) {
+    background: mixins.quiet();
+    color: var(--kit-color-ink);
+  }
+
+  &:active:not(:disabled) {
+    background: mixins.quiet-strong();
+    color: var(--kit-color-ink);
+  }
+
+  &[aria-pressed="true"],
+  &[aria-expanded="true"],
+  &[aria-pressed="true"]:hover:not(:disabled),
+  &[aria-expanded="true"]:hover:not(:disabled) {
+    --_edge: var(--kit-color-accent);
+
+    background: var(--kit-color-accent-soft);
+    color: var(--kit-color-ink);
+  }
+}

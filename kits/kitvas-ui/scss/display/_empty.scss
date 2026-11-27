@@ -1,0 +1,26 @@
+// Nothing here yet: a line that says what to do next.
+.kit-empty {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: var(--kit-space-8);
+  max-width: var(--kit-size-measure);
+  margin-inline: auto;
+  padding: var(--kit-space-24) var(--kit-space-16);
+  color: var(--kit-color-ink-mid);
+  text-align: center;
+
+  &__icon {
+    color: var(--kit-color-ink-mid);
+  }
+
+  &__title {
+    color: var(--kit-color-ink);
+    font-size: var(--kit-font-size-lg);
+    font-weight: var(--kit-font-weight-bold);
+  }
+
+  &__action {
+    margin-top: var(--kit-space-4);
+  }
+}

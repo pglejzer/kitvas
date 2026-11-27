@@ -37,7 +37,7 @@ test('status --json reports version, node, settings and a missing workspace', as
   assert.equal(payload.data.version, '1.0.0');
   assert.equal(payload.data.node, process.version);
   assert.equal(payload.data.language, 'en');
-  assert.equal(payload.data.kit, 'base');
+  assert.equal(payload.data.kit, 'kitvas-ui');
   assert.deepEqual(payload.data.workspace, { path: join(h.io.cwd, '.kitvas'), exists: false });
 });
 

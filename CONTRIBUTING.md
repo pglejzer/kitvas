@@ -9,7 +9,7 @@ Everyone who takes part follows the [code of conduct](CODE_OF_CONDUCT.md).
 Open an issue from one of the three forms at <https://github.com/pglejzer/kitvas/issues/new/choose>:
 
 - **Bug**: something does not work as the README or the docs say. Run `kitvas doctor --report` first and paste what it prints: it leaves out names and addresses. See [When something does not work](docs/troubleshooting.md).
-- **Feature**: a change or something new.
+- **Feature**: a change or something new. [IDEAS.md](IDEAS.md) lists the ideas already on the table; if you need one of them, name it in the issue.
 - **Kit**: a design system that kitvas cannot learn, verify or render as it looks in your product.
 
 A vulnerability never goes into a public issue: follow [SECURITY.md](SECURITY.md).
@@ -32,7 +32,7 @@ To try the plugin in a project of your own, start Claude Code with `claude --plu
 
 ## The rules
 
-[AGENTS.md](AGENTS.md) holds the rules every change follows and says where each part of the code lives. A coding agent loads it by itself; a change written with one is held to the same rules, and you answer for it. Several folders have rules of their own in an `AGENTS.md` beside the code: `src/kit/`, `src/drafts/`, `src/render/`, `src/checks/`, `src/studio/`, `src/edit/`, `src/handoff/` and `kits/base/`.
+[AGENTS.md](AGENTS.md) holds the rules every change follows and says where each part of the code lives. A coding agent loads it by itself; a change written with one is held to the same rules, and you answer for it. Several folders have rules of their own in an `AGENTS.md` beside the code: `src/kit/`, `src/drafts/`, `src/render/`, `src/checks/`, `src/studio/`, `src/edit/`, `src/handoff/` and `kits/kitvas-ui/`.
 
 The ones a pull request breaks most often:
 
@@ -62,4 +62,4 @@ Documentation for people is in `docs/` and in the README; update it in the same 
 
 ## Licence of your contribution
 
-kitvas is under the [PolyForm Shield License 1.0.0](LICENSE.md) and its Base kit under the [MIT License](kits/base/LICENSE); [LICENSING.md](LICENSING.md) says which covers what. By opening a pull request you agree that your contribution is licensed under the terms of the part it changes, and you confirm that you have the right to contribute it.
+kitvas is under the [PolyForm Shield License 1.0.0](LICENSE.md) and its kitvas UI kit under the [MIT License](kits/kitvas-ui/LICENSE); [LICENSING.md](LICENSING.md) says which covers what. By opening a pull request you agree that your contribution is licensed under the terms of the part it changes, and you confirm that you have the right to contribute it.

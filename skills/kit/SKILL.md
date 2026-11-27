@@ -45,7 +45,7 @@ Add a kit id as the last argument to read a kit other than the project's. Kits c
   "ok": true,
   "data": {
     "view": "component",
-    "id": "base",
+    "id": "kitvas-ui",
     "component": {
       "name": "Badge",
       "category": "display",

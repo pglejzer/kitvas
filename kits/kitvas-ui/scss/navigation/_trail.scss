@@ -1,0 +1,123 @@
+@use "../core/mixins";
+
+// Breadcrumbs: links in the kit's link look (`ink` text, an underline of the accent under the
+// pointer) with the page you are on last. Pagination: the chosen page has a border of the accent,
+// the soft fill and `ink` text. Both wrap rather than push the page sideways.
+.kit-breadcrumbs {
+  font-family: var(--kit-font-body);
+  font-size: var(--kit-font-size-md);
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--kit-space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--kit-space-4);
+    min-width: 0;
+  }
+
+  &__link {
+    color: var(--kit-color-ink);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    transition: text-decoration-color var(--kit-motion-fast) var(--_ease-out);
+
+    &:hover,
+    &:active {
+      text-decoration-color: var(--kit-color-accent);
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+
+      border-radius: var(--kit-radius-sm);
+    }
+  }
+
+  &__current {
+    color: var(--kit-color-ink);
+    font-weight: var(--kit-font-weight-medium);
+    text-decoration: none;
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+
+      border-radius: var(--kit-radius-sm);
+    }
+  }
+
+  &__sep {
+    flex: none;
+    color: var(--kit-color-ink-mid);
+  }
+}
+
+.kit-pagination {
+  font-family: var(--kit-font-body);
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--kit-space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__page {
+    @include mixins.control;
+    @include mixins.hit;
+
+    padding: 0 var(--kit-space-6);
+    border: 1px solid transparent;
+    border-radius: var(--kit-radius-sm);
+    background: transparent;
+    color: var(--kit-color-ink-mid);
+    font-family: inherit;
+    font-size: var(--kit-font-size-md);
+    cursor: pointer;
+    transition:
+      background-color var(--kit-motion-fast) var(--_ease-out),
+      color var(--kit-motion-fast) var(--_ease-out),
+      border-color var(--kit-motion-fast) var(--_ease-out);
+
+    &:hover {
+      background: mixins.quiet();
+      color: var(--kit-color-ink);
+    }
+
+    &:active {
+      background: mixins.quiet-strong();
+      color: var(--kit-color-ink);
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+    }
+
+    &[aria-current="page"],
+    &[aria-current="page"]:hover {
+      border-color: var(--kit-color-accent);
+      background: var(--kit-color-accent-soft);
+      color: var(--kit-color-ink);
+      font-weight: var(--kit-font-weight-medium);
+    }
+  }
+
+  &__gap {
+    min-width: var(--kit-space-16);
+    color: var(--kit-color-ink-mid);
+    text-align: center;
+  }
+}

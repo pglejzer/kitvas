@@ -1,6 +1,6 @@
 # Your design system
 
-A kit describes one design system: components, tokens and icons. The rework and craft skills look for yours first (`kitvas kit detect`) and offer to learn it before they fall back to Base. For the rest of kitvas, see the [README](../README.md).
+A kit describes one design system: components, tokens and icons. The rework and craft skills look for yours first (`kitvas kit detect`) and offer to learn it before they fall back to the built-in kitvas UI kit. For the rest of kitvas, see the [README](../README.md).
 
 kitvas can learn from:
 

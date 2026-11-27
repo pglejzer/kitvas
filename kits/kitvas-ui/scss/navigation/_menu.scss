@@ -1,0 +1,79 @@
+@use "../core/mixins";
+@use "../overlay/pop";
+
+// A button that opens a list of actions. The list floats like a popover; an item under the pointer
+// or active takes the quiet fill, its text stays `ink`. A danger item has `fix` text at rest, on
+// the list's own ground, and turns `ink` when the fill comes under it.
+.kit-menu {
+  position: relative;
+  display: inline-block;
+  font-family: var(--kit-font-body);
+
+  &__list {
+    @include mixins.pop;
+    @include pop.anchored;
+
+    min-width: 184px;
+    padding: var(--kit-space-4);
+    font-size: var(--kit-font-size-md);
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: var(--kit-space-8);
+    width: 100%;
+    min-height: var(--kit-size-control);
+    padding: 0 var(--kit-space-8);
+    border: 0;
+    border-radius: var(--kit-radius-sm);
+    background: transparent;
+    color: var(--kit-color-ink);
+    font-family: inherit;
+    font-size: inherit;
+    text-align: start;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      background: mixins.quiet();
+      color: var(--kit-color-ink);
+    }
+
+    &:active:not(:disabled) {
+      background: mixins.quiet-strong();
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+
+      outline-offset: -2px;
+    }
+
+    &:disabled {
+      @include mixins.disabled;
+    }
+
+    &--danger {
+      color: var(--kit-color-fix);
+
+      .kit-icon {
+        color: var(--kit-color-fix);
+      }
+    }
+  }
+
+  &__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__separator {
+    height: 1px;
+    margin: var(--kit-space-4);
+    border: 0;
+    background: var(--kit-color-line);
+  }
+}

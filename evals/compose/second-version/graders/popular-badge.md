@@ -5,4 +5,4 @@ pattern: '^(?=[\s\S]*<Badge\b)(?=[\s\S]*Popular)(?![\s\S]*<Badge\b[^>]*\btone="(
 match: contains
 ---
 
-The hero section of version 2 holds a Badge and the word "Popular", and no Badge has a tone the Base kit lacks.
+The hero section of version 2 holds a Badge and the word "Popular", and no Badge has a tone the kitvas UI kit lacks.

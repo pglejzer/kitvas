@@ -60,7 +60,7 @@ test('without a workspace the answer is the defaults and no text', async () => {
   assert.deepEqual(h.data(), {
     path: join(h.cwd, '.kitvas', 'decisions.md'),
     exists: false,
-    settings: { kit: 'base', copy: null, check: 'normal' },
+    settings: { kit: 'kitvas-ui', copy: null, check: 'normal' },
     from: { kit: 'default', copy: 'default', check: 'default' },
     text: '',
     warnings: [],
@@ -77,7 +77,7 @@ test('a kit that does not exist and a bad value are warnings with their sentence
     from: { kit: string };
     warnings: { code: string; line: number; message: string }[];
   };
-  assert.equal(data.settings.kit, 'base');
+  assert.equal(data.settings.kit, 'kitvas-ui');
   assert.equal(data.settings.check, 'normal');
   assert.equal(data.from.kit, 'default');
   assert.deepEqual(
@@ -92,7 +92,7 @@ test('a kit that does not exist and a bad value are warnings with their sentence
   assert.match(data.warnings[0]?.message ?? '', /kitvas decisions set kit/);
 
   assert.equal(await h.run(), 0);
-  assert.match(h.out.at(-1) ?? '', /kit: base \(default\)/);
+  assert.match(h.out.at(-1) ?? '', /kit: kitvas-ui \(default\)/);
   assert.match(h.out.at(-1) ?? '', /Line 3: "sometimes" is not a valid value for check/);
 });
 
@@ -113,7 +113,7 @@ test('add makes the file from the template when it is missing, and a heading whe
   const h = harness();
   rmSync(h.file);
   assert.equal(await h.run('add', '--section', 'Copy', '--text', 'Polish', '--json'), 0);
-  assert.ok(h.read().startsWith('---\nkit: base\n---\n'));
+  assert.ok(h.read().startsWith('---\nkit: kitvas-ui\n---\n'));
   assert.ok(h.read().includes('## Copy\n- Polish (2026-11-25)\n'));
 
   const bare = harness('# Notes\n');

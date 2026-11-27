@@ -6,7 +6,7 @@ import type { KitStore } from '../../../src/kit/index.ts';
 import { NOW, TINY, tempDrafts, writeVersionFiles } from '../../helpers/draft/drafts.ts';
 import { builtinKits } from '../../helpers/kit/kits.ts';
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 
 const layout = (id: string, purpose: string): string =>
   `# Layout: Shop\n\n## ${id}\nPurpose: ${purpose}\nComponents: Stack\n`;
@@ -22,7 +22,7 @@ function drafts() {
   return store;
 }
 
-test('the palette lists the base kit components with category, children and examples', () => {
+test('the palette lists the kitvas UI kit components with category, children and examples', () => {
   const palette = readPalette({ drafts: drafts(), kits: builtinKits() }, 'shop');
   const names = palette.components.map((component) => component.name);
   assert.ok(names.includes('Button'));
@@ -31,7 +31,7 @@ test('the palette lists the base kit components with category, children and exam
   assert.equal(button?.category, 'action');
   assert.equal(button?.accepts, true);
   assert.equal(button?.parent, null);
-  assert.equal(button?.examples[0]?.code, '<Button>Save</Button>');
+  assert.equal(button?.examples[0]?.code, '<Button tone="accent">Save</Button>');
   const input = palette.components.find((component) => component.name === 'Input');
   assert.equal(input?.accepts, false);
 });

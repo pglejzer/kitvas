@@ -21,7 +21,7 @@ async function page(store: DraftStore, id: 'home' | 'draft', path = '', query = 
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
     version: '1.0.0',
-    projectKit: () => 'base',
+    projectKit: () => 'kitvas-ui',
   });
   const route = routes.find((candidate) => candidate.id === id);
   assert.ok(route);

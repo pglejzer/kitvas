@@ -7,7 +7,7 @@ import { tempDir } from '../tmp.ts';
 
 export const FIXTURE_KITS = join(PLUGIN_ROOT, 'test', 'fixtures', 'kits');
 
-/** The kits shipped with the plugin: Base is there. */
+/** The kits shipped with the plugin: the kitvas UI kit. */
 export const builtinKits = (): KitStore => createFolderKitStore(join(PLUGIN_ROOT, 'kits'));
 
 /** A fresh, mutable copy of the tiny kit's kit.json. */

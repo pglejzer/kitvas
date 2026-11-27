@@ -20,7 +20,7 @@ const detect = (
     kits: layeredStore(project),
     files: createProjectFiles(project),
     verifiedHash: (id) => options.hashes?.[id],
-    activeKit: options.activeKit ?? 'base',
+    activeKit: options.activeKit ?? 'kitvas-ui',
   });
 
 test('a components folder of 12 tsx files and @mui/material are both signs', () => {

@@ -35,7 +35,7 @@ function setup(first: PreviewsOnDisk = { key: NEW, stamp: undefined, fresh: fals
   const keeper = createPreviewsKeeper({
     previews: {
       read: (kitId) => {
-        assert.equal(kitId, 'base');
+        assert.equal(kitId, 'kitvas-ui');
         return state.disk;
       },
     },
@@ -50,75 +50,75 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
 test('previews made for the kit as it is are ready, and nothing starts', () => {
   const ready = previewsStamp(NEW);
   const { keeper, started } = setup({ key: NEW, stamp: ready, fresh: true });
-  assert.deepEqual(keeper.view('base'), { state: 'ready', stamp: ready });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'ready', stamp: ready });
   assert.equal(started.length, 0);
 });
 
 test('missing previews start one job of the kit; asking again while it runs starts nothing', () => {
   const { keeper, started } = setup();
-  assert.deepEqual(keeper.view('base'), { state: 'making', stamp: undefined });
-  assert.deepEqual(keeper.view('base'), { state: 'making', stamp: undefined });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'making', stamp: undefined });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'making', stamp: undefined });
   assert.equal(started.length, 1);
-  assert.deepEqual(started[0]?.args, ['kit', 'previews', 'base']);
+  assert.deepEqual(started[0]?.args, ['kit', 'previews', 'kitvas-ui']);
 });
 
 test('stale previews are answered while new ones are made, then the new ones are ready', async () => {
   const old = previewsStamp(OLD);
   const { keeper, started, state } = setup({ key: NEW, stamp: old, fresh: false });
-  assert.deepEqual(keeper.view('base'), { state: 'making', stamp: old });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'making', stamp: old });
   const made = previewsStamp(NEW);
   state.disk = { key: NEW, stamp: made, fresh: true };
   started[0]?.finish({ state: 'succeeded', result: {} });
   await tick();
-  assert.deepEqual(keeper.view('base'), { state: 'ready', stamp: made });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'ready', stamp: made });
   assert.equal(started.length, 1);
 });
 
 test('no browser: none, and no job starts again for any kit while the studio runs', async () => {
   const { keeper, started, errors, state } = setup();
-  keeper.view('base');
+  keeper.view('kitvas-ui');
   started[0]?.finish({
     state: 'failed',
     error: { code: 'BROWSER_MISSING', message: 'No browser to run the checks in.' },
   });
   await tick();
-  assert.deepEqual(keeper.view('base'), { state: 'none' });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'none' });
   // Even a changed kit does not try again: there is still no browser.
   state.disk = { key: OLD, stamp: undefined, fresh: false };
-  assert.deepEqual(keeper.view('base'), { state: 'none' });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'none' });
   assert.equal(started.length, 1);
   assert.deepEqual(errors, [], 'a missing browser is not an error of the studio');
 });
 
 test('a failed job is logged and answers none until the kit changes, then one job starts', async () => {
   const { keeper, started, errors, state } = setup();
-  keeper.view('base');
+  keeper.view('kitvas-ui');
   started[0]?.finish({ state: 'failed', error: { code: 'PREVIEWS_FAILED', message: 'no build' } });
   await tick();
-  assert.deepEqual(keeper.view('base'), { state: 'none' });
-  assert.deepEqual(keeper.view('base'), { state: 'none' });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'none' });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'none' });
   assert.equal(started.length, 1, 'never in a loop');
   assert.equal(errors.length, 1);
-  assert.match(String(errors[0]), /kit previews base: PREVIEWS_FAILED: no build/);
+  assert.match(String(errors[0]), /kit previews kitvas-ui: PREVIEWS_FAILED: no build/);
 
   state.disk = { key: OLD, stamp: undefined, fresh: false };
-  assert.equal(keeper.view('base').state, 'making');
+  assert.equal(keeper.view('kitvas-ui').state, 'making');
   assert.equal(started.length, 2);
 });
 
 test('a job that ended well but left stale previews for the same key is not started again', async () => {
   const { keeper, started, errors } = setup();
-  keeper.view('base');
+  keeper.view('kitvas-ui');
   started[0]?.finish({ state: 'succeeded', result: {} });
   await tick();
-  assert.deepEqual(keeper.view('base'), { state: 'none' });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'none' });
   assert.equal(started.length, 1);
   assert.equal(errors.length, 1);
 });
 
 test('a kit that cannot be built has none and starts nothing', () => {
   const { keeper, started } = setup({ key: undefined, stamp: undefined, fresh: false });
-  assert.deepEqual(keeper.view('base'), { state: 'none' });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'none' });
   assert.equal(started.length, 0);
 });
 
@@ -140,7 +140,7 @@ test('a read that breaks is logged and answers none, so the palette still answer
     },
     onError: (error) => errors.push(error),
   });
-  assert.deepEqual(keeper.view('base'), { state: 'none' });
+  assert.deepEqual(keeper.view('kitvas-ui'), { state: 'none' });
   assert.equal(errors.length, 1);
 });
 
@@ -152,14 +152,14 @@ test('a job the runner refuses as running is waited for, not started twice', () 
     jobs: {
       start: () => {
         starts += 1;
-        throw new KitvasError('JOB_RUNNING', { slug: 'base', job: 'other-job' });
+        throw new KitvasError('JOB_RUNNING', { slug: 'kitvas-ui', job: 'other-job' });
       },
       get: (id) => {
         assert.equal(id, 'other-job');
         return {
           id,
           kind: 'previews',
-          slug: 'base',
+          slug: 'kitvas-ui',
           state: 'running',
           createdAt: NOW.toISOString(),
           finishedAt: null,
@@ -170,8 +170,8 @@ test('a job the runner refuses as running is waited for, not started twice', () 
     },
     onError: (error) => errors.push(error),
   });
-  assert.equal(keeper.view('base').state, 'making');
-  assert.equal(keeper.view('base').state, 'making');
+  assert.equal(keeper.view('kitvas-ui').state, 'making');
+  assert.equal(keeper.view('kitvas-ui').state, 'making');
   assert.equal(starts, 1);
   assert.deepEqual(errors, []);
 });

@@ -16,7 +16,7 @@ test('creates the workspace with drafts, cache and a decisions file', () => {
   const text = readFileSync(join(cwd, '.kitvas', 'decisions.md'), 'utf8');
   assert.equal(text, decisionsTemplate());
   const parsed = parseDecisions(text);
-  assert.deepEqual(parsed.settings, { kit: 'base' });
+  assert.deepEqual(parsed.settings, { kit: 'kitvas-ui' });
   assert.deepEqual(parsed.warnings, []);
   for (const heading of ['Kits', 'Copy', 'Layout', 'Checks', 'Other']) {
     assert.match(parsed.body, new RegExp(`^## ${heading}$`, 'm'));

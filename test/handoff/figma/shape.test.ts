@@ -153,7 +153,7 @@ function shape(
   return shapeTree({
     slug: 'pricing',
     version: 2,
-    kit: 'base',
+    kit: 'kitvas-ui',
     state: 'default',
     sendId: 'abc123',
     frames,
@@ -252,7 +252,7 @@ test('an image layer gets its asset file, and the address it asked for does not 
   const none = shapeTree({
     slug: 's',
     version: 1,
-    kit: 'base',
+    kit: 'kitvas-ui',
     state: 'default',
     sendId: 'x',
     frames: [
@@ -326,7 +326,7 @@ test('the header of the tree', () => {
   assert.equal(tree.schemaVersion, 1);
   assert.deepEqual(
     [tree.slug, tree.version, tree.kit, tree.state, tree.sendId],
-    ['pricing', 2, 'base', 'default', 'abc123'],
+    ['pricing', 2, 'kitvas-ui', 'default', 'abc123'],
   );
 });
 
@@ -357,7 +357,7 @@ test('1,500 layers in a kit of 600 tokens shape at once', () => {
   const tree = shapeTree({
     slug: 's',
     version: 1,
-    kit: 'base',
+    kit: 'kitvas-ui',
     state: 'default',
     sendId: 'x',
     frames: [{ width: 1280, facts: facts(nodes) }],

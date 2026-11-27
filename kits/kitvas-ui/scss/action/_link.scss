@@ -1,0 +1,26 @@
+@use "../core/mixins";
+
+// `ink` text with an underline of the accent, which is a mark, not text. Thicker under the pointer.
+.kit-link {
+  display: inline;
+  border-radius: var(--kit-radius-sm);
+  color: var(--kit-color-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--kit-color-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-thickness var(--kit-motion-fast) var(--_ease-out);
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  &:focus-visible {
+    @include mixins.focus-ring;
+  }
+
+  &__icon {
+    margin-left: var(--kit-space-4);
+    vertical-align: -1px;
+  }
+}

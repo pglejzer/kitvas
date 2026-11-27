@@ -64,7 +64,7 @@ test('the two names the studio uses and the loopback address stay', () => {
 });
 
 test('versions and plain words are not touched', () => {
-  const text = 'Node v26.13.1, Windows_NT 10.0.26300 (x64), kit base 1.0.0, EPERM x14';
+  const text = 'Node v26.13.1, Windows_NT 10.0.26300 (x64), kit kitvas-ui 1.0.0, EPERM x14';
   assert.equal(redact(text, POSIX), text);
 });
 

@@ -73,7 +73,7 @@ function ruled(id: string, name: string, declarations: Declarations): Inspect {
   });
 }
 
-/** A Base `Stack`: `direction`, `align`, `justify` and `wrap` cover the flex keywords. */
+/** A kit's `Stack`: `direction`, `align`, `justify` and `wrap` cover the flex keywords. */
 function stack(overrides: Partial<Inspect> = {}): Inspect {
   const base = inspected();
   return inspected({

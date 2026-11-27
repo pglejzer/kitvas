@@ -1,0 +1,52 @@
+@use "../core/mixins";
+
+// The track has a real border of `ink-mid` (3 to 1 on every ground); the bar is the accent. A bar
+// whose length is not known moves along the track with `transform` only.
+.kit-progress {
+  display: grid;
+  gap: var(--kit-space-6);
+
+  &__head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--kit-space-8);
+    color: var(--kit-color-ink);
+    font-size: var(--kit-font-size-sm);
+    font-weight: var(--kit-font-weight-medium);
+  }
+
+  &__value {
+    color: var(--kit-color-ink-mid);
+  }
+
+  &__track {
+    box-sizing: border-box;
+    height: var(--kit-space-8);
+    overflow: hidden;
+    border: 1px solid var(--kit-color-ink-mid);
+    border-radius: var(--kit-radius-full);
+    background: #{mixins.quiet()};
+  }
+
+  &__bar {
+    display: block;
+    width: var(--_value, 40%);
+    height: 100%;
+    border-radius: var(--kit-radius-full);
+    background: var(--kit-color-accent);
+  }
+
+  &--unknown &__bar {
+    animation: kit-progress-slide 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes kit-progress-slide {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}

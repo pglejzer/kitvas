@@ -1,0 +1,116 @@
+@use "../core/mixins";
+
+// A field: a quiet fill and an edge the eye and the checks can see on every ground. The edge gets
+// stronger under the pointer, and the keyboard brings the focus ring. An error paints the edge and
+// the note in the fix tone, under the pointer too.
+.kit-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kit-space-4);
+  min-width: 0;
+  font-family: var(--kit-font-body);
+
+  &__label {
+    color: var(--kit-color-ink);
+    font-size: var(--kit-font-size-label);
+    font-weight: var(--kit-font-weight-medium);
+  }
+
+  &__control {
+    @include mixins.control;
+    @include mixins.boundary;
+
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0 var(--kit-space-8);
+    border-radius: var(--kit-radius-sm);
+    background: mixins.quiet();
+    color: var(--kit-color-ink);
+    font-family: inherit;
+    font-size: var(--kit-font-size-md);
+    transition: border-color var(--kit-motion-fast) var(--_ease-out);
+
+    &:hover:not(:disabled),
+    &:focus {
+      border-color: var(--kit-color-ink);
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+    }
+
+    &:disabled {
+      @include mixins.disabled;
+    }
+
+    &::placeholder {
+      color: var(--kit-color-ink-mid);
+      opacity: 1;
+    }
+
+    &--md {
+      padding: 0 var(--kit-space-10);
+    }
+
+    &--lg {
+      padding: 0 var(--kit-space-12);
+      font-size: var(--kit-font-size-lg);
+    }
+
+    // A textarea grows by the person's own drag, from two lines of the control's height.
+    &#{&}--area {
+      display: block;
+      height: auto;
+      min-height: calc(var(--_control) * 2);
+      padding-block: var(--kit-space-6);
+      line-height: var(--kit-line-height-normal);
+      resize: vertical;
+    }
+
+    // The search icon sits inside the box, on the left.
+    &#{&}--search {
+      padding-left: calc(var(--kit-space-8) + var(--kit-size-icon) + var(--kit-space-6));
+    }
+
+    // The date picker's own icon follows the theme's ground.
+    &[type="date"] {
+      color-scheme: light;
+    }
+  }
+
+  &__search {
+    position: relative;
+    display: block;
+  }
+
+  &__search-icon {
+    position: absolute;
+    top: 50%;
+    left: var(--kit-space-8);
+    translate: 0 -50%;
+    color: var(--kit-color-ink-mid);
+    pointer-events: none;
+  }
+
+  &__note {
+    margin: 0;
+    color: var(--kit-color-ink-mid);
+    font-size: var(--kit-font-size-sm);
+    line-height: var(--kit-line-height-normal);
+  }
+
+  &--error &__control,
+  &--error &__control:hover:not(:disabled),
+  &--error &__control:focus {
+    border-color: var(--kit-color-fix);
+  }
+
+  &--error &__note {
+    color: var(--kit-color-fix);
+  }
+}
+
+// Under a dark theme the native date picker icon is drawn for a dark ground.
+[data-opt-theme^="dark"] .kit-field__control[type="date"] {
+  color-scheme: dark;
+}

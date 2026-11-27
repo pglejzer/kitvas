@@ -19,7 +19,7 @@ export async function infoPage(id: string, doctor?: DoctorFn): Promise<string> {
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
     version: '1.0.0',
-    projectKit: () => 'base',
+    projectKit: () => 'kitvas-ui',
     ...(doctor === undefined ? {} : { doctor }),
   });
   const route = routes.find((candidate) => candidate.id === id);

@@ -149,25 +149,25 @@ test('a runner that breaks gives a failed job, not a stuck one', async () => {
 
 test('a catalog job runs `kit build <id>`, one per kit, apart from a draft of the same name', async () => {
   const { jobs, runner } = setup();
-  const catalog = jobs.start('catalog', 'base');
+  const catalog = jobs.start('catalog', 'kitvas-ui');
   assert.equal(catalog.kind, 'catalog');
-  assert.equal(catalog.slug, 'base');
-  assert.deepEqual(runner.started[0]?.args, ['kit', 'build', 'base']);
+  assert.equal(catalog.slug, 'kitvas-ui');
+  assert.deepEqual(runner.started[0]?.args, ['kit', 'build', 'kitvas-ui']);
   assert.throws(
-    () => jobs.start('catalog', 'base'),
+    () => jobs.start('catalog', 'kitvas-ui'),
     (error: unknown) =>
       isCode('JOB_RUNNING')(error) && (error as KitvasError).params.job === catalog.id,
   );
-  // A draft called `base` and the kit `base` are two targets.
-  const draft = jobs.start('build', 'base');
-  assert.deepEqual(runner.started[1]?.args, ['build', 'base']);
-  assert.throws(() => jobs.start('check', 'base'), isCode('JOB_RUNNING'));
+  // A draft called `kitvas-ui` and the kit `kitvas-ui` are two targets.
+  const draft = jobs.start('build', 'kitvas-ui');
+  assert.deepEqual(runner.started[1]?.args, ['build', 'kitvas-ui']);
+  assert.throws(() => jobs.start('check', 'kitvas-ui'), isCode('JOB_RUNNING'));
   assert.equal(jobs.start('catalog', 'other').state, 'running');
   runner.started[0]?.finish({ state: 'succeeded', result: { built: true } });
   await tick();
   assert.equal(jobs.get(catalog.id).state, 'succeeded');
   assert.equal(jobs.get(draft.id).state, 'running');
-  assert.equal(jobs.start('catalog', 'base').state, 'running');
+  assert.equal(jobs.start('catalog', 'kitvas-ui').state, 'running');
 });
 
 test('a build and a check of one draft exclude each other; the kind is the command', async () => {

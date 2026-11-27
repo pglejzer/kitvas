@@ -62,7 +62,7 @@ These apply when `options` in the context lists options (ADR 0082).
 
 - R-COMPOSE-19: Do not add `data-ks` yourself. The build stamps every host element; findings point to elements by those ids.
 - R-COMPOSE-20: Keep the JSX tree stable between versions: do not wrap or reorder elements without a reason, so ids do not shift.
-- R-COMPOSE-45: For an in-page link, put `id` with the section id on the section's root element and link to it as `href="#<id>"`. To name a region by its heading, give the heading an `id` and the region `aria-labelledby`. No other `id` attributes. `id`, `aria-*` and `title` are HTML attributes, not listed props: the `base` kit's components pass them to their element; with another kit put them only on plain elements or where the context lists them.
+- R-COMPOSE-45: For an in-page link, put `id` with the section id on the section's root element and link to it as `href="#<id>"`. To name a region by its heading, give the heading an `id` and the region `aria-labelledby`. No other `id` attributes. `id`, `aria-*` and `title` are HTML attributes, not listed props: the `kitvas-ui` kit's components pass them to their element; with another kit put them only on plain elements or where the context lists them.
 
 ## Accessibility
 
@@ -81,7 +81,7 @@ These apply when `options` in the context lists options (ADR 0082).
 - R-COMPOSE-34: No placeholder copy: no lorem ipsum, "Title here", "Click me" or "Item 1" (`ux/placeholder-text`).
 - R-COMPOSE-35: A heading sits closer to its own content than to the block above it. Set the gap above a heading larger than the gap below it, with spacing tokens.
 - R-COMPOSE-36: No card inside a card. Separate parts of a card with spacing or a divider (`ui/nested-frame`).
-- R-COMPOSE-37: Long text stays at about 80 characters per line or less: set a `max-width` from a `size` token, such as the base kit's `--kit-size-measure` for text and `--kit-size-page` for the whole content (`ui/line-length`).
+- R-COMPOSE-37: Long text stays at about 80 characters per line or less: set a `max-width` from a `size` token, such as the kitvas UI kit's `--kit-size-measure` for text and `--kit-size-page` for the whole content (`ui/line-length`).
 - R-COMPOSE-38: Body text is at least 14 px on phones. Use the kit's body size token and never shrink it for density.
 
 ## Rework

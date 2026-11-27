@@ -453,7 +453,7 @@ test('use needs an id, a kit that loads and the workspace', async () => {
   assert.match(h.error().message, /kit use needs a kit id/);
   assert.equal(await h.run('use', 'nope', '--json'), 6);
   assert.equal(await h.run('use', 'broken', '--json'), 7);
-  assert.equal(loadSettings({ home: h.io.home, cwd: h.io.cwd }).kit, 'base');
+  assert.equal(loadSettings({ home: h.io.home, cwd: h.io.cwd }).kit, 'kitvas-ui');
   const bare = harness();
   assert.equal(await bare.run('use', 'tiny', '--json'), 13);
 });
@@ -531,7 +531,7 @@ test('verify answers what the verify use case found, with a sentence per issue',
   );
 
   await h.run('verify', '--json');
-  assert.deepEqual(calls.at(-1), [cwd, 'base']);
+  assert.deepEqual(calls.at(-1), [cwd, 'kitvas-ui']);
 });
 
 test('verify needs the workspace', async () => {

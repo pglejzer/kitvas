@@ -6,6 +6,7 @@ import type { SharedBrowser } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
 import {
+  DEFAULT_KIT,
   memoryViewStore,
   PLUGIN_ROOT,
   type Translate,
@@ -244,7 +245,7 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       skin,
       frame: { port: framePort, key },
       version: deps.version,
-      projectKit: deps.projectKit ?? (() => 'base'),
+      projectKit: deps.projectKit ?? (() => DEFAULT_KIT),
       doctor: deps.doctor,
       ...(live ? { opened: (slug: string) => live.opened(slug) } : {}),
     }),

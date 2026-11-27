@@ -18,7 +18,7 @@ import { builtinKits } from '../../helpers/kit/kits.ts';
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const LAYOUT = 'md/layout.md';
 const HERO = 'src/tsx/sections/Hero.tsx';
 const HERO_SCSS = 'src/scss/sections/hero.scss';
@@ -40,7 +40,7 @@ const HERO_TSX = [
   'export function Hero() {',
   '  return (',
   '    <section className="hero">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   '        <Text>First</Text>',
   '        <Text>Second</Text>',
   `        ${BADGE_SOURCE}`,
@@ -52,7 +52,7 @@ const HERO_TSX = [
   '',
 ].join('\n');
 const HERO_SCSS_TEXT =
-  '.hero {\n  padding: var(--kit-space-lg);\n}\n\n.promo {\n  color: red;\n}\n';
+  '.hero {\n  padding: var(--kit-space-16);\n}\n\n.promo {\n  color: red;\n}\n';
 
 const SECTION = 'sections/Hero:section';
 const STACK = `${SECTION}/Stack`;
@@ -61,7 +61,7 @@ const SECOND = `${STACK}/Text.2`;
 const BADGE = `${STACK}/Badge`;
 const BUTTON = `${STACK}/Button`;
 
-/** The `shop` draft on the Base kit with its Badge locked. */
+/** The `shop` draft on the kitvas UI kit with its Badge locked. */
 function setup(): { store: DraftStore; deps: ApplyEditsDeps } {
   const { store } = tempDrafts();
   createDraft(store, { slug: 'shop', title: 'Shop', kit: BASE, now: NOW });
@@ -144,7 +144,7 @@ const refused: [string, EditOp][] = [
   ['pasting over it', { op: 'replaceElement', id: BADGE, source: '<Badge>Sale</Badge>' }],
   [
     'pasting over its parent without it',
-    { op: 'replaceElement', id: STACK, source: '<Stack gap="md"><Text>Only</Text></Stack>' },
+    { op: 'replaceElement', id: STACK, source: '<Stack gap="12"><Text>Only</Text></Stack>' },
   ],
   [
     'wrapping it with a sibling',

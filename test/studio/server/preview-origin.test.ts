@@ -11,9 +11,9 @@ const SET = 'v1-0123456789abcdef';
 /** The frame key, read from the kit page like the browser does. */
 async function frameKey(studio: Studio): Promise<string> {
   const cookie = await pageCookie(studio);
-  const page = await call(studio.port, { path: '/kit/base', headers: { cookie } });
+  const page = await call(studio.port, { path: '/kit/kitvas-ui', headers: { cookie } });
   assert.equal(page.status, 200);
-  const found = /src="http:\/\/127\.0\.0\.1:\d+\/k\/([^/]+)\/base\/html\/index\.html/.exec(
+  const found = /src="http:\/\/127\.0\.0\.1:\d+\/k\/([^/]+)\/kitvas-ui\/html\/index\.html/.exec(
     page.text,
   );
   const key = found?.[1];
@@ -21,7 +21,7 @@ async function frameKey(studio: Studio): Promise<string> {
   return key;
 }
 
-/** The base kit's catalog with a set of previews beside its build; the catalog folder. */
+/** The built-in kit's catalog with a set of previews beside its build; the catalog folder. */
 function writePreviews(project: string): string {
   const dir = writeCatalog(project);
   const files: Record<string, string> = {
@@ -43,7 +43,7 @@ test('a preview is served on the prototype origin as a PNG, with its headers', a
     writePreviews(project);
     const key = await frameKey(studio);
     const answer = await call(studio.framePort, {
-      path: `/k/${key}/base/previews/${SET}/component-0.png`,
+      path: `/k/${key}/kitvas-ui/previews/${SET}/component-0.png`,
     });
     assert.equal(answer.status, 200);
     assert.equal(answer.headers['content-type'], 'image/png');
@@ -61,7 +61,7 @@ test('the stamp, other files, a wrong key and paths out of the folder answer 404
   try {
     writePreviews(project);
     const key = await frameKey(studio);
-    const base = `/k/${key}/base`;
+    const base = `/k/${key}/kitvas-ui`;
     const refused = [
       `${base}/previews/previews.json`,
       `${base}/previews/${SET}/notes.html`,
@@ -69,7 +69,7 @@ test('the stamp, other files, a wrong key and paths out of the folder answer 404
       `${base}/previews/${SET}/../../build/json/catalog.json`,
       `${base}/previews/${SET}%2f..%2f..%2fverify.json`,
       `${base}/previews\\${SET}\\component-0.png`,
-      `/k/${'x'.repeat(22)}/base/previews/${SET}/component-0.png`,
+      `/k/${'x'.repeat(22)}/kitvas-ui/previews/${SET}/component-0.png`,
       `/k/${key}/nokit/previews/${SET}/component-0.png`,
     ];
     for (const path of refused) {
@@ -98,7 +98,7 @@ test('a symbolic link among the previews is never followed', async (t) => {
     }
     const key = await frameKey(studio);
     const answer = await call(studio.framePort, {
-      path: `/k/${key}/base/previews/${SET}/link.png`,
+      path: `/k/${key}/kitvas-ui/previews/${SET}/link.png`,
     });
     assert.equal(answer.status, 404);
   } finally {

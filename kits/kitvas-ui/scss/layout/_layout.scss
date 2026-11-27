@@ -1,0 +1,154 @@
+@use "../core/mixins";
+
+// --_gap and --_columns are set inline by Stack and Grid.
+
+.kit-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--_gap, var(--kit-space-12));
+
+  &--row {
+    flex-direction: row;
+  }
+
+  &--wrap {
+    flex-wrap: wrap;
+  }
+
+  &--align-start {
+    align-items: flex-start;
+  }
+
+  &--align-center {
+    align-items: center;
+  }
+
+  &--align-end {
+    align-items: flex-end;
+  }
+
+  &--align-stretch {
+    align-items: stretch;
+  }
+
+  &--justify-start {
+    justify-content: flex-start;
+  }
+
+  &--justify-center {
+    justify-content: center;
+  }
+
+  &--justify-end {
+    justify-content: flex-end;
+  }
+
+  &--justify-between {
+    justify-content: space-between;
+  }
+}
+
+.kit-grid {
+  --_now: var(--_columns, 1);
+
+  display: grid;
+  grid-template-columns: repeat(var(--_now), minmax(0, 1fr));
+  gap: var(--_gap, var(--kit-space-12));
+}
+
+// Three columns or more are two on a tablet (ADR 0074).
+@media (max-width: 960px) {
+  .kit-grid--wide {
+    --_now: 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .kit-grid--collapse {
+    --_now: 1;
+  }
+}
+
+// A label and its control. The label column is at least `--kit-size-label` wide, so short
+// labels line up down a list; a longer label takes the room it needs, up to half the row.
+.kit-row {
+  display: grid;
+  grid-template-columns: fit-content(50%) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--kit-space-8);
+  min-height: var(--kit-size-row);
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    min-width: var(--kit-size-label);
+  }
+
+  &__label {
+    color: var(--kit-color-ink-mid);
+    font-size: var(--kit-font-size-label);
+  }
+
+  &__hint {
+    color: var(--kit-color-ink-mid);
+    font-size: var(--kit-font-size-sm);
+    line-height: var(--kit-line-height-normal);
+  }
+
+  &__control {
+    min-width: 0;
+  }
+}
+
+// A thin divider between groups of controls, or between blocks.
+.kit-separator {
+  flex: none;
+  margin: 0;
+  border: 0;
+  background: var(--kit-color-line);
+
+  &--horizontal {
+    width: 100%;
+    height: 1px;
+  }
+
+  &--vertical {
+    width: 1px;
+    height: var(--kit-space-16);
+  }
+}
+
+// The bar at the top of a page: three slots, the middle one centred while there is room. On a
+// narrow page the slots wrap onto more lines instead of running over each other.
+.kit-bar {
+  @include mixins.on-panel;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--kit-space-4) var(--kit-space-12);
+  box-sizing: border-box;
+  min-height: var(--kit-size-bar);
+  padding: var(--kit-space-6) var(--kit-space-12);
+  border-bottom: 1px solid var(--kit-color-line);
+  background: var(--kit-color-panel);
+  color: var(--kit-color-ink);
+  font-family: var(--kit-font-body);
+
+  &__start,
+  &__middle,
+  &__end {
+    display: flex;
+    align-items: center;
+    gap: var(--kit-space-4);
+  }
+
+  &__start,
+  &__end {
+    flex: 1 1 0;
+  }
+
+  &__end {
+    justify-content: flex-end;
+  }
+}

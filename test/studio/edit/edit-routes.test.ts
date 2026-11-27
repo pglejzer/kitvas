@@ -16,7 +16,7 @@ import { etagOf } from '../../../src/studio/http/etag.ts';
 import { NOW, tempDrafts } from '../../helpers/draft/drafts.ts';
 import { call, studioOver } from '../../helpers/studio/studio.ts';
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';
 const SCSS_FILE = 'src/scss/sections/pricing.scss';
 const STACK = 'sections/Pricing:section/Stack';
@@ -27,7 +27,7 @@ const PRICING_TSX = [
   'export function Pricing(_props: { state: string }) {',
   '  return (',
   '    <section className="pricing">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   '        <Text>Plans</Text>',
   '      </Stack>',
   '    </section>',
@@ -43,7 +43,7 @@ type Written = { slug: string; version: number; etags: Record<string, string> };
 
 const json = <T>(text: string): T => JSON.parse(text) as T;
 
-/** The `shop` draft on the Base kit with one section, `pricing`. */
+/** The `shop` draft on the kitvas UI kit with one section, `pricing`. */
 function pricingDrafts(): DraftStore {
   const { store } = tempDrafts();
   createDraft(store, { slug: 'shop', title: 'Shop', kit: BASE, now: NOW });
@@ -106,9 +106,9 @@ test("the edit state names the version, the session, the files' ETags and the to
       [TSX_FILE]: etagOf(PRICING_TSX),
     });
     assert.deepEqual(
-      state.tokens.find((token) => token.var === '--kit-space-md'),
+      state.tokens.find((token) => token.var === '--kit-space-12'),
       // `added`: the kit's own token, not one the project added (plan 25, C8).
-      { var: '--kit-space-md', path: 'space.md', type: 'dimension', css: '12px', added: false },
+      { var: '--kit-space-12', path: 'space.12', type: 'dimension', css: '12px', added: false },
     );
   } finally {
     await studio.close();
@@ -177,12 +177,12 @@ test('the first edit starts a version, the next goes into it, and saving ends it
   try {
     const first = await post(EDITS, {
       version: 1,
-      ops: [setGap('lg', 'md')],
+      ops: [setGap('16', '12')],
       etags: { [TSX_FILE]: etagOf(PRICING_TSX) },
     });
     assert.equal(first.status, 200, first.text);
     const v2 = drafts.readText('shop', `v2/${TSX_FILE}`) ?? '';
-    assert.equal(v2, PRICING_TSX.replace('gap="md"', 'gap="lg"'));
+    assert.equal(v2, PRICING_TSX.replace('gap="12"', 'gap="16"'));
     assert.equal(drafts.readText('shop', `v1/${TSX_FILE}`), PRICING_TSX, 'v1 is kept');
     const etags = { [TSX_FILE]: etagOf(v2) };
     assert.deepEqual(json<EditOutcome>(first.text), {
@@ -197,8 +197,8 @@ test('the first edit starts a version, the next goes into it, and saving ends it
           op: 'setProp',
           id: STACK,
           name: 'gap',
-          value: { kind: 'string', value: 'md' },
-          before: { kind: 'string', value: 'lg' },
+          value: { kind: 'string', value: '12' },
+          before: { kind: 'string', value: '16' },
           after: null,
         },
       ],
@@ -219,13 +219,13 @@ test('the first edit starts a version, the next goes into it, and saving ends it
     assert.equal(open.version, 2);
     assert.equal(open.session?.version, 2);
 
-    const second = await post(EDITS, { version: 2, ops: [setGap('xl', 'lg')], etags });
+    const second = await post(EDITS, { version: 2, ops: [setGap('24', '16')], etags });
     assert.equal(second.status, 200, second.text);
     const outcome = json<EditOutcome>(second.text);
     assert.equal(outcome.outcome, 'applied');
     assert.equal(outcome.version, 2);
     assert.equal(outcome.outcome === 'applied' && outcome.started, false);
-    assert.match(drafts.readText('shop', `v2/${TSX_FILE}`) ?? '', /<Stack gap="xl">/);
+    assert.match(drafts.readText('shop', `v2/${TSX_FILE}`) ?? '', /<Stack gap="24">/);
     assert.equal(drafts.exists('shop', 'v3'), false);
     // A later edit names only the file it writes.
     assert.deepEqual(Object.keys(before[1]?.etags ?? {}), [TSX_FILE]);
@@ -288,7 +288,7 @@ test('a refused edit answers no live findings', async () => {
   try {
     const answer = await post(EDITS, {
       version: 1,
-      ops: [{ ...setGap('lg', 'md'), id: `${STACK}/Grid` }],
+      ops: [{ ...setGap('16', '12'), id: `${STACK}/Grid` }],
       etags: { [TSX_FILE]: etagOf(PRICING_TSX) },
     });
     assert.equal(answer.status, 200, answer.text);
@@ -304,7 +304,7 @@ test('Undo save reopens the ended session only while its version is the latest',
   const { drafts, studio, errors, get, post, auth } = await editStudio();
   try {
     const etags = { [TSX_FILE]: etagOf(PRICING_TSX) };
-    assert.equal((await post(EDITS, { version: 1, ops: [setGap('lg', 'md')], etags })).status, 200);
+    assert.equal((await post(EDITS, { version: 1, ops: [setGap('16', '12')], etags })).status, 200);
     const session = json<EditState>((await get(EDITS)).text).session;
     assert.ok(session);
     // Still open: nothing to reopen.
@@ -342,9 +342,9 @@ test('an edit of a version that is no longer the latest is refused as stale', as
   const { studio, post } = await editStudio();
   try {
     const etags = { [TSX_FILE]: etagOf(PRICING_TSX) };
-    const first = await post(EDITS, { version: 1, ops: [setGap('lg', 'md')], etags });
+    const first = await post(EDITS, { version: 1, ops: [setGap('16', '12')], etags });
     assert.equal(first.status, 200, first.text);
-    const stale = await post(EDITS, { version: 1, ops: [setGap('xl', 'lg')], etags });
+    const stale = await post(EDITS, { version: 1, ops: [setGap('24', '16')], etags });
     assert.equal(stale.status, 409);
     assert.equal(json<Problem>(stale.text).code, 'EDIT_STALE_VERSION');
   } finally {
@@ -356,12 +356,12 @@ test("a write without the studio's Origin is refused, and so is an op on no sour
   const { drafts, studio, auth, post } = await editStudio();
   try {
     const noOrigin = { ...auth, 'content-type': 'application/json' };
-    const edit = { version: 1, ops: [setGap('lg', 'md')], etags: {} };
+    const edit = { version: 1, ops: [setGap('16', '12')], etags: {} };
     assert.equal((await post(EDITS, edit, noOrigin)).status, 403);
     assert.equal((await post(`${EDITS}/end`, {}, noOrigin)).status, 403);
     const outside = await post(EDITS, {
       ...edit,
-      ops: [{ ...setGap('lg', 'md'), id: '../x:div' }],
+      ops: [{ ...setGap('16', '12'), id: '../x:div' }],
     });
     assert.equal(outside.status, 422);
     const problem = json<Problem>(outside.text);
@@ -422,7 +422,7 @@ const LISTED_TSX = [
   'export function Pricing(_props: { state: string }) {',
   '  return (',
   '    <section className="pricing">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   '        {plans.map((plan) => (',
   "          <Text key={plan.name}>{plan.name === 'Pro' ? 'Pro plan' : plan.name}</Text>",
   '        ))}',

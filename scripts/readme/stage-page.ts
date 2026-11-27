@@ -5,7 +5,8 @@
 export type StageSetup = { logo: string; unit: number };
 
 type InPage = {
-  glide(x: number, y: number, ms: number): Promise<void>;
+  /** `points` is the way as x and y in turn, spread evenly over `ms`. */
+  glide(points: number[], ms: number): Promise<void>;
   press(): void;
   say(text: string, code: string): void;
   card(label: string | null): Promise<void>;
@@ -133,15 +134,21 @@ export function install(setup: StageSetup): void {
     });
 
   window.kitvasStage = {
-    glide(x, y, ms) {
+    glide(points, ms) {
       stage();
-      const from = { ...place };
+      const way = [place.x, place.y, ...points];
+      const last = way.length / 2 - 1;
+      const at = (index: number): number => way[index] ?? 0;
       return new Promise((done) => {
         const start = performance.now();
         const step = (now: number): void => {
           const t = Math.min((now - start) / ms, 1);
-          const eased = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-          put(from.x + (x - from.x) * eased, from.y + (y - from.y) * eased);
+          const from = Math.min(Math.floor(t * last), last - 1);
+          const part = t * last - from;
+          put(
+            at(from * 2) + (at(from * 2 + 2) - at(from * 2)) * part,
+            at(from * 2 + 1) + (at(from * 2 + 3) - at(from * 2 + 1)) * part,
+          );
           if (t < 1) requestAnimationFrame(step);
           else done();
         };
@@ -273,9 +280,12 @@ export function install(setup: StageSetup): void {
             done();
             return;
           }
-          target.textContent += text[index] ?? '';
+          const letter = text[index] ?? '';
+          target.textContent += letter;
           index += 1;
-          setTimeout(next, perLetter * (0.55 + Math.random() * 0.9));
+          // A hand slows down between words.
+          const pause = letter === ' ' ? 1.7 : 1;
+          setTimeout(next, perLetter * pause * (0.55 + Math.random() * 0.9));
         };
         next();
       });

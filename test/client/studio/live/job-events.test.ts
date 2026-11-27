@@ -32,7 +32,7 @@ test('a running or cancelled job, another event or a bad payload names none', ()
 
 test('a catalog job builds a kit, so it names no draft and refreshes no page', () => {
   for (const state of ['succeeded', 'failed']) {
-    const catalog = job({ kind: 'catalog', slug: 'base', state, result: { built: true } });
+    const catalog = job({ kind: 'catalog', slug: 'kitvas-ui', state, result: { built: true } });
     assert.equal(endedJobSlug(catalog), undefined, state);
     assert.equal(
       needsRefresh(catalog, () => true),
@@ -40,24 +40,24 @@ test('a catalog job builds a kit, so it names no draft and refreshes no page', (
       state,
     );
     assert.equal(
-      needsRefresh(catalog, (slug) => slug === 'base'),
+      needsRefresh(catalog, (slug) => slug === 'kitvas-ui'),
       false,
       state,
     );
   }
   // A draft may share the kit's name; its own jobs still refresh it.
-  const draft = job({ kind: 'build', slug: 'base', state: 'succeeded' });
+  const draft = job({ kind: 'build', slug: 'kitvas-ui', state: 'succeeded' });
   assert.equal(
-    needsRefresh(draft, (slug) => slug === 'base'),
+    needsRefresh(draft, (slug) => slug === 'kitvas-ui'),
     true,
   );
 });
 
 test('a job event is read as a plain object, anything else as nothing', () => {
-  const fields = { kind: 'catalog', slug: 'base', state: 'running' };
+  const fields = { kind: 'catalog', slug: 'kitvas-ui', state: 'running' };
   assert.deepEqual(jobOf(job(fields)), fields);
-  assert.equal(jobOf({ event: 'inbox', data: '{"slug":"base"}' }), undefined);
-  for (const data of ['', 'not json', 'null', '[]', '7', '"base"']) {
+  assert.equal(jobOf({ event: 'inbox', data: '{"slug":"kitvas-ui"}' }), undefined);
+  for (const data of ['', 'not json', 'null', '[]', '7', '"kitvas-ui"']) {
     assert.equal(jobOf({ event: 'job', data }), undefined, data);
   }
 });

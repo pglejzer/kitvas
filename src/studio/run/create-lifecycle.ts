@@ -3,7 +3,13 @@
 import type { SharedBrowser } from '../../checks/index.ts';
 import type { DraftStore } from '../../drafts/index.ts';
 import type { KitStore } from '../../kit/index.ts';
-import { createViewStore, KitvasError, loadSettings, type Translate } from '../../shared/index.ts';
+import {
+  createViewStore,
+  DEFAULT_KIT,
+  KitvasError,
+  loadSettings,
+  type Translate,
+} from '../../shared/index.ts';
 import type { EditDeps } from '../api/edit/edit-routes.ts';
 import type { ImageStore } from '../api/images/image-rules.ts';
 import { LinkSchema } from '../api/schemas.ts';
@@ -140,7 +146,7 @@ export function serveProject(input: ServeInput): Promise<StudioState> {
       try {
         return loadSettings({ home: input.home, cwd: input.project }).kit;
       } catch {
-        return 'base';
+        return DEFAULT_KIT;
       }
     },
     files: studioFiles(input.dataDir, input.project),

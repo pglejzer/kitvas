@@ -7,6 +7,7 @@ import { workspaceDir } from '../env/paths.ts';
 import { KitvasError } from '../errors/errors.ts';
 import {
   DEFAULT_DECISION_SETTINGS,
+  DEFAULT_KIT,
   type DecisionSettings,
   type DecisionWarning,
   decisionsTemplate,
@@ -49,9 +50,9 @@ function migrateConfig(cwd: string): void {
   // config (language, view), which is not touched.
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return;
   if (Object.keys(raw).some((key) => key !== 'schemaVersion' && key !== 'kit')) return;
-  const kit = 'kit' in raw && typeof raw.kit === 'string' ? raw.kit : 'base';
+  const kit = 'kit' in raw && typeof raw.kit === 'string' ? raw.kit : DEFAULT_KIT;
   // A value that does not fit a line of the front matter is not carried over.
-  writeFileSync(file, decisionsTemplate(/^\S+$/.test(kit) ? kit : 'base'));
+  writeFileSync(file, decisionsTemplate(/^\S+$/.test(kit) ? kit : DEFAULT_KIT));
   unlinkSync(old);
 }
 

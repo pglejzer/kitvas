@@ -11,7 +11,7 @@ import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
 import { NOW, tempDrafts } from '../../helpers/draft/drafts.ts';
 import { builtinKits } from '../../helpers/kit/kits.ts';
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';
 const SCSS_FILE = 'src/scss/sections/pricing.scss';
 
@@ -33,8 +33,8 @@ const TSX = [
 const scss = (hero: string): string =>
   [
     '.pricing {\n  display: block;\n}',
-    '.grid {\n  display: flex;\n  gap: var(--kit-space-md);\n}',
-    '.box {\n  padding: var(--kit-space-lg);\n}',
+    '.grid {\n  display: flex;\n  gap: var(--kit-space-12);\n}',
+    '.box {\n  padding: var(--kit-space-16);\n}',
     `.hero {\n  background-color: ${hero};\n}`,
     '',
   ].join('\n');
@@ -83,9 +83,9 @@ test('a token gap, a token padding, an off-kit colour and a plain button are fou
   // The section, the plain div and nothing else say nothing about the kit.
   assert.equal(lens.elements.length, 4);
   const gap = lens.elements.find((each) => each.spacing.some((s) => s.property === 'gap'));
-  assert.deepEqual(gap?.spacing, [{ property: 'gap', token: 'space-md', value: '12px' }]);
+  assert.deepEqual(gap?.spacing, [{ property: 'gap', token: 'space-12', value: '12px' }]);
   const padding = lens.elements.find((each) => each.spacing.some((s) => s.property === 'padding'));
-  assert.deepEqual(padding?.spacing, [{ property: 'padding', token: 'space-lg', value: '16px' }]);
+  assert.deepEqual(padding?.spacing, [{ property: 'padding', token: 'space-16', value: '16px' }]);
   const off = lens.elements.find((each) => each.offKit.length > 0);
   assert.deepEqual(off?.offKit, [{ property: 'background-color', value: '#1a73e8' }]);
   const button = lens.elements.find((each) => each.suggest !== null);

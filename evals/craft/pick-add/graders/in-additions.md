@@ -1,6 +1,6 @@
 ---
 type: file_exists
-path: '**/.kitvas/additions/base/components/BookingIcon.tsx'
+path: '**/.kitvas/additions/kitvas-ui/components/BookingIcon.tsx'
 ---
 
-The component is in kitvas's additions layer of the Base kit.
+The component is in kitvas's additions layer of the kitvas UI kit.

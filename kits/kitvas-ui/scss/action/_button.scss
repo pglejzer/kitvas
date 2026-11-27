@@ -1,0 +1,127 @@
+@use "../core/mixins";
+
+// A tone sets the colours; a variant picks how they are laid. Under the pointer and while pressed
+// the button takes an edge of the tone and may change its fill; the text never gets weaker
+// (ADR 0085). Text follows the kit's colour pairs (AGENTS.md): `ink` on every soft fill, and the
+// accent is never a text colour. The edge is a border, never a shadow.
+.kit-button {
+  @include mixins.control;
+
+  display: inline-flex;
+  height: fit-content;
+  min-height: var(--_control);
+  align-items: center;
+  justify-content: center;
+  gap: var(--kit-space-6);
+  padding: 0 var(--kit-space-10);
+  border: 1px solid var(--_edge, transparent);
+  border-radius: var(--kit-radius-sm);
+  background: transparent;
+  font-family: var(--kit-font-body);
+  font-size: var(--kit-font-size-md);
+  font-weight: var(--kit-font-weight-medium);
+  line-height: var(--kit-line-height-normal);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  // A label is not text to select: a double click beside a button or a drag across a row took it.
+  user-select: none;
+  transition:
+    background-color var(--kit-motion-fast) var(--_ease-out),
+    color var(--kit-motion-fast) var(--_ease-out),
+    border-color var(--kit-motion-fast) var(--_ease-out);
+
+  &:focus-visible {
+    @include mixins.focus-ring;
+  }
+
+  &:disabled {
+    @include mixins.disabled;
+  }
+
+  &--md {
+    padding: 0 var(--kit-space-12);
+  }
+
+  &--lg {
+    padding: 0 var(--kit-space-16);
+    font-size: var(--kit-font-size-lg);
+  }
+
+  // Tones: `--_fill` and `--_on` for a solid button; `--_soft` is the fill of the others, `--_rest`
+  // the text of an outline button on the ground and `--_plain` that of a plain one. `--_ring` is
+  // the tone's edge, `--_ring-solid` the edge of a solid button, which lies on its fill.
+  &--neutral {
+    --_fill: #{mixins.quiet-strong()};
+    --_on: var(--kit-color-ink);
+    --_soft: #{mixins.quiet()};
+    --_rest: var(--kit-color-ink);
+    --_plain: var(--kit-color-ink-mid);
+    --_ring: var(--kit-color-ink-mid);
+    --_ring-solid: var(--kit-color-ink-mid);
+  }
+
+  &--accent {
+    --_fill: var(--kit-color-accent);
+    --_on: var(--kit-color-on-accent);
+    --_soft: var(--kit-color-accent-soft);
+    --_rest: var(--kit-color-ink);
+    --_plain: var(--kit-color-ink);
+    --_ring: var(--kit-color-accent);
+    --_ring-solid: var(--kit-color-on-accent);
+  }
+
+  &--danger {
+    --_fill: var(--kit-color-fix);
+    --_on: var(--kit-color-on-tone);
+    --_soft: var(--kit-color-fix-soft);
+    --_rest: var(--kit-color-fix);
+    --_plain: var(--kit-color-fix);
+    --_ring: var(--kit-color-fix);
+    --_ring-solid: var(--kit-color-on-tone);
+  }
+
+  // Variants. `--_hover` is the edge the button takes under the pointer and while pressed.
+  &--solid {
+    --_hover: var(--_ring-solid);
+
+    background: var(--_fill);
+    color: var(--_on);
+  }
+
+  &--soft {
+    --_hover: var(--_ring);
+
+    background: var(--_soft);
+    color: var(--kit-color-ink);
+  }
+
+  &--outline {
+    --_edge: var(--_ring);
+    --_hover: var(--_ring);
+
+    color: var(--_rest);
+  }
+
+  &--plain {
+    --_hover: var(--_ring);
+
+    color: var(--_plain);
+  }
+
+  // An outline or a plain button fills under the pointer and while it is on; its text turns `ink`.
+  &--outline:hover:not(:disabled),
+  &--plain:hover:not(:disabled),
+  &--plain[aria-pressed="true"],
+  &--plain[aria-expanded="true"] {
+    background: var(--_soft);
+    color: var(--kit-color-ink);
+  }
+
+  &:hover:not(:disabled),
+  &:active:not(:disabled),
+  &[aria-pressed="true"],
+  &[aria-expanded="true"] {
+    --_edge: var(--_hover);
+  }
+}

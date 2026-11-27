@@ -1,9 +1,12 @@
 ---
 type: regex
-pattern: '^(?=[\s\S]*\balert\b)(?=[\s\S]*\bcheck\b)(?=[\s\S]*chevron-down)(?=[\s\S]*chevron-right)(?=[\s\S]*\bclose\b)(?=[\s\S]*\bminus\b)(?=[\s\S]*\bplus\b)(?=[\s\S]*\bsearch\b)'
+pattern: '^(?=[\s\S]*\b112\b)(?:[\s\S]*?\b(?:pipette|check-circle|tab-claude|align-between|eye-off|chevron-up|tab-properties|arrow-left|duplicate|sliders|laptop|unlock)\b){5}'
 flags: i
 match: contains
 target: last_message
 ---
 
-The answer lists the eight icons of the Base kit.
+The answer says the kit has 112 icons and names at least five of these: pipette, check-circle, tab-claude,
+align-between, eye-off, chevron-up, tab-properties, arrow-left, duplicate, sliders, laptop, unlock. The kit
+has too many icons for a short answer to name them all, so the count and a sample that only a run that
+really read the kit would give stand in for the full list.

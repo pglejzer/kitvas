@@ -223,7 +223,7 @@ test('the calls of probe P1 run on the fake: variables, a bound fill and gap, te
   const { figma, snapshot } = createFigmaFake();
   const result = await runScript(
     lines(
-      "const collection = figma.variables.createVariableCollection('kitvas · base');",
+      "const collection = figma.variables.createVariableCollection('kitvas · kitvas-ui');",
       "collection.renameMode(collection.modes[0].modeId, 'Default');",
       "const ink = figma.variables.createVariable('color/ink', collection, 'COLOR');",
       "ink.scopes = ['FRAME_FILL', 'SHAPE_FILL'];",
@@ -261,7 +261,7 @@ test('the calls of probe P1 run on the fake: variables, a bound fill and gap, te
   assert.equal(document.nodes.Frame?.[0]?.frame?.svg, SVG);
   assert.deepEqual(
     document.collections.map((collection) => [collection.name, collection.modes]),
-    [['kitvas · base', ['Default']]],
+    [['kitvas · kitvas-ui', ['Default']]],
   );
   const ink = document.variables.find((variable) => variable.name === 'color/ink');
   assert.deepEqual(ink?.scopes, ['FRAME_FILL', 'SHAPE_FILL']);
@@ -279,7 +279,7 @@ test('the calls of probe P1 run on the fake: variables, a bound fill and gap, te
 
 test('variables refuse what Figma refuses: a scope of another type, a bad name, a twin', async () => {
   const { figma } = createFigmaFake();
-  const make = "const set = figma.variables.createVariableCollection('kitvas · base');";
+  const make = "const set = figma.variables.createVariableCollection('kitvas · kitvas-ui');";
   const refused: [string, RegExp][] = [
     [
       "figma.variables.createVariable('color/a', set, 'COLOR').scopes = ['GAP'];",

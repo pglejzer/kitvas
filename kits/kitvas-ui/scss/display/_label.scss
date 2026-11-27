@@ -1,0 +1,190 @@
+@use "../core/mixins";
+
+// Short labels. Text is `ink` on every fill (the kit's colour pairs); a tone shows as its soft fill
+// and, on a chip, as a dot of its colour. The accent and the tones are never text.
+.kit-badge,
+.kit-chip,
+.kit-count {
+  --_fill: #{mixins.quiet()};
+
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--kit-size-chip);
+  background: var(--_fill);
+  color: var(--kit-color-ink);
+  font-size: var(--kit-font-size-sm);
+  line-height: var(--kit-line-height-tight);
+  white-space: nowrap;
+}
+
+.kit-badge {
+  padding: 0 var(--kit-space-6);
+  border-radius: var(--kit-radius-sm);
+  font-weight: var(--kit-font-weight-medium);
+
+  &--fix {
+    --_fill: var(--kit-color-fix-soft);
+  }
+
+  &--review {
+    --_fill: var(--kit-color-review-soft);
+  }
+
+  &--good {
+    --_fill: var(--kit-color-good-soft);
+  }
+}
+
+.kit-chip {
+  --_tone: var(--kit-color-ink-mid);
+
+  gap: var(--kit-space-4);
+  padding: 0 var(--kit-space-6);
+  border-radius: var(--kit-radius-sm);
+
+  // A tone: its soft fill, and a dot of its colour before the text.
+  &--accent,
+  &--good,
+  &--review,
+  &--fix {
+    &::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      flex: none;
+      border-radius: var(--kit-radius-full);
+      background: var(--_tone);
+    }
+  }
+
+  &--accent {
+    --_fill: var(--kit-color-accent-soft);
+    --_tone: var(--kit-color-accent);
+  }
+
+  &--good {
+    --_fill: var(--kit-color-good-soft);
+    --_tone: var(--kit-color-good);
+  }
+
+  &--review {
+    --_fill: var(--kit-color-review-soft);
+    --_tone: var(--kit-color-review);
+  }
+
+  &--fix {
+    --_fill: var(--kit-color-fix-soft);
+    --_tone: var(--kit-color-fix);
+  }
+
+  // The remove button: a small control inside the chip. Its pointer target reaches
+  // `--kit-size-target` through the pseudo-element, so the chip itself stays small.
+  &__remove {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-right: calc(var(--kit-space-4) * -1);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--kit-radius-full);
+    background: transparent;
+    color: var(--kit-color-ink-mid);
+    cursor: pointer;
+    transition:
+      background-color var(--kit-motion-fast) var(--_ease-out),
+      color var(--kit-motion-fast) var(--_ease-out),
+      border-color var(--kit-motion-fast) var(--_ease-out);
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: var(--kit-size-target);
+      height: var(--kit-size-target);
+      transform: translate(-50%, -50%);
+    }
+
+    &:hover {
+      background: #{mixins.quiet-strong()};
+      color: var(--kit-color-ink);
+    }
+
+    &:active {
+      border-color: var(--kit-color-ink-mid);
+      color: var(--kit-color-ink);
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+    }
+  }
+}
+
+// A pill is a chip you may press. Rest and hover keep the text `ink`; the edge comes and goes.
+.kit-pill {
+  @include mixins.control;
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kit-space-6);
+  padding: 0 var(--kit-space-10);
+  border: 1px solid transparent;
+  border-radius: var(--kit-radius-full);
+  background: #{mixins.quiet()};
+  color: var(--kit-color-ink);
+  font-family: var(--kit-font-body);
+  font-size: var(--kit-font-size-sm);
+  font-weight: var(--kit-font-weight-medium);
+  line-height: var(--kit-line-height-normal);
+  white-space: nowrap;
+
+  &--action {
+    cursor: pointer;
+    user-select: none;
+    transition:
+      background-color var(--kit-motion-fast) var(--_ease-out),
+      border-color var(--kit-motion-fast) var(--_ease-out);
+
+    &:hover:not(:disabled) {
+      border-color: var(--kit-color-ink-mid);
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+    }
+
+    &:disabled {
+      @include mixins.disabled;
+    }
+  }
+
+  &[aria-pressed="true"],
+  &[aria-pressed="true"]:hover:not(:disabled) {
+    border-color: var(--kit-color-accent);
+    background: var(--kit-color-accent-soft);
+    color: var(--kit-color-ink);
+  }
+}
+
+.kit-count {
+  --_fill: #{mixins.quiet-strong()};
+
+  justify-content: center;
+  min-width: var(--kit-size-chip);
+  padding: 0 var(--kit-space-4);
+  border-radius: var(--kit-radius-full);
+  font-weight: var(--kit-font-weight-medium);
+
+  &--review {
+    --_fill: var(--kit-color-review-soft);
+  }
+
+  &--fix {
+    --_fill: var(--kit-color-fix-soft);
+  }
+}

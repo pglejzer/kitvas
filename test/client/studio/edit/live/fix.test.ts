@@ -48,7 +48,7 @@ const FIX = token('color.fix', 'color-fix', 'color', '#b3331f');
 const SURFACE = token('color.surface', 'color-surface', 'color', '#ffffff');
 const VEIL = token('color.veil', 'color-veil', 'color', 'rgb(29 32 37 / 0.4)');
 
-/** Base's tokens, as far as these rules read them; `space.xl` is 24 px but no size. */
+/** A kit's tokens, as far as these rules read them; `space.xl` is 24 px but no size. */
 const BASE = [SPACE_XL, SIZE_SM, SIZE_ICON, SIZE, INK, INK_MID, INK_SOFT, FIX, SURFACE, VEIL];
 
 type Declarations = NonNullable<Inspect['scss']>['declarations'];

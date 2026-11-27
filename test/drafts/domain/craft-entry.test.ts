@@ -77,7 +77,7 @@ test('a component board renders the example export of each sketch', () => {
 test('the board stylesheet uses kit tokens for spacing', () => {
   const scss = craftEntryScss();
   assert.ok(scss.includes('.craft-board {'));
-  assert.ok(scss.includes('var(--kit-space-sm)'));
+  assert.ok(scss.includes('var(--kit-space-8)'));
   assert.ok(scss.includes('.craft-ground--dark'));
 });
 

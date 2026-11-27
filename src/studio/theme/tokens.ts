@@ -1,7 +1,8 @@
 // The studio's own look as values (ADR 0057): two colour sets, four accents and the scales.
-// These are the studio's tokens, apart from any kit: the Base kit stays the kit of the person's
-// drafts. `theme-css.ts` turns them into the `--st-*` custom properties every skin rule uses;
-// this file is the only place a studio colour is written down.
+// These are the studio's tokens, apart from any kit. The built-in kit is written from them
+// (`npm run kit-ui-tokens`, ADR 0090), and the studio's own pages never use a kit. `theme-css.ts`
+// turns them into the `--st-*` custom properties every skin rule uses; this file is the only place
+// a studio colour is written down.
 
 export const THEMES = ['light', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];

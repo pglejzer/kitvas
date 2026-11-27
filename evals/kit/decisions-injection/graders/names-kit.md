@@ -1,9 +1,9 @@
 ---
 type: regex
-pattern: '\bbase\b'
+pattern: 'kitvas[- ]ui'
 flags: i
 match: contains
 target: last_message
 ---
 
-The answer names the project's kit, Base, from the decisions.
+The answer names the project's kit, kitvas UI (`kitvas-ui`), from the decisions.

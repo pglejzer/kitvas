@@ -208,7 +208,7 @@ test('reads the errors tsc prints, with their continuation lines', () => {
     'src\\tsx\\sections\\Hero.tsx(8,15): error TS2322: Type \'"ghost"\' is not assignable.',
     "  The expected type comes from property 'variant'.",
     "error TS6053: File 'x.tsx' not found.",
-    '../../kits/base/tsx/index.ts(1,1): error TS1005: Something.',
+    '../../kits/kitvas-ui/tsx/index.ts(1,1): error TS1005: Something.',
     'Found 3 errors.',
     '',
   ].join('\r\n');
@@ -222,7 +222,7 @@ test('reads the errors tsc prints, with their continuation lines', () => {
     },
     { file: null, line: 0, column: 0, code: 'TS6053', text: "File 'x.tsx' not found." },
     {
-      file: '../../kits/base/tsx/index.ts',
+      file: '../../kits/kitvas-ui/tsx/index.ts',
       line: 1,
       column: 1,
       code: 'TS1005',

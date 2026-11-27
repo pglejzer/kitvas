@@ -12,7 +12,7 @@ export const PROP_NAME = /^(?!className$|key$|ref$|style$)[A-Za-z_][A-Za-z0-9_-]
 export const CLASS_NAME = /^[a-z][a-z0-9_-]{0,63}$/;
 /** A CSS property in the editor's set: lower-case, hyphens. Custom properties are never edited. */
 export const CSS_PROPERTY = /^[a-z][a-z-]{0,47}$/;
-/** A kit token variable: `--kit-space-md`. */
+/** A kit token variable: `--kit-space-12`. */
 export const TOKEN_VAR = /^--kit-[A-Za-z0-9_-]{1,80}$/;
 
 export const MAX_TEXT = 2_000;

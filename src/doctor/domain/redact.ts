@@ -26,7 +26,6 @@ const OWN_WORDS: readonly string[] = [
   'plugin',
   'studio',
   'kit',
-  'base',
 ];
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

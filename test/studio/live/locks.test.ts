@@ -24,7 +24,7 @@ import { builtinKits } from '../../helpers/kit/kits.ts';
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const LAYOUT = 'md/layout.md';
 const HERO = 'src/tsx/sections/Hero.tsx';
 const HERO_SCSS = 'src/scss/sections/hero.scss';
@@ -36,7 +36,7 @@ const HERO_TSX = [
   'export function Hero() {',
   '  return (',
   '    <section className="hero">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   '        <Text>First</Text>',
   `        ${KEPT}`,
   '        <Button>Go</Button>',
@@ -60,7 +60,7 @@ function setup(): DraftStore {
   writeVersionFiles(store, 'shop', 1, {
     [LAYOUT]: LAYOUT_MD,
     [HERO]: HERO_TSX,
-    [HERO_SCSS]: '.hero {\n  padding: var(--kit-space-lg);\n}\n',
+    [HERO_SCSS]: '.hero {\n  padding: var(--kit-space-16);\n}\n',
   });
   saveView(store, 'shop', {
     latest: 1,
@@ -134,7 +134,7 @@ test("Restore puts the kept source back byte for byte, through the editor's own 
     kept: entry.lock.text,
     text,
     at: offsetOf(text, entry.element.line, entry.element.column),
-    kitId: 'base',
+    kitId: 'kitvas-ui',
   });
   assert.ok(preview?.ops, JSON.stringify(preview));
   assert.equal(preview.old, '<Badge className="promo">\n  New\n</Badge>');

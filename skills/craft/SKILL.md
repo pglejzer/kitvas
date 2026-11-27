@@ -27,8 +27,8 @@ Then run `KITVAS decisions --json` and follow `data.settings` and `data.text` (t
 Run `KITVAS kit detect --json`. It reads only. It answers the kits (`source`, `stale`), the active kit and `signs` of a design system that is not learned yet (`components`, `packages`, `figma`).
 
 - A kit exists and is active: use it. If it is `stale`, offer `/kitvas:learn` to refresh it first.
-- No kit, but `signs` has entries: the project has a design system that kitvas has not learned. Offer to learn it first, before anything else: `/kitvas:learn` for a components folder or a package, the written-kit flow of the learn skill for Figma. Never fall back to Base silently. Use Base only when the person says there is no design system, or says to go on with Base.
-- No kit and no signs: Base is the kit. Say so in one line.
+- No kit, but `signs` has entries: the project has a design system that kitvas has not learned. Offer to learn it first, before anything else: `/kitvas:learn` for a components folder or a package, the written-kit flow of the learn skill for Figma. Never fall back to the built-in kit silently. Use it only when the person says there is no design system, or says to go on with it.
+- No kit and no signs: the built-in kitvas UI kit is the kit. Say so in one line.
 
 When `KITVAS kit list --json` shows more than one kit and `data.from.kit` of the decisions is `default`, ask which kit to use and offer to keep the answer: `KITVAS decisions set kit <id> --json`.
 
@@ -48,7 +48,7 @@ Tell the example apart by itself: an image path, a URL (a local or private addre
 
 ## 3. For a component: does the kit have it?
 
-Run `KITVAS kit show --json` and read the catalog: names, categories, descriptions. Look for near matches by what the thing does, not only by name. Read each near match with `KITVAS kit component <Name> --json` before you say what it can do, and name only the variants, tones and props that output lists ("the kit has `Card` with a `highlight` variant, which may already do this"). Then stop and ask whether they still want the new one: a request to sketch it is not that answer, since the person may not know the kit has the near match. They may stop here, or use the near match with `compose`. Start the draft only when they still want the new one, or when they already said they want it whatever the kit has; then name the near match in your report. An icon is checked the same way against the kit's icon names: `icons` in the same answer is only how many there are, the names are in the entry of the kit's icon component (in Base `KITVAS kit component Icon --json`, the values of `name`).
+Run `KITVAS kit show --json` and read the catalog: names, categories, descriptions. Look for near matches by what the thing does, not only by name. Read each near match with `KITVAS kit component <Name> --json` before you say what it can do, and name only the variants, tones and props that output lists ("the kit has `Card` with a `highlight` variant, which may already do this"). Then stop and ask whether they still want the new one: a request to sketch it is not that answer, since the person may not know the kit has the near match. They may stop here, or use the near match with `compose`. Start the draft only when they still want the new one, or when they already said they want it whatever the kit has; then name the near match in your report. An icon is checked the same way against the kit's icon names: `icons` in the same answer is only how many there are, the names are in the entry of the kit's icon component (in the kitvas UI kit `KITVAS kit component Icon --json`, the values of `name`).
 
 ## 4. Start the draft
 

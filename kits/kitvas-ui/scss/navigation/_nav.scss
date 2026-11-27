@@ -1,0 +1,92 @@
+@use "../core/mixins";
+
+// A list of places. The chosen one has the accent's soft fill, `ink` text and a bar of the accent
+// at its start (a border that is transparent at rest). The rail is `--kit-size-rail` wide and
+// shows icons only; the label is the accessible name and the `title`.
+.kit-nav {
+  box-sizing: border-box;
+  min-width: 0;
+  font-family: var(--kit-font-body);
+
+  &--rail {
+    width: var(--kit-size-rail);
+    padding: var(--kit-space-8);
+  }
+
+  &__list {
+    display: grid;
+    gap: var(--kit-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    @include mixins.control;
+    @include mixins.hit;
+
+    display: flex;
+    align-items: center;
+    gap: var(--kit-space-8);
+    width: 100%;
+    padding: 0 var(--kit-space-8);
+    border: 0;
+    border-inline-start: 3px solid transparent;
+    border-radius: var(--kit-radius-sm);
+    background: transparent;
+    color: var(--kit-color-ink-mid);
+    font-family: inherit;
+    font-size: var(--kit-font-size-md);
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color var(--kit-motion-fast) var(--_ease-out),
+      color var(--kit-motion-fast) var(--_ease-out);
+
+    &:hover {
+      background: mixins.quiet();
+      color: var(--kit-color-ink);
+    }
+
+    &:active {
+      background: mixins.quiet-strong();
+      color: var(--kit-color-ink);
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+    }
+
+    &--chosen,
+    &--chosen:hover,
+    &--chosen:active {
+      border-inline-start-color: var(--kit-color-accent);
+      background: var(--kit-color-accent-soft);
+      color: var(--kit-color-ink);
+      font-weight: var(--kit-font-weight-medium);
+    }
+  }
+
+  &--rail &__item {
+    justify-content: center;
+    padding: 0;
+  }
+
+  &__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__count {
+    color: var(--kit-color-ink-mid);
+    font-size: var(--kit-font-size-sm);
+  }
+
+  &__item--chosen &__count {
+    color: var(--kit-color-ink);
+  }
+}

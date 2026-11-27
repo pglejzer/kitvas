@@ -6,4 +6,4 @@ min: 0
 max: 0
 ---
 
-No rework draft is started on Base while the project has a design system that is not learned.
+No rework draft is started on the built-in kit while the project has a design system that is not learned.

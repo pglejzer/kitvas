@@ -13,7 +13,7 @@ import { etagOf } from '../../../src/studio/http/etag.ts';
 import { NOW, tempDrafts } from '../../helpers/draft/drafts.ts';
 import { builtinKits } from '../../helpers/kit/kits.ts';
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 
 const TSX = [
   "import { Button } from '@kit';",
@@ -38,11 +38,11 @@ const SCSS = [
   '// The pricing section.',
   '',
   '.pricing {',
-  '  padding: var(--kit-space-lg);',
+  '  padding: var(--kit-space-16);',
   '}',
   '',
   '.pricing {',
-  '  gap: var(--kit-space-md);',
+  '  gap: var(--kit-space-12);',
   '}',
   '',
 ].join('\n');

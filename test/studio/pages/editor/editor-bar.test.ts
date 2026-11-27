@@ -17,7 +17,7 @@ const DRAFT: Draft = {
   slug: 'shop',
   title: 'Shop',
   kind: 'screen',
-  kit: { id: 'base', version: '1.0.0', hash: 'a'.repeat(64) },
+  kit: { id: 'kitvas-ui', version: '1.0.0', hash: 'a'.repeat(64) },
   createdAt: '2026-11-22T10:00:00.000Z',
   versions: [
     { number: 1, createdAt: '2026-11-22T10:00:00.000Z' },

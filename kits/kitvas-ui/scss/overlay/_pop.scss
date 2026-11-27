@@ -1,0 +1,59 @@
+@use "../core/mixins";
+
+// Something that floats under its trigger: `position: absolute` in a `position: relative` wrapper,
+// anchored to the wrapper's start or end edge. Its width stays inside the page, so a trigger at
+// the edge of a 390 px page never pushes it out; the component flips the anchor when needed.
+@mixin anchored {
+  position: absolute;
+  top: calc(100% + var(--kit-space-4));
+  z-index: 20;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--kit-space-16));
+
+  &--start {
+    left: 0;
+  }
+
+  &--end {
+    right: 0;
+  }
+}
+
+.kit-popover {
+  position: relative;
+  display: inline-block;
+  font-family: var(--kit-font-body);
+
+  &__panel {
+    @include mixins.pop;
+    @include anchored;
+
+    min-width: 200px;
+    padding: var(--kit-space-12);
+    font-size: var(--kit-font-size-md);
+  }
+}
+
+.kit-tooltip {
+  position: relative;
+  display: inline-flex;
+  font-family: var(--kit-font-body);
+
+  &__bubble {
+    @include mixins.pop;
+    @include anchored;
+
+    top: calc(100% + var(--kit-space-6));
+    width: max-content;
+    max-width: min(240px, calc(100vw - 2 * var(--kit-space-16)));
+    padding: var(--kit-space-4) var(--kit-space-8);
+    font-size: var(--kit-font-size-sm);
+    line-height: var(--kit-line-height-tight);
+    pointer-events: none;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+}

@@ -76,7 +76,7 @@ export function partsOf(value: string): Part[] | null {
   return depth === 0 && parts.length > 0 ? parts : null;
 }
 
-/** The function a part is one whole call of (`var` for `var(--kit-space-md)`), in lower case. */
+/** The function a part is one whole call of (`var` for `var(--kit-space-12)`), in lower case. */
 export function callOf(part: string): string | null {
   const open = part.indexOf('(');
   if (open <= 0 || !part.endsWith(')')) return null;
@@ -91,13 +91,13 @@ export function callOf(part: string): string | null {
   return part.slice(0, open).toLowerCase();
 }
 
-/** The variable a `var(…)` part names: `--kit-space-md`; `null` for any other part. */
+/** The variable a `var(…)` part names: `--kit-space-12`; `null` for any other part. */
 export function varOf(part: string): string | null {
   if (callOf(part) !== 'var') return null;
   return /^var\(\s*(--[A-Za-z0-9_-]+)\s*[,)]/i.exec(part)?.[1] ?? null;
 }
 
-/** A kit token as a style value writes it, alone: `var(--kit-space-md)`. */
+/** A kit token as a style value writes it, alone: `var(--kit-space-12)`. */
 const TOKEN = /^var\(\s*--kit-[A-Za-z0-9_-]+\s*\)$/;
 
 export const isToken = (part: string): boolean => TOKEN.test(part);

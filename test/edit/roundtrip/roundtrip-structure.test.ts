@@ -1,4 +1,4 @@
-// Every element of every real `.tsx` file in the fixtures and the Base kit that is a plain child:
+// Every element of every real `.tsx` file in the fixtures and the built-in kit that is a plain child:
 // removing it and inserting its source at the place it left gives the file back byte for byte,
 // and so does swapping two neighbouring siblings twice (spec 4b, section 8; plan 14, task A2).
 
@@ -111,7 +111,13 @@ describe('a structural op and its opposite', () => {
         const source = text.slice(span.start, span.end);
         const anchor = there(gone.moved, place.anchor, where);
         const op: TreeOp = { op: 'insertElement', place: place.place, source };
-        const back = applied(run(gone.text, { anchor }, op), `${where} (insert ${place.place})`);
+        const put = run(gone.text, { anchor }, op);
+        // An element written in a `{…}` child gives a child up and takes none (`destination`).
+        if (place.anchor === parent && 'refused' in put && put.refused === 'in-expression') {
+          counts.fixed += 1;
+          continue;
+        }
+        const back = applied(put, `${where} (insert ${place.place})`);
         assert.equal(back.text, text, `${where} (insert ${place.place})`);
         assert.deepEqual(back.created, [at], where);
         counts.back += 1;

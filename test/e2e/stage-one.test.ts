@@ -1,6 +1,6 @@
 // Stage 1 from start to end through the real CLI, each step a child process of `bin/kitvas.ts`:
 // init, a draft written the way the compose agents write it, layout, build and check of two
-// versions, the rendered examples of the Base kit, then the detached studio over HTTP: the open
+// versions, the rendered examples of the kitvas UI kit, then the detached studio over HTTP: the open
 // link, the draft page and its frames, a comparison, the API, the kit page and a catalog job.
 
 import assert from 'node:assert/strict';
@@ -117,7 +117,7 @@ async function initProject(box: Sandbox): Promise<void> {
   assert.equal(init.created, true);
   assert.ok(existsSync(join(init.path, 'decisions.md')), init.path);
   const status = await kitvas<Status>(box, ['status'], QUICK_MS);
-  assert.equal(status.kit, 'base');
+  assert.equal(status.kit, 'kitvas-ui');
   assert.equal(status.workspace.exists, true);
 }
 
@@ -130,7 +130,7 @@ async function writeSection(box: Sandbox, section: SectionSource, version: numbe
   );
   assert.equal(context.draft.version, version);
   assert.equal(context.section.component, section.component);
-  assert.equal(context.kit.id, 'base');
+  assert.equal(context.kit.id, 'kitvas-ui');
   assert.deepEqual(
     context.states.states.map((state) => state.id),
     STATE_IDS,
@@ -160,7 +160,7 @@ async function writeDraft(box: Sandbox, live: Live): Promise<void> {
   );
   assert.equal(created.draft.slug, 'shop');
   assert.equal(created.draft.title, 'Shop');
-  assert.equal(created.draft.kit.id, 'base');
+  assert.equal(created.draft.kit.id, 'kitvas-ui');
   assert.deepEqual(
     created.draft.versions.map((entry) => entry.number),
     [1],
@@ -258,19 +258,19 @@ async function secondVersion(box: Sandbox, live: Live, s: TestContext): Promise<
 }
 
 async function buildKit(box: Sandbox, live: Live): Promise<void> {
-  const first = await kitvas<KitBuildView>(box, ['kit', 'build', 'base'], BUILD_MS);
+  const first = await kitvas<KitBuildView>(box, ['kit', 'build', 'kitvas-ui'], BUILD_MS);
   assert.equal(first.view, 'build');
-  assert.equal(first.id, 'base');
+  assert.equal(first.id, 'kitvas-ui');
   assert.deepEqual(first.errors, []);
   assert.equal(first.built, true);
   assert.equal(first.cached, false);
   const keys = `shown: ${first.shown.join(', ')}; skipped: ${first.skipped.join(', ')}`;
-  assert.ok(first.shown.length >= 12, keys);
+  assert.ok(first.shown.length >= 47, keys);
   assert.ok(first.shown.includes('Button.1'), keys);
   assert.ok(existsSync(first.path), first.path);
   live.shown = first.shown;
 
-  const second = await kitvas<KitBuildView>(box, ['kit', 'build', 'base'], BUILD_MS);
+  const second = await kitvas<KitBuildView>(box, ['kit', 'build', 'kitvas-ui'], BUILD_MS);
   assert.equal(second.built, true);
   assert.equal(second.cached, true);
   assert.deepEqual(second.shown, first.shown);
@@ -347,10 +347,10 @@ async function studioKit(box: Sandbox, live: Live): Promise<void> {
   assert.ok(studio, 'the studio did not start');
   const headers = { cookie: live.cookie };
 
-  const page = await call(`${studio.url}/kit/base`, { headers });
-  expectFile(box, page, HTML, 'GET /kit/base');
+  const page = await call(`${studio.url}/kit/kitvas-ui`, { headers });
+  expectFile(box, page, HTML, 'GET /kit/kitvas-ui');
   const main = mainTag(page.text);
-  assert.match(main, /\sdata-kit="base"/, main);
+  assert.match(main, /\sdata-kit="kitvas-ui"/, main);
   assert.match(main, /\sdata-catalog="ready"/, main);
   const examples = iframes(page.text).filter((frame) => frame['data-example'] !== undefined);
   assert.deepEqual(examples.map((frame) => frame['data-example']).sort(), [...live.shown].sort());
@@ -359,7 +359,7 @@ async function studioKit(box: Sandbox, live: Live): Promise<void> {
   assert.ok(button, 'the kit page has no frame for Button.1');
   const address = new URL(button.src ?? '');
   assert.equal(address.origin, live.frameOrigin);
-  assert.match(address.pathname, /^\/k\/[^/]+\/base\/html\/index\.html$/);
+  assert.match(address.pathname, /^\/k\/[^/]+\/kitvas-ui\/html\/index\.html$/);
   assert.equal(address.searchParams.get('example'), 'Button.1');
   const channel = button['data-channel'] ?? '';
   assert.ok(channel !== '' && address.hash.startsWith(`#kitvas=${channel}&`), String(button.src));
@@ -368,15 +368,15 @@ async function studioKit(box: Sandbox, live: Live): Promise<void> {
   const bundle = new URL('../js/index.js', address);
   expectFile(box, await call(bundle.href), /^text\/javascript/, `GET ${bundle.pathname}`);
 
-  const start = await call(`${studio.url}/api/v1/kits/base/catalog`, {
+  const start = await call(`${studio.url}/api/v1/kits/kitvas-ui/catalog`, {
     method: 'POST',
     headers: { ...headers, origin: studio.url, 'content-type': 'application/json' },
     body: '{}',
   });
-  expectStatus(box, start, 202, 'POST /api/v1/kits/base/catalog');
+  expectStatus(box, start, 202, 'POST /api/v1/kits/kitvas-ui/catalog');
   const job = JSON.parse(start.text) as Job;
   assert.equal(job.kind, 'catalog');
-  assert.equal(job.slug, 'base');
+  assert.equal(job.slug, 'kitvas-ui');
   assert.equal(start.headers.location, `/api/v1/jobs/${job.id}`);
 
   const ended = await poll(async () => {
@@ -455,7 +455,7 @@ test('stage 1 end to end: init, a draft, two checked versions, kit examples, the
   process.once('exit', onExit);
   const { step, always, failed } = stepper(t);
   try {
-    await step('init: a workspace whose kit is Base', () => initProject(box));
+    await step('init: a workspace whose kit is kitvas UI', () => initProject(box));
     await step('draft: brief, layout, two states, both sections from their context', () =>
       writeDraft(box, live),
     );
@@ -463,7 +463,7 @@ test('stage 1 end to end: init, a draft, two checked versions, kit examples, the
     await step('version 2: one section changed, built and checked clean', (s) =>
       secondVersion(box, live, s),
     );
-    await step('kit build: the examples of Base, then the same build cached', () =>
+    await step('kit build: the examples of kitvas UI, then the same build cached', () =>
       buildKit(box, live),
     );
     await step('studio: open link, draft page, frames, comparison, draft API', () =>

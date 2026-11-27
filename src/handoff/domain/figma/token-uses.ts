@@ -5,7 +5,7 @@
 /** What a variable is used for. `paint` is any colour; `space` is a gap, padding, margin or size. */
 export type TokenKind = 'paint' | 'space' | 'radius' | 'font-size' | 'font-weight' | 'font-family';
 
-/** `--kit-space-md` to the kinds of property it is used for; a variable never used is not a key. */
+/** `--kit-space-12` to the kinds of property it is used for; a variable never used is not a key. */
 export type TokenUses = ReadonlyMap<string, ReadonlySet<TokenKind>>;
 
 const COMMENT = /\/\*[\s\S]*?\*\//g;
@@ -85,7 +85,7 @@ const kebab = (name: string): string =>
     .toLowerCase();
 
 /**
- * `--kit-space-md` for the token path `['space', 'md']`. The same name the kit module's
+ * `--kit-space-12` for the token path `['space', '12']`. The same name the kit module's
  * `cssVarName` gives (a test holds the two together): a domain file may not take that code from
  * another module, so the few lines are here.
  */

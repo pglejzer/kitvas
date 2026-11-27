@@ -20,15 +20,15 @@ import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
 
 type Component = NonNullable<SourceInput['component']>;
 
-const base = requireKit(createFolderKitStore(join(PLUGIN_ROOT, 'kits')), 'base');
+const base = requireKit(createFolderKitStore(join(PLUGIN_ROOT, 'kits')), 'kitvas-ui');
 const baseGroups = tokenGroupsOf(
   base.tokens.map((token) => ({ path: token.path.join('.'), type: token.type })),
 );
 
-/** A Base catalog component as the kit loads it, so its type is checked against the input too. */
+/** A kitvas UI catalog component as the kit loads it, so its type is checked against the input too. */
 function baseComponent(name: string): Component {
   const found = base.kit.components.find((component) => component.name === name);
-  if (found === undefined) throw new Error(`Base has no ${name}`);
+  if (found === undefined) throw new Error(`kitvas UI has no ${name}`);
   return found;
 }
 
@@ -71,7 +71,7 @@ function utility(property: StyleProperty, ...classes: string[]): string | null {
   return found.kind === 'utility' ? found.className : null;
 }
 
-test('a Base Stack takes its gap from the gap prop, whether the tag writes it or not', () => {
+test('a kitvas UI Stack takes its gap from the gap prop, whether the tag writes it or not', () => {
   for (const written of [[], ['gap'], ['direction']]) {
     assert.deepEqual(styleSource(input('gap', { component: baseComponent('Stack'), written })), {
       kind: 'prop',
@@ -84,7 +84,7 @@ test('a Base Stack takes its gap from the gap prop, whether the tag writes it or
   });
 });
 
-test('a Base Text with tone takes its colour from the tone prop', () => {
+test('a kitvas UI Text with tone takes its colour from the tone prop', () => {
   const text = baseComponent('Text');
   assert.deepEqual(styleSource(input('color', { component: text, written: ['tone'] })), {
     kind: 'prop',
@@ -92,7 +92,7 @@ test('a Base Text with tone takes its colour from the tone prop', () => {
   });
 });
 
-test('the Base props of the table set their properties, and the rest is the kit default', () => {
+test('the kitvas UI props of the table set their properties, and the rest is the kit default', () => {
   const cases: [string, StyleProperty, StyleSource][] = [
     ['Card', 'padding', { kind: 'prop', prop: 'padding' }],
     ['Text', 'font-size', { kind: 'prop', prop: 'size' }],
@@ -117,11 +117,11 @@ test('the Base props of the table set their properties, and the rest is the kit 
 });
 
 test('a plain div takes its gap from the gap declaration of its class rule', () => {
-  const card = rule('card', [['gap', 'var(--kit-space-md)']]);
+  const card = rule('card', [['gap', 'var(--kit-space-12)']]);
   assert.deepEqual(styleSource(input('gap', { rule: card, classes: ['card'] })), {
     kind: 'scss',
     className: 'card',
-    value: 'var(--kit-space-md)',
+    value: 'var(--kit-space-12)',
     offKit: false,
   });
 });
@@ -137,7 +137,7 @@ test('an off-kit declaration keeps its value and its mark', () => {
 });
 
 test('a declaration only inside a nested block is not the rule source', () => {
-  // `.card { color: var(--kit-color-ink); &:hover { gap: var(--kit-space-lg); } }`
+  // `.card { color: var(--kit-color-ink); &:hover { gap: var(--kit-space-16); } }`
   const card = rule('card', [['color', 'var(--kit-color-ink)']], ['gap']);
   assert.deepEqual(styleSource(input('gap', { rule: card, classes: ['card'] })), { kind: 'kit' });
   assert.equal(styleSource(input('color', { rule: card, classes: ['card'] })).kind, 'scss');
@@ -145,13 +145,13 @@ test('a declaration only inside a nested block is not the rule source', () => {
 
 test('the last of two declarations of the property is the one that applies', () => {
   const card = rule('card', [
-    ['gap', 'var(--kit-space-sm)'],
-    ['Gap', 'var(--kit-space-lg)'],
+    ['gap', 'var(--kit-space-8)'],
+    ['Gap', 'var(--kit-space-16)'],
   ]);
   assert.deepEqual(styleSource(input('gap', { rule: card })), {
     kind: 'scss',
     className: 'card',
-    value: 'var(--kit-space-lg)',
+    value: 'var(--kit-space-16)',
     offKit: false,
   });
 });
@@ -204,7 +204,7 @@ test('the prop comes before a declaration of the same property in the class rule
 });
 
 test('the class rule comes before a utility in a Tailwind draft', () => {
-  const hero = rule('hero', [['padding', 'var(--kit-space-lg)']]);
+  const hero = rule('hero', [['padding', 'var(--kit-space-16)']]);
   const found = styleSource(
     input('padding', { format: 'tailwind', rule: hero, classes: ['hero', 'p-4'] }),
   );
@@ -245,7 +245,7 @@ test('only an enum prop with values can be the source', () => {
 test('a prop name that is only a hint needs its values in one token group of the type', () => {
   const cases: [StyleProperty, ReturnType<typeof enumProp>, boolean][] = [
     ['padding', enumProp('p', ['sm', 'md']), true],
-    // `sm` is a space token and `control` a size token: no one group has both.
+    // `sm` is a font size and a radius token and `control` a size token: no one group has both.
     ['padding', enumProp('p', ['sm', 'control']), false],
     // `none` may stand beside a scale that has no token for it, but is no scale alone.
     ['border-radius', enumProp('rounded', ['none', 'sm', 'full']), true],
@@ -253,7 +253,7 @@ test('a prop name that is only a hint needs its values in one token group of the
     // `bold` is a font weight token, not a dimension.
     ['width', enumProp('w', ['bold']), false],
     // Names compare without case and separators: `ink-mid` is `color.inkMid`.
-    ['background-color', enumProp('bg', ['ink-mid', 'Surface']), true],
+    ['background-color', enumProp('bg', ['ink-mid', 'Panel']), true],
     ['line-height', enumProp('leading', ['tight', 'normal']), true],
   ];
   for (const [property, prop, isProp] of cases) {
@@ -382,19 +382,24 @@ test('tokenGroupsOf groups tokens by their path without the last part', () => {
     { dimension: { space: ['sm', 'md'], radius: ['md'] }, color: { 'color.brand': ['500'] } },
   );
   assert.deepEqual([...(baseGroups.dimension?.space ?? [])].sort(), [
-    '2xl',
-    '3xl',
-    'lg',
-    'md',
-    'none',
-    'sm',
-    'xl',
-    'xs',
+    '10',
+    '12',
+    '14',
+    '16',
+    '2',
+    '24',
+    '32',
+    '4',
+    '48',
+    '6',
+    '64',
+    '8',
+    '96',
   ]);
   assert.deepEqual(baseGroups.fontWeight, { fontWeight: ['regular', 'medium', 'bold'] });
 });
 
-test('a Base Stack sets direction, wrap, justify and align by its props (plan 15)', () => {
+test('a kitvas UI Stack sets direction, wrap, justify and align by its props (plan 15)', () => {
   const stack = baseComponent('Stack');
   const cases: [StyleProperty, string][] = [
     ['flex-direction', 'direction'],
@@ -443,14 +448,14 @@ test('a keyword prop counts only when each value names a keyword of the property
 
 test('one side of padding and margin is a declaration of its own in the class rule', () => {
   const card = rule('card', [
-    ['padding', 'var(--kit-space-md)'],
-    ['padding-top', 'var(--kit-space-lg)'],
+    ['padding', 'var(--kit-space-12)'],
+    ['padding-top', 'var(--kit-space-16)'],
     ['margin-left', '3px', true],
   ]);
   assert.deepEqual(styleSource(input('padding-top', { rule: card })), {
     kind: 'scss',
     className: 'card',
-    value: 'var(--kit-space-lg)',
+    value: 'var(--kit-space-16)',
     offKit: false,
   });
   assert.deepEqual(styleSource(input('margin-left', { rule: card })), {
@@ -463,7 +468,7 @@ test('one side of padding and margin is a declaration of its own in the class ru
   assert.deepEqual(styleSource(input('padding-left', { rule: card })), {
     kind: 'scss',
     className: 'card',
-    value: 'var(--kit-space-md)',
+    value: 'var(--kit-space-12)',
     offKit: false,
     via: 'padding',
   });
@@ -475,7 +480,7 @@ test('one side of padding and margin is a declaration of its own in the class ru
 const typed = tokenGroupsOf([
   { path: 'color.line', type: 'color' },
   { path: 'color.surface', type: 'color' },
-  { path: 'color.accent', type: 'color' },
+  { path: 'color.brand', type: 'color' },
   { path: 'border.sm', type: 'dimension' },
   { path: 'space.md', type: 'dimension' },
 ]);
@@ -605,18 +610,18 @@ test('a shorthand that does not split holds nothing: the property reads as witho
 });
 
 test('a var is typed by the kit of the draft', () => {
-  const border: Declarations = [['border', '1px solid var(--kit-color-accent)']];
+  const border: Declarations = [['border', '1px solid var(--kit-color-brand)']];
   assert.equal(held('border-color', border)?.via, 'border');
-  // Base has no token `color.accent`: the value does not split there, and no part is read.
+  // kitvas UI has no token `color.brand`: the value does not split there, and no part is read.
   const card = rule('card', border);
   assert.deepEqual(styleSource(input('border-color', { rule: card })), { kind: 'kit' });
   assert.deepEqual(styleSource(input('border-width', { rule: card })), { kind: 'kit' });
-  // Base types its own tokens.
-  const line = rule('card', [['border', 'var(--kit-space-xs) solid var(--kit-color-line)']]);
+  // kitvas UI types its own tokens.
+  const line = rule('card', [['border', 'var(--kit-space-4) solid var(--kit-color-line)']]);
   assert.deepEqual(styleSource(input('border-width', { rule: line })), {
     kind: 'scss',
     className: 'card',
-    value: 'var(--kit-space-xs)',
+    value: 'var(--kit-space-4)',
     offKit: false,
     via: 'border',
   });

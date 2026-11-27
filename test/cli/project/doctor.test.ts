@@ -156,7 +156,7 @@ test('a config file that does not parse is reported by the workspace check, not 
   assert.equal(other, 3);
 });
 
-test('a kit the decisions file names that does not exist is a warning, with base loaded', async () => {
+test('a kit the decisions file names that does not exist is a warning, with kitvas-ui loaded', async () => {
   const h = harness(found);
   writeFileSync(join(h.cwd, '.kitvas', 'decisions.md'), '---\nkit: gone\n---\n');
   assert.equal(await h.run('--json'), 0);

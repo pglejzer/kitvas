@@ -23,7 +23,7 @@ import { builtinKits } from '../../helpers/kit/kits.ts';
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const LATER = new Date('2026-11-24T09:00:00.000Z');
 
 const LAYOUT = 'md/layout.md';
@@ -56,7 +56,7 @@ const HERO_TSX = [
   'export function Hero() {',
   '  return (',
   '    <section className="hero">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   `${FIRST_LINE}${SECOND_LINE}${BADGE_LINE}${BUTTON_LINE}      </Stack>`,
   '    </section>',
   '  );',
@@ -64,7 +64,7 @@ const HERO_TSX = [
   '',
 ].join('\n');
 const PROMO_RULE = '.promo {\n  color: var(--kit-color-accent);\n}\n';
-const HERO_SCSS_TEXT = `.hero {\n  padding: var(--kit-space-lg);\n}\n\n${PROMO_RULE}`;
+const HERO_SCSS_TEXT = `.hero {\n  padding: var(--kit-space-16);\n}\n\n${PROMO_RULE}`;
 
 const THANKS_LINE = '        <Text>Thanks</Text>\n';
 const FOOTER_TSX = [
@@ -73,14 +73,14 @@ const FOOTER_TSX = [
   'export function Footer() {',
   '  return (',
   '    <footer className="footer">',
-  '      <Stack gap="sm">',
+  '      <Stack gap="8">',
   `${THANKS_LINE}      </Stack>`,
   '    </footer>',
   '  );',
   '}',
   '',
 ].join('\n');
-const FOOTER_SCSS_TEXT = '.footer {\n  padding: var(--kit-space-md);\n}\n';
+const FOOTER_SCSS_TEXT = '.footer {\n  padding: var(--kit-space-12);\n}\n';
 
 const STACK = 'sections/Hero:section/Stack';
 const FIRST = `${STACK}/Text`;
@@ -99,7 +99,7 @@ const FOOTER_BADGE = FOOTER_TSX.replace('{ Stack, Text }', '{ Badge, Stack, Text
 
 type Written = { slug: string; version: number; etags: Record<string, string> };
 
-/** The `shop` draft on the Base kit at v1 with two sections, and the real compiler. */
+/** The `shop` draft on the kitvas UI kit at v1 with two sections, and the real compiler. */
 function setup() {
   const { store } = tempDrafts();
   createDraft(store, { slug: 'shop', title: 'Shop', kit: BASE, now: NOW });

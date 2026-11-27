@@ -4,10 +4,15 @@ import type { Box, FactNode, PageFacts, RawFinding } from '../../../src/checks/i
 import { VISIT_RULES } from '../../../src/checks/index.ts';
 import { node, page, text, visit } from './facts.ts';
 
-function run(id: string, nodes: FactNode[], part: Partial<PageFacts> = {}): RawFinding[] {
+function run(
+  id: string,
+  nodes: FactNode[],
+  part: Partial<PageFacts> = {},
+  seen: Parameters<typeof visit>[1] = {},
+): RawFinding[] {
   const rule = VISIT_RULES.find((entry) => entry.id === id);
   assert.ok(rule, id);
-  return rule.run(visit(page(nodes, part)));
+  return rule.run(visit(page(nodes, part), seen));
 }
 
 const brief = (finding: RawFinding) => ({
@@ -338,6 +343,28 @@ test('nested-frame fires on a card inside a card, to any depth', () => {
       widths: [390],
     },
   ]);
+});
+
+test('nested-frame leaves a kit component its own frames (a chosen segment in its track)', () => {
+  const segmented = 'a:div/SegmentedControl';
+  const nodes = [
+    root(),
+    card([10, 10, 240, 32], segmented),
+    node({ parent: 1, box: [14, 14, 64, 24], ks: segmented, style: bordered }),
+    node({ parent: 2, box: [20, 16, 50, 20], ks: segmented, text: text('Weekly') }),
+  ];
+  const kit = { seen: { components: new Map([[segmented, 'SegmentedControl']]) } };
+  assert.deepEqual(run('ui/nested-frame', nodes, {}, kit), []);
+  // The same boxes written by the draft are a card in a card.
+  assert.equal(run('ui/nested-frame', nodes).length, 1);
+  // A kit component in another one is the draft's nesting.
+  const inner = 'a:div/SegmentedControl/Card';
+  const nested = nodes.map((each, index) => (index < 2 ? each : { ...each, ks: inner }));
+  const both = new Map([
+    [segmented, 'Card'],
+    [inner, 'Card'],
+  ]);
+  assert.equal(run('ui/nested-frame', nested, {}, { seen: { components: both } }).length, 1);
 });
 
 test('nested-frame counts a fill as a frame cue', () => {

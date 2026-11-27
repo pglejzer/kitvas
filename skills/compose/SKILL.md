@@ -12,7 +12,7 @@ A draft is a React prototype built only from kit components and `--kit-*` tokens
 
 Talk to the user in the user's language. Files you and the agents write are English.
 
-The kit may be built in (Base) or a project kit learned from the user's own design system. Both work the same way here: imports only from `@kit`. `KITVAS context` says `styling: 'tailwind'` for a Tailwind kit; makers then use the theme's utility classes. If the user has no kit of their own and wants one, use the learn skill first.
+The kit may be built in (the kitvas UI kit) or a project kit learned from the user's own design system. Both work the same way here: imports only from `@kit`. `KITVAS context` says `styling: 'tailwind'` for a Tailwind kit; makers then use the theme's utility classes. If the user has no kit of their own and wants one, use the learn skill first.
 
 Rules for the files are in `reference/compose.md` (makers) and `reference/findings.md` (fixes). Pass their absolute paths, `${CLAUDE_PLUGIN_ROOT}/reference/compose.md` and `${CLAUDE_PLUGIN_ROOT}/reference/findings.md`, to every agent you start; the agents cannot expand the variable.
 

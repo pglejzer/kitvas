@@ -70,8 +70,8 @@ test('the tiny fixture kit is valid: it bundles, compiles and shows its example'
   assert.deepEqual(file.notes, ['kits.verify.noTokenMap', 'kits.verify.notWritten']);
 });
 
-test('the Base kit is valid', async () => {
-  const file = await verify(builtinKits(), 'base', tempDir('kitvas-verify-'));
+test('the kitvas UI kit is valid', async () => {
+  const file = await verify(builtinKits(), 'kitvas-ui', tempDir('kitvas-verify-'));
   assert.deepEqual(file.issues, []);
   assert.deepEqual(file.steps, { ...ALL_PASSED, tokens: 'skipped' });
   assert.equal(file.valid, true);

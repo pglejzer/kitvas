@@ -15,7 +15,7 @@ import { etagOf } from '../../../src/studio/http/etag.ts';
 import { NOW, tempDrafts } from '../../helpers/draft/drafts.ts';
 import { builtinKits } from '../../helpers/kit/kits.ts';
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const PRICING_FILE = 'src/tsx/sections/Pricing.tsx';
 const HERO_FILE = 'src/tsx/sections/Hero.tsx';
 const SCSS_FILE = 'src/scss/sections/pricing.scss';
@@ -29,7 +29,7 @@ const PRICING_TSX = [
   'export function Pricing(_props: { state: string }) {',
   '  return (',
   '    <section className="pricing">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   '        <Text tone="muted">Plans</Text>',
   '        {plans.map((plan) => (',
   '          <Card key={plan.name}>',
@@ -56,7 +56,7 @@ const HERO_TSX = [
   '',
 ].join('\n');
 
-const PRICING_SCSS = '.pricing {\n  padding: var(--kit-space-lg);\n}\n';
+const PRICING_SCSS = '.pricing {\n  padding: var(--kit-space-16);\n}\n';
 
 /** Pricing first, then Hero: the page order is the layout's, not the files' names. */
 const LAYOUT = [
@@ -78,7 +78,7 @@ const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());
 
 /**
- * The `shop` draft on the Base kit with the two sections and the generated entry in version 1;
+ * The `shop` draft on the kitvas UI kit with the two sections and the generated entry in version 1;
  * `files` replace some of them (`null`: that file is not written).
  */
 function shop(files: Record<string, string | null> = {}): DraftStore {
@@ -202,7 +202,7 @@ const NESTED_TSX = [
   'export function Pricing(_props: { state: string }) {',
   '  return (',
   '    <section className="pricing">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   '        {PLANS.map((plan) => (',
   '          <Card key={plan.name}>',
   '            <Heading>{plan.name}</Heading>',

@@ -1,0 +1,182 @@
+@use "../core/mixins";
+
+// Checkbox, radio and switch. The native input stays in the page and is drawn with
+// `appearance: none`, so focus, the keyboard and forms work. The box, the circle and the track
+// carry a real border (3 to 1 on every ground, off too). On, the box and the track take the solid
+// accent fill with their sign in `onAccent`; the circle keeps its fill and takes an accent ring
+// around an accent dot. Under the pointer an off edge turns `ink`; an on one keeps its accent.
+// The sign sits on the first line of its label, also when the label wraps or has a hint.
+@mixin row {
+  --_line: calc(var(--kit-font-size-md) * var(--kit-line-height-normal));
+
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--kit-space-8);
+  box-sizing: border-box;
+  padding-block: calc((var(--kit-size-target) - var(--_line)) / 2);
+  color: var(--kit-color-ink);
+  font-family: var(--kit-font-body);
+  font-size: var(--kit-font-size-md);
+  line-height: var(--kit-line-height-normal);
+  cursor: pointer;
+
+  @include mixins.hit;
+
+  &:has(:disabled) {
+    @include mixins.disabled;
+  }
+}
+
+@mixin toggle($height: 16px) {
+  @include mixins.boundary;
+
+  appearance: none;
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  height: $height;
+  margin: calc((var(--_line) - #{$height}) / 2) 0 0;
+  background: mixins.quiet();
+  cursor: inherit;
+  transition:
+    border-color var(--kit-motion-fast) var(--_ease-out),
+    background var(--kit-motion-fast) var(--_ease-out);
+
+  &:hover:not(:disabled) {
+    border-color: var(--kit-color-ink);
+  }
+
+  &:checked,
+  &:checked:hover:not(:disabled) {
+    border-color: var(--kit-color-accent);
+    background: var(--kit-color-accent);
+  }
+
+  &:focus-visible {
+    @include mixins.focus-ring;
+  }
+}
+
+.kit-checkbox {
+  @include row;
+
+  &__box {
+    @include toggle;
+
+    width: 16px;
+    border-radius: var(--kit-radius-sm);
+
+    // The check: two borders of a rotated box.
+    &::after {
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 4px;
+      width: 4px;
+      height: 8px;
+      border: solid var(--kit-color-on-accent);
+      border-width: 0 2px 2px 0;
+      rotate: 45deg;
+      opacity: 0;
+    }
+
+    &:checked::after {
+      opacity: 1;
+    }
+  }
+}
+
+.kit-radio {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--kit-font-body);
+
+  &:disabled {
+    @include mixins.disabled;
+  }
+
+  &__legend {
+    padding: 0 0 var(--kit-space-2);
+    color: var(--kit-color-ink);
+    font-size: var(--kit-font-size-label);
+    font-weight: var(--kit-font-weight-medium);
+  }
+
+  &__option {
+    @include row;
+
+    display: flex;
+  }
+
+  &__input {
+    @include toggle;
+
+    width: 16px;
+    border-radius: var(--kit-radius-full);
+
+    &:checked,
+    &:checked:hover:not(:disabled) {
+      background: mixins.quiet();
+    }
+
+    // The dot.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: var(--kit-radius-full);
+      background: var(--kit-color-accent);
+      opacity: 0;
+      scale: 0.5;
+      transition:
+        opacity var(--kit-motion-fast) var(--_ease-out),
+        scale var(--kit-motion-fast) var(--_ease-out);
+    }
+
+    &:checked::after {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__hint {
+    color: var(--kit-color-ink-mid);
+    font-size: var(--kit-font-size-sm);
+  }
+}
+
+.kit-switch {
+  @include row;
+
+  &__input {
+    @include toggle(18px);
+
+    width: 32px;
+    border-radius: var(--kit-radius-full);
+
+    // The knob: `inkMid` when off, `onAccent` on the accent track when on.
+    &::before {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 10px;
+      height: 10px;
+      border-radius: var(--kit-radius-full);
+      background: var(--kit-color-ink-mid);
+      transition: translate var(--kit-motion-fast) var(--_ease-out);
+    }
+
+    &:checked::before {
+      translate: 14px 0;
+      background: var(--kit-color-on-accent);
+    }
+  }
+}

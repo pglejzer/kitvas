@@ -16,7 +16,7 @@ const KEY = 'a'.repeat(64);
 
 const stamp = (over: Partial<PreviewsStamp> = {}): PreviewsStamp => ({
   schemaVersion: 1,
-  kit: 'base',
+  kit: 'kitvas-ui',
   format: PREVIEWS_FORMAT,
   catalog: KEY,
   folder: previewFolder(KEY),
@@ -27,12 +27,12 @@ const stamp = (over: Partial<PreviewsStamp> = {}): PreviewsStamp => ({
 });
 
 test('previews are fresh only for this kit, this format and the catalog key a build has now', () => {
-  assert.equal(previewsFresh(stamp(), 'base', KEY), true);
-  assert.equal(previewsFresh(stamp(), 'base', 'b'.repeat(64)), false, 'the kit changed');
-  assert.equal(previewsFresh(stamp(), 'base', undefined), false, 'the kit cannot be built');
+  assert.equal(previewsFresh(stamp(), 'kitvas-ui', KEY), true);
+  assert.equal(previewsFresh(stamp(), 'kitvas-ui', 'b'.repeat(64)), false, 'the kit changed');
+  assert.equal(previewsFresh(stamp(), 'kitvas-ui', undefined), false, 'the kit cannot be built');
   assert.equal(previewsFresh(stamp(), 'other', KEY), false, 'another kit');
-  assert.equal(previewsFresh(stamp({ format: PREVIEWS_FORMAT + 1 }), 'base', KEY), false);
-  assert.equal(previewsFresh(undefined, 'base', KEY), false, 'none were made');
+  assert.equal(previewsFresh(stamp({ format: PREVIEWS_FORMAT + 1 }), 'kitvas-ui', KEY), false);
+  assert.equal(previewsFresh(undefined, 'kitvas-ui', KEY), false, 'none were made');
 });
 
 test('a set lives in a folder named by the format and the catalog key, so its addresses change', () => {

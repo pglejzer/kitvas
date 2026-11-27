@@ -115,7 +115,7 @@ export function heldBySides(views: readonly Inspect[], property: StyleProperty):
   return views.length > 0 && views.every((view) => keepsPart(ruleHeld(view, property)?.via));
 }
 
-/** The enum value a token stands for: `--kit-space-md` is `md` when the prop has `md`. */
+/** The enum value a token stands for: `--kit-space-12` is `12` when the prop has `12`. */
 function enumValueOf(values: string[], value: StyleValue): string | null {
   if ('raw' in value) return values.includes(value.raw) ? value.raw : null;
   const named = values.filter((name) => value.token.endsWith(`-${name}`));

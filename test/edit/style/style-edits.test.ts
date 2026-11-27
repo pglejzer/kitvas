@@ -116,7 +116,7 @@ test('another word, a marked keyword, a missing image: refused, nothing written'
   const cases: SimpleOp[] = [
     style('display', plainValue('contents'), plainValue('grid')),
     style('display', { raw: 'flex' }, plainValue('grid')),
-    style('justify-content', { token: '--kit-space-md' }, null),
+    style('justify-content', { token: '--kit-space-12' }, null),
     style('background-image', plainValue(imageUrl('hero.png')), null),
     style('background-image', plainValue('url(https://example.com/a.png)'), null),
   ];

@@ -30,7 +30,7 @@ test('the kit source is named in the texts by the page too', () => {
 });
 
 test('the texts sit in one JSON block on the nonce, which cannot end its script block', () => {
-  const text = editTexts({ t, nonce: 'n0', kit: 'Base', source: 'the built-in kit' }).text;
+  const text = editTexts({ t, nonce: 'n0', kit: 'kitvas UI', source: 'the built-in kit' }).text;
   assert.ok(text.startsWith('<script type="application/json" id="edit-texts" nonce="n0">'));
   const json = text.slice(text.indexOf('nonce="n0">') + 11, text.lastIndexOf('</script>'));
   assert.ok(!json.includes('<'));
