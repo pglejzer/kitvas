@@ -6,11 +6,11 @@
 // was locked at gets its text back byte for byte. Nothing is written here; the lock refusal lets
 // this one edit through (`lock-rules.ts`).
 
-import type { KitStore, LoadedKit } from '../../../kit/index.ts';
+import type { KitStore } from '../../../kit/index.ts';
 import { type EditOp, hashOf, MAX_SOURCE } from '../../domain/ops.ts';
 import { elementSpan } from '../../domain/structure/subtree.ts';
 import { reindent, sourceIndent } from '../../domain/tsx/format.ts';
-import { editKit } from '../edit-state.ts';
+import { editKit, kitNames } from '../edit-state.ts';
 import { replaceNeeds } from '../structure/replace-scope.ts';
 
 /** `RestorePreviewSchema` takes names this long. */
@@ -39,14 +39,6 @@ export type LockRestore = {
   imports: string[];
   ops: EditOp[] | null;
 };
-
-/** The kit's component names, with the icon component. */
-function kitNames(loaded: LoadedKit | null): ReadonlySet<string> {
-  const names = new Set(loaded?.kit.components.map((component) => component.name) ?? []);
-  const icons = loaded?.kit.icons;
-  if (icons?.source === 'component') names.add(icons.component);
-  return names;
-}
 
 /** A raw slice of a file with its later lines moved to the margin, as a source of its own. */
 const dedent = (raw: string): string => reindent(raw, sourceIndent(raw), '');

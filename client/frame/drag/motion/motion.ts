@@ -2,6 +2,7 @@
 // where they are laid out now (FLIP), new ones fade in. With less motion asked for, or too many
 // changes, the prototype's root only fades. The arithmetic is in `flip.ts`.
 
+import { boxOf } from '../../page/rect.ts';
 import {
   type Box,
   EASING,
@@ -32,11 +33,6 @@ const REPLACED = new Set([
 export type Motion = {
   /** Calls `render`, which must update the DOM before it returns, and animates the change. */
   change(render: () => void): Promise<void>;
-};
-
-const box = (element: Element): Box => {
-  const { left, top, width, height } = element.getBoundingClientRect();
-  return { left, top, width, height };
 };
 
 /** The `[data-ks]` elements with a key that tells elements of one id apart: `<id>#<n>`. */
@@ -114,7 +110,7 @@ function entriesAfter(before: Map<string, Box>) {
     return {
       parent: parent ? (index.get(parent) ?? -1) : -1,
       first: before.get(key),
-      last: box(element),
+      last: boxOf(element),
       kind,
     };
   });
@@ -153,7 +149,7 @@ export function createMotion(): Motion {
         return fadeRoot();
       }
       // Seen boxes, taken while an earlier motion still runs, so a new one starts from there.
-      const before = new Map(keyed().map(({ element, key }) => [key, box(element)]));
+      const before = new Map(keyed().map(({ element, key }) => [key, boxOf(element)]));
       stop();
       render();
       const { elements, styles, entries } = entriesAfter(before);

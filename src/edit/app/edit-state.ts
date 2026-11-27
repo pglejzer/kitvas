@@ -11,6 +11,7 @@ import {
 import {
   cssVarName,
   formatTokenValue,
+  type KitComponent,
   type KitStore,
   type LoadedKit,
   loadKit,
@@ -48,6 +49,21 @@ export function editKit(kits: KitStore, id: string): LoadedKit | null {
     if (error instanceof KitvasError) return null;
     throw error;
   }
+}
+
+/** The component names of a kit (the project's additions and the icon component included). */
+export function kitNames(loaded: LoadedKit | null): ReadonlySet<string> {
+  const names = new Set(loaded?.kit.components.map((component) => component.name) ?? []);
+  const icons = loaded?.kit.icons;
+  if (icons?.source === 'component') names.add(icons.component);
+  return names;
+}
+
+/** `Card.Header` is the part `Header` of `Card`: the catalog entry is `Card`. */
+export function catalogComponent(kit: LoadedKit | null, tag: string): KitComponent | null {
+  const name = tag.split('.')[0] ?? tag;
+  if (!/^[A-Z]/.test(name)) return null;
+  return kit?.kit.components.find((component) => component.name === name) ?? null;
 }
 
 /** The kit's tokens as the pickers offer them: `--kit-space-md`, `space.md`, `12px`. */

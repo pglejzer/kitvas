@@ -1,6 +1,13 @@
 // The small guards the channel's protocols share: an element id, a bounded text, a count and a
 // list item's place. Each protocol checks every message with them on both sides.
 
+import { isRecord } from '../../src/shared/values/guards.ts';
+
+/** The message, when it is an object of this channel (`kitvas: 1` and the channel's name). */
+export function ours(data: unknown, channel: string): Record<string, unknown> | undefined {
+  return isRecord(data) && data.kitvas === 1 && data.channel === channel ? data : undefined;
+}
+
 /** An element id as the frame writes it (`data-kv-id`): letters, digits and `_ . : / $ -`. */
 const ELEMENT_ID = /^[A-Za-z0-9_.:/$-]{1,200}$/;
 

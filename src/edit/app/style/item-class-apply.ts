@@ -8,16 +8,9 @@
 import { addItemClassText, itemClassAt } from '../../domain/list/item-class.ts';
 import type { ItemClassOp } from '../../domain/ops.ts';
 import { readTag } from '../../domain/tsx/apply-tsx.ts';
+import { catalogComponent } from '../edit-state.ts';
 import { pickStyleClass } from '../inspect.ts';
-import {
-  commit,
-  componentOf,
-  kitOf,
-  locate,
-  type OpResult,
-  stateOf,
-  type Work,
-} from '../request-state.ts';
+import { commit, kitOf, locate, type OpResult, stateOf, type Work } from '../request-state.ts';
 
 /** Applies one `addItemClass` on the texts of the request. */
 export async function applyItemClass(
@@ -31,7 +24,7 @@ export async function applyItemClass(
   if (typeof tag === 'string') return { refused: tag };
   const scssFile = work.deps.sectionScss(work.slug, work.version, found.file);
   const scss = scssFile === null ? undefined : (stateOf(work, scssFile).text ?? undefined);
-  const component = componentOf(kitOf(work).loaded, tag.name);
+  const component = catalogComponent(kitOf(work).loaded, tag.name);
   // The class the panel's rows write for every item; a new one is no class of all the copies yet.
   const base = pickStyleClass(tag, component, found.text, scss, found.file);
   if (base === null || !base.exists) return { refused: 'no-classname' };

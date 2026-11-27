@@ -19,7 +19,7 @@ export type Evidence =
   | { kind: 'message'; message: string };
 
 /** A value as a number: a number, or a string that is one; `null` for anything else. */
-function numberOf(value: string | number | undefined): number | null {
+export function numberOf(value: string | number | undefined): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value !== 'string' || value.trim() === '') return null;
   const read = Number(value);

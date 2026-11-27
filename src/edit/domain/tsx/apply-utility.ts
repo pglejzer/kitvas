@@ -17,7 +17,8 @@ type Token = { name: string; start: number; end: number };
 const refuse = (refused: Refusal): ApplyResult => ({ refused });
 const CONFLICT: ApplyResult = { conflict: 'changed' };
 
-function splice(text: string, span: Span, insert: string): ApplyResult {
+/** The text with `span` replaced by `insert`, and the span the insert takes. */
+export function splice(text: string, span: Span, insert: string): ApplyResult {
   return {
     text: text.slice(0, span.start) + insert + text.slice(span.end),
     changed: [{ start: span.start, end: span.start + insert.length }],
@@ -33,7 +34,7 @@ function classesOf(value: string, from: number): Token[] {
 }
 
 /** Where the whitespace in front of `end` starts, never before `floor`. */
-function spaceStart(text: string, end: number, floor: number): number {
+export function spaceStart(text: string, end: number, floor: number): number {
   let start = end;
   while (start > floor && isSpace(text.charAt(start - 1))) start -= 1;
   return start;

@@ -3,7 +3,7 @@
 // fills them. Only the latest built version, outside compare, can be edited.
 
 import type { Translate } from '../../../shared/index.ts';
-import { type Html, html, trusted } from '../html.ts';
+import { type Html, html, scriptJson, trusted } from '../html.ts';
 import { EDIT_TEXT_KEYS } from './edit-texts.ts';
 
 /**
@@ -11,13 +11,6 @@ import { EDIT_TEXT_KEYS } from './edit-texts.ts';
  * kit comes from (`sourceNoun`), which the texts that say `{source}` name.
  */
 export type EditTextsInput = { t: Translate; nonce: string; kit: string; source: string };
-
-/** JSON that cannot end its `<script>` element or open a comment in it. */
-const scriptJson = (value: unknown): string =>
-  JSON.stringify(value)
-    .replaceAll('<', '\\u003c')
-    .replaceAll('>', '\\u003e')
-    .replaceAll('&', '\\u0026');
 
 /**
  * The script's texts in one JSON block. Every draft page has it, editable or not: the screen's own

@@ -46,11 +46,12 @@ const COUNT_LINK = 'a[data-dock-cards]';
 /** The pills' other links keep the cards shown. */
 const KEEP_LINKS = 'a[data-dock-width], a[data-dock-size], [data-dock="states"] a[data-state]';
 
-function replaceAddress(href: string): void {
+/** The address changed in place, with no new history entry. */
+export function replaceAddress(href: string): void {
   try {
     history.replaceState(history.state, '', href);
   } catch {
-    // A browser that limits how often the address changes: the cards are right all the same.
+    // A browser that limits how often the address changes: the page is right all the same.
   }
 }
 

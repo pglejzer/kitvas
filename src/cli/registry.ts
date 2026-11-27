@@ -1,6 +1,6 @@
 // What a kitvas command is.
 
-import type { KitvasError, Translate } from '../shared/index.ts';
+import { KitvasError, loadSettings, type Translate } from '../shared/index.ts';
 import type { Flags } from './args.ts';
 
 export type CommandContext = {
@@ -34,6 +34,13 @@ type TypedCommand<T> = {
   failure?(data: T): KitvasError | undefined;
   runsWithoutSettings?: boolean;
 };
+
+/** Throws `WORKSPACE_MISSING` when the folder the command runs in has no `.kitvas`. */
+export function requireWorkspace(ctx: CommandContext): void {
+  if (!loadSettings({ home: ctx.home, cwd: ctx.cwd }).workspace.exists) {
+    throw new KitvasError('WORKSPACE_MISSING');
+  }
+}
 
 export function defineCommand<T>(command: TypedCommand<T>): Command {
   return command as unknown as Command;

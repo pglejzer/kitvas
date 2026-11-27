@@ -40,13 +40,17 @@ import { buildCatalog, type CatalogReport } from '../../../render/index.ts';
 import {
   catalogDir,
   KitvasError,
-  loadSettings,
   projectKitsDir,
   saveProjectKit,
   type Translate,
 } from '../../../shared/index.ts';
 import { columns } from '../../output/columns.ts';
-import { type Command, type CommandContext, defineCommand } from '../../registry.ts';
+import {
+  type Command,
+  type CommandContext,
+  defineCommand,
+  requireWorkspace,
+} from '../../registry.ts';
 import type { RenderTools } from '../draft/build.ts';
 import { exportsView, type KitExportsView, renderExports } from './kit-exports.ts';
 import { type KitMergeView, mergeView, renderMerge } from './kit-merge.ts';
@@ -301,11 +305,6 @@ export function createKitCommand(deps: KitDeps): Command {
     const id = ctx.positionals[1];
     if (!id) throw new KitvasError('USAGE', { detail: ctx.t('kits.usage.id', { command }) });
     return id;
-  };
-  const requireWorkspace = (ctx: CommandContext): void => {
-    if (!loadSettings({ home: ctx.home, cwd: ctx.cwd }).workspace.exists) {
-      throw new KitvasError('WORKSPACE_MISSING');
-    }
   };
   const lines = (ctx: CommandContext, issues: KitIssue[]): IssueLine[] =>
     issues.map((issue) => ({ path: issue.path, message: ctx.t(issue.key, issue.params) }));

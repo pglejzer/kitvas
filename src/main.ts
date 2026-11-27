@@ -246,51 +246,34 @@ export function main(argv: string[]): Promise<number> {
       await disposeRenderTools(tools);
     }
   };
+  // What `craft new` and `rework new` both need: the page read like `kit scan` reads one, and
+  // the person's images copied into the draft.
+  const startDeps = (project: string, t: Translate) => ({
+    drafts: drafts.draftsAt(project),
+    kits: kitsAt(project),
+    browser: browser(),
+    lookup: addresses,
+    readFile: (path: string): Uint8Array | undefined => {
+      try {
+        return readFileSync(path);
+      } catch {
+        return undefined;
+      }
+    },
+    writeFile: (path: string, bytes: Uint8Array): void => {
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, bytes);
+    },
+    now: () => new Date(),
+    t,
+  });
   const craftStart = (project: string, input: Parameters<typeof startCraft>[1], t: Translate) =>
-    startCraft(
-      {
-        drafts: drafts.draftsAt(project),
-        kits: kitsAt(project),
-        browser: browser(),
-        lookup: addresses,
-        readFile: (path) => {
-          try {
-            return readFileSync(path);
-          } catch {
-            return undefined;
-          }
-        },
-        writeFile: (path, bytes) => {
-          mkdirSync(dirname(path), { recursive: true });
-          writeFileSync(path, bytes);
-        },
-        now: () => new Date(),
-        t,
-      },
-      input,
-    );
-  // `rework new`: like `kit scan` for a URL, and the person's images copied into the draft.
+    startCraft(startDeps(project, t), input);
   const reworkStart = (project: string, input: StartReworkInput, t: Translate) =>
     startRework(
       {
-        drafts: drafts.draftsAt(project),
-        kits: kitsAt(project),
-        browser: browser(),
-        lookup: addresses,
-        readFile: (path) => {
-          try {
-            return readFileSync(path);
-          } catch {
-            return undefined;
-          }
-        },
-        writeFile: (path, bytes) => {
-          mkdirSync(dirname(path), { recursive: true });
-          writeFileSync(path, bytes);
-        },
+        ...startDeps(project, t),
         remove: (path) => rmSync(path, { recursive: true, force: true }),
-        now: () => new Date(),
-        t,
       },
       input,
     );

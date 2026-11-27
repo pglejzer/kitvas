@@ -22,9 +22,9 @@ import { contextOf, elementSpan, isMixed, parentOf } from '../../domain/structur
 import { offsetOf, openAt, plainText } from '../../domain/tsx/tsx-reader.ts';
 import type { Refusal } from '../../domain/types.ts';
 import type { EditCompiler } from '../../ports/compiler.ts';
-import { editKit } from '../edit-state.ts';
+import { catalogComponent, editKit } from '../edit-state.ts';
 import { locateElement } from '../locate.ts';
-import { sourceFiles } from './section-files.ts';
+import { inPageOrder, sourceFiles } from './section-files.ts';
 
 export type StructureDeps = {
   drafts: DraftStore;
@@ -113,13 +113,6 @@ const validId = (id: string): boolean => id.length <= MAX_ID && ELEMENT_ID.test(
 function parentIdOf(id: string): string | null {
   const slash = id.lastIndexOf('/');
   return slash > id.indexOf(':') ? id.slice(0, slash) : null;
-}
-
-/** `Card.Header` is the part `Header` of `Card`: the catalog entry is `Card`. */
-function kitComponentOf(kit: LoadedKit | null, tag: string): KitComponent | null {
-  const name = tag.split('.')[0] ?? tag;
-  if (!/^[A-Z]/.test(name)) return null;
-  return kit?.kit.components.find((component) => component.name === name) ?? null;
 }
 
 const takesChildren = (component: KitComponent): boolean =>
@@ -239,7 +232,7 @@ function entryOf(context: FileContext, site: Site): StructureEntryView | null {
   const span = elementSpan(text, site.at);
   const open = openAt(text, site.at);
   if (span === null || open === null || !validId(site.id)) return null;
-  const component = kitComponentOf(kit, site.tag);
+  const component = catalogComponent(kit, site.tag);
   const { movable, root } = standingOf(text, site.at);
   const { lists, item } = listedAt(context, site.at);
   return {
@@ -273,17 +266,6 @@ function layoutSections(drafts: DraftStore, slug: string, base: string): LayoutE
   return parseLayout(text)
     .sections.filter((section) => SECTION_ID.test(section.id))
     .map(({ id, purpose }) => ({ id, purpose }));
-}
-
-/** The TSX files in the order the page shows them: the layout's sections, then the sketches. */
-function inPageOrder(files: string[], sections: { id: string }[]): string[] {
-  const order = sections.map((section) => `src/tsx/sections/${pascalCase(section.id)}.tsx`);
-  const rank = (file: string): number => {
-    const at = order.indexOf(file);
-    return at < 0 ? order.length : at;
-  };
-  // The sort is stable, so the sketches keep the sorted order `sourceFiles` gives them.
-  return files.filter((file) => file.endsWith('.tsx')).sort((a, b) => rank(a) - rank(b));
 }
 
 /**
@@ -325,7 +307,10 @@ export async function readStructure(deps: StructureDeps, slug: string): Promise<
   }
 
   const elements: StructureEntryView[] = [];
-  for (const file of inPageOrder([...texts.keys()], sections)) {
+  for (const file of inPageOrder(
+    [...texts.keys()],
+    sections.map((section) => section.id),
+  )) {
     const text = texts.get(file) ?? '';
     const sites = await sitesOf(deps.compiler, text, file);
     const context: FileContext = {

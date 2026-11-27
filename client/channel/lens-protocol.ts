@@ -6,6 +6,7 @@
 // `live-protocol.ts` does.
 
 import { isRecord as isObject } from '../../src/shared/values/guards.ts';
+import { ours } from './guards.ts';
 
 export const PIN_KINDS = ['kit', 'check', 'why', 'change'] as const;
 export type PinKind = (typeof PIN_KINDS)[number];
@@ -46,8 +47,6 @@ export type LensFrameBody = { type: 'pin'; key: string };
 type Head = { kitvas: 1; channel: string };
 export type LensStudioMessage = Head & LensStudioBody;
 export type LensFrameMessage = Head & LensFrameBody;
-
-type Loose = Record<string, unknown>;
 
 /** The element ids the other protocols take (`live-protocol.ts`). */
 const ELEMENT_ID = /^[A-Za-z0-9_.:/$-]{1,200}$/;
@@ -97,10 +96,6 @@ export function readLensPin(value: unknown): LensPin | undefined {
     ...(line === undefined ? {} : { small: line }),
     ...(outline === true || outline === false ? { outline } : {}),
   };
-}
-
-function ours(data: unknown, channel: string): Loose | undefined {
-  return isObject(data) && data.kitvas === 1 && data.channel === channel ? data : undefined;
 }
 
 /**

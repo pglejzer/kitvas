@@ -3,7 +3,7 @@
 // `client/studio/trash/texts.ts` reads it. A key is `studio.trash.<name>` in `locales/en.json`.
 
 import type { Translate } from '../../../shared/index.ts';
-import { type Html, html, trusted } from '../html.ts';
+import { type Html, html, scriptJson, trusted } from '../html.ts';
 
 /** The names under `studio.trash.` the script asks for. */
 export const TRASH_TEXT_KEYS = [
@@ -26,13 +26,6 @@ export const TRASH_TEXT_KEYS = [
 ] as const;
 
 export type TrashTextsInput = { t: Translate; nonce: string };
-
-/** JSON that cannot end its `<script>` element or open a comment in it. */
-const scriptJson = (value: unknown): string =>
-  JSON.stringify(value)
-    .replaceAll('<', '\\u003c')
-    .replaceAll('>', '\\u003e')
-    .replaceAll('&', '\\u0026');
 
 export function trashTexts(input: TrashTextsInput): Html {
   const { t } = input;

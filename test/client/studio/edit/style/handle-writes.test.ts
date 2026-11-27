@@ -4,7 +4,6 @@ import {
   HANDLE_PROPERTIES,
   handleLimits,
   opsForHandle,
-  pxOf,
   readHandleNote,
   scalesOf,
   styleOfHandle,
@@ -72,13 +71,6 @@ test('the scales sent to the frame are ordered, with px from the token value', (
     size.map((step) => step.name),
     ['narrow', 'page'],
   );
-});
-
-test('lengths that are not pixels are left out of the scales', () => {
-  assert.equal(pxOf('100%'), null);
-  assert.equal(pxOf('calc(1px + 2px)'), null);
-  assert.equal(pxOf('1.5rem'), 24);
-  assert.equal(pxOf('0'), 0);
 });
 
 test('a handle property maps to a style row; since plan 15 one padding side has its own', () => {

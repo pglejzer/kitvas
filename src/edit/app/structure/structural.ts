@@ -13,10 +13,10 @@ import { contextOf, elementSpan, parentOf } from '../../domain/structure/subtree
 import { openingTags, readTag } from '../../domain/tsx/apply-tsx.ts';
 import { indentAt, reindent, sourceIndent } from '../../domain/tsx/format.ts';
 import type { OffsetMap, Span } from '../../domain/types.ts';
+import { catalogComponent } from '../edit-state.ts';
 import {
   accepts,
   commit,
-  componentOf,
   compose,
   type Found,
   inInteractive,
@@ -280,7 +280,7 @@ async function wrapElements(
   const { loaded } = kitOf(work);
   const name = /^<([A-Za-z][\w.]*)/.exec(op.open.trim())?.[1];
   if (name === undefined) return { refused: 'invalid' };
-  if (/^[A-Z]/.test(name) && componentOf(loaded, name) === null) {
+  if (/^[A-Z]/.test(name) && catalogComponent(loaded, name) === null) {
     return { refused: 'unknown-component' };
   }
   if (!accepts(loaded, name)) return { refused: 'not-accepted' };
@@ -302,9 +302,9 @@ async function replaceTag(work: Work, index: number, op: OpOf<'replaceTag'>): Pr
   const { loaded } = kitOf(work);
   const view = readTag(target.text, target.at);
   if (typeof view === 'string') return { refused: view };
-  const to = componentOf(loaded, op.tag);
+  const to = catalogComponent(loaded, op.tag);
   if (to === null) return { refused: 'unknown-component' };
-  const made = replaceTagOpen(view, componentOf(loaded, view.name), to, op.tag, target.text);
+  const made = replaceTagOpen(view, catalogComponent(loaded, view.name), to, op.tag, target.text);
   if ('refused' in made) return { refused: made.refused };
   const end = elementSpan(target.text, target.at)?.end ?? view.span.end;
   const nested =

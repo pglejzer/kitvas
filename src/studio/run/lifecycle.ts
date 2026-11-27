@@ -110,6 +110,14 @@ export async function studioStatus(deps: LifecycleDeps): Promise<StudioView | un
   return running ? viewOf(running) : undefined;
 }
 
+/** The state of this project's studio, when one answers. */
+export async function runningState(deps: LifecycleDeps): Promise<StudioState | undefined> {
+  const found = await studioStatus(deps);
+  if (!found) return undefined;
+  const state = deps.readState();
+  return state?.pid === found.pid ? state : undefined;
+}
+
 export async function stopStudio(deps: LifecycleDeps): Promise<StudioView | undefined> {
   const running = await findStudio(deps);
   if (!running) return undefined;

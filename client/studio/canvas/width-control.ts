@@ -7,6 +7,7 @@ import { text } from '../edit/texts.ts';
 import { toast } from '../edit/toast.ts';
 import type { Frame } from '../frames.ts';
 import { cardSize } from './caption.ts';
+import { replaceAddress } from './cards.ts';
 import { pillMenu } from './pill-menu.ts';
 import { mountPillMenus } from './pill-menus.ts';
 import {
@@ -65,14 +66,6 @@ export type WidthControl = {
   /** After the page swapped the dock's links: marks them and keeps the custom width in them. */
   sync(): void;
 };
-
-function replaceAddress(href: string): void {
-  try {
-    history.replaceState(history.state, '', href);
-  } catch {
-    // A browser that limits how often the address changes: the view is right all the same.
-  }
-}
 
 export function mountWidth(deps: WidthDeps): WidthControl {
   const { main, frames } = deps;

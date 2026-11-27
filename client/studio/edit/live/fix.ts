@@ -19,9 +19,9 @@ import {
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import type { NewRequest } from '../../../../src/studio/api/requests/request-schemas.ts';
 import { MAX_REQUEST_ELEMENTS, MAX_REQUEST_TEXT } from '../ai/requests.ts';
-import { PROPERTIES, styleValueOf } from '../props/values/steps.ts';
+import { groupOf, PROPERTIES, styleValueOf } from '../props/values/steps.ts';
 import { type Format, opsForStyle, readOnlyReason, ruleHeld } from '../style/ops.ts';
-import type { Values } from './evidence.ts';
+import { numberOf, type Values } from './evidence.ts';
 import { LIVE_RULE_IDS } from './items.ts';
 
 /** One style a fix sets, and how the card names its value. */
@@ -55,13 +55,6 @@ export type FixOps = { ops: EditOp[]; everyItem: boolean } | { reason: FixReason
 /** The words of the page (`text()`), passed in so the wording is tested without a page. */
 export type Words = (key: string, params?: Record<string, string | number>) => string;
 
-function numberOf(value: string | number | undefined): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  if (typeof value !== 'string' || value.trim() === '') return null;
-  const read = Number(value);
-  return Number.isFinite(read) ? read : null;
-}
-
 /** A length in px; `rem` counts 16 px. `null` for anything else. */
 function pixels(css: string): number | null {
   const match = /^(\d+(?:\.\d+)?|\.\d+)(px|rem)$/.exec(css.trim());
@@ -69,12 +62,6 @@ function pixels(css: string): number | null {
   const size = Number(match[1]);
   return match[2] === 'rem' ? size * 16 : size;
 }
-
-/** `size.controlSm` is in the group `size`; `sizes.minHeight.sm` in `min-height`. */
-const groupOf = (token: TokenOption): string =>
-  (token.path.split('.').slice(0, -1).at(-1) ?? '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase();
 
 /** The kit's size scale for one axis, smallest first: its dimension tokens of a size group. */
 export function sizeScale(
