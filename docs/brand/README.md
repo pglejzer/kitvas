@@ -2,7 +2,7 @@
 
 Logo of kitvas, a Claude Code plugin that builds UI prototypes from a design system (a kit) and shows them in a local studio (a canvas): a dovetail of two kit parts, the word kitvas, and two loose parts as the dot of the i and a full stop. Copper and ink.
 
-Copy KitvasLogo.tsx into your project and import it where you need it. The component has no imports and no dependencies.
+The component has no imports and no dependencies. The logo is not free to use: no one may change it or use it outside kitvas ("The kitvas name and logo" in `LICENSING.md`).
 
 ## Files
 
