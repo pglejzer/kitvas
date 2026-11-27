@@ -3,7 +3,7 @@
 // `target.json` (the facts of the project) and `before.json` (the project's listing before anything
 // is written). Everything is written inside the draft's version folder; nothing in the project.
 
-import { idEntries } from '../../../checks/index.ts';
+import { idEntries, sharedUses } from '../../../checks/index.ts';
 import {
   type DraftStore,
   type InspectedLayout,
@@ -11,6 +11,7 @@ import {
   pascalCase,
   pickedFinal,
   readOptions,
+  readSharedValues,
   sectionPaths,
   serializeJson,
   sketchFile,
@@ -229,6 +230,11 @@ export function writeBrief(
   const at = { slug, root, base };
   const tsx = codeOf(deps, { ...at, folder: 'tsx', ending: '.tsx' }, own, own.tsx);
   const scss = codeOf(deps, { ...at, folder: 'scss', ending: '.scss' }, own, own.scss);
+  const fromRoot = (path: string): string => `${root}/${path}`;
+  const shared = sharedUses(
+    tsx.map(({ path, text }) => ({ file: path, text })),
+    readSharedValues(deps.drafts, slug, base),
+  ).map((use) => ({ ...use, setIn: use.setIn.map(fromRoot), readIn: use.readIn.map(fromRoot) }));
 
   const components = componentUses({ ids, sources: tsx }).map((used) => {
     const origin = originOf(loaded, used.name);
@@ -281,6 +287,7 @@ export function writeBrief(
     ...(options.length === 0
       ? {}
       : { options: options.map((option) => ({ id: option.id, default: option.default })) }),
+    ...(shared.length === 0 ? {} : { shared }),
     target: `${dir}/target.json`,
     rules: deps.rules,
     report: `${dir}/fit.json`,

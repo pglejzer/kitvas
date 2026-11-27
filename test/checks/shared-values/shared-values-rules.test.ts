@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { SHARED_RULE_IDS, sharedUnusedFindings } from '../../../src/checks/index.ts';
+import { SHARED_RULE_IDS, sharedUnusedFindings, sharedUses } from '../../../src/checks/index.ts';
 import type { SharedValue } from '../../../src/shared/index.ts';
 
 const pick = (id: string): SharedValue => ({
@@ -34,6 +34,48 @@ test('a value that one section sets and another reads gives nothing', () => {
     [pick('range')],
   );
   assert.deepEqual(found, []);
+});
+
+test('each value names the files that set it and the files that read it', () => {
+  const uses = sharedUses(
+    [
+      file('Filter', 'onChange={(v) => setShared({ range: v, query: "" })}'),
+      file('Chart', '<p>{shared.range}</p>'),
+      file('Table', "rows.filter((row) => row.name.includes(shared['query']))"),
+      { file: 'src/tsx/index.tsx', text: 'setShared({ range: "a" }); shared.range' },
+    ],
+    [pick('range'), text('query')],
+  );
+  assert.deepEqual(
+    uses.map(({ id, setIn, readIn }) => ({ id, setIn, readIn })),
+    [
+      {
+        id: 'range',
+        setIn: ['src/tsx/sections/Filter.tsx'],
+        readIn: ['src/tsx/sections/Chart.tsx'],
+      },
+      {
+        id: 'query',
+        setIn: ['src/tsx/sections/Filter.tsx'],
+        readIn: ['src/tsx/sections/Table.tsx'],
+      },
+    ],
+  );
+  assert.equal(uses[0]?.default, 'a');
+});
+
+test('a value taken out of shared by destructuring is read; a rest or a lookalike is not', () => {
+  const uses = sharedUses(
+    [
+      file('Chart', "const { grouping, plan: chosen, range = 'a' }: Shared = shared;"),
+      file('Table', 'const { ...rest } = shared; const { query } = sharedish;'),
+    ],
+    [pick('grouping'), pick('plan'), pick('range'), text('query')],
+  );
+  assert.deepEqual(
+    uses.map(({ id, readIn }) => `${id}:${readIn.length}`),
+    ['grouping:1', 'plan:1', 'range:1', 'query:0'],
+  );
 });
 
 test('read only is unset, set only is unread, neither is both', () => {

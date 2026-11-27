@@ -92,5 +92,6 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0083](0083-themes-and-token-additions.md) | Themes are token sets of the kit; the project adds tokens and theme values | 2026-11-26 | accepted |
 | [0084](0084-logo-dovetail.md) | The logo is a dovetail of two kit parts, with two loose parts that move | 2026-11-26 | accepted |
 | [0085](0085-controls-under-the-pointer-and-in-use.md) | A check puts every control under a real pointer, gives it focus and uses it | 2026-11-26 | accepted |
-| [0086](0086-shared-values.md) | Sections share what a person chose through shared values, held by the bundle's entry | 2026-11-26 | accepted |
+| [0086](0086-shared-values.md) | Sections share what a person chose through shared values, held by the bundle's entry | 2026-11-26 | accepted, changed in part by ADR 0088 |
 | [0087](0087-select-list-in-the-page.md) | The Base kit's Select draws its list in the page | 2026-11-26 | accepted |
+| [0088](0088-handoff-keeps-shared-values.md) | A hand-off to code keeps a version's shared values as the page's state | 2026-11-27 | accepted |
