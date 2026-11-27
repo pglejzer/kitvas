@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import type { PreviewsStamp } from '../../../../src/checks/index.ts';
 import { createFolderKitStore } from '../../../../src/kit/adapters/folder-store.ts';
 import type { KitStore } from '../../../../src/kit/index.ts';
-import { iconsAnchor, iconsSection } from '../../../../src/studio/pages/kit/kit-icons.ts';
+import { iconsParts } from '../../../../src/studio/pages/kit/kit-icons.ts';
 import { pageRoutes } from '../../../../src/studio/pages/routes.ts';
 import type { KitPreviews } from '../../../../src/studio/previews/keeper.ts';
 import type { IconsView } from '../../../../src/studio/views/kit-icons.ts';
@@ -24,38 +24,38 @@ const VIEW: IconsView = {
   coming: false,
 };
 
-test('the icons are a card: a picture and the name, or the name alone', () => {
-  const html = iconsSection(t, VIEW);
-  assert.ok(html !== '');
+test('the icons are one part: a card with a picture and the name, or the name alone', () => {
+  const parts = iconsParts(t, VIEW);
+  assert.deepEqual(
+    parts.map(({ id, label, count }) => ({ id, label, count })),
+    [{ id: 'kit-icons', label: 'Icons', count: 2 }],
+  );
+  const text = parts[0]?.body.text ?? '';
   assert.ok(
-    html.text.startsWith(
-      '<section class="kit-part kit-card" aria-labelledby="kit-icons"><header class="kit-part-head"><h2 id="kit-icons">Icons</h2><span class="k-meta">2</span></header><ul class="kit-icons" role="list">',
+    text.startsWith(
+      '<section class="kit-part kit-card" aria-labelledby="kit-icons"><header class="kit-part-head"><h2 id="kit-icons">Icons</h2><span class="k-meta" data-view-count>2</span></header><ul class="kit-icons" role="list">',
     ),
   );
   assert.ok(
-    html.text.includes(
-      '<li class="kit-icon"><span class="kit-glyph-tile" aria-hidden="true"><span class="kit-glyph" data-icon="plus"></span></span><code>plus</code></li>',
+    text.includes(
+      '<li class="kit-icon" data-search="plus"><span class="kit-glyph-tile" aria-hidden="true"><span class="kit-glyph" data-icon="plus"></span></span><code>plus</code></li>',
     ),
   );
-  assert.ok(html.text.includes('<li class="kit-icon"><code>cart</code></li>'));
-  assert.ok(!html.text.includes('data-icons-note'));
-  assert.deepEqual(iconsAnchor(t, VIEW), [{ id: 'kit-icons', label: 'Icons', count: 2 }]);
+  assert.ok(text.includes('<li class="kit-icon" data-search="cart"><code>cart</code></li>'));
+  assert.ok(!text.includes('data-icons-note'));
 });
 
 test('while the first pictures are made the card says so', () => {
-  const html = iconsSection(t, { ...VIEW, coming: true });
-  assert.ok(html !== '');
+  const text = iconsParts(t, { ...VIEW, coming: true })[0]?.body.text ?? '';
   assert.ok(
-    html.text.includes(
+    text.includes(
       '<p class="k-quiet" data-icons-note>The pictures of the icons are being made.</p><ul',
     ),
   );
 });
 
-test('a kit that names no icon has no card and no link', () => {
-  const none: IconsView = { rows: [], rules: '', coming: false };
-  assert.equal(iconsSection(t, none), '');
-  assert.deepEqual(iconsAnchor(t, none), []);
+test('a kit that names no icon has no icons part', () => {
+  assert.deepEqual(iconsParts(t, { rows: [], rules: '', coming: false }), []);
 });
 
 const STAMP: PreviewsStamp = {
@@ -122,10 +122,12 @@ test('the kit page draws the icons of the sheet and names the rest', () => {
     view: { state: 'ready', stamp: STAMP },
   });
   assert.deepEqual(asked, ['kitvas-ui']);
-  assert.ok(text.includes('<h2 id="kit-icons">Icons</h2><span class="k-meta">112</span>'));
+  assert.ok(
+    text.includes('<h2 id="kit-icons">Icons</h2><span class="k-meta" data-view-count>112</span>'),
+  );
   assert.ok(
     text.includes(
-      '<a class="kit-link" href="#kit-icons"><span class="k-clip">Icons</span><span class="k-meta">112</span></a>',
+      '<a class="kit-link" href="?view=kit-icons" data-view-link="kit-icons"><span class="k-clip">Icons</span><span class="k-meta">112</span></a>',
     ),
   );
   assert.ok(
@@ -137,7 +139,7 @@ test('the kit page draws the icons of the sheet and names the rest', () => {
   assert.ok(
     text.includes('<span class="kit-glyph" data-icon="cart"></span></span><code>cart</code>'),
   );
-  assert.ok(text.includes('<li class="kit-icon"><code>bell</code></li>'));
+  assert.ok(text.includes('<li class="kit-icon" data-search="bell"><code>bell</code></li>'));
   assert.ok(!text.includes('data-icons='), 'nothing to wait for');
   assert.ok(!/ style="/.test(text));
 });
@@ -160,14 +162,16 @@ test('the sheet is asked for only once the examples of the kit were built', () =
   const view: KitPreviews = { state: 'ready', stamp: STAMP };
   const unbuilt = kitPage({ project: tempDir('kitvas-project-'), view });
   assert.deepEqual(unbuilt.asked, []);
-  assert.ok(unbuilt.text.includes('<li class="kit-icon"><code>cart</code></li>'));
+  assert.ok(
+    unbuilt.text.includes('<li class="kit-icon" data-search="cart"><code>cart</code></li>'),
+  );
   assert.deepEqual(kitPage({ view }).asked, [], 'no project folder');
 });
 
 test('a studio that makes no previews names the icons', () => {
   const { text } = kitPage({ project: builtProject() });
   assert.ok(text.includes('<h2 id="kit-icons">Icons</h2>'));
-  assert.ok(text.includes('<li class="kit-icon"><code>plus</code></li>'));
+  assert.ok(text.includes('<li class="kit-icon" data-search="plus"><code>plus</code></li>'));
   assert.ok(!text.includes('kit-glyph'));
 });
 

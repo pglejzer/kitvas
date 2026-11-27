@@ -58,14 +58,15 @@ test('the kitvas UI kit catalog shows every token and component', async () => {
     assert.ok(text.includes(`<h3>${component.name}`), component.name);
   }
   assert.ok(text.includes('<h2 id="kit-colors">Colors</h2>'));
-  assert.ok(text.includes('<h2 id="kit-components">Components</h2>'));
+  assert.ok(text.includes('<h2 id="kit-cat-action">Action components</h2>'));
 });
 
-test('the page links to each of its sections, and the picker marks the current kit', async () => {
+test('the page links to each of its parts, and the picker marks the current kit', async () => {
   const text = await pages(builtinKits())('kit', { id: 'kitvas-ui' });
-  for (const id of ['kit-colors', 'kit-spacing', 'kit-radius', 'kit-type', 'kit-components']) {
-    assert.ok(text.includes(`href="#${id}"`), id);
-    assert.ok(text.includes(`id="${id}"`), `${id} has its heading`);
+  for (const id of ['kit-colors', 'kit-spacing', 'kit-radius', 'kit-type', 'kit-cat-input']) {
+    assert.ok(text.includes(`href="?view=${id}" data-view-link="${id}"`), id);
+    assert.ok(text.includes(`<h2 id="${id}">`), `${id} has its heading`);
+    assert.ok(text.includes(`data-view="${id}"`), `${id} is a part`);
   }
   assert.ok(text.includes('<a class="kit-pick" href="/kit/kitvas-ui" aria-current="page">'));
 });
@@ -74,9 +75,8 @@ test('a colour shows its contrast on white and on black, and a value with no hex
   const text = await pages(createFolderKitStore(FIXTURE_KITS))('kit', { id: 'tiny' });
   assert.ok(text.includes('<span class="k-meta">On white 16.3:1, on black 1.2:1</span>'));
   // The veil has an alpha: it is written as rgb(…), so no ratio is made up for it.
-  const veil = /<li class="kit-color">(?:(?!<\/li>)[\s\S])*--kit-color-veil[\s\S]*?<\/li>/.exec(
-    text,
-  );
+  const veil =
+    /<li class="kit-color"[^>]*>(?:(?!<\/li>)[\s\S])*--kit-color-veil[\s\S]*?<\/li>/.exec(text);
   assert.ok(veil);
   assert.ok(!veil[0].includes('On white'));
 });
@@ -276,7 +276,7 @@ test('a kit with problems has its problems as a card with a count', async () => 
   const text = await pages(kitWithProblems())('kit', { id: 'tiny' });
   assert.ok(
     text.includes(
-      '<section class="kit-part kit-card" aria-labelledby="kit-problems"><header class="kit-part-head"><h2 id="kit-problems">Problems</h2><span class="k-meta">1</span>',
+      '<section class="kit-part kit-card" aria-labelledby="kit-problems"><header class="kit-part-head"><h2 id="kit-problems">Problems</h2><span class="k-meta" data-view-count>1</span>',
     ),
   );
 });

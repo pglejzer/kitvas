@@ -1,4 +1,5 @@
-// The Kit pages: the list, the anchors, swatches, scales, type samples, components.
+// The Kit pages: the list, the search and the parts on the left, swatches, scales, type samples,
+// icons, components that fold.
 // Plan 18, task E. Studio tokens only (`--st-*`); shared classes are `../` (`k-`).
 //
 // What a token sets on its swatch, bar, corner or sample (a background, `--size`, a font size) comes
@@ -49,7 +50,8 @@ export const SKIN_KIT = `
 /* The ways to add a kit stand on the kit cards' columns. */
 .kit-add-cards { grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); }
 
-/* A kit's page: the kits and the links on the left, kept in view; the content on the right. */
+/* A kit's page: the search, the kits and the parts on the left, kept in view; the part that
+   shows on the right. */
 .kit-layout {
   display: grid;
   grid-template-columns: 252px minmax(0, 1fr);
@@ -82,17 +84,21 @@ export const SKIN_KIT = `
   text-decoration: none;
 }
 .kit-pick:is(a):hover, .kit-link:hover { background: var(--st-color-raised); color: var(--st-color-ink); }
-.kit-pick[aria-current] { background: var(--st-color-accent-soft); color: var(--st-color-ink); }
+.kit-pick[aria-current], .kit-link[aria-current] { background: var(--st-color-accent-soft); color: var(--st-color-ink); }
 .kit-pick-text { display: grid; flex: 1; min-width: 0; }
 .kit-pick .k-dot { margin-left: auto; }
 .kit-pick-off { cursor: default; }
 .kit-link { justify-content: space-between; }
-.kit-link-sub { padding-left: var(--st-space-24); }
+.kit-parts { display: grid; gap: var(--st-space-2); }
+/* A link that stands alone (the problems, the icons): a line parts it from the titled groups. */
+.kit-links-alone { margin: var(--st-space-6) 0; padding: var(--st-space-6) 0; border-block: 1px solid var(--st-color-line); }
+.kit-links-alone:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.kit-links-alone:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
 
-.kit-main { display: grid; gap: var(--st-space-16); min-width: 0; }
-.kit-part { display: grid; gap: var(--st-space-12); scroll-margin-top: calc(var(--st-size-bar) + var(--st-space-16)); }
+.kit-main, .kit-view { display: grid; gap: var(--st-space-16); min-width: 0; }
+.kit-main { scroll-margin-top: calc(var(--st-size-bar) + var(--st-space-16)); }
+.kit-part { display: grid; gap: var(--st-space-12); }
 .kit-part h2 { scroll-margin-top: calc(var(--st-size-bar) + var(--st-space-16)); }
-.kit-part > h2 { font-size: var(--st-font-size-xl); }
 /* A token section or the problems: a card, with its count beside the heading. */
 .kit-part.kit-card { gap: var(--st-space-12); min-width: 0; }
 .kit-part-head { display: flex; align-items: baseline; gap: var(--st-space-8); }
@@ -110,7 +116,7 @@ export const SKIN_KIT = `
   padding: 0;
   list-style: none;
 }
-.kit-icons { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }
+.kit-icons { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); }
 .kit-color, .kit-icon { display: flex; align-items: center; gap: var(--st-space-10); min-width: 0; }
 .kit-swatch, .kit-glyph-tile {
   width: 40px;
@@ -176,8 +182,8 @@ export const SKIN_KIT = `
 .kit-other-row > span { overflow-wrap: anywhere; }
 .kit-other-row:first-child { border-top: 0; }
 
-/* Components: one surface each; the framed example beside the props. */
-.kit-category { margin-top: var(--st-space-8); color: var(--st-color-ink-mid); font-weight: var(--st-font-weight-bold); scroll-margin-top: calc(var(--st-size-bar) + var(--st-space-16)); }
+/* Components: one surface each, folded to its name and what it is for; open, the framed
+   examples beside the props. */
 .kit-card {
   display: grid;
   gap: var(--st-space-8);
@@ -186,13 +192,29 @@ export const SKIN_KIT = `
   background: var(--st-color-panel);
   box-shadow: var(--st-shadow-low);
 }
-.kit-card > h3 { display: flex; align-items: center; gap: var(--st-space-8); font-size: var(--st-font-size-lg); }
+.kit-fold { padding: 0; }
+.kit-fold summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--st-space-2) var(--st-space-12);
+  padding: var(--st-space-12) var(--st-space-16);
+  border-radius: var(--st-radius-lg);
+  list-style: none;
+  cursor: pointer;
+}
+.kit-fold summary::-webkit-details-marker { display: none; }
+.kit-fold summary:hover { background: var(--st-color-raised); }
+.kit-fold summary > h3 { display: flex; align-items: center; gap: var(--st-space-8); font-size: var(--st-font-size-lg); }
+.kit-fold summary > .k-quiet { grid-column: 1; overflow-wrap: anywhere; }
+.kit-fold summary > .k-icon { grid-area: 1 / 2 / span 2; color: var(--st-color-ink-mid); }
+.kit-fold details[open] > summary > .k-icon { rotate: 180deg; }
 .kit-card-body {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   gap: var(--st-space-16);
   align-items: start;
-  margin-top: var(--st-space-4);
+  padding: var(--st-space-4) var(--st-space-16) var(--st-space-16);
 }
 .kit-card-body:not(:has(.kit-examples)) { grid-template-columns: minmax(0, 1fr); }
 .kit-card-facts, .kit-examples { display: grid; gap: var(--st-space-8); min-width: 0; }
@@ -225,6 +247,8 @@ export const SKIN_KIT = `
 @media (max-width: 60rem) {
   .kit-layout { grid-template-columns: minmax(0, 1fr); }
   .kit-side { position: static; max-height: none; }
+  /* While the field holds words, what it finds comes right under it. */
+  .kit-side:has([data-kit-search]:not(:placeholder-shown)) > nav { display: none; }
   .kit-card-body { grid-template-columns: minmax(0, 1fr); }
 }
 `;

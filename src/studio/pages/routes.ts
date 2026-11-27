@@ -78,9 +78,9 @@ export function pageRoutes(deps: PageDeps): PageRoute[] {
       id: 'kit',
       path: '/kit/{id}',
       params: KitParams,
-      handle: ({ params, host, nonce }) => {
+      handle: ({ params, query, host, nonce }) => {
         try {
-          return kitPage(deps, params.id, { host, nonce });
+          return kitPage(deps, params.id, { host, nonce, view: query.get('view') ?? undefined });
         } catch (error) {
           // A kit that cannot be read or is not there gets a page that says why, not a bare error.
           if (!(error instanceof KitvasError)) throw error;

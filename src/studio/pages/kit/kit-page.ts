@@ -1,4 +1,6 @@
-// `/kit`: every kit. `/kit/<id>`: one kit's catalog, with its tokens, components and problems.
+// `/kit`: every kit. `/kit/<id>`: one kit's catalog, with its tokens, components, icons and
+// problems. The catalog shows one part at a time (`?view=<id>`, picked on the left); the problems
+// show above every part.
 // Both are built from the start page's parts, like the Guide: its column, a short block, cards and
 // the foot line.
 
@@ -9,7 +11,7 @@ import { NO_PREVIEWS, type PalettePreviews, palettePreviews } from '../../previe
 import { iconsView } from '../../views/kit-icons.ts';
 import { lookView, sourceLine, sourceNoun, verifyView } from '../../views/kit-status.ts';
 import { partitionAdded, scaleRules, splitTokens, typeRules } from '../../views/kit-tokens.ts';
-import { groupComponents, swatchRules } from '../../views/kit-view.ts';
+import { groupComponents, shownPart, swatchRules } from '../../views/kit-view.ts';
 import { addedNote } from '../added-mark.ts';
 import { catalogRefSrc, catalogSrc, type FrameOrigin } from '../draft/frame-src.ts';
 import { type Html, html, trusted } from '../html.ts';
@@ -19,12 +21,12 @@ import type { Skin } from '../skin.ts';
 import { kitLabel } from '../start/block.ts';
 import { startFoot } from '../start/foot.ts';
 import { commandBox } from '../states/command.ts';
-import { iconsAnchor, iconsSection } from './kit-icons.ts';
+import { iconsParts } from './kit-icons.ts';
 import { entries, kitTiles } from './kit-list.ts';
 import { kitSide } from './kit-nav.ts';
 import { kitLead, verifyIssuesCard } from './kit-provenance.ts';
-import { categoryId, componentsSection, problemsSection } from './kit-sections.ts';
-import { type Anchor, tokenAnchors, tokenSections } from './kit-token-view.ts';
+import { componentParts, problemsSection } from './kit-sections.ts';
+import { tokenParts } from './kit-token-view.ts';
 
 export type KitPageDeps = {
   kits: KitStore;
@@ -42,7 +44,10 @@ export type KitPageDeps = {
 };
 /** The Host names the example frames' address and the studio in the foot line. */
 export type KitRequest = { nonce: string; host: string };
-export type KitPageRequest = KitRequest;
+/** `view` is the part the address asks for (`?view=`); the first part shows without one. */
+export type KitPageRequest = KitRequest & { view?: string | undefined };
+
+const HIDDEN = trusted(' hidden');
 
 /** The foot line and the script, the same on every kit page. */
 export function pageEnd(deps: KitPageDeps, request: KitRequest): Html {
@@ -146,27 +151,26 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
     rows: split.added,
     note: addedNote(t, sourceNoun(t, kit.source)),
   };
-  const groups = groupComponents(kit.components);
-  const sections: Anchor[] = [
-    ...(loaded.issues.length === 0
-      ? []
-      : [
-          { id: 'kit-problems', label: t('studio.kit.problemsTitle'), count: loaded.issues.length },
-        ]),
-    ...tokenAnchors(t, tokens, added),
-    ...(kit.components.length === 0
-      ? []
-      : [
-          { id: 'kit-components', label: t('studio.kit.components'), count: kit.components.length },
-        ]),
-    ...iconsAnchor(t, icons),
-  ];
-  const categories = groups.map((group) => ({
-    id: categoryId(group.category),
-    label: t(`studio.kit.category.${group.category}`),
-    count: group.components.length,
-  }));
-  const side = kitSide(t, entries(deps.kits), kit.id, sections, categories);
+  const parts = {
+    tokens: tokenParts(t, tokens, added),
+    components: componentParts(t, groupComponents(kit.components), catalog),
+    icons: iconsParts(t, icons),
+  };
+  const all = [...parts.tokens, ...parts.components, ...parts.icons];
+  const shown = shownPart(
+    all.map((part) => part.id),
+    request.view,
+  );
+  const problems =
+    loaded.issues.length === 0
+      ? undefined
+      : { id: 'kit-problems', label: t('studio.kit.problemsTitle'), count: loaded.issues.length };
+  const side = kitSide(t, entries(deps.kits), kit.id, { ...parts, problems, shown });
+  // Every part is in the page, so the search finds in all of them; all but one are hidden.
+  const views = all.map(
+    (part) =>
+      html`<div class="kit-view" data-view="${part.id}"${part.id === shown ? '' : HIDDEN}>${part.body}</div>`,
+  );
 
   const components = kit.components.length;
   const tokenCount = loaded.tokens.length;
@@ -190,12 +194,11 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
 ${block}
 <div class="kit-layout">
 ${side}
-<div class="kit-main">
+<div class="kit-main" data-view-main>
 ${verifyIssuesCard(t, provenance.verify)}
 ${problemsSection(t, loaded.issues)}
-${tokenSections(t, tokens, added)}
-${componentsSection(t, groups, catalog)}
-${iconsSection(t, icons)}
+${views}
+<p class="k-quiet" data-search-empty hidden>${t('studio.kit.noMatch')}</p>
 </div>
 </div>
 ${pageEnd(deps, request)}

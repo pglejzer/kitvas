@@ -11,6 +11,7 @@ import {
   startedJob,
 } from './catalog.ts';
 import { applyReport, exampleReport, findExampleFrames } from './frames.ts';
+import { mountKitViews } from './views.ts';
 
 /** Set right before the page reloads itself; the page that loads next reads and removes it. */
 const RELOAD_MARK = 'kitvas.kit.reloaded';
@@ -125,6 +126,7 @@ function watchIcons(main: HTMLElement, kit: string): void {
 
 export function startKitPage(main: HTMLElement): void {
   listenToFrames(main);
+  mountKitViews(main);
   const kit = main.dataset.kit;
   if (!kit) return;
   watchCatalog(main, kit);
