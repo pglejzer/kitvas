@@ -195,12 +195,15 @@ export function mountOptions(main: HTMLElement, deps: OptionsDeps): OptionsPage 
     drawMore();
   };
 
-  // The first state: open unless this browser folded it. The glide plays only afterwards.
+  // The first state: open unless this browser folded it. The glide is turned on only once that
+  // state is laid out (the read below), so a row this browser folded never glides shut on load:
+  // a mark set in the next frame came before that frame's layout, and the canvas moved with it.
   setOpen(remembered() ?? true);
   control.subscribe(draw);
   deps.cards?.onChange(drawCaption);
   draw();
-  requestAnimationFrame(() => region.setAttribute('data-options-live', ''));
+  void region.offsetHeight;
+  region.setAttribute('data-options-live', '');
 
   toggle.addEventListener('click', () => {
     const open = region.dataset.options !== 'open';
@@ -227,15 +230,15 @@ export function mountOptions(main: HTMLElement, deps: OptionsDeps): OptionsPage 
     control,
     joinEditor(store) {
       const made = mountMakeDefault(main, main.dataset.draft ?? '', control, store);
-      offered = made.available;
+      offered = made.offered;
       make?.addEventListener('click', () => {
         void made.run();
       });
       // The editor's store speaks on every hover: the row is drawn again only when Make default
       // comes or goes.
-      let shown = made.available();
+      let shown = made.offered();
       store.subscribe(() => {
-        const now = made.available();
+        const now = made.offered();
         if (now === shown) return;
         shown = now;
         draw();

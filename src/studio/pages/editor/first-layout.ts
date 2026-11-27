@@ -12,6 +12,15 @@
 // first-layout.test.ts` runs this script against a fake page for a table of stored settings,
 // modes and window widths and compares it with `layout.ts`, so a change to one fails there.
 // Storage that throws or holds junk counts as no setting, as in `readSettings`.
+//
+// The screen shows once. Much of it is set by the page script only after it loads: the pane each
+// panel shows, the place and zoom of the draft, the form of the canvas's bars, the Layers tree;
+// and a frame is blank until its page has drawn. Shown as they came, these were five steps in the
+// first third of a second of every load. So `openingMark`, the first thing inside `main`, marks
+// it `data-opening` before any of the screen is read, the skin keeps a marked screen unseen, and
+// the page script takes the mark off when all of it is there (`client/studio/draft/opening.ts`).
+// The mark goes by itself after `OPENING_WAIT_MS`, so a page whose script fails still shows;
+// without scripts there is no mark and nothing is hidden.
 
 import { type Html, html, trusted } from '../html.ts';
 
@@ -19,6 +28,8 @@ import { type Html, html, trusted } from '../html.ts';
 export const LAYOUT_KEY = 'kitvas.editor.layout';
 /** The start of `modeKey(slug)` of `client/studio/edit/select/mode-memory.ts`. */
 export const MODE_KEY_START = 'kitvas.edit.mode:';
+/** How long the screen waits, unseen, for the page script to show it. */
+export const OPENING_WAIT_MS = 2000;
 
 const CODE = `(function(){try{var D=document,M=D.querySelector('main[data-mode]');if(!M)return;
 var mode='preview';
@@ -44,8 +55,18 @@ var open=!narrow&&!V.left.f;
 var fb=M.querySelector('[data-fold="left"]');if(fb)fb.setAttribute('aria-expanded',String(open));
 var lb=M.querySelector('button[data-rail-tab="layers"]');if(lb)lb.setAttribute('aria-pressed',String(open));
 var bs=M.querySelectorAll('button[data-shell-mode]');
-for(var i=0;i<bs.length;i++)bs[i].setAttribute('aria-pressed',String(bs[i].getAttribute('data-shell-mode')===mode))
+for(var i=0;i<bs.length;i++)bs[i].setAttribute('aria-pressed',String(bs[i].getAttribute('data-shell-mode')===mode));
 }catch(e){}})()`;
+
+const MARK = `(function(){var M=document.currentScript.parentNode;M.setAttribute('data-opening','');setTimeout(function(){M.removeAttribute('data-opening')},${OPENING_WAIT_MS})})()`;
+
+/** The mark's code, for tests that run it. */
+export const MARK_CODE = MARK;
+
+/** The first thing inside `main`, on the response's nonce: the screen is unseen from here on. */
+export function openingMark(nonce: string): Html {
+  return html`<script nonce="${nonce}">${trusted(MARK)}</script>`;
+}
 
 /** The script's code, for tests that run it. */
 export const OPENING_CODE = CODE;

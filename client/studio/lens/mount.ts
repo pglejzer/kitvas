@@ -190,5 +190,6 @@ export function mountLens(store: Store | null, page: LensPage): void {
     }
   });
 
-  schedule();
+  // The pill is drawn at once: the fit of the canvas's bars measures it in this same task.
+  build();
 }

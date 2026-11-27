@@ -18,6 +18,7 @@ import type { ElementSnapshot } from '../../channel/protocol.ts';
 import { type Canvas, mountCanvas } from '../canvas/canvas.ts';
 import { createCardList, frameWidth } from '../canvas/card-list.ts';
 import { type Cards, mountCards } from '../canvas/cards.ts';
+import { mountFit } from '../canvas/fit/mount.ts';
 import { mountWidth, type WidthControl } from '../canvas/width-control.ts';
 import { isPlainClick } from '../clicks.ts';
 import { CHECKS_SWAPPED_EVENT } from '../edit/live/check.ts';
@@ -38,6 +39,7 @@ import { mountOptions } from '../options/row.ts';
 import { diffElements, type ElementDiff } from './diff.ts';
 import { markStateOption, sameOriginHref, stateLinkOf, swapSections, writeSummary } from './dom.ts';
 import { pageMarks } from './marks.ts';
+import type { Opening } from './opening.ts';
 
 /** How long the current frame has to show a new state before the page is loaded the plain way. */
 const SHOWN_TIMEOUT_MS = 3_000;
@@ -288,7 +290,7 @@ function joinEditor(canvas: Canvas, editor: Editor): void {
   });
 }
 
-export function startDraftPage(main: HTMLElement): void {
+export function startDraftPage(main: HTMLElement, opening: Opening): void {
   const slug = main.dataset.draft;
   reloadWhenJobsEnd(
     (job) => job === slug,
@@ -296,6 +298,8 @@ export function startDraftPage(main: HTMLElement): void {
   );
   const frames = findFrames(main);
   if (frames.length === 0) return;
+  // A frame is blank until its page has drawn: the screen waits for each (`opening.ts`).
+  const drawn = new Map(frames.map((frame) => [frame, opening.hold()]));
   const roles = new Set(frames.map((frame) => frame.role));
   const lensListeners = new Set<() => void>();
   const page: Page = {
@@ -350,6 +354,15 @@ export function startDraftPage(main: HTMLElement): void {
   const editor = current && !page.compare ? startEditor(main, current) : undefined;
   if (canvas && editor) joinEditor(canvas, editor);
   if (editor) options?.joinEditor(editor.store);
+  if (editor?.store.get().on === true) {
+    // The page opens in Edit: the screen waits for the tree the Layers pane draws.
+    const listed = opening.hold();
+    const stop = editor.store.subscribe((state, previous) => {
+      if (state.tree === previous.tree) return;
+      stop();
+      listed();
+    });
+  }
   // Plan 19: the lenses, in Preview and in Edit, on a version that cannot be edited too.
   const lensPage: LensPage = {
     main,
@@ -366,11 +379,15 @@ export function startDraftPage(main: HTMLElement): void {
   // A card that comes or goes, or another width: its pins are built again.
   list?.onChange(() => page.lensChanged());
   mountLens(editor?.store ?? null, lensPage);
+  // The top bars make room for each other by steps (`../canvas/fit/`). After every pill is drawn,
+  // the lens pill too, so the first pass measures what the person will see.
+  mountFit(main);
   window.addEventListener('message', (event) => {
     const extras = extraFrames(page);
     const heard = frameMessage([...page.frames, ...extras], event);
     if (!heard) return;
     const { frame, message } = heard;
+    if (message.type === 'ready' || message.type === 'elements') drawn.get(frame)?.();
     // A frame that loaded again or took a build in shows the options it was built with: it is
     // told the ones the page shows. The width shown answers a switch with what it shows.
     if (message.type === 'ready') options?.control.frameReady(frame, message.choice);

@@ -21,6 +21,7 @@ import {
   type CardCount,
   type DraftChoice,
   extraWidths,
+  frameHeight,
   MAX_VIEW,
   MIN_VIEW,
   SIZES,
@@ -67,7 +68,7 @@ function frameBox(input: FrameInput): Html {
   const channel = newChannel();
   const src = withChannel(input.src, channel, input.host);
   const grip = input.role === 'current' ? handle(input.t, input.width) : '';
-  return html`<div class="card-frame"><iframe src="${src}" width="${input.width}" sandbox="allow-scripts" referrerpolicy="no-referrer" title="${input.title}" data-frame="${input.role}" data-channel="${channel}"></iframe>${grip}</div>`;
+  return html`<div class="card-frame"><iframe src="${src}" width="${input.width}" height="${frameHeight(input.width)}" sandbox="allow-scripts" referrerpolicy="no-referrer" title="${input.title}" data-frame="${input.role}" data-channel="${channel}"></iframe>${grip}</div>`;
 }
 
 export type StageInput = {
@@ -119,7 +120,7 @@ function widthCard(input: StageInput, width: Width): Html {
   const channel = newChannel();
   const src = withChannel(input.src, channel, input.host);
   const title = `${t('studio.page.frame', { title: input.name })}, ${t('studio.draft.wide', { width })}`;
-  const frame = html`<div class="card-frame"><iframe src="${src}" width="${width}" sandbox="allow-scripts" referrerpolicy="no-referrer" title="${title}" data-frame="width" data-channel="${channel}"></iframe></div>`;
+  const frame = html`<div class="card-frame"><iframe src="${src}" width="${width}" height="${frameHeight(width)}" sandbox="allow-scripts" referrerpolicy="no-referrer" title="${title}" data-frame="width" data-channel="${channel}"></iframe></div>`;
   return html`<figure class="card-box" data-card="width" data-card-width="${width}"><figcaption class="card-caption"><span class="card-name">${input.name}</span><span class="card-size" data-card-size>${cardSize(t, width)}</span></figcaption>${frame}</figure>`;
 }
 

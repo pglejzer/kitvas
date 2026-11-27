@@ -37,7 +37,7 @@ import { addedNote } from '../added-mark.ts';
 import { editMenu, editTexts } from '../editor/edit-panel.ts';
 import { editBlock, editorBar } from '../editor/editor-bar.ts';
 import { grip, leftSide, lockedNote, rail, rightSide } from '../editor/editor-side.ts';
-import { openingLayout } from '../editor/first-layout.ts';
+import { openingLayout, openingMark } from '../editor/first-layout.ts';
 import type { PageRequest } from '../gallery.ts';
 import { type Html, html } from '../html.ts';
 import { page } from '../shell.ts';
@@ -256,7 +256,7 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   // The row is open until the script, which keeps it open or folded per browser, says otherwise.
   const optioned = options.length > 0 && compare === null ? html` data-options="open"` : '';
   const canvas = html`<section class="stage-canvas" data-shell="canvas"${optioned} aria-label="${t('studio.edit.shell.canvas')}">${cards(view)}${pills({ t, choice, states: info.states, link, breakpoints: breakpointsOf(deps.kits, draft.kit.id), options, added: { themes: additions.themes, note: additions.note } })}${canvasTools(t)}</section>`;
-  const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}${openingLayout(request.nonce)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce, kit, source: additions.source })}${trashTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
+  const body = html`<main class="draft-page side-screen"${mainAttrs(view, editable)}>${openingMark(request.nonce)}${bar}<div class="side-body">${rail(t)}${leftSide(sides)}${grip(t, 'left')}${canvas}${grip(t, 'right')}${rightSide(sides)}${openingLayout(request.nonce)}</div>${editMenu(editable)}${editTexts({ t, nonce: request.nonce, kit, source: additions.source })}${trashTexts({ t, nonce: request.nonce })}<script type="module" src="/assets/draft.js"></script></main>`;
   return page({
     title: draft.title,
     nonce: request.nonce,

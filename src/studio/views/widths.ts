@@ -30,6 +30,17 @@ export const MIN_VIEW = 320;
 export const MAX_VIEW = 2560;
 
 /**
+ * The height of a card's frame at a width: a phone, a tablet or a desktop window. The page inside
+ * scrolls in the frame, so the card keeps the shape of a screen. The server writes it into the
+ * frame and the page script keeps it, so the canvas fits the card once, at its final size.
+ */
+export function frameHeight(width: number): number {
+  if (width < 600) return 844;
+  if (width < 1100) return 1024;
+  return 800;
+}
+
+/**
  * How many cards the canvas shows side by side (`?cards=`, spec 4c goal 4): the width shown, that
  * and one more preset, or all three presets.
  */

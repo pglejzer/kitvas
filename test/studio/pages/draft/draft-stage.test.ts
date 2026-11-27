@@ -77,7 +77,8 @@ test('a card label names a preset by its name and width, any other width in pixe
 test('the frame keeps its sandbox, its channel and the width in its markup', () => {
   const text = stage(input({ width: 768 })).text;
   const frame = /<iframe [^>]*>/.exec(text)?.[0] ?? '';
-  assert.ok(frame.includes('width="768"'));
+  // The height of a tablet screen comes with the page, so the canvas fits the card only once.
+  assert.ok(frame.includes('width="768" height="1024"'));
   assert.ok(frame.includes('sandbox="allow-scripts"'));
   assert.ok(frame.includes('referrerpolicy="no-referrer"'));
   assert.ok(frame.includes('title="Prototype of Shop"'));
@@ -93,7 +94,7 @@ test('the frame keeps its sandbox, its channel and the width in its markup', () 
 
 test('a custom width shows in the card instead of the preset', () => {
   const text = stage(input({ width: 390, view: 1000 })).text;
-  assert.ok(text.includes('width="1000"'));
+  assert.ok(text.includes('width="1000" height="1024"'));
   assert.ok(text.includes(`data-card-size>${escapeHtml(cardSize(t, 1000))}</span>`));
   assert.ok(text.includes('aria-valuenow="1000"'));
   assert.ok(!text.includes('width="390"'));
@@ -205,6 +206,9 @@ test('three cards: the width shown first, then one card per other preset', () =>
   // One handle: the width cards keep their preset, and their label says which.
   assert.equal(count(text, 'data-canvas="handle"'), 1);
   assert.ok(text.includes('title="Prototype of Shop, 390 px wide"'));
+  // Each card's frame has the height of its screen from the start: a phone, a desktop window.
+  assert.ok(text.includes('width="390" height="844"'));
+  assert.ok(text.includes('width="1280" height="800"'));
   assert.ok(text.includes(`data-card-size>${escapeHtml(cardSize(t, 1280))}</span>`));
   assert.equal(count(text, '<span class="card-name">Shop</span>'), 3);
 });
