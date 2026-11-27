@@ -5,7 +5,6 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { setTimeout as delay } from 'node:timers/promises';
 import {
   type CandidateKind,
   CROPS_MAX,
@@ -15,7 +14,6 @@ import {
   ROLE_TAGS,
   SCAN_TIMEOUT_MS,
   type ScanFacts,
-  SETTLE_MS,
   TEXT_MAX,
 } from '../../domain/scan/scan-facts.ts';
 import type { Scan, ScanReport } from '../../ports/browser.ts';
@@ -37,9 +35,8 @@ import {
   rankCandidates,
 } from './playwright-scan-merge.ts';
 import { findOverlays } from './playwright-scan-overlays.ts';
-import { guardRequests } from './playwright-scan-policy.ts';
 import { collectStyles, type FrameStyles } from './playwright-scan-styles.ts';
-import { scrollThrough, viewContext } from './playwright-scan-view.ts';
+import { openGuarded, viewContext } from './playwright-scan-view.ts';
 
 type PlaywrightBrowser = import('playwright-core').Browser;
 type BrowserContext = import('playwright-core').BrowserContext;
@@ -79,7 +76,6 @@ type FrameRead = { frame: Frame; styles: FrameStyles; candidates: FrameCandidate
 type Run = { stopped: boolean };
 
 const failed = (cause: unknown): ScanReport => ({ state: 'failed', error: firstLine(cause) });
-const blocked = (url: string): ScanReport => ({ state: 'blocked', url });
 
 function originOf(url: string): string | undefined {
   try {
@@ -153,34 +149,9 @@ async function scanIn(
   input: Scan,
   run: Run,
 ): Promise<ScanReport> {
-  let opened: Page | undefined;
-  // Routes first: web sockets are routed only in pages opened after the route.
-  const guard = await guardRequests(context, input.policy, () => opened?.mainFrame());
-  const page = await context.newPage();
-  opened = page;
-  page.setDefaultTimeout(SCAN_TIMEOUT_MS);
-  // A window the page opens is no part of the scan.
-  context.on('page', (other) => {
-    if (other !== page) other.close().catch(() => undefined);
-  });
-  let status = 0;
-  try {
-    const response = await page.goto(input.url, { waitUntil: 'load', timeout: SCAN_TIMEOUT_MS });
-    status = response?.status() ?? 0;
-  } catch (cause) {
-    if (guard.refused !== undefined) return blocked(guard.refused);
-    return failed(guard.failure ?? cause);
-  }
-  if (guard.refused !== undefined) return blocked(guard.refused);
-  // A redirect the browser followed ends at its last answer, so 3xx here was not followed.
-  if (status >= 300) return failed(`the page answered with status ${status}`);
-  await delay(SETTLE_MS);
-  // The page may have tried to go somewhere else while it settled.
-  if (guard.refused !== undefined) return blocked(guard.refused);
-
-  // Lazy content appears while scrolling; the facts are read from the top again.
-  await scrollThrough(page);
-  if (guard.refused !== undefined) return blocked(guard.refused);
+  const visit = await openGuarded(context, input);
+  if ('state' in visit) return visit;
+  const { page } = visit;
 
   const reads = await readFrames(page);
   const found = await page.evaluate(findOverlays, {
