@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-27
+
 ### Added
 
 - Controls in `kitvas check`: every control is put under a real pointer and given keyboard focus at 390 and 1280 px, and its text must keep 4.5:1 there (`a11y/state-contrast`); at 1280 px each button, group of toggles, select and search field is used once, and one that changes nothing on the page is reported (`ux/dead-control`). ADR 0085. Chart bars and skeleton lines are no longer read as placeholder pictures or nested frames, a mapped navigation is not read as moving between states, and text that a sideways scroller cuts off is not measured against the screen edge.
