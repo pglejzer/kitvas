@@ -65,7 +65,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - `kitvas doctor`: a report of the setup that holds nothing private, also as a studio page (ADR 0063).
 - `kitvas draft delete | restore | purge`, with a trash in `.kitvas/trash/` and a page for a draft in it (ADR 0064).
 - A kit page for an id that is not there: a 404 that says so and gives `kitvas kit list`.
-- Skill evals for `claude plugin eval` in `evals/`, for the `kitvas`, `kit`, `compose`, `learn`, `craft` and `rework` skills.
+- Skill evals for `claude plugin eval` in `evals/`, for the `kitvas`, `kit`, `compose`, `learn`, `craft`, `rework` and `handoff` skills.
 - `.claude-plugin/marketplace.json`, so the plugin installs with `claude plugin marketplace add pglejzer/kitvas` and `claude plugin install kitvas@kitvas`.
 - Notes are taken from the inbox only by `POST /api/v1/inbox/take` with the studio's Origin; no GET request changes state (ADR 0028).
 - Refused requests of the studio and the prototype origin are written to the studio log, without queries, tokens or cookies, at most 20 a minute.

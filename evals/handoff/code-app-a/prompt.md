@@ -1,6 +1,6 @@
 ---
 name: handoff-code-app-a
-tags: [smoke]
+tags: [smoke, handoff]
 runs: 1
 max_turns: 40
 timeout_seconds: 900
