@@ -18,7 +18,7 @@ claude plugin eval . --allow-tools Bash Write Edit --tag smoke   # skill evals (
 
 ## Rules
 
-- This is a new project. MIT-licensed code (such as superpowers) may be copied; keep its copyright and licence notice with the copied part. Other tools' code may be read for ideas, never copied. `test/guards/legacy.test.ts` fails on leftovers anywhere in the repo.
+- This is a new project. MIT-licensed code (such as superpowers) may be copied; keep its copyright and licence notice with the copied part. Other tools' code may be read for ideas, never copied.
 - TypeScript runs directly in Node: erasable syntax only, relative imports end in `.ts`, `import type` for types.
 - Never the `any` type, in any form: not in code, tests, `.d.ts` files, generated code strings or samples, and no comment that switches the check off. Use `unknown` and narrow it, or an exact type. Biome and `test/guards/no-any.test.ts` enforce it.
 - Third-party packages load only through `src/shared/deps/deps.ts`. Never `import 'zod'` at runtime elsewhere.

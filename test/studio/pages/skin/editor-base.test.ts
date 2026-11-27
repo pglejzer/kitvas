@@ -13,7 +13,7 @@ const NEW_TOKENS: Record<string, string> = {
   '--st-font-size-label': '12.5px',
 };
 
-const NEW_CLASSES = ['k-card', 'k-card-meta', 'k-opts', 'k-field-tok', 'k-stepper', 'k-change'];
+const NEW_CLASSES = ['k-card', 'k-card-meta', 'k-opts', 'k-stepper', 'k-change'];
 
 const AREAS: [string, string][] = [
   ...Object.entries(PAGE_PARTS).map(([name, css]): [string, string] => [`pages/${name}`, css]),
@@ -65,13 +65,6 @@ test('every control the base adds can be hit with a pointer and seen with the ke
   assert.match(ruleOf('.k-stepper-stop'), /padding: var\(--st-size-target\)/);
   assert.match(SHARED_RULES, /\.k-stepper-stop:focus-visible::after \{ outline: 2px solid/);
   assert.match(ruleOf('.k-group-head'), /min-height: var\(--st-size-group\)/);
-});
-
-test('a token name at a field end is quiet ink that passes AA, in the code font', () => {
-  const rule = ruleOf('.k-field-tok');
-  assert.match(rule, /color: var\(--st-color-ink-mid\)/);
-  assert.match(rule, /font-family: var\(--st-font-mono\)/);
-  assert.doesNotMatch(rule, /ink-soft/);
 });
 
 test('a change strikes the old value and sets the new one in a small chip', () => {

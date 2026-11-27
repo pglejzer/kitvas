@@ -44,7 +44,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - An end-to-end test of the stage-1 path through the real CLI and studio, and evals for the three skills.
 - `kitvas map [slug]`: the workspace for agents in one answer, drafts or one draft's sections, files and element ids.
 - The `/kitvas:compose` skill with the `maker` and `patcher` agents: a draft from a brief, section by section, fixed until its checks pass.
-- Quality gate: lint, types, tests with coverage, audit, and architecture, size, legacy and docs guards.
+- Quality gate: lint, types, tests with coverage, audit, and architecture, size, English and docs guards.
 - Written kits from a Figma file, a website or screenshots: the `tailor` agent writes the components into the kit folder, `kitvas kit scan` reads a website and `kitvas kit crop` cuts the references. `kit verify` gains a sixth step, `look`, that scores each example against its reference. Figma is read only through the person's own MCP server (ADR 0035 to 0038).
 - Guidelines with ids and sources, and `kitvas guidelines` for the checklist a skill answers from the screenshots; facts read from the rendered page for the checks (ADR 0043, 0044, 0047).
 - `/kitvas:rework` and `/kitvas:craft`: a draft that reworks an existing page or screenshot, and one that sketches a missing component, icon or logo with the `sketcher` agent. `kitvas craft pick | add | export` keep a sketch, put it into the project's additions layer for the kit or write it to a folder; `kitvas kit detect` lists the project's kits and the signs of a design system not learned yet (ADR 0045, 0046).

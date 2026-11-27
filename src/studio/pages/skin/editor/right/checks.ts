@@ -117,18 +117,6 @@ button.checks-tile:disabled:hover { background: none; }
 }
 .checks-num[data-tone="fix"] { background: var(--st-color-fix-soft); color: var(--st-color-fix); }
 .checks-num[data-tone="review"] { background: var(--st-color-review-soft); color: var(--st-color-review); }
-.checks-evidence {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--st-space-4) var(--st-space-8);
-  padding-top: var(--st-space-8);
-  border-top: 1px solid var(--st-color-line);
-  min-width: 0;
-}
-.checks-evidence > strong { font-size: var(--st-font-size-lg); line-height: var(--st-line-height-tight); }
-.checks-evidence > code { overflow-wrap: anywhere; }
-.checks-evidence > .k-icon { align-self: center; width: 12px; height: 12px; color: var(--st-color-ink-mid); }
 /* The evidence of a card of the full check (mock v10 \`.ev\`): a row on the pane's own colour, inside
    the raised card. A sample shows the finding's own colours, set as style properties by the script. */
 .checks-evidence-slot:empty { display: none; }

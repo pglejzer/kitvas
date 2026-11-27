@@ -4,7 +4,6 @@
 
 export const REQUEST_KINDS = ['say', 'improve', 'ask', 'note', 'why'] as const;
 export const REQUEST_STATUSES = ['waiting', 'taken', 'answered', 'failed', 'dropped'] as const;
-export type RequestKind = (typeof REQUEST_KINDS)[number];
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 /** Whether a Claude Code session takes the requests now (`ListeningSchema`). */
 export const LISTENING_STATES = ['listening', 'working', 'off'] as const;

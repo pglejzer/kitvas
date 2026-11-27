@@ -81,7 +81,6 @@ export const SKIN_SURFACES = `
 .k-item[aria-current], .k-item[data-on] { box-shadow: inset 0 0 0 1px var(--st-color-accent); }
 /* A list of items, or of anything else that stacks with the same gap. */
 .k-stack { display: grid; gap: var(--st-space-8); margin: 0; padding: 0; list-style: none; }
-.k-rule { margin: 0; border: 0; border-top: 1px solid var(--st-color-line); }
 /* The head of a pane or a group: a title, and controls at its end. */
 .k-head {
   display: flex;

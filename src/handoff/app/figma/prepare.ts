@@ -14,7 +14,7 @@ import type { FlatToken, KitStore } from '../../../kit/index.ts';
 import type { Bundler, IdsFile } from '../../../render/index.ts';
 import { KitvasError, type Translate, z } from '../../../shared/index.ts';
 import type { FigmaManifest, FigmaPackage } from '../../domain/figma/manifest.ts';
-import { figmaScripts } from '../../domain/figma/scripts/scripts.ts';
+import { FIGMA_SCRIPT_LIMIT, figmaScripts } from '../../domain/figma/scripts/scripts.ts';
 import { shapeTree } from '../../domain/figma/shape.ts';
 import { tokenUses } from '../../domain/figma/token-uses.ts';
 import {
@@ -31,8 +31,6 @@ import { draftStates } from '../states.ts';
 import { collectAssets, type LeftOut } from './assets.ts';
 import { bundleFigmaBuilder } from './bundle.ts';
 
-/** A script stays under this; the tool takes 50,000 characters. */
-export const SCRIPT_LIMIT = 45_000;
 /** Where the package is, inside a version's folder. */
 export const figmaPackageDir = (base: string): string => `${base}/handoff/figma`;
 
@@ -392,7 +390,7 @@ export async function prepareFigma(
   );
   const variables: FigmaVariable[] = figmaVariables(tokens, boundOf(tree.frames));
   const builder = await bundleFigmaBuilder({ bundler: deps.bundler });
-  const { scripts, steps } = figmaScripts(tree, variables, builder, { limit: SCRIPT_LIMIT });
+  const { scripts, steps } = figmaScripts(tree, variables, builder, { limit: FIGMA_SCRIPT_LIMIT });
 
   const manifest: FigmaManifest = {
     schemaVersion: 1,
