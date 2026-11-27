@@ -163,3 +163,5 @@ The rules are in `AGENTS.md`, the decisions in `docs/adr/README.md`, the changes
 ## License
 
 Licensed under the [PolyForm Shield License 1.0.0](LICENSE.md). You may use, modify, and distribute kitvas, including for commercial purposes, provided that you do not use it to offer competing products or services. This is a source-available license, not an OSI-approved open source license.
+
+The license covers kitvas itself. It does not extend to the interface code you generate with kitvas: your drafts, the code a hand-off writes into your project and the layers it sends to Figma. The built-in Base kit is an example kit: use it, change it and ship it in your work in any way you like. The exception is any other part of kitvas that such code contains, for example the runtime inside a built prototype: that part stays under the license above.
