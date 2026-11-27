@@ -26,7 +26,7 @@ const dimension = (path: string, css: string): TokenOption => ({
   css,
 });
 
-/** Base's radii, out of order: the scale is ordered by value. */
+/** A kit's radii, out of order: the scale is ordered by value. */
 const RADII: TokenOption[] = [
   dimension('radius.lg', '14px'),
   dimension('radius.full', '9999px'),

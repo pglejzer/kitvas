@@ -327,7 +327,7 @@ export function keywordsOf(property: string): readonly string[] | null {
 
 /** A kit token as the editor offers it. */
 export type TokenOption = {
-  /** `--kit-space-md`. */
+  /** `--kit-space-12`. */
   var: string;
   /** `space.md`. */
   path: string;

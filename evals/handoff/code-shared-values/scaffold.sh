@@ -80,7 +80,7 @@ export function Filters({
   setShared: SetShared;
 }) {
   return (
-    <Stack className="filters" direction="row" gap="sm">
+    <Stack className="filters" direction="row" gap="8">
       {ranges.map((range) => (
         <Button
           key={range.value}
@@ -103,7 +103,7 @@ const rented: Record<Shared['range'], number> = { '7d': 42, '30d': 180 };
 
 export function Summary({ shared }: { state: string; shared: Shared }) {
   return (
-    <Stack className="summary" gap="sm">
+    <Stack className="summary" gap="8">
       <Heading level={2}>Rentals</Heading>
       <Text>{rented[shared.range]} bikes rented in the chosen period.</Text>
     </Stack>
@@ -113,13 +113,13 @@ EOF
 
 cat > "$V/src/scss/sections/filters.scss" <<'EOF'
 .filters {
-  padding: var(--kit-space-md);
+  padding: var(--kit-space-12);
 }
 EOF
 
 cat > "$V/src/scss/sections/summary.scss" <<'EOF'
 .summary {
-  padding: var(--kit-space-md);
+  padding: var(--kit-space-12);
 }
 EOF
 

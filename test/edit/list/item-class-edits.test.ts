@@ -22,7 +22,7 @@ import { builtinKits } from '../../helpers/kit/kits.ts';
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const LATER = new Date('2026-11-25T09:00:00.000Z');
 
 const LAYOUT = 'md/layout.md';
@@ -42,7 +42,7 @@ const LAYOUT_MD = '# Layout: Plans\n\n## plans\nPurpose: Show the plans.\nCompon
 const SCSS = [
   '.plans {',
   '  &__card {',
-  '    background: var(--kit-color-surface);',
+  '    background: var(--kit-color-panel);',
   '  }',
   '}',
   '',
@@ -152,7 +152,7 @@ test('this item writes the class into the TSX and a nested rule under the block'
   // Inside `.plans`, after the shared `&__card`, so it wins over it.
   assert.match(
     read(store, 2, PLANS_SCSS),
-    /^\.plans \{\n {2}&__card \{\n {4}background: var\(--kit-color-surface\);\n {2}\}\n\n? {2}&__card--pro \{\n {4}background-color: var\(--kit-color-ink-soft\);\n {2}\}\n\}\n$/,
+    /^\.plans \{\n {2}&__card \{\n {4}background: var\(--kit-color-panel\);\n {2}\}\n\n? {2}&__card--pro \{\n {4}background-color: var\(--kit-color-ink-soft\);\n {2}\}\n\}\n$/,
   );
 });
 

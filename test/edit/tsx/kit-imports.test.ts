@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { syncKitImports, usedKitComponents } from '../../../src/edit/domain/tsx/kit-imports.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
-const FOLDERS = [join(ROOT, 'test', 'fixtures'), join(ROOT, 'kits', 'base')];
+const FOLDERS = [join(ROOT, 'test', 'fixtures'), join(ROOT, 'kits', 'kitvas-ui')];
 const KIT: ReadonlySet<string> = new Set([
   'Badge',
   'Button',
@@ -282,7 +282,7 @@ describe('syncKitImports', () => {
     assert.equal(result.moved(text.length), text.length);
   });
 
-  test('leaves every fixture and Base kit file as it is: their imports already follow use', () => {
+  test('leaves every fixture and kitvas UI kit file as it is: their imports already follow use', () => {
     const files = FOLDERS.flatMap(tsxFiles);
     assert.ok(files.length >= 10, `files: ${files.length}`);
     for (const file of files) {

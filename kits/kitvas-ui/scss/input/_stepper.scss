@@ -1,0 +1,105 @@
+@use "../core/mixins";
+
+// A number with a button at each end. The three are joined: each carries its own part of one edge,
+// which turns `ink` under the pointer and `fix` when the number is out of range. Each part has its
+// own focus ring, drawn inside it.
+.kit-stepper {
+  &__box {
+    @include mixins.control;
+
+    --_edge: var(--kit-color-ink-mid);
+
+    display: flex;
+    align-items: stretch;
+    align-self: flex-start;
+    color: var(--kit-color-ink);
+
+    &:hover:not(:has(input:disabled)),
+    &:focus-within {
+      --_edge: var(--kit-color-ink);
+    }
+
+    &:has(input:disabled) {
+      @include mixins.disabled;
+    }
+
+    &:has(input:invalid),
+    &:has(input:invalid):hover {
+      --_edge: var(--kit-color-fix);
+    }
+  }
+
+  &__button {
+    @include mixins.hit;
+
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--_edge);
+    background: mixins.quiet();
+    color: var(--kit-color-ink-mid);
+    cursor: pointer;
+    transition:
+      background-color var(--kit-motion-fast) var(--_ease-out),
+      border-color var(--kit-motion-fast) var(--_ease-out),
+      color var(--kit-motion-fast) var(--_ease-out);
+
+    &:first-child {
+      border-right: 0;
+      border-radius: var(--kit-radius-sm) 0 0 var(--kit-radius-sm);
+    }
+
+    &:last-child {
+      border-left: 0;
+      border-radius: 0 var(--kit-radius-sm) var(--kit-radius-sm) 0;
+    }
+
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+      background: mixins.quiet-strong();
+      color: var(--kit-color-ink);
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+
+      outline-offset: -2px;
+    }
+
+    &:disabled {
+      color: var(--kit-color-ink-soft);
+      cursor: not-allowed;
+    }
+  }
+
+  &__input {
+    box-sizing: border-box;
+    width: var(--kit-space-64);
+    min-width: 0;
+    margin: 0;
+    padding: 0 var(--kit-space-4);
+    border: 1px solid var(--_edge);
+    border-radius: 0;
+    background: mixins.quiet();
+    color: var(--kit-color-ink);
+    font-family: inherit;
+    font-size: var(--kit-font-size-md);
+    text-align: center;
+    appearance: textfield;
+    transition: border-color var(--kit-motion-fast) var(--_ease-out);
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      margin: 0;
+      appearance: none;
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+
+      outline-offset: -2px;
+    }
+  }
+}

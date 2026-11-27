@@ -41,15 +41,15 @@ test('the catalog route is a write that answers 202 with the job and its address
   assert.equal(route.method, 'POST');
   assert.equal(route.path, '/api/v1/kits/{id}/catalog');
   assert.equal(route.policy, 'write');
-  const result = await run('base');
+  const result = await run('kitvas-ui');
   assert.equal(result.status, 202);
   route.response.schema.parse(result.body);
   const job = result.body as { id: string; kind: string; slug: string; state: string };
   assert.equal(job.kind, 'catalog');
-  assert.equal(job.slug, 'base');
+  assert.equal(job.slug, 'kitvas-ui');
   assert.equal(job.state, 'running');
   assert.equal(result.headers?.location, `/api/v1/jobs/${job.id}`);
-  assert.deepEqual(started, [['kit', 'build', 'base']]);
+  assert.deepEqual(started, [['kit', 'build', 'kitvas-ui']]);
 });
 
 test('an unknown kit is KIT_NOT_FOUND and starts nothing', async () => {
@@ -60,17 +60,17 @@ test('an unknown kit is KIT_NOT_FOUND and starts nothing', async () => {
 
 test('a second catalog job of the kit is JOB_RUNNING', async () => {
   const { run, started } = setup();
-  await run('base');
-  await assert.rejects(run('base'), isCode('JOB_RUNNING'));
+  await run('kitvas-ui');
+  await assert.rejects(run('kitvas-ui'), isCode('JOB_RUNNING'));
   assert.equal(started.length, 1);
 });
 
 test('the id parameter only takes a kit id', () => {
   const { route } = setup();
-  for (const id of ['Base', '-base', '', 'a/b', '..', 'a'.repeat(64)]) {
+  for (const id of ['Kitvas-ui', '-kitvas-ui', '', 'a/b', '..', 'a'.repeat(64)]) {
     assert.equal(route.params.safeParse({ id }).success, false, id);
   }
-  assert.equal(route.params.safeParse({ id: 'base' }).success, true);
+  assert.equal(route.params.safeParse({ id: 'kitvas-ui' }).success, true);
 });
 
 test('the catalog route is a write: the policy and the body schema refuse extra fields', () => {

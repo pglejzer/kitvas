@@ -24,21 +24,21 @@ if [ ! -d "$V/src/tsx/sketches" ]; then
   exit 1
 fi
 
-# One sketch on the Base kit's icon grid: 20 by 20, stroke 1.75, round caps and joins, currentColor.
+# One sketch on the kitvas UI kit's icon grid: 16 by 16, stroke 1.4, round caps and joins, currentColor.
 sketch() {
   local letter="$1" idea="$2" shapes="$3"
   cat > "$V/src/tsx/sketches/$letter.tsx" <<EOF
 export type BookingIcon${letter}Props = { size?: number; title?: string };
 
-export function BookingIcon${letter}({ size = 20, title }: BookingIcon${letter}Props) {
+export function BookingIcon${letter}({ size = 16, title }: BookingIcon${letter}Props) {
   return (
     <svg
-      viewBox="0 0 20 20"
+      viewBox="0 0 16 16"
       width={size}
       height={size}
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.75}
+      strokeWidth={1.4}
       strokeLinecap="round"
       strokeLinejoin="round"
       role={title === undefined ? undefined : 'img'}
@@ -57,18 +57,18 @@ EOF
 }
 
 sketch A "A dated page with a small check inside it: the booking sits on a day." \
-'      <rect x="3" y="4.5" width="14" height="12.5" rx="2" />
-      <path d="M3 8.5h14M7 2.5v3M13 2.5v3" />
-      <path d="M7.25 12.75l1.75 1.75 3.75-4" />'
+'      <rect x="2.4" y="3.6" width="11.2" height="10" rx="1.6" />
+      <path d="M2.4 6.8h11.2M5.6 2v2.4M10.4 2v2.4" />
+      <path d="M5.8 10.2l1.4 1.4 3-3.2" />'
 
 sketch B "The check steps out of the corner of the page, like a stamp put on the booking." \
-'      <path d="M17 9.5v-3a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2V15a2 2 0 0 0 2 2h4.5" />
-      <path d="M3 8.5h14M7 2.5v3M13 2.5v3" />
-      <path d="M11.5 14.5l2 2 4-4.5" />'
+'      <path d="M13.6 7.6V5.2a1.6 1.6 0 0 0-1.6-1.6H4a1.6 1.6 0 0 0-1.6 1.6V12a1.6 1.6 0 0 0 1.6 1.6h3.6" />
+      <path d="M2.4 6.8h11.2M5.6 2v2.4M10.4 2v2.4" />
+      <path d="M9.2 11.6l1.6 1.6 3.2-3.6" />'
 
 sketch C "The check fills the whole page and the header line is dropped: confirmed reads first." \
-'      <rect x="3" y="4.5" width="14" height="12.5" rx="2" />
-      <path d="M7 2.5v3M13 2.5v3" />
-      <path d="M6.5 11l2.5 2.5 4.5-5" />'
+'      <rect x="2.4" y="3.6" width="11.2" height="10" rx="1.6" />
+      <path d="M5.6 2v2.4M10.4 2v2.4" />
+      <path d="M5.2 8.8l2 2 3.6-4" />'
 
 K build booking-icon

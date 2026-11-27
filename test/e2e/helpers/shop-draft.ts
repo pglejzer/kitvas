@@ -1,4 +1,4 @@
-// What the /kitvas:compose agents would write for the `shop` draft with the Base kit: a brief, a
+// What the /kitvas:compose agents would write for the `shop` draft with the kitvas UI kit: a brief, a
 // layout of two sections, two states, and the files of each section. Version 2 changes the hero.
 // Everything here must stay clean under all five checks: catalog components with catalog props
 // only, `--kit-*` tokens only, real texts, a level 1 heading first, no plain controls.
@@ -68,10 +68,10 @@ export const STATES = `${JSON.stringify(
 
 const HERO_SCSS = [
   '.hero {',
-  '  padding: var(--kit-space-xl) var(--kit-space-lg);',
+  '  padding: var(--kit-space-24) var(--kit-space-16);',
   '',
   '  @media (min-width: 768px) {',
-  '    padding: var(--kit-space-3xl) var(--kit-space-2xl);',
+  '    padding: var(--kit-space-48) var(--kit-space-32);',
   '  }',
   '}',
   '',
@@ -79,10 +79,10 @@ const HERO_SCSS = [
 
 const ORDERS_SCSS = [
   '.orders {',
-  '  margin: 0 var(--kit-space-lg) var(--kit-space-xl);',
+  '  margin: 0 var(--kit-space-16) var(--kit-space-24);',
   '',
   '  @media (min-width: 768px) {',
-  '    margin: 0 var(--kit-space-2xl) var(--kit-space-3xl);',
+  '    margin: 0 var(--kit-space-32) var(--kit-space-48);',
   '  }',
   '}',
   '',
@@ -94,10 +94,10 @@ const HERO_V1_TSX = [
   'export function Hero({ state }: { state: string }) {',
   "  const empty = state === 'empty';",
   '  return (',
-  '    <Stack as="header" gap="md" className="hero">',
+  '    <Stack as="header" gap="12" className="hero">',
   '      <Heading level={1}>Bike Shop</Heading>',
   '      <Text>Rent a city bike or a cargo bike by the hour or by the day.</Text>',
-  '      <Stack direction="row" gap="sm" wrap>',
+  '      <Stack direction="row" gap="8" wrap>',
   "        <Button>{empty ? 'Place a first order' : 'New order'}</Button>",
   '        <Button variant="outline">See prices</Button>',
   '      </Stack>',
@@ -114,10 +114,10 @@ const HERO_V2_TSX = [
   'export function Hero({ state }: { state: string }) {',
   "  const empty = state === 'empty';",
   '  return (',
-  '    <Stack as="header" gap="md" className="hero">',
+  '    <Stack as="header" gap="12" className="hero">',
   '      <Heading level={1}>City bikes to rent</Heading>',
   '      <Text>Pick a bike at a station near you and ride within ten minutes.</Text>',
-  '      <Stack direction="row" gap="sm" align="center" wrap>',
+  '      <Stack direction="row" gap="8" align="center" wrap>',
   "        <Button>{empty ? 'Place a first order' : 'New order'}</Button>",
   '        <Badge tone="good">Open today until 22:00</Badge>',
   '      </Stack>',
@@ -133,12 +133,12 @@ const ORDERS_TSX = [
   'export function Orders({ state }: { state: string }) {',
   '  return (',
   '    <Card as="section" padding="lg" className="orders">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   '        <Heading level={2}>Latest orders</Heading>',
   "        {state === 'empty' ? (",
   '          <Text>No orders yet. Place a first order and it shows up here.</Text>',
   '        ) : (',
-  '          <Stack gap="sm">',
+  '          <Stack gap="8">',
   '            <Stack direction="row" justify="between" align="center" wrap>',
   '              <Text>City bike, 2 hours</Text>',
   '              <Badge tone="good">Paid</Badge>',

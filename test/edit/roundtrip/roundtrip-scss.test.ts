@@ -35,7 +35,7 @@ const ID = 'sections/Pricing:section/Stack';
 const PLAIN = { force: false };
 const PROBE: StyleValue = { token: '--kit-rt-probe' };
 
-const files = ['test/fixtures', 'kits/base']
+const files = ['test/fixtures', 'kits/kitvas-ui']
   .flatMap((folder) => listFiles(PLUGIN_ROOT, folder))
   .filter((path) => path.endsWith('.scss'))
   .map((path) => ({ path, text: readFileSync(join(PLUGIN_ROOT, path), 'utf8') }));
@@ -247,7 +247,7 @@ test('a new rule with a width and a state and then its inverse leave every file 
         id: ID,
         className: 'rt-new',
         property: 'gap',
-        value: { token: '--kit-space-md' },
+        value: { token: '--kit-space-12' },
         before: null,
         newRule: true,
         context,
@@ -257,7 +257,7 @@ test('a new rule with a width and a state and then its inverse leave every file 
       assert.ok(applied.startsWith(text), path);
       assert.equal(scssBalanced(applied), true, path);
       assert.deepEqual(scssOverrides(applied, 'rt-new'), [
-        { context, property: 'gap', value: 'var(--kit-space-md)', offKit: false },
+        { context, property: 'gap', value: 'var(--kit-space-12)', offKit: false },
       ]);
       assert.equal(textOf(applyScss(applied, scssOp(inverse(op)), PLAIN), path), text, path);
     }
@@ -272,7 +272,7 @@ test('a new rule and then its inverse leave every file as it was', () => {
       id: ID,
       className: 'rt-new',
       property: 'gap',
-      value: { token: '--kit-space-md' },
+      value: { token: '--kit-space-12' },
       before: null,
       newRule: true,
     };
@@ -283,7 +283,7 @@ test('a new rule and then its inverse leave every file as it was', () => {
     assert.ok(created !== null && created !== 'ambiguous', path);
     assert.deepEqual(
       created.declarations.map((d) => [d.property, d.value, d.offKit]),
-      [['gap', 'var(--kit-space-md)', false]],
+      [['gap', 'var(--kit-space-12)', false]],
       path,
     );
     assert.equal(textOf(applyScss(applied, scssOp(inverse(op)), PLAIN), path), text, path);
@@ -307,7 +307,7 @@ test('a new class of a block nests in its rule, and its inverse leaves every fil
           id: ID,
           className,
           property: 'gap',
-          value: { token: '--kit-space-md' },
+          value: { token: '--kit-space-12' },
           before: null,
           newRule: true,
           ...(context === null ? {} : { context, newBlock: true }),
@@ -324,12 +324,12 @@ test('a new class of a block nests in its rule, and its inverse leaves every fil
         assert.deepEqual(values(readRule(applied, block)), values(readRule(text, block)), where);
         if (context === null) {
           assert.deepEqual(values(readRule(applied, className)), [
-            [['gap', 'var(--kit-space-md)', false]],
+            [['gap', 'var(--kit-space-12)', false]],
             [],
           ]);
         } else {
           assert.deepEqual(scssOverrides(applied, className), [
-            { context, property: 'gap', value: 'var(--kit-space-md)', offKit: false },
+            { context, property: 'gap', value: 'var(--kit-space-12)', offKit: false },
           ]);
         }
         assert.equal(textOf(applyScss(applied, scssOp(inverse(op)), PLAIN), where), text, where);

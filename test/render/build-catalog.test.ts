@@ -262,21 +262,21 @@ test('a kit with problems is refused before anything is built', async () => {
   }
 });
 
-test('the Base kit builds: every example is shown or skipped, none fails the bundle', async () => {
+test('the kitvas UI kit builds: every example is shown or skipped, none fails the bundle', async () => {
   const kits = builtinKits();
-  const total = loadKit(kits, 'base').kit.components.reduce(
+  const total = loadKit(kits, 'kitvas-ui').kit.components.reduce(
     (sum, component) => sum + component.examples.length,
     0,
   );
-  const dir = join(tempDir('kitvas-catalog-'), 'base');
+  const dir = join(tempDir('kitvas-catalog-'), 'kitvas-ui');
   const tools = renderTools();
   try {
-    const report = await buildCatalog({ kits, ...tools }, 'base', dir);
+    const report = await buildCatalog({ kits, ...tools }, 'kitvas-ui', dir);
     assert.deepEqual(report.errors, []);
     assert.equal(report.built, true);
     assert.equal(report.shown.length + report.skipped.length, total);
-    assert.ok(report.shown.length >= 12, `shown: ${report.shown.length}`);
-    // Dialog.1 uses names it does not define; it parses, so the error boundary deals with it.
+    assert.ok(report.shown.length >= 47, `shown: ${report.shown.length}`);
+    // The first example of an overlay component is shown too.
     assert.ok(report.shown.includes('Dialog.1'));
     assert.ok(existsSync(join(dir, CATALOG_PAGE)));
   } finally {

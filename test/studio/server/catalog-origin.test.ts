@@ -9,11 +9,12 @@ import { call, pageCookie, raw, rawCall, shopStudio } from '../../helpers/studio
 /** The frame key and the example frame's path, read from the kit page like the browser does. */
 async function frameOf(studio: Studio): Promise<{ key: string; path: string }> {
   const cookie = await pageCookie(studio);
-  const page = await call(studio.port, { path: '/kit/base', headers: { cookie } });
+  const page = await call(studio.port, { path: '/kit/kitvas-ui', headers: { cookie } });
   assert.equal(page.status, 200);
-  const found = /src="http:\/\/127\.0\.0\.1:\d+(\/k\/([^/]+)\/base\/html\/index\.html[^"#]*)#/.exec(
-    page.text,
-  );
+  const found =
+    /src="http:\/\/127\.0\.0\.1:\d+(\/k\/([^/]+)\/kitvas-ui\/html\/index\.html[^"#]*)#/.exec(
+      page.text,
+    );
   const path = found?.[1];
   const key = found?.[2];
   assert.ok(path && key, 'the kit page frames an example');
@@ -32,13 +33,13 @@ test('a built example is served on the prototype origin with the sandbox policy'
     assert.match(String(page.headers['content-security-policy']), /^sandbox allow-scripts;/);
     assert.equal(page.headers['x-content-type-options'], 'nosniff');
     assert.equal(page.text, '<!doctype html><title>Examples</title>');
-    const js = await call(studio.framePort, { path: `/k/${key}/base/js/index.js` });
+    const js = await call(studio.framePort, { path: `/k/${key}/kitvas-ui/js/index.js` });
     assert.equal(js.headers['content-type'], 'text/javascript; charset=utf-8');
-    const css = await call(studio.framePort, { path: `/k/${key}/base/css/index.css` });
+    const css = await call(studio.framePort, { path: `/k/${key}/kitvas-ui/css/index.css` });
     assert.equal(css.headers['content-type'], 'text/css; charset=utf-8');
     const head = await call(studio.framePort, {
       method: 'HEAD',
-      path: `/k/${key}/base/js/index.js`,
+      path: `/k/${key}/kitvas-ui/js/index.js`,
     });
     assert.equal(head.status, 200);
     assert.equal(head.text, '');
@@ -53,15 +54,15 @@ test('the stamp, a wrong key, a bad kit id and a kit without a build answer 404'
     writeCatalog(project);
     const { key } = await frameOf(studio);
     const missing = [
-      `/k/${key}/base/json/catalog.json`,
-      `/k/${key}/base/html/missing.html`,
-      `/k/${key}/base/html`,
+      `/k/${key}/kitvas-ui/json/catalog.json`,
+      `/k/${key}/kitvas-ui/html/missing.html`,
+      `/k/${key}/kitvas-ui/html`,
       `/k/${key}/nokit/html/index.html`,
-      `/k/${key}/Base/html/index.html`,
-      `/k/${key}/-base/html/index.html`,
-      `/k/${'x'.repeat(22)}/base/html/index.html`,
-      `/k/${key}/base/../draft.json`,
-      '/k/x/base/html/index.html',
+      `/k/${key}/Kitvas-ui/html/index.html`,
+      `/k/${key}/-kitvas-ui/html/index.html`,
+      `/k/${'x'.repeat(22)}/kitvas-ui/html/index.html`,
+      `/k/${key}/kitvas-ui/../draft.json`,
+      '/k/x/kitvas-ui/html/index.html',
     ];
     for (const path of missing) {
       const answer = await call(studio.framePort, { path });
@@ -78,7 +79,7 @@ test('encoded separators, backslashes, NUL, drives and device names never reach 
   try {
     writeCatalog(project);
     const { key } = await frameOf(studio);
-    const base = `/k/${key}/base`;
+    const base = `/k/${key}/kitvas-ui`;
     const corpus = [
       `${base}/html%2f..%2f..%2fcatalog.json`,
       `${base}/html\\..\\..\\json\\catalog.json`,
@@ -86,7 +87,7 @@ test('encoded separators, backslashes, NUL, drives and device names never reach 
       `${base}/html/CON`,
       `${base}/html/index.html.`,
       `${base}/C:/index.html`,
-      `/k/${key}/base%2f..%2f..%2fbase/html/index.html`,
+      `/k/${key}/kitvas-ui%2f..%2f..%2fkitvas-ui/html/index.html`,
       `/k/${key}/../../../draft.json`,
     ];
     for (const path of corpus) {
@@ -105,11 +106,11 @@ test('without a build the example address is a 404, and the studio origin has no
   const { studio } = await shopStudio();
   try {
     const key = 'k'.repeat(22);
-    const none = await call(studio.framePort, { path: `/k/${key}/base/html/index.html` });
+    const none = await call(studio.framePort, { path: `/k/${key}/kitvas-ui/html/index.html` });
     assert.equal(none.status, 404);
     const cookie = await pageCookie(studio);
     const wrongOrigin = await call(studio.port, {
-      path: `/k/${key}/base/html/index.html`,
+      path: `/k/${key}/kitvas-ui/html/index.html`,
       headers: { cookie },
     });
     assert.equal(wrongOrigin.status, 404);
@@ -156,7 +157,7 @@ test('a symbolic link in the build folder is never followed', async (t) => {
       return;
     }
     const { key } = await frameOf(studio);
-    const answer = await call(studio.framePort, { path: `/k/${key}/base/js/link.js` });
+    const answer = await call(studio.framePort, { path: `/k/${key}/kitvas-ui/js/link.js` });
     assert.equal(answer.status, 404);
   } finally {
     await studio.close();

@@ -1,7 +1,7 @@
 ---
 type: regex
 target: { source: file, path: '.kitvas/decisions.md' }
-pattern: '^(?![\s\S]*(?:copy:\s*de\b|German))[\s\S]*kit:\s*base'
+pattern: '^(?![\s\S]*(?:copy:\s*de\b|German))[\s\S]*kit:\s*kitvas-ui'
 match: contains
 ---
 

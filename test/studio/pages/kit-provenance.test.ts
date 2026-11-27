@@ -11,7 +11,7 @@ import { builtinKits } from '../../helpers/kit/kits.ts';
 import { tempDir } from '../../helpers/tmp.ts';
 import { t } from '../../helpers/translate.ts';
 
-function basePage(project: string): string {
+function builtinPage(project: string): string {
   const routes = pageRoutes({
     drafts: tempDrafts().store,
     kits: builtinKits(),
@@ -20,12 +20,12 @@ function basePage(project: string): string {
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
     version: '1.0.0',
-    projectKit: () => 'base',
+    projectKit: () => 'kitvas-ui',
   });
   const route = routes.find((candidate) => candidate.id === 'kit');
   assert.ok(route);
   return route.handle({
-    params: { id: 'base' },
+    params: { id: 'kitvas-ui' },
     headers: {},
     query: new URLSearchParams(),
     host: '127.0.0.1:5000',
@@ -34,12 +34,12 @@ function basePage(project: string): string {
 }
 
 function writeVerify(project: string, overrides: Partial<VerifyFile>): void {
-  const dir = catalogDir(project, 'base');
+  const dir = catalogDir(project, 'kitvas-ui');
   mkdirSync(dir, { recursive: true });
   const file: VerifyFile = {
     schemaVersion: 1,
-    kit: 'base',
-    hash: loadKit(builtinKits(), 'base').hash,
+    kit: 'kitvas-ui',
+    hash: loadKit(builtinKits(), 'kitvas-ui').hash,
     at: '2026-11-23T10:15:00.000Z',
     valid: true,
     steps: {
@@ -57,7 +57,7 @@ function writeVerify(project: string, overrides: Partial<VerifyFile>): void {
 }
 
 test('the page names the source and says the kit was never verified', () => {
-  const text = basePage(tempDir('kitvas-project-'));
+  const text = builtinPage(tempDir('kitvas-project-'));
   assert.ok(text.includes('<span class="kit-lead-line" data-kit-source>Built in</span>'));
   assert.ok(
     text.includes(
@@ -66,7 +66,7 @@ test('the page names the source and says the kit was never verified', () => {
   );
   assert.ok(
     text.includes(
-      '<div class="kit-cmd"><div class="k-cmd"><code>node &lt;plugin folder&gt;/bin/kitvas.ts kit verify base</code>',
+      '<div class="kit-cmd"><div class="k-cmd"><code>node &lt;plugin folder&gt;/bin/kitvas.ts kit verify kitvas-ui</code>',
     ),
   );
   assert.ok(!text.includes('&quot;kitvas kit verify'), 'the command is a box, not a quoted phrase');
@@ -76,11 +76,11 @@ test('a passed verification shows its date', () => {
   const project = tempDir('kitvas-project-');
   writeVerify(project, {});
   assert.ok(
-    basePage(project).includes(
+    builtinPage(project).includes(
       '<span class="kit-lead-line k-quiet" data-verify="passed">Verified on 2026-11-23.</span>',
     ),
   );
-  assert.ok(!basePage(project).includes('class="kit-cmd"'), 'a passed kit needs no command');
+  assert.ok(!builtinPage(project).includes('class="kit-cmd"'), 'a passed kit needs no command');
 });
 
 test('a failed verification shows the count and each problem in words', () => {
@@ -103,7 +103,7 @@ test('a failed verification shows the count and each problem in words', () => {
       },
     ],
   });
-  const text = basePage(project);
+  const text = builtinPage(project);
   assert.ok(
     text.includes(
       '<span class="kit-lead-line k-fix" data-verify="failed">Verification found 1 problem(s).',
@@ -120,14 +120,14 @@ test('a verification made for another hash is stale', () => {
   const project = tempDir('kitvas-project-');
   writeVerify(project, { hash: 'old' });
   assert.ok(
-    basePage(project).includes('data-verify="stale">The kit changed since it was verified.'),
+    builtinPage(project).includes('data-verify="stale">The kit changed since it was verified.'),
   );
 });
 
 test('a verify file that is not valid JSON counts as never verified', () => {
   const project = tempDir('kitvas-project-');
-  const dir = catalogDir(project, 'base');
+  const dir = catalogDir(project, 'kitvas-ui');
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, VERIFY_FILE), '{not json');
-  assert.ok(basePage(project).includes('data-verify="never"'));
+  assert.ok(builtinPage(project).includes('data-verify="never"'));
 });

@@ -1,0 +1,102 @@
+@use "../core/mixins";
+
+// Text and Heading share the steps of the font size scale.
+.kit-text,
+.kit-heading {
+  margin: 0;
+  font-family: var(--kit-font-body);
+  color: var(--kit-color-ink);
+}
+
+.kit-text {
+  font-size: var(--kit-font-size-md);
+  font-weight: var(--kit-font-weight-regular);
+  line-height: var(--kit-line-height-normal);
+
+  // `muted` and `danger` are for text on a ground, never on a soft fill (the kit's colour pairs).
+  &--muted {
+    color: var(--kit-color-ink-mid);
+  }
+
+  &--danger {
+    color: var(--kit-color-fix);
+  }
+
+  &--medium {
+    font-weight: var(--kit-font-weight-medium);
+  }
+
+  &--bold {
+    font-weight: var(--kit-font-weight-bold);
+  }
+
+  &--mono {
+    font-family: var(--kit-font-mono);
+  }
+}
+
+.kit-heading {
+  font-weight: var(--kit-font-weight-bold);
+  line-height: var(--kit-line-height-tight);
+}
+
+.kit-text--xs,
+.kit-heading--xs {
+  font-size: var(--kit-font-size-xs);
+}
+
+.kit-text--sm,
+.kit-heading--sm {
+  font-size: var(--kit-font-size-sm);
+}
+
+.kit-text--label,
+.kit-heading--label {
+  font-size: var(--kit-font-size-label);
+}
+
+.kit-text--md,
+.kit-heading--md {
+  font-size: var(--kit-font-size-md);
+}
+
+.kit-text--lg,
+.kit-heading--lg {
+  font-size: var(--kit-font-size-lg);
+}
+
+.kit-text--xl,
+.kit-heading--xl {
+  font-size: var(--kit-font-size-xl);
+}
+
+.kit-text--2xl,
+.kit-heading--2xl {
+  font-size: var(--kit-font-size-2xl);
+}
+
+.kit-text--3xl,
+.kit-heading--3xl {
+  font-size: var(--kit-font-size-3xl);
+}
+
+.kit-text--4xl,
+.kit-heading--4xl {
+  font-size: var(--kit-font-size-4xl);
+}
+
+.kit-text--5xl,
+.kit-heading--5xl {
+  font-size: var(--kit-font-size-5xl);
+}
+
+// A key of a shortcut: a quiet box, `inkMid` text, which reads on every step of fill.
+.kit-kbd {
+  padding: 0 var(--kit-space-4);
+  border-radius: var(--kit-radius-sm);
+  background: mixins.quiet();
+  color: var(--kit-color-ink-mid);
+  font-family: var(--kit-font-body);
+  font-size: var(--kit-font-size-sm);
+  white-space: nowrap;
+}

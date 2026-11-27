@@ -27,7 +27,7 @@ import { builtinKits } from '../../helpers/kit/kits.ts';
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const LATER = new Date('2026-11-24T09:00:00.000Z');
 const HERO = 'src/tsx/sections/Hero.tsx';
 const SCSS = 'src/scss/sections/hero.scss';
@@ -42,7 +42,7 @@ const HERO_TSX = [
   'export function Hero() {',
   '  return (',
   '    <section className="hero">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   '        <h1 className="flex p-4 gap-2">Shop</h1>',
   '      </Stack>',
   '    </section>',
@@ -50,11 +50,11 @@ const HERO_TSX = [
   '}',
   '',
 ].join('\n');
-const HERO_SCSS = '.hero {\n  padding: var(--kit-space-md);\n}\n';
-const WIDE_BLOCK = '\n  @media (min-width: 768px) {\n    padding: var(--kit-space-lg);\n  }\n';
+const HERO_SCSS = '.hero {\n  padding: var(--kit-space-12);\n}\n';
+const WIDE_BLOCK = '\n  @media (min-width: 768px) {\n    padding: var(--kit-space-16);\n  }\n';
 
 const AT_768: StyleContext = { width: 768, state: null, option: null };
-const LG: StyleValue = { token: '--kit-space-lg' };
+const LG: StyleValue = { token: '--kit-space-16' };
 /** ADR 0082: the value `2` of the option `columns`, at every width, resting. */
 const TWO: StyleContext = { width: null, state: null, option: { id: 'columns', value: '2' } };
 const OPTIONS_FILE = 'src/json/options.json';
@@ -159,10 +159,10 @@ test('a hover value at a width and its undo go through one request each', async 
     store.readText('shop', `v2/${SCSS}`),
     [
       '.hero {',
-      '  padding: var(--kit-space-md);',
+      '  padding: var(--kit-space-12);',
       '',
       '  @media (min-width: 768px) {',
-      '    padding: var(--kit-space-lg);',
+      '    padding: var(--kit-space-16);',
       '',
       '    &:hover {',
       '      color: #123456; /* off-kit */',
@@ -181,7 +181,7 @@ test('a hover value at a width and its undo go through one request each', async 
 test('a block someone wrote in another shape is undone by a patch of the file', async () => {
   const written = HERO_SCSS.replace(
     '}\n',
-    '  @media (min-width: 768px) { padding: var(--kit-space-lg); }\n}\n',
+    '  @media (min-width: 768px) { padding: var(--kit-space-16); }\n}\n',
   );
   const { store, deps } = setup(written);
   const drop: SimpleOp = {
@@ -232,7 +232,7 @@ test("an edit for an option's value goes into its block in the version's order, 
   assert.equal(result.outcome, 'applied');
   if (result.outcome !== 'applied') return;
   // `columns` comes before `cards` in the version's file, so its block does too.
-  const columns = '\n  [data-opt-columns="2"] & {\n    padding: var(--kit-space-lg);\n  }\n';
+  const columns = '\n  [data-opt-columns="2"] & {\n    padding: var(--kit-space-16);\n  }\n';
   assert.equal(
     store.readText('shop', `v2/${SCSS}`),
     HERO_SCSS.replace('}\n', `${columns}${filled}}\n`),
@@ -266,7 +266,7 @@ test('an op for an option or a value the version does not have is refused, nothi
 
 test('a property a kit prop covers takes no value of a width or a state', async () => {
   const { deps } = setup();
-  const at = { slug: 'shop', version: 1, kitId: 'base', options: { force: false }, etags: {} };
+  const at = { slug: 'shop', version: 1, kitId: 'kitvas-ui', options: { force: false }, etags: {} };
   const refusal = (op: SimpleOp) => contextRefusal(createWork(deps, at), op);
   const gap = (context: StyleContext | undefined, id = STACK): SimpleOp => ({
     op: 'setStyle',
@@ -278,7 +278,7 @@ test('a property a kit prop covers takes no value of a width or a state', async 
     newRule: true,
     ...(context === undefined ? {} : { context, newBlock: true }),
   });
-  // Base's Stack sets its gap by the `gap` prop.
+  // The kit's Stack sets its gap by the `gap` prop.
   const base: StyleContext = { width: null, state: null, option: null };
   assert.equal(await refusal(gap(AT_768)), 'prop-covered');
   assert.equal(await refusal(gap({ ...base, state: 'hover' })), 'prop-covered');

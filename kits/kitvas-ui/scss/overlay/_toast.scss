@@ -1,0 +1,44 @@
+@use "../core/mixins";
+@use "../feedback/alert";
+
+// A short message over the page, at the bottom centre like the studio's. It is `pop`: the ground,
+// the shadow and the entrance. The tone is a bar and an icon; the text is `ink`.
+.kit-toast {
+  @include mixins.pop;
+  @include alert.tones;
+
+  position: fixed;
+  bottom: var(--kit-space-16);
+  left: 50%;
+  z-index: 60;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: var(--kit-space-8);
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 2 * var(--kit-space-16)));
+  padding: var(--kit-space-8) var(--kit-space-12);
+  border-inline-start: 3px solid var(--_tone);
+  font-family: var(--kit-font-body);
+  font-size: var(--kit-font-size-md);
+
+  &__icon {
+    flex: none;
+    color: var(--_tone);
+  }
+
+  &__text {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    font-weight: var(--kit-font-weight-medium);
+  }
+
+  &__action {
+    flex: none;
+  }
+}

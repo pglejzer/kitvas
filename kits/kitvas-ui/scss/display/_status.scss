@@ -1,0 +1,84 @@
+@use "../core/mixins";
+
+// A dot says a state by colour, so it always comes with a hidden text (`label`). It is a mark, not
+// text: the tone colours are fine here, 3 to 1 is enough.
+.kit-dot {
+  --_tone: var(--kit-color-ink-mid);
+
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  vertical-align: middle;
+
+  &__mark {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--kit-radius-full);
+    background: var(--_tone);
+  }
+
+  &--accent {
+    --_tone: var(--kit-color-accent);
+  }
+
+  &--good {
+    --_tone: var(--kit-color-good);
+  }
+
+  &--review {
+    --_tone: var(--kit-color-review);
+  }
+
+  &--fix {
+    --_tone: var(--kit-color-fix);
+  }
+
+  // Only opacity moves; the page's reduced-motion rule stops it.
+  &--pulse &__mark {
+    animation: kit-dot-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes kit-dot-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+// A colour sample. Its edge is a real border of `ink-mid`, so a light colour shows on a light
+// ground. What is selected gets a 2 px mark of the accent, drawn with `outline`, set 2 px out; the
+// focus ring sits farther out so both show at once.
+.kit-swatch {
+  position: relative;
+  display: inline-block;
+  box-sizing: border-box;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--kit-color-ink-mid);
+  border-radius: var(--kit-radius-sm);
+  background: var(--_color);
+  vertical-align: middle;
+
+  &--action {
+    @include mixins.hit;
+
+    cursor: pointer;
+  }
+
+  &--selected::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: var(--kit-radius-sm);
+    outline: 2px solid var(--kit-color-accent);
+    outline-offset: 0;
+  }
+
+  &:focus-visible {
+    @include mixins.focus-ring;
+
+    outline-offset: 6px;
+  }
+}

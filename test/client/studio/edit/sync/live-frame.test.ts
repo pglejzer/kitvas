@@ -137,7 +137,8 @@ test('the frame address changes only its version, state and live number', () => 
     frameAddress(FRAME, { version: 3, state: undefined, live: 1 }),
     `${DRAFT}/v3/html/index.html?state=default&live=1${HASH}`,
   );
-  const kitFrame = 'http://kitvas.localhost:5174/k/key123/base/html/index.html?example=Button.1';
+  const kitFrame =
+    'http://kitvas.localhost:5174/k/key123/kitvas-ui/html/index.html?example=Button.1';
   assert.equal(frameAddress(kitFrame, { version: 3, state: 'default', live: 1 }), undefined);
   assert.equal(
     frameAddress('not an address', { version: 3, state: 'default', live: 1 }),

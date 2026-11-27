@@ -76,7 +76,7 @@ export const PROP_FOR: Record<StyleProperty, readonly string[]> = {
   'margin-right': ['marginRight', 'mr'],
   'margin-bottom': ['marginBottom', 'mb'],
   'margin-left': ['marginLeft', 'ml'],
-  // Base's Stack: `direction`, `wrap`, `justify` and `align` (kits/base/tsx/layout/Stack.tsx).
+  // The kit's Stack: `direction`, `wrap`, `justify` and `align` (kits/kitvas-ui/tsx/layout/Stack.tsx).
   display: ['display'],
   'flex-direction': ['flexDirection', 'direction'],
   'flex-wrap': ['flexWrap', 'wrap'],
@@ -210,7 +210,7 @@ type CatalogProp = NonNullable<SourceInput['component']>['props'][number];
  * the property counts whatever its values. Any other name of the table needs, for a token
  * property, values that are a token scale of its type, and for a keyword property values that
  * each name one of its keywords (`start` names `flex-start`). `flex-wrap` also takes a boolean
- * (Base's Stack `wrap`).
+ * (the built-in kit's Stack `wrap`).
  */
 function covers(
   property: StyleProperty,

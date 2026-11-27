@@ -53,7 +53,7 @@ export type CodeBrief = {
     uses: number;
   }[];
   tokens: {
-    /** `--kit-space-md`. */
+    /** `--kit-space-12`. */
     var: string;
     path: string;
     css: string;

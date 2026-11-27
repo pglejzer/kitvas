@@ -12,7 +12,7 @@ const JOB = '0b9f2c1e-4d6a-4f3e-9a51-7c2d8e6f1a20';
 const OTHER_JOB = '5e1d7a90-2b3c-4e8f-8d6a-1f0e9c7b3a42';
 
 const watch = (fields: Partial<CatalogWatch> = {}): CatalogWatch => ({
-  kit: 'base',
+  kit: 'kitvas-ui',
   catalog: 'ready',
   job: JOB,
   reloaded: false,
@@ -22,13 +22,13 @@ const watch = (fields: Partial<CatalogWatch> = {}): CatalogWatch => ({
 /** What `kitvas kit build` answers (shared contract 3), as the job's result. */
 const build = (fields: Record<string, unknown> = {}) => ({
   view: 'build',
-  id: 'base',
+  id: 'kitvas-ui',
   built: true,
   cached: false,
   shown: ['Button.1'],
   skipped: [],
   errors: [],
-  path: '/project/.kitvas/cache/catalog/base/build/html/index.html',
+  path: '/project/.kitvas/cache/catalog/kitvas-ui/build/html/index.html',
   ...fields,
 });
 
@@ -37,7 +37,7 @@ const job = (fields: Record<string, unknown> = {}): StreamEvent => ({
   data: JSON.stringify({
     id: JOB,
     kind: 'catalog',
-    slug: 'base',
+    slug: 'kitvas-ui',
     state: 'succeeded',
     result: build(),
     error: null,
@@ -120,7 +120,7 @@ test('jobs of other kits and of drafts are not the catalog', () => {
 test('lost events start over; other events and bad data change nothing', () => {
   assert.equal(catalogStep(watch(), { event: 'reset', data: '{}', id: '9' }), 'missed');
   assert.equal(catalogStep(watch(), { event: 'inbox', data: '{"pending":1}' }), undefined);
-  for (const data of ['', 'not json', 'null', '[]', '"base"']) {
+  for (const data of ['', 'not json', 'null', '[]', '"kitvas-ui"']) {
     assert.equal(catalogStep(watch({ job: undefined }), { event: 'job', data }), undefined, data);
   }
 });
@@ -137,7 +137,7 @@ test('the answer that starts the job: started or running waits, anything else st
 });
 
 test('the started job is named by a 202 answer only', () => {
-  assert.equal(startedJob(202, { id: JOB, kind: 'catalog', slug: 'base' }), JOB);
+  assert.equal(startedJob(202, { id: JOB, kind: 'catalog', slug: 'kitvas-ui' }), JOB);
   const problem = { type: 'urn:kitvas:error:JOB_RUNNING', status: 409, code: 'JOB_RUNNING' };
   assert.equal(startedJob(409, problem), undefined);
   assert.equal(startedJob(409, { id: JOB }), undefined);

@@ -49,7 +49,7 @@ test('a row of keywords is icons only when every keyword in it has one', () => {
     'arrow-down',
     'arrow-up',
   ]);
-  // A covering prop's words, as Base's Stack offers them.
+  // A covering prop's words, as a kit's Stack offers them.
   const stack = segmentIcons('flex-direction', ['row', 'column']);
   assert.deepEqual(stack, ['arrow-right', 'arrow-down']);
   assert.deepEqual(segmentIcons('align-items', ['stretch', 'flex-start', 'center', 'flex-end']), [

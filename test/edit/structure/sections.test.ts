@@ -150,7 +150,12 @@ test('an inserted section with a taken id gets plans-2 in its layout, files and 
 
 test('a section of another kit, or naming what this kit lacks, is kit-mismatch', () => {
   const { store, apply } = setup();
-  createDraft(store, { slug: 'other', title: 'Other', kit: { ...TINY, id: 'base' }, now: NOW });
+  createDraft(store, {
+    slug: 'other',
+    title: 'Other',
+    kit: { ...TINY, id: 'kitvas-ui' },
+    now: NOW,
+  });
   writeVersionFiles(store, 'other', 1, ABOUT_FILES);
   assert.deepEqual(apply({ ...INSERT, from: { slug: 'other', section: 'plans' } }), {
     refused: 'kit-mismatch',

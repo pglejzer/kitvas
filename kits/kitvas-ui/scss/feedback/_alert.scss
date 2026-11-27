@@ -1,0 +1,65 @@
+@use "../core/mixins";
+
+// The tone of a message, shared with the toast: `--_tone` is the colour of the bar and of the icon
+// (a mark, 3 to 1), `--_fill` the ground of an alert. The title and the text are `ink` on every
+// tone: a tone is never the colour of text.
+@mixin tones {
+  &--neutral {
+    --_tone: var(--kit-color-ink-mid);
+    --_fill: #{mixins.quiet()};
+  }
+
+  &--good {
+    --_tone: var(--kit-color-good);
+    --_fill: var(--kit-color-good-soft);
+  }
+
+  &--review {
+    --_tone: var(--kit-color-review);
+    --_fill: var(--kit-color-review-soft);
+  }
+
+  &--fix {
+    --_tone: var(--kit-color-fix);
+    --_fill: var(--kit-color-fix-soft);
+  }
+}
+
+// A message that sits in the page.
+.kit-alert {
+  @include tones;
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--kit-space-10);
+  box-sizing: border-box;
+  padding: var(--kit-space-10) var(--kit-space-12);
+  border: 1px solid transparent;
+  border-inline-start: 3px solid var(--_tone);
+  border-radius: var(--kit-radius-md);
+  background: var(--_fill);
+  color: var(--kit-color-ink);
+  font-family: var(--kit-font-body);
+  font-size: var(--kit-font-size-md);
+
+  &__icon {
+    flex: none;
+    margin-top: var(--kit-space-2);
+    color: var(--_tone);
+  }
+
+  &__text {
+    display: grid;
+    flex: 1;
+    gap: var(--kit-space-2);
+    min-width: 0;
+  }
+
+  &__title {
+    font-weight: var(--kit-font-weight-medium);
+  }
+
+  &__action {
+    flex: none;
+  }
+}

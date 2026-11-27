@@ -1,0 +1,43 @@
+@use "../core/mixins";
+
+// A modal dialog: the `pop` ground (as the studio's), the `veil` behind it. Its width and height
+// stay inside the page, so it fits a 390 px screen.
+.kit-dialog {
+  @include mixins.on-raised;
+
+  box-sizing: border-box;
+  width: min(var(--kit-size-measure), calc(100vw - 2 * var(--kit-space-16)));
+  max-height: calc(100dvh - 2 * var(--kit-space-16));
+  padding: var(--kit-space-16);
+  border: 0;
+  border-radius: var(--kit-radius-lg);
+  background: var(--kit-color-pop);
+  box-shadow: var(--_shadow-pop);
+  color: var(--kit-color-ink);
+  font-family: var(--kit-font-body);
+  overflow: auto;
+
+  &[open] {
+    animation: kit-pop-in var(--kit-motion-fast) var(--_ease-out);
+  }
+
+  &::backdrop {
+    background: var(--kit-color-veil);
+  }
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--kit-space-12);
+    margin-bottom: var(--kit-space-12);
+  }
+
+  &__title {
+    min-width: 0;
+    margin: 0;
+    font-size: var(--kit-font-size-xl);
+    font-weight: var(--kit-font-weight-bold);
+    line-height: var(--kit-line-height-tight);
+  }
+}

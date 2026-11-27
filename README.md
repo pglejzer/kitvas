@@ -14,7 +14,7 @@
   <a href="https://github.com/sponsors/pglejzer"><img src="https://img.shields.io/badge/sponsor-GitHub%20Sponsors-b4571a" alt="Sponsor kitvas on GitHub Sponsors"></a>
 </p>
 
-kitvas is a Claude Code plugin that builds UI prototypes from your project's own design system, checks them in a real browser and shows them in a local studio with a visual editor. It is for developers and design-system maintainers who want a screen made of their own components and tokens. You end up with a checked React draft that you can edit, version and hand off to your code. Without a learned kit it builds from the built-in kit, Base.
+kitvas is a Claude Code plugin that builds UI prototypes from your project's own design system, checks them in a real browser and shows them in a local studio with a visual editor. It is for developers and design-system maintainers who want a screen made of their own components and tokens. You end up with a checked React draft that you can edit, version and hand off to your code. Without a learned kit it builds from the built-in kit, the kitvas UI kit.
 
 ![A request typed in Claude Code, then the generated dashboard in the local studio: the Checks tab with nothing to fix, the phone width, and in the editor a kit button's variant changed and written to the draft's file](docs/readme/demo.gif)
 
@@ -36,7 +36,7 @@ On the first session after an install or an update, a `SessionStart` hook runs `
 In your project folder, in Claude Code:
 
 1. Type `/kitvas`. It reports whether kitvas is ready and what is missing, and offers to create the `.kitvas/` workspace.
-2. Choose a kit. If your project has a design system, type `/kitvas:learn`; otherwise go on with Base.
+2. Choose a kit. If your project has a design system, type `/kitvas:learn`; otherwise go on with the built-in kitvas UI kit.
 3. Type `/kitvas:compose` with a description, for example `/kitvas:compose a pricing page with three plans and a FAQ`. Claude asks at most three questions, builds the sections, checks them and fixes what it can.
 4. Open the link Claude gives you. It is a one-time link, valid for 60 seconds, to `http://kitvas.localhost:<port>/`. Your browser then stays signed in for 30 days.
 5. Give feedback in chat, leave a note in the studio, or switch to Edit and change the draft yourself. Feedback in chat makes a new version; an editing session makes one too.
@@ -99,7 +99,7 @@ More in [How it works](docs/how-it-works.md).
 - A new screen for a product that already has a design system.
 - A page you already have that needs a better version, with its content and purpose kept.
 - A component, icon or logo that your kit does not have yet.
-- A screen for a project with no design system yet, built from the built-in kit, Base.
+- A screen for a project with no design system yet, built from the built-in kit, the kitvas UI kit.
 - A finished draft that has to go into your project, in the project's own technology.
 
 ## Skills
@@ -130,7 +130,7 @@ The rest is in [docs/security.md](docs/security.md).
 
 ## Requirements
 
-- Claude Code.
+- Claude Code. kitvas is free and adds no cost of its own: it runs on the Claude plan you already use for Claude Code.
 - Node 24.22.3 or later in the 24 line, or 26.13.1 or later. These are Node's [security releases of 11 November 2026](https://nodejs.org/en/blog/vulnerability/november-2026-security-releases), which fix flaws in HTTP/2, TLS and the HTTP parser. On an older 24 or 26, on Node 25 or on Node 22, kitvas stops with an error that names your version.
 - Access to the npm registry during the first session.
 - Chrome, Edge or Chromium for the browser checks. `kitvas browser` says which one is used; `kitvas browser install` downloads Chromium when none is found. Without a browser the browser checks are skipped with a note.
@@ -150,7 +150,7 @@ There is no global `kitvas` command. In these docs `kitvas <command>` means `nod
 
 ## Status
 
-1.0.0. Prototypes are React, with SCSS or with Tailwind v4 when the kit uses it, whatever your application is written in; Tailwind v3 is not supported. A hand-off puts a finished prototype into your project in the project's own technology.
+1.0.0. Prototypes are React, with SCSS or with Tailwind v4 when the kit uses it, whatever your application is written in; Tailwind v3 is not supported. A hand-off puts a finished prototype into your project in the project's own technology. Ideas for later are in [IDEAS.md](IDEAS.md).
 
 ## Develop
 
@@ -170,6 +170,6 @@ kitvas is free. If it saves you time or money, you can support its work on [GitH
 kitvas is source-available, not open source in the OSI sense. [LICENSING.md](LICENSING.md) says which terms cover which part:
 
 - kitvas is under the [PolyForm Shield License 1.0.0](LICENSE.md). You may use, modify, and distribute it, including for commercial purposes, provided that you do not use it to offer competing products or services.
-- The built-in Base kit (`kits/base/`) is under the [MIT License](kits/base/LICENSE): use it, change it, copy it and ship it for any purpose, also in a product that competes with kitvas, and keep its notice with it.
+- The built-in kitvas UI kit (`kits/kitvas-ui/`) is under the [MIT License](kits/kitvas-ui/LICENSE): use it, change it, copy it and ship it for any purpose, also in a product that competes with kitvas, and keep its notice with it. Its typeface, Figtree, is under the SIL Open Font License ([text](kits/kitvas-ui/fonts/LICENSE)).
 - The interface code you generate with kitvas is not covered: your drafts, the code a hand-off writes into your project and the layers it sends to Figma. A part of kitvas inside it keeps its own license, for example the runtime inside a built prototype.
 - The kitvas name and logo are not free to use. You may not change the logo, and you may not use the name or the logo outside kitvas: not for your own product, service, site, kit or fork, and not to suggest that the author of kitvas made or endorses your work. You may say in plain words that your work was made with kitvas.

@@ -1,0 +1,415 @@
+{
+  "color": {
+    "$type": "color",
+    "canvas": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.059,
+          0.063,
+          0.075
+        ]
+      }
+    },
+    "panel": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.114,
+          0.122,
+          0.137
+        ]
+      }
+    },
+    "raised": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.157,
+          0.169,
+          0.192
+        ]
+      }
+    },
+    "raisedStrong": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.196,
+          0.212,
+          0.239
+        ]
+      }
+    },
+    "pressed": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.227,
+          0.243,
+          0.278
+        ]
+      }
+    },
+    "pop": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.149,
+          0.161,
+          0.184
+        ]
+      }
+    },
+    "line": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.173,
+          0.184,
+          0.212
+        ]
+      }
+    },
+    "lineStrong": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.278,
+          0.294,
+          0.333
+        ]
+      }
+    },
+    "ink": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.933,
+          0.941,
+          0.953
+        ]
+      }
+    },
+    "inkMid": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.651,
+          0.671,
+          0.714
+        ]
+      }
+    },
+    "inkSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.455,
+          0.478,
+          0.525
+        ]
+      }
+    },
+    "fix": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.918,
+          0.459,
+          0.361
+        ]
+      }
+    },
+    "review": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.89,
+          0.753,
+          0.294
+        ]
+      }
+    },
+    "good": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.298,
+          0.729,
+          0.478
+        ]
+      }
+    },
+    "fixSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.918,
+          0.459,
+          0.361
+        ],
+        "alpha": 0.16
+      }
+    },
+    "reviewSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.89,
+          0.753,
+          0.294
+        ],
+        "alpha": 0.16
+      }
+    },
+    "goodSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.298,
+          0.729,
+          0.478
+        ],
+        "alpha": 0.16
+      }
+    },
+    "accent": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          0.416,
+          0.663
+        ]
+      }
+    },
+    "onAccent": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.169,
+          0.039,
+          0.102
+        ]
+      }
+    },
+    "accentSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          0.416,
+          0.663
+        ],
+        "alpha": 0.16
+      }
+    },
+    "onTone": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.114,
+          0.125,
+          0.145
+        ]
+      }
+    },
+    "select": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.871,
+          0.141,
+          0.455
+        ]
+      }
+    },
+    "frameEdge": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          1,
+          1
+        ],
+        "alpha": 0.14
+      }
+    },
+    "veil": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0,
+          0,
+          0
+        ],
+        "alpha": 0.55
+      }
+    },
+    "swatchCopper": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.941,
+          0.647,
+          0.42
+        ]
+      }
+    },
+    "swatchTeal": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.184,
+          0.816,
+          0.682
+        ]
+      }
+    },
+    "swatchCoral": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          0.416,
+          0.239
+        ]
+      }
+    },
+    "swatchRose": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          0.416,
+          0.663
+        ]
+      }
+    }
+  },
+  "inverse": {
+    "$type": "color",
+    "canvas": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.933,
+          0.941,
+          0.953
+        ]
+      }
+    },
+    "ink": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.114,
+          0.122,
+          0.137
+        ]
+      }
+    },
+    "inkMid": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.361,
+          0.369,
+          0.38
+        ]
+      }
+    },
+    "inkSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.525,
+          0.533,
+          0.545
+        ]
+      }
+    },
+    "panel": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.859,
+          0.867,
+          0.878
+        ]
+      }
+    },
+    "raised": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.843,
+          0.851,
+          0.863
+        ]
+      }
+    },
+    "raisedStrong": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.784,
+          0.792,
+          0.808
+        ]
+      }
+    },
+    "pressed": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.737,
+          0.745,
+          0.757
+        ]
+      }
+    },
+    "line": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.804,
+          0.812,
+          0.824
+        ]
+      }
+    },
+    "accent": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.839,
+          0.141,
+          0.431
+        ]
+      }
+    },
+    "onAccent": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    "accentSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.839,
+          0.141,
+          0.431
+        ],
+        "alpha": 0.1
+      }
+    }
+  }
+}

@@ -101,8 +101,15 @@ test('the store never reads outside a kit folder', () => {
 
 test('lists kits, valid or not', () => {
   assert.deepEqual(listKits(fixtures), [
-    { id: 'broken', name: null, version: null, components: 0, valid: false },
-    { id: 'tiny', name: 'Tiny', version: '1.0.0', components: 2, valid: true },
+    { id: 'broken', name: null, version: null, source: null, components: 0, valid: false },
+    {
+      id: 'tiny',
+      name: 'Tiny',
+      version: '1.0.0',
+      source: 'builtin',
+      components: 2,
+      valid: true,
+    },
   ]);
   assert.deepEqual(listKits(createFolderKitStore(join(tempDir(), 'missing'))), []);
 });

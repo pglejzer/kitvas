@@ -15,10 +15,10 @@ type Carry = { sx: number; sy: number; tx: number; ty: number };
 
 const STILL: Carry = { sx: 1, sy: 1, tx: 0, ty: 0 };
 
-/** `--kit-motion-slow` of Base. */
+/** `--kit-motion-slow` of the built-in kit. */
 export const MOTION_MS = 240;
-/** `--kit-motion-fast` of Base: the fade that replaces movement when less motion is asked for. */
-export const FADE_MS = 120;
+/** `--kit-motion-fast` of the built-in kit: the fade that replaces movement when less motion is asked for. */
+export const FADE_MS = 140;
 export const EASING = 'ease-out';
 /** More moving parts than this read as a new page: the root fades instead. */
 export const MAX_MOVING = 400;

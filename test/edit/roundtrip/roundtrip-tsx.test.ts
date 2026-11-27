@@ -1,4 +1,4 @@
-// Every opening tag of every real `.tsx` file in the fixtures and the Base kit: an operation
+// Every opening tag of every real `.tsx` file in the fixtures and the built-in kit: an operation
 // and then its inverse must give the file back byte for byte (src/edit/AGENTS.md).
 
 import assert from 'node:assert/strict';
@@ -15,7 +15,7 @@ import {
 import { type ApplyResult, type EditOp, inverse } from '../../../src/edit/index.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
-const FOLDERS = [join(ROOT, 'test', 'fixtures'), join(ROOT, 'kits', 'base')];
+const FOLDERS = [join(ROOT, 'test', 'fixtures'), join(ROOT, 'kits', 'kitvas-ui')];
 const id = 'sections/Hero:div';
 const KEEP = { force: false };
 

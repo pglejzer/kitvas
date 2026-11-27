@@ -23,7 +23,7 @@ export function imageOfUrl(css: string): string | null {
   return file !== undefined && IMAGE_FILE.test(file) ? file : null;
 }
 
-/** Kit words for CSS keywords: Base's `Stack` says `start`, `end` and `between`. */
+/** Kit words for CSS keywords: the built-in kit's `Stack` says `start`, `end` and `between`. */
 const SHORT_WORDS: ReadonlyMap<string, string> = new Map([
   ['start', 'flex-start'],
   ['end', 'flex-end'],

@@ -33,7 +33,7 @@ test('defaults when nothing is configured', () => {
   const cwd = tempDir();
   assert.deepEqual(loadSettings({ home, cwd }), {
     language: 'en',
-    kit: 'base',
+    kit: 'kitvas-ui',
     copy: null,
     check: 'normal',
     studioIdleMinutes: 240,
@@ -99,7 +99,7 @@ test('a decisions file with no settings, a bad value or a broken block never sto
     const settings = loadSettings({ home: tempDir(), cwd });
     assert.equal(settings.check, 'normal');
     assert.equal(settings.copy, null);
-    assert.equal(settings.kit, text.startsWith('﻿') ? 'acme' : 'base');
+    assert.equal(settings.kit, text.startsWith('﻿') ? 'acme' : 'kitvas-ui');
   }
 });
 
@@ -130,7 +130,7 @@ test('saveProjectKit refuses an id that is not one and writes nothing', () => {
   const cwd = tempDir();
   initWorkspace(cwd);
   assert.throws(() => saveProjectKit(cwd, '../x'), isInvalid);
-  assert.equal(loadSettings({ home: tempDir(), cwd }).kit, 'base');
+  assert.equal(loadSettings({ home: tempDir(), cwd }).kit, 'kitvas-ui');
   assert.equal(readFileSync(join(cwd, '.kitvas', 'decisions.md'), 'utf8'), decisionsTemplate());
 });
 
@@ -156,7 +156,7 @@ test('the move keeps a kit value that does not fit as written, and a broken conf
   const odd = tempDir();
   write(odd, { schemaVersion: 1, kit: '../x' });
   const settings = loadSettings({ home: tempDir(), cwd: odd });
-  assert.equal(settings.kit, 'base');
+  assert.equal(settings.kit, 'kitvas-ui');
   assert.deepEqual(
     parseDecisions(readFileSync(join(odd, '.kitvas', 'decisions.md'), 'utf8')).warnings.map(
       (warning) => warning.code,
@@ -180,10 +180,10 @@ test('with a decisions file, an old config.json is not read and not touched', ()
   assert.equal(existsSync(join(cwd, '.kitvas', 'config.json')), true);
 });
 
-test('a kit the file names that does not exist is a warning and base, from the default', () => {
+test('a kit the file names that does not exist is a warning and kitvas-ui, from the default', () => {
   const parsed = parseDecisions('---\nkit: gone\ncopy: pl\n---\n');
-  const found = effectiveSettings(parsed, ['base', 'tiny']);
-  assert.deepEqual(found.settings, { kit: 'base', copy: 'pl', check: 'normal' });
+  const found = effectiveSettings(parsed, ['kitvas-ui', 'tiny']);
+  assert.deepEqual(found.settings, { kit: 'kitvas-ui', copy: 'pl', check: 'normal' });
   assert.deepEqual(found.from, { kit: 'default', copy: 'file', check: 'default' });
   assert.deepEqual(found.warnings, [{ code: 'kitMissing', line: 2, params: { id: 'gone' } }]);
   // A kit that exists, or no list to check against, is taken as written.
@@ -197,15 +197,15 @@ test('readProjectDecisions: no workspace gives the defaults, a file gives its pa
   assert.equal(empty.exists, false);
   assert.equal(empty.path, join(none, '.kitvas', 'decisions.md'));
   assert.equal(empty.text, '');
-  assert.deepEqual(empty.settings, { kit: 'base', copy: null, check: 'normal' });
+  assert.deepEqual(empty.settings, { kit: 'kitvas-ui', copy: null, check: 'normal' });
   assert.deepEqual(empty.from, { kit: 'default', copy: 'default', check: 'default' });
 
   const cwd = tempDir();
   writeDecisions(cwd, '---\ncheck: deep\nkit: gone\n---\n# T\n\n## Kits\n- x (2026-01-01)\n');
-  const found = readProjectDecisions(cwd, ['base']);
+  const found = readProjectDecisions(cwd, ['kitvas-ui']);
   assert.equal(found.exists, true);
   assert.equal(found.settings.check, 'deep');
-  assert.equal(found.settings.kit, 'base');
+  assert.equal(found.settings.kit, 'kitvas-ui');
   assert.equal(found.from.check, 'file');
   assert.equal(found.text, '# T\n\n## Kits\n- x (2026-01-01)\n');
   assert.deepEqual(

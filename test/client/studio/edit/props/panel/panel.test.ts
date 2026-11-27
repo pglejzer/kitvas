@@ -43,7 +43,7 @@ function inspected(overrides: Partial<Inspect> = {}): Inspect {
   };
 }
 
-/** A Base `Stack`: `gap` is an enum prop with the names of the `space` tokens. */
+/** A kit's `Stack`: `gap` is an enum prop with the names of the `space` tokens. */
 function stack(overrides: Partial<Inspect> = {}): Inspect {
   const base = inspected();
   return inspected({

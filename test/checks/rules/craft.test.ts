@@ -22,7 +22,7 @@ const BOARD: VisitInput = visit(
   },
 );
 
-/** Sketch A drawn like Base's icons: a 20 grid, stroke 1.75, round caps, currentColor. */
+/** Sketch A drawn like the kit's icons: a 20 grid, stroke 1.75, round caps, currentColor. */
 function svg(part: Partial<SvgFacts> = {}): SvgFacts {
   return {
     sketch: 'A',

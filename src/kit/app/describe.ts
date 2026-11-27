@@ -1,7 +1,7 @@
 // Use cases: the short views of a kit that the CLI and the studio show.
 
 import { KitvasError } from '../../shared/index.ts';
-import type { Kit, KitComponent } from '../domain/contract.ts';
+import type { Kit, KitComponent, KitSource } from '../domain/contract.ts';
 import type { KitThemes } from '../domain/themes.ts';
 import type { KitStore } from '../ports/kit-store.ts';
 import { type LoadedKit, loadKit } from './load-kit.ts';
@@ -28,6 +28,8 @@ export type KitListItem = {
   id: string;
   name: string | null;
   version: string | null;
+  /** Where the kit comes from: `builtin` for a kit of kitvas itself. `null` when it cannot be read. */
+  source: KitSource['type'] | null;
   components: number;
   valid: boolean;
 };
@@ -70,12 +72,13 @@ export function listKits(store: KitStore): KitListItem[] {
         id,
         name: loaded.kit.name,
         version: loaded.kit.version,
+        source: loaded.kit.source.type,
         components: loaded.kit.components.length,
         valid: loaded.issues.length === 0,
       };
     } catch (error) {
       if (!(error instanceof KitvasError)) throw error;
-      return { id, name: null, version: null, components: 0, valid: false };
+      return { id, name: null, version: null, source: null, components: 0, valid: false };
     }
   });
 }

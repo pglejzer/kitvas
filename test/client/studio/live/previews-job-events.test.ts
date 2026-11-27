@@ -6,7 +6,7 @@ const job = (fields: Record<string, unknown>) => ({ event: 'job', data: JSON.str
 
 test("a previews job makes a kit's Insert pane previews, so it refreshes no page", () => {
   for (const state of ['succeeded', 'failed']) {
-    const previews = job({ kind: 'previews', slug: 'base', state, result: { cached: false } });
+    const previews = job({ kind: 'previews', slug: 'kitvas-ui', state, result: { cached: false } });
     assert.equal(endedJobSlug(previews), undefined, state);
     assert.equal(
       needsRefresh(previews, () => true),

@@ -35,8 +35,8 @@ test('components are grouped by category and turned into rows', () => {
   assert.deepEqual(button?.a11y, ['Needs a visible label or aria-label']);
 });
 
-test('every component of the Base kit lands in a group', () => {
-  const loaded = loadKit(builtinKits(), 'base');
+test('every component of the kitvas UI kit lands in a group', () => {
+  const loaded = loadKit(builtinKits(), 'kitvas-ui');
   const components = groupComponents(loaded.kit.components).flatMap((g) => g.components);
   assert.equal(components.length, loaded.kit.components.length);
 });

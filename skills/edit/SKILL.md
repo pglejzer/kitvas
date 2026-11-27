@@ -60,13 +60,13 @@ A variant is a label of at most 60 characters and up to 40 changes the Propertie
           "kind": "style",
           "id": "sections/Hero:section/Button",
           "property": "padding",
-          "value": { "token": "--kit-space-lg" }
+          "value": { "token": "--kit-space-16" }
         },
         {
           "kind": "prop",
           "id": "sections/Hero:section/Button",
           "name": "variant",
-          "value": { "kind": "string", "value": "primary" }
+          "value": { "kind": "string", "value": "soft" }
         },
         { "kind": "text", "id": "sections/Hero:section/Button", "value": "Start your free trial" }
       ]

@@ -89,8 +89,8 @@ function kindsOf(groups: Groups): Kinds {
 const KIT_VAR = '--kit-';
 
 /**
- * What types a `var(--kit-…)` from the kit's token groups (`tokenGroupsOf`): `--kit-space-md` is
- * the dimension `md` of `space`. Names compare without case and separators, as the token's
+ * What types a `var(--kit-…)` from the kit's token groups (`tokenGroupsOf`): `--kit-space-12` is
+ * the dimension `12` of `space`. Names compare without case and separators, as the token's
  * variable is its path in kebab case. A name two tokens of different types share is not typed.
  * The groups are read when the first `var` asks.
  */

@@ -1,0 +1,54 @@
+// The page a prototype sits on, and what every component shares.
+body {
+  margin: 0;
+  background: var(--kit-color-canvas);
+  color: var(--kit-color-ink);
+  font-family: var(--kit-font-body);
+  font-size: var(--kit-font-size-md);
+  font-weight: var(--kit-font-weight-regular);
+  line-height: var(--kit-line-height-normal);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--kit-color-accent-soft);
+}
+
+.kit-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Entrances answer what the person did. Nothing moves on hover or while idle.
+@keyframes kit-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+@keyframes kit-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+// The studio's rule, and the kit's one `!important`: no component and no draft style may outrank a
+// person who asked for no motion. `biome.json` turns its lint rule off for this file alone.
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

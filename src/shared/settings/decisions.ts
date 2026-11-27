@@ -14,8 +14,11 @@ export type CheckDepth = 'normal' | 'deep';
 /** The effective settings: what the file says, or the default of each. `copy` is null when unset. */
 export type DecisionSettings = { kit: string; copy: string | null; check: CheckDepth };
 
+/** The built-in kit: what a project uses until its decisions name another. */
+export const DEFAULT_KIT = 'kitvas-ui';
+
 export const DEFAULT_DECISION_SETTINGS: DecisionSettings = {
-  kit: 'base',
+  kit: DEFAULT_KIT,
   copy: null,
   check: 'normal',
 };
@@ -164,7 +167,7 @@ export function parseDecisions(text: string): ParsedDecisions {
 }
 
 /** The file as `kitvas init` writes it. */
-export function decisionsTemplate(kit = 'base'): string {
+export function decisionsTemplate(kit: string = DEFAULT_KIT): string {
   return [
     '---',
     `kit: ${kit}`,

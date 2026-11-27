@@ -7,11 +7,11 @@ import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts'
 import { type KitComponent, requireKit } from '../../../src/kit/index.ts';
 import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
 
-const base = requireKit(createFolderKitStore(join(PLUGIN_ROOT, 'kits')), 'base');
+const base = requireKit(createFolderKitStore(join(PLUGIN_ROOT, 'kits')), 'kitvas-ui');
 
 function component(name: string): KitComponent {
   const found = base.kit.components.find((each) => each.name === name);
-  if (found === undefined) throw new Error(`Base has no ${name}`);
+  if (found === undefined) throw new Error(`kitvas UI has no ${name}`);
   return found;
 }
 
@@ -22,7 +22,7 @@ function viewOf(text: string): TagView {
   return view;
 }
 
-/** `text`'s first element replaced by the Base component `to`, the file's text handed in. */
+/** `text`'s first element replaced by the kit component `to`, the file's text handed in. */
 function replace(text: string, from: string | null, to: string | KitComponent, tag?: string) {
   const target = typeof to === 'string' ? component(to) : to;
   const old = from === null ? null : component(from);
@@ -45,7 +45,7 @@ test('an enum value the new component lacks is dropped, and an empty tag stays s
 });
 
 test('an enum expression stays only when every value the old prop has fits the new one', () => {
-  // Button's size is md or sm, both Text sizes; its tone may be neutral, which Text lacks.
+  // Button's size is sm, md or lg, all Text sizes; its tone may be neutral, which Text lacks.
   assert.deepEqual(replace('<Button size={size} tone={tone}>Go</Button>', 'Button', 'Text'), {
     open: '<Text size={size}>',
     dropped: ['tone'],

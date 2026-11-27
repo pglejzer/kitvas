@@ -175,7 +175,7 @@ test('icon board: viewBox, stroke, fill, caps and fixed colours of each sketch a
   assert.ok(c >= 1, `C: ${c}`);
   // Only logos are drawn at 32 px.
   assert.ok(craft.sketches.every((svg) => svg.thinnestPx32 === null));
-  // Base's icons, each once although the board shows them on both grounds.
+  // The kit's icons, each once although the board shows them on both grounds.
   assert.deepEqual(craft.kit, [KIT_ICON, KIT_ICON, KIT_ICON]);
   assert.deepEqual(craft.logoContrast, []);
   assert.deepEqual(craft.mono, []);

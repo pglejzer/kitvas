@@ -12,12 +12,12 @@ import { tempDir } from '../../helpers/tmp.ts';
 import { layeredStore } from '../../kit/helpers/project-kit.ts';
 
 const RESULT: PreviewsResult = {
-  id: 'base',
+  id: 'kitvas-ui',
   cached: false,
   components: ['Button', 'Card'],
   failed: [{ component: 'Dialog', error: 'the example failed to render' }],
   icons: 8,
-  path: '/p/.kitvas/cache/catalog/base/previews/v1-0123456789abcdef',
+  path: '/p/.kitvas/cache/catalog/kitvas-ui/previews/v1-0123456789abcdef',
 };
 
 function harness(workspace: boolean) {
@@ -51,24 +51,24 @@ function harness(workspace: boolean) {
 
 test('`kit previews <id> --json` answers the previews view of the use case', async () => {
   const { cwd, out, asked, run } = harness(true);
-  await run('base', '--json');
+  await run('kitvas-ui', '--json');
   const answer = JSON.parse(out.at(-1) ?? '') as { ok: boolean; data: KitView };
   assert.equal(answer.ok, true);
   assert.deepEqual(answer.data, { view: 'previews', ...RESULT });
-  assert.deepEqual(asked, [[cwd, 'base']]);
+  assert.deepEqual(asked, [[cwd, 'kitvas-ui']]);
 });
 
 test('`kit previews` says what it made and what it could not shoot', async () => {
   const { out, run } = harness(true);
-  await run('base');
+  await run('kitvas-ui');
   const text = out.join('\n');
-  assert.match(text, /base/);
+  assert.match(text, /kitvas-ui/);
   assert.match(text, /Dialog: the example failed to render/);
 });
 
 test('`kit previews` needs a workspace, like `kit build`', async () => {
   const { out, asked, run } = harness(false);
-  await run('base', '--json');
+  await run('kitvas-ui', '--json');
   const answer = JSON.parse(out.at(-1) ?? '') as { ok: boolean; error?: { code: string } };
   assert.equal(answer.ok, false);
   assert.equal(answer.error?.code, 'WORKSPACE_MISSING');

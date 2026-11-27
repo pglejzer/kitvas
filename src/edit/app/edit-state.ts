@@ -66,7 +66,7 @@ export function catalogComponent(kit: LoadedKit | null, tag: string): KitCompone
   return kit?.kit.components.find((component) => component.name === name) ?? null;
 }
 
-/** The kit's tokens as the pickers offer them: `--kit-space-md`, `space.md`, `12px`. */
+/** The kit's tokens as the pickers offer them: `--kit-space-12`, `space.12`, `12px`. */
 export function tokenOptions(kit: LoadedKit | null): TokenOption[] {
   if (kit === null) return [];
   const added = new Set(kit.addedTokens);

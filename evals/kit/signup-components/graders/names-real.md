@@ -6,4 +6,4 @@ match: contains
 target: last_message
 ---
 
-The answer names Input, Checkbox and Button, the Base components for these four elements.
+The answer names Input, Checkbox and Button, the kitvas UI components for these four elements.

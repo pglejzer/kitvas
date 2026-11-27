@@ -76,7 +76,7 @@ function withUsage(
   });
 }
 
-test('one-primary: two Base buttons without a variant are both solid, so it fires at the second', () => {
+test('one-primary: two kit buttons without a variant are both solid, so it fires at the second', () => {
   const input = withUsage(
     [button('sections/A:Button/1', 'Save'), button('sections/A:Button/2', 'Send')],
     [

@@ -10,7 +10,7 @@ import { tempDrafts } from '../../helpers/draft/drafts.ts';
 import { builtinKits, copyKit, FIXTURE_KITS, tinyKitJson } from '../../helpers/kit/kits.ts';
 import { t } from '../../helpers/translate.ts';
 
-function pages(kits: KitStore, projectKit = 'base') {
+function pages(kits: KitStore, projectKit = 'kitvas-ui') {
   const { store } = tempDrafts();
   const routes = pageRoutes({
     drafts: store,
@@ -45,10 +45,10 @@ function kitWithProblems(): KitStore {
   return createFolderKitStore(root);
 }
 
-test('the Base kit catalog shows every token and component', async () => {
+test('the kitvas UI kit catalog shows every token and component', async () => {
   const kits = builtinKits();
-  const text = await pages(kits)('kit', { id: 'base' });
-  const loaded = loadKit(kits, 'base');
+  const text = await pages(kits)('kit', { id: 'kitvas-ui' });
+  const loaded = loadKit(kits, 'kitvas-ui');
   assert.ok(text.includes(`<h1>${loaded.kit.name}</h1>`));
   assert.ok(!text.includes('kit-problems'));
   for (const token of loaded.tokens) {
@@ -62,12 +62,12 @@ test('the Base kit catalog shows every token and component', async () => {
 });
 
 test('the page links to each of its sections, and the picker marks the current kit', async () => {
-  const text = await pages(builtinKits())('kit', { id: 'base' });
+  const text = await pages(builtinKits())('kit', { id: 'kitvas-ui' });
   for (const id of ['kit-colors', 'kit-spacing', 'kit-radius', 'kit-type', 'kit-components']) {
     assert.ok(text.includes(`href="#${id}"`), id);
     assert.ok(text.includes(`id="${id}"`), `${id} has its heading`);
   }
-  assert.ok(text.includes('<a class="kit-pick" href="/kit/base" aria-current="page">'));
+  assert.ok(text.includes('<a class="kit-pick" href="/kit/kitvas-ui" aria-current="page">'));
 });
 
 test('a colour shows its contrast on white and on black, and a value with no hex shows none', async () => {
@@ -162,7 +162,7 @@ test('an unknown kit has a 404 page that says so and links to the kits', async (
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
     version: '1.0.0',
-    projectKit: () => 'base',
+    projectKit: () => 'kitvas-ui',
   });
   const route = routes.find((candidate) => candidate.id === 'kit');
   assert.ok(route);
@@ -193,14 +193,14 @@ test('a kit store error other than not found or invalid still reaches the server
     },
   };
   await assert.rejects(
-    async () => pages(failing)('kit', { id: 'base' }),
+    async () => pages(failing)('kit', { id: 'kitvas-ui' }),
     (error: unknown) => error instanceof KitvasError && error.code === 'INTERNAL',
   );
 });
 
 test('the nav marks the current page', async () => {
   const view = pages(builtinKits());
-  const kit = await view('kit', { id: 'base' });
+  const kit = await view('kit', { id: 'kitvas-ui' });
   assert.ok(kit.includes('<a class="k-btn" href="/kit" aria-current="page">Kit</a>'));
   assert.ok(kit.includes('<a class="k-btn" href="/">Drafts</a>'));
   const list = await view('kits');
@@ -238,11 +238,11 @@ test('the list has the block of the start page, the kits as cards, two ways to a
 });
 
 test('on the list no kit carries the chip when the kit of the project is not among them', async () => {
-  const text = await pages(createFolderKitStore(FIXTURE_KITS), 'base')('kits');
+  const text = await pages(createFolderKitStore(FIXTURE_KITS), 'kitvas-ui')('kits');
   assert.ok(!text.includes('Used by this project'));
 });
 
-test('a kit that is not Base has the block with its facts, a card per section and the foot line', async () => {
+test('a kit that is not the built-in one has the block with its facts, a card per section and the foot line', async () => {
   const text = await pages(createFolderKitStore(FIXTURE_KITS))('kit', { id: 'tiny' });
   assert.ok(
     text.includes('<main class="k-page start kit-page" data-kit="tiny" data-catalog="missing">'),
@@ -290,7 +290,7 @@ test('a kit that cannot be read has a page that says why, with the check command
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
     version: '1.0.0',
-    projectKit: () => 'base',
+    projectKit: () => 'kitvas-ui',
   });
   const route = routes.find((candidate) => candidate.id === 'kit');
   assert.ok(route);

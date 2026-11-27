@@ -11,7 +11,7 @@ import { type KitLens, KitLensSchema } from '../../src/studio/api/edit/kit-lens-
 import { NOW, tempDrafts } from '../helpers/draft/drafts.ts';
 import { call, studioOver } from '../helpers/studio/studio.ts';
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const DRAFT = '/api/v1/drafts/shop';
 
 const TSX = [
@@ -40,7 +40,7 @@ function pricingDrafts(): DraftStore {
     '# Layout: Shop\n\n## pricing\nPurpose: Show the plans.\nComponents: Stack\n',
   );
   store.writeText('shop', 'v1/src/tsx/sections/Pricing.tsx', TSX);
-  store.writeText('shop', 'v1/src/scss/sections/pricing.scss', scss('var(--kit-space-sm)'));
+  store.writeText('shop', 'v1/src/scss/sections/pricing.scss', scss('var(--kit-space-8)'));
   return store;
 }
 
@@ -64,7 +64,7 @@ test('the kit lens route answers the spacing, off-kit values and suggestions', a
     assert.deepEqual(
       lens.elements.map((each) => [each.spacing, each.suggest]),
       [
-        [[{ property: 'gap', token: 'space-sm', value: '8px' }], null],
+        [[{ property: 'gap', token: 'space-8', value: '8px' }], null],
         [[], 'Button'],
       ],
     );
@@ -80,12 +80,12 @@ test('the kit lens route answers the spacing, off-kit values and suggestions', a
 test('only the latest version is answered', async () => {
   const store = pricingDrafts();
   addVersion(store, 'shop', NOW);
-  store.writeText('shop', 'v2/src/scss/sections/pricing.scss', scss('var(--kit-space-xl)'));
+  store.writeText('shop', 'v2/src/scss/sections/pricing.scss', scss('var(--kit-space-24)'));
   const { studio, get } = await lensStudio(true, store);
   try {
     const lens = json<KitLens>((await get(`${DRAFT}/kit-lens`)).text);
     assert.equal(lens.version, 2);
-    assert.equal(lens.elements[0]?.spacing[0]?.token, 'space-xl');
+    assert.equal(lens.elements[0]?.spacing[0]?.token, 'space-24');
   } finally {
     await studio.close();
   }

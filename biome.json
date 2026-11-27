@@ -8,6 +8,9 @@
       "!spikes",
       "!evals",
       "!reference/kit.schema.json",
+      "!kits/kitvas-ui/json",
+      "!kits/kitvas-ui/tsx/display/icon-paths.ts",
+      "!kits/kitvas-ui/scss/core/_studio.scss",
       "!.playwright-mcp",
       "!.claude/settings.local.json"
     ]
@@ -38,5 +41,37 @@
     "parser": {
       "tailwindDirectives": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["kits/kitvas-ui/scss/core/_base.scss"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["kits/kitvas-ui/tsx/display/Table.tsx"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noNoninteractiveTabindex": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["kits/kitvas-ui/tsx/overlay/Tooltip.tsx"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noStaticElementInteractions": "off"
+          }
+        }
+      }
+    }
+  ]
 }

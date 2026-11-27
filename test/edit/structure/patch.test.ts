@@ -12,7 +12,7 @@ import { applyHunks, makeHunks } from '../../../src/edit/domain/structure/patch.
 import type { OffsetMap } from '../../../src/edit/domain/types.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
-const FOLDERS = [join(ROOT, 'test', 'fixtures'), join(ROOT, 'kits', 'base')];
+const FOLDERS = [join(ROOT, 'test', 'fixtures'), join(ROOT, 'kits', 'kitvas-ui')];
 const CONFLICT = { conflict: 'changed' };
 
 function tsxFiles(folder: string): string[] {

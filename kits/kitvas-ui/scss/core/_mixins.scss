@@ -1,0 +1,76 @@
+// What every component of the kit builds on, so the states and the steps look alike everywhere.
+
+@mixin focus-ring {
+  outline: 2px solid var(--kit-color-focus);
+  outline-offset: 2px;
+}
+
+@mixin disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+// The height of a control: 28 px, and 36 and 44 px through `--md` and `--lg` on the same element.
+// `--_control` is set on the element itself, so a control inside a taller one does not inherit it.
+@mixin control {
+  --_control: var(--kit-size-control);
+
+  box-sizing: border-box;
+  height: var(--_control);
+
+  &--md {
+    --_control: var(--kit-size-control-md);
+  }
+
+  &--lg {
+    --_control: var(--kit-size-control-lg);
+  }
+}
+
+// A pointer target of at least the least size a pointer has to hit.
+@mixin hit {
+  min-width: var(--kit-size-target);
+  min-height: var(--kit-size-target);
+}
+
+// The quiet fill of a control (a field, a chip, a soft button, a track) and the next step (a
+// neutral solid button, what is chosen in a track). Both sit above the ground the control is on,
+// as in the studio, where a field is `raised` on a panel and `raised-strong` in a card. The
+// fallbacks are the steps on the page's ground; a surface sets the two locals for what it holds.
+@function quiet() {
+  @return var(--_quiet, var(--kit-color-raised));
+}
+
+@function quiet-strong() {
+  @return var(--_quiet-strong, var(--kit-color-pressed));
+}
+
+// For a surface whose ground is `panel`.
+@mixin on-panel {
+  --_quiet: var(--kit-color-raised);
+  --_quiet-strong: var(--kit-color-raised-strong);
+}
+
+// For a surface whose ground is `raised` or `pop`.
+@mixin on-raised {
+  --_quiet: var(--kit-color-raised-strong);
+  --_quiet-strong: var(--kit-color-pressed);
+}
+
+// The edge of a field or of a toggle (a checkbox, a radio, a switch): a real border, 3 to 1 on
+// every ground in every theme. A ring drawn as a shadow is not read as an edge by the checks, and
+// each one counts as a shadow of the page, so the kit draws no ring with `box-shadow`.
+@mixin boundary {
+  border: 1px solid var(--kit-color-ink-mid);
+}
+
+// What floats over the page: a popover, a menu, a toast. It enters when it is shown.
+@mixin pop {
+  @include on-raised;
+
+  border-radius: var(--kit-radius-md);
+  background: var(--kit-color-pop);
+  color: var(--kit-color-ink);
+  box-shadow: var(--_shadow-pop);
+  animation: kit-pop-in var(--kit-motion-fast) var(--_ease-out);
+}

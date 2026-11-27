@@ -32,7 +32,7 @@ A case is a folder with `prompt.md` (the user's message and the run limits) and 
 (`tool_used`, `regex`, `file_exists`, `llm`). A case that needs a prepared project also has `case.yaml`
 and `scaffold.sh`; a scaffold may run a neighbour case's scaffold first and then add its own steps
 (`craft/export` starts from `craft/pick-add`). The truth for components, props and tones is
-`kits/base/kit.json`; graders must never reward a name that is not in it.
+`kits/kitvas-ui/kit.json`; graders must never reward a name that is not in it.
 
 ## Run
 

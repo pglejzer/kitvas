@@ -57,7 +57,7 @@ import { Button, Heading, Stack, Text } from '@kit';
 
 export function Hero(_props: { state: string }) {
   return (
-    <Stack className="hero" gap="md">
+    <Stack className="hero" gap="12">
       <Heading level={1}>City Cruiser</Heading>
       <Text>A comfortable bike for the whole city, 12 EUR per day.</Text>
       <Button>Rent this bike</Button>
@@ -68,7 +68,7 @@ EOF
 
 cat > "$V/src/scss/sections/hero.scss" <<'EOF'
 .hero {
-  padding: var(--kit-space-lg);
+  padding: var(--kit-space-16);
 }
 EOF
 

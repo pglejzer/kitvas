@@ -4,7 +4,7 @@ How kitvas turns an idea into a checked prototype. For what kitvas is and how to
 
 One screen takes this path:
 
-1. A kit supplies the components, tokens and icons: one learned from your project, or Base.
+1. A kit supplies the components, tokens and icons: one learned from your project, or the built-in kitvas UI kit.
 2. The skill writes a brief, then plans the sections in `layout.md`. One agent writes the TSX and SCSS of each section.
 3. `kitvas build` bundles the version into a page.
 4. `kitvas check` runs the build, types, the kit's rules and the browser checks, and a fix round follows when there are findings.

@@ -1,0 +1,80 @@
+@use "../core/mixins";
+
+// The wrapper scrolls sideways inside its own box, so a wide table never widens the page. It is
+// focusable, so the keyboard can scroll it.
+.kit-table {
+  max-width: 100%;
+  overflow-x: auto;
+
+  &:focus-visible {
+    @include mixins.focus-ring;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--kit-font-size-md);
+  }
+
+  &__caption {
+    padding: var(--kit-space-8) 0;
+    color: var(--kit-color-ink);
+    font-weight: var(--kit-font-weight-medium);
+    text-align: left;
+  }
+
+  &__head {
+    padding: 0 var(--kit-space-12);
+    border-bottom: 1px solid var(--kit-color-line);
+    color: var(--kit-color-ink-mid);
+    font-size: var(--kit-font-size-sm);
+    font-weight: var(--kit-font-weight-medium);
+    height: var(--kit-size-row);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  &__cell {
+    height: var(--kit-size-row);
+    padding: var(--kit-space-4) var(--kit-space-12);
+    border-bottom: 1px solid var(--kit-color-line);
+    color: var(--kit-color-ink);
+    text-align: left;
+  }
+
+  &__head.kit-table__cell--end,
+  &__cell--end {
+    text-align: right;
+  }
+
+  &__row:hover {
+    background: #{mixins.quiet()};
+  }
+
+  // The sort control: the label and, for the sorted column, an arrow in `ink`.
+  &__sort {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--kit-space-4);
+    min-height: var(--kit-size-target);
+    padding: 0;
+    border: 0;
+    border-radius: var(--kit-radius-sm);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--kit-color-ink);
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+    }
+
+    .kit-icon {
+      color: var(--kit-color-ink);
+    }
+  }
+}

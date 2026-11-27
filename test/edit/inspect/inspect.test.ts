@@ -9,7 +9,7 @@ import { etagOf } from '../../../src/studio/http/etag.ts';
 import { NOW, tempDrafts } from '../../helpers/draft/drafts.ts';
 import { builtinKits } from '../../helpers/kit/kits.ts';
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 
 const PRICING_TSX = [
   "import { Button, Card, Stack, Text } from '@kit';",
@@ -20,7 +20,7 @@ const PRICING_TSX = [
   "  const tone = state === 'error' ? 'danger' : 'neutral';",
   '  return (',
   '    <section className="pricing">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   '        <Text tone="muted">Plans</Text>',
   '        {plans.map((plan) => (',
   '          <Card key={plan.name}>',
@@ -39,7 +39,7 @@ const PRICING_TSX = [
 
 const PRICING_SCSS = [
   '.pricing {',
-  '  padding: var(--kit-space-lg);',
+  '  padding: var(--kit-space-16);',
   '}',
   '',
   '.button {',
@@ -69,7 +69,7 @@ const HERO = {
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());
 
-/** The `shop` draft on the Base kit, with `files` written into its version 1. */
+/** The `shop` draft on the kitvas UI kit, with `files` written into its version 1. */
 function draftWith(files: Record<string, string>): DraftStore {
   const { store } = tempDrafts();
   createDraft(store, { slug: 'shop', title: 'Shop', kit: BASE, now: NOW });
@@ -82,7 +82,7 @@ const inspectIn = (drafts: DraftStore, id: string, kits: KitStore = builtinKits(
 
 type RawKit = { runtime: { styles: Record<string, unknown> } };
 
-/** The built-in kits, with Base marked as a Tailwind kit. */
+/** The built-in kits, with kitvas UI marked as a Tailwind kit. */
 function tailwindKits(): KitStore {
   const kits = builtinKits();
   return {
@@ -100,7 +100,7 @@ function tailwindKits(): KitStore {
 const isCode = (code: string) => (error: unknown) =>
   error instanceof KitvasError && error.code === code;
 
-test("a Base Stack's gap comes from its gap prop, the place an edit writes", async () => {
+test("a kitvas UI Stack's gap comes from its gap prop, the place an edit writes", async () => {
   const stack = await inspectIn(draftWith(PRICING), 'sections/Pricing:section/Stack');
   assert.equal(stack.version, 1);
   assert.equal(stack.tag, 'Stack');
@@ -109,7 +109,7 @@ test("a Base Stack's gap comes from its gap prop, the place an edit writes", asy
   assert.equal(stack.component?.name, 'Stack');
   assert.equal(stack.component?.takesClassName, true);
   assert.deepEqual(stack.props, [
-    { name: 'gap', kind: 'literal', value: { kind: 'string', value: 'md' } },
+    { name: 'gap', kind: 'literal', value: { kind: 'string', value: '12' } },
   ]);
   assert.deepEqual(stack.styles.gap, { kind: 'prop', prop: 'gap' });
   // Stack has no padding prop and no class: its padding is the kit's.
@@ -177,13 +177,13 @@ test('a class with a rule is the style class, and its declaration is the source'
     file: 'src/scss/sections/pricing.scss',
     etag: etagOf(PRICING_SCSS),
     rule: true,
-    declarations: [{ property: 'padding', value: 'var(--kit-space-lg)', offKit: false }],
+    declarations: [{ property: 'padding', value: 'var(--kit-space-16)', offKit: false }],
     nested: [],
   });
   assert.deepEqual(section.styles.padding, {
     kind: 'scss',
     className: 'pricing',
-    value: 'var(--kit-space-lg)',
+    value: 'var(--kit-space-16)',
     offKit: false,
   });
 });
@@ -201,7 +201,7 @@ test('a Tailwind kit gives the utility class as the source of a style it sets', 
 test("the answer lists the kit's breakpoints and every value of a width or a state", async () => {
   const scss = [
     '.pricing {',
-    '  padding: var(--kit-space-lg);',
+    '  padding: var(--kit-space-16);',
     '',
     '  @media (min-width: 768px) {',
     '    padding: 40px; /* off-kit */',
@@ -212,7 +212,7 @@ test("the answer lists the kit's breakpoints and every value of a width or a sta
     '  }',
     '',
     '  &:focus-visible {',
-    '    outline-width: var(--kit-space-xs);',
+    '    outline-width: var(--kit-space-4);',
     '  }',
     '}',
     '',
@@ -248,7 +248,7 @@ test("the answer lists the kit's breakpoints and every value of a width or a sta
     {
       context: { width: null, state: 'focus-visible', option: null },
       property: 'outline-width',
-      value: 'var(--kit-space-xs)',
+      value: 'var(--kit-space-4)',
       offKit: false,
       utility: null,
     },
@@ -257,7 +257,7 @@ test("the answer lists the kit's breakpoints and every value of a width or a sta
   assert.deepEqual(section.styles.padding, {
     kind: 'scss',
     className: 'pricing',
-    value: 'var(--kit-space-lg)',
+    value: 'var(--kit-space-16)',
     offKit: false,
   });
   assert.deepEqual(section.scss?.nested, []);
@@ -276,7 +276,7 @@ test("the values of an option's block carry the option, with its width and state
     '',
     '    @media (min-width: 768px) {',
     '      &:hover {',
-    '        outline-width: var(--kit-space-xs);',
+    '        outline-width: var(--kit-space-4);',
     '      }',
     '    }',
     '  }',
@@ -297,7 +297,7 @@ test("the values of an option's block carry the option, with its width and state
     {
       context: { width: 768, state: 'hover', option },
       property: 'outline-width',
-      value: 'var(--kit-space-xs)',
+      value: 'var(--kit-space-4)',
       offKit: false,
       utility: null,
     },
@@ -320,7 +320,8 @@ test('a Tailwind draft lists its prefixed utilities as the overrides', async () 
     {
       context: { width: 768, state: null, option: null },
       property: 'padding',
-      value: '6',
+      // `6` names the kit's `space.6`, so the value is that token.
+      value: 'var(--kit-space-6)',
       offKit: false,
       utility: 'md:p-6',
     },
@@ -343,7 +344,7 @@ test('the answer gives the line of the tag, and every style property of the pane
   const stack = await inspectIn(drafts, 'sections/Pricing:section/Stack');
   assert.equal(stack.line, 9);
   assert.equal(Object.keys(stack.styles).length, 40);
-  // Base's Stack sets the flex keywords by its own props (plan 15).
+  // The kit's Stack sets the flex keywords by its own props (plan 15).
   assert.deepEqual(stack.styles['flex-direction'], { kind: 'prop', prop: 'direction' });
   assert.deepEqual(stack.styles['align-items'], { kind: 'prop', prop: 'align' });
   assert.deepEqual(stack.styles['justify-content'], { kind: 'prop', prop: 'justify' });
@@ -394,7 +395,7 @@ const PLANS = {
     '    <section className="plans">',
     '      {plans.map((plan) => (',
     "        <Card key={plan.name} className={plan.featured ? 'plans__card plans__card--featured' : 'plans__card'}>",
-    '          <Stack gap="lg">',
+    '          <Stack gap="16">',
     '            {loading ? (',
     '              <Text>Loading prices…</Text>',
     '            ) : (',
@@ -418,7 +419,7 @@ const PLANS = {
     '}',
     '',
   ].join('\n'),
-  'src/scss/sections/plans.scss': '.plans__card {\n  padding: var(--kit-space-lg);\n}\n',
+  'src/scss/sections/plans.scss': '.plans__card {\n  padding: var(--kit-space-16);\n}\n',
 };
 
 const CARD = 'sections/Plans:section/Card';
@@ -489,7 +490,7 @@ const ITEM_PLANS = {
   'src/scss/sections/plans.scss': [
     '.plans {',
     '  &__card {',
-    '    background: var(--kit-color-surface);',
+    '    background: var(--kit-color-panel);',
     '    border: 1px solid var(--kit-color-line);',
     '  }',
     '',

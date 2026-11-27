@@ -17,7 +17,7 @@ import { etagOf } from '../../src/studio/http/etag.ts';
 import { NOW, tempDrafts } from '../helpers/draft/drafts.ts';
 import { call, studioOver } from '../helpers/studio/studio.ts';
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';
 const SECTION = 'sections/Pricing:section';
 const CARD = `${SECTION}/Stack/Card`;
@@ -30,7 +30,7 @@ const PRICING_TSX = [
   'export function Pricing(_props: { state: string }) {',
   '  return (',
   '    <section className="pricing">',
-  '      <Stack gap="md">',
+  '      <Stack gap="12">',
   '        <Text>Plans</Text>',
   '        {plans.map((plan) => (',
   '          <Card key={plan.name}>',
@@ -54,7 +54,7 @@ type Problem = { code: string };
 
 const json = <T>(text: string): T => JSON.parse(text) as T;
 
-/** The `shop` draft on the Base kit with one section, `pricing`, and the draft `landing`. */
+/** The `shop` draft on the kitvas UI kit with one section, `pricing`, and the draft `landing`. */
 function pricingDrafts(): DraftStore {
   const { store } = tempDrafts();
   createDraft(store, { slug: 'shop', title: 'Shop', kit: BASE, now: NOW });

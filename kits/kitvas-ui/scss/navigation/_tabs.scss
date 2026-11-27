@@ -1,0 +1,65 @@
+@use "../core/mixins";
+
+// Tabs over one panel. The row stays on one line and scrolls inside its own box, so the page never
+// scrolls sideways. The chosen tab is `ink` with a 2 px bar of the accent; the rest are `inkMid`
+// and turn `ink` under the pointer.
+.kit-tabs {
+  min-width: 0;
+  font-family: var(--kit-font-body);
+
+  &__list {
+    display: flex;
+    gap: var(--kit-space-2);
+    padding: 0 var(--kit-space-8);
+    border-bottom: 1px solid var(--kit-color-line);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  &__tab {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--kit-space-4);
+    min-height: var(--kit-size-control-md);
+    padding: 0 var(--kit-space-8);
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--kit-color-ink-mid);
+    font-family: inherit;
+    font-size: var(--kit-font-size-md);
+    font-weight: var(--kit-font-weight-regular);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color var(--kit-motion-fast) var(--_ease-out);
+
+    &:hover,
+    &:active {
+      color: var(--kit-color-ink);
+    }
+
+    // The ring sits inside the tab: the row clips what lies outside it.
+    &:focus-visible {
+      @include mixins.focus-ring;
+
+      outline-offset: -2px;
+    }
+
+    &[aria-selected="true"] {
+      color: var(--kit-color-ink);
+      border-bottom-color: var(--kit-color-accent);
+      font-weight: var(--kit-font-weight-medium);
+    }
+  }
+
+  &__count {
+    color: var(--kit-color-ink-mid);
+    font-size: var(--kit-font-size-sm);
+    font-weight: var(--kit-font-weight-regular);
+  }
+
+  &__panel {
+    padding-top: var(--kit-space-12);
+  }
+}

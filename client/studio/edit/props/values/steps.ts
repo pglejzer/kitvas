@@ -110,7 +110,7 @@ export function hasOwnScale(tokens: readonly TokenOption[], property: StylePrope
   return tokens.some((token) => token.type === type && groups.includes(groupOf(token)));
 }
 
-/** The token variable a CSS text names: `var(--kit-space-md)` or `--kit-space-md`. */
+/** The token variable a CSS text names: `var(--kit-space-12)` or `--kit-space-12`. */
 export function varOf(text: string): string | null {
   const trimmed = text.trim();
   const match = VAR.exec(trimmed);

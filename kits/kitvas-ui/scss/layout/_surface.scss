@@ -1,0 +1,164 @@
+@use "../core/mixins";
+
+// A surface sets the steps of fill for what it holds (`on-raised`, `on-panel`), so a field inside
+// is one step above the surface, as in the studio. Only a surface carries a shadow.
+.kit-card {
+  @include mixins.on-raised;
+
+  min-width: 0;
+  border-radius: var(--kit-radius-md);
+  background: var(--kit-color-raised);
+  color: var(--kit-color-ink);
+
+  &--md {
+    padding: var(--kit-space-16);
+  }
+
+  &--lg {
+    padding: var(--kit-space-24);
+  }
+
+  &--low {
+    box-shadow: var(--_shadow-low);
+  }
+
+  &--island {
+    box-shadow: var(--_shadow-island);
+  }
+}
+
+// A panel on the page: ground `panel`, a large radius and the island's shadow.
+.kit-island {
+  @include mixins.on-panel;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--kit-space-12);
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--_pad, var(--kit-space-16));
+  border-radius: var(--kit-radius-lg);
+  background: var(--kit-color-panel);
+  box-shadow: var(--_shadow-island);
+  color: var(--kit-color-ink);
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--kit-space-8);
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    overflow: hidden;
+    font-family: var(--kit-font-body);
+    font-size: var(--kit-font-size-md);
+    font-weight: var(--kit-font-weight-bold);
+    line-height: var(--kit-line-height-tight);
+    text-overflow: ellipsis;
+  }
+
+  &__actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--kit-space-4);
+  }
+}
+
+// A group that folds, on the platform's own `details`. A hairline on top, a header that is a
+// control (focus ring, a quiet fill under the pointer), then its rows.
+.kit-group {
+  border-top: 1px solid var(--kit-color-line);
+  padding: var(--kit-space-4) 0 var(--kit-space-10);
+
+  &:not([open]) {
+    padding-bottom: var(--kit-space-4);
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: var(--kit-space-6);
+    box-sizing: border-box;
+    min-height: var(--kit-size-group);
+    padding: 0 var(--kit-space-4);
+    border-radius: var(--kit-radius-sm);
+    color: var(--kit-color-ink);
+    font-size: var(--kit-font-size-label);
+    font-weight: var(--kit-font-weight-bold);
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    transition: background-color var(--kit-motion-fast) var(--_ease-out);
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &:hover {
+      background: mixins.quiet();
+    }
+
+    &:focus-visible {
+      @include mixins.focus-ring;
+    }
+  }
+
+  &__chevron {
+    flex: none;
+    color: var(--kit-color-ink-mid);
+    rotate: -90deg;
+    transition: rotate var(--kit-motion-fast) var(--_ease-out);
+  }
+
+  &[open] &__chevron {
+    rotate: 0deg;
+  }
+
+  &__count {
+    margin-left: auto;
+    color: var(--kit-color-ink-mid);
+    font-weight: var(--kit-font-weight-regular);
+  }
+
+  &__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: var(--kit-space-8);
+    padding-top: var(--kit-space-6);
+
+    > .kit-row {
+      justify-self: stretch;
+    }
+  }
+}
+
+// A block in the other theme's colours. Every colour the `inverse` group covers is set again, so
+// everything inside reads them. The focus colour is set too: it is the accent's alias and was
+// computed on the page. The steps of fill are declared again here, as a step inherited from an
+// outer surface was computed with the outer colours.
+.kit-inverse {
+  --kit-color-canvas: var(--kit-inverse-canvas);
+  --kit-color-ink: var(--kit-inverse-ink);
+  --kit-color-ink-mid: var(--kit-inverse-ink-mid);
+  --kit-color-ink-soft: var(--kit-inverse-ink-soft);
+  --kit-color-panel: var(--kit-inverse-panel);
+  --kit-color-raised: var(--kit-inverse-raised);
+  --kit-color-raised-strong: var(--kit-inverse-raised-strong);
+  --kit-color-pressed: var(--kit-inverse-pressed);
+  --kit-color-line: var(--kit-inverse-line);
+  --kit-color-accent: var(--kit-inverse-accent);
+  --kit-color-on-accent: var(--kit-inverse-on-accent);
+  --kit-color-accent-soft: var(--kit-inverse-accent-soft);
+  --kit-color-focus: var(--kit-inverse-accent);
+  --_quiet: var(--kit-color-raised);
+  --_quiet-strong: var(--kit-color-pressed);
+
+  padding: var(--_pad, var(--kit-space-16));
+  background: var(--kit-color-canvas);
+  color: var(--kit-color-ink);
+}

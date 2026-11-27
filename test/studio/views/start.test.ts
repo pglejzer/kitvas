@@ -120,7 +120,7 @@ test('the project kit comes first, then the groups by their latest change', () =
     item('d', 'mui', new Date(2026, 6, 1)),
   ];
   assert.deepEqual(idsOf(items, 'tiny'), ['tiny', 'ant', 'mui']);
-  assert.deepEqual(idsOf(items, 'base'), ['ant', 'mui', 'tiny']);
+  assert.deepEqual(idsOf(items, 'kitvas-ui'), ['ant', 'mui', 'tiny']);
 });
 
 test('a group keeps the order of its cards and counts the latest change of any of them', () => {

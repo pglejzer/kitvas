@@ -1,6 +1,6 @@
 # 0087. The Base kit's Select draws its list in the page
 
-Date: 2026-11-26. Status: accepted. The canvas keeps the transform of `0053-canvas-tools.md`.
+Date: 2026-11-26. Status: accepted, changed in part by ADR 0090. The canvas keeps the transform of `0053-canvas-tools.md`.
 
 ## Context
 

@@ -19,7 +19,7 @@ import { builtinKits } from '../../helpers/kit/kits.ts';
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const LATER = new Date('2026-11-24T09:00:00.000Z');
 const HERO = 'src/tsx/sections/Hero.tsx';
 const BUTTON = 'sections/Hero:section/Stack/Button';
@@ -48,7 +48,7 @@ const WITH_BADGE = '<Button><Badge>New</Badge> Go</Button>';
 const PLAIN = '<Button>Go</Button>';
 const LABEL = ["const label = 'Go';", ''];
 
-/** The `shop` draft on the Base kit: `old` is v1, `now` is v2 as another writer left it. */
+/** The `shop` draft on the kitvas UI kit: `old` is v1, `now` is v2 as another writer left it. */
 function setup(old: string, now: string) {
   const { store } = tempDrafts();
   createDraft(store, { slug: 'shop', title: 'Shop', kit: BASE, now: NOW });

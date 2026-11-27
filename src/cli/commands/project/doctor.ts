@@ -16,6 +16,7 @@ import {
 import { detectKits, type KitStore, loadKit, type ProjectSetup } from '../../../kit/index.ts';
 import {
   catalogDir,
+  DEFAULT_KIT,
   KitvasError,
   loadSettings,
   PLUGIN_ROOT,
@@ -72,8 +73,8 @@ async function probe(
       return { exists: found.exists, warnings: found.warnings };
     },
     kit: (settings) => {
-      // A kit the decisions file names that does not exist is that check's warning; `base` loads here.
-      const id = deps.kits.list().includes(settings.kit) ? settings.kit : 'base';
+      // A kit the decisions file names that does not exist is that check's warning; the built-in kit loads here.
+      const id = deps.kits.list().includes(settings.kit) ? settings.kit : DEFAULT_KIT;
       const loaded = loadKit(deps.kits, id);
       const found = detectKits({
         kits: deps.kits,

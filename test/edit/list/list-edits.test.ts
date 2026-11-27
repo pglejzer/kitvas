@@ -21,7 +21,7 @@ import { builtinKits } from '../../helpers/kit/kits.ts';
 const compiler = createEsbuildCompiler([PLUGIN_ROOT]);
 after(() => compiler.dispose());
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const LATER = new Date('2026-11-24T09:00:00.000Z');
 
 const LAYOUT = 'md/layout.md';
@@ -53,7 +53,7 @@ function pricing(items: string[], params = ''): string {
     `export function Pricing(${params}) {`,
     '  return (',
     '    <section className="pricing">',
-    '      <Stack gap="md">',
+    '      <Stack gap="12">',
     '        {PLANS.map((plan) => (',
     '          <Card key={plan.name}>',
     '            <Heading>{plan.name}</Heading>',
@@ -79,7 +79,7 @@ function setup(tsx = START) {
   writeVersionFiles(store, 'plans', 1, {
     [LAYOUT]: LAYOUT_MD,
     [PRICING]: tsx,
-    [PRICING_SCSS]: '.pricing {\n  padding: var(--kit-space-lg);\n}\n',
+    [PRICING_SCSS]: '.pricing {\n  padding: var(--kit-space-16);\n}\n',
   });
   const deps: ApplyEditsDeps = {
     drafts: store,

@@ -8,7 +8,7 @@ import type { EditDeps } from '../../../../src/studio/api/edit/edit-routes.ts';
 import { NOW, tempDrafts } from '../../../helpers/draft/drafts.ts';
 import { call, studioOver } from '../../../helpers/studio/studio.ts';
 
-const BASE = { id: 'base', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';
 const STACK = 'sections/Pricing:section/Stack';
 const TEXT = 'sections/Pricing:section/Stack/Text';
@@ -20,7 +20,7 @@ const pricing = (text: string): string =>
     'export function Pricing(_props: { state: string }) {',
     '  return (',
     '    <section className="pricing">',
-    '      <Stack gap="md">',
+    '      <Stack gap="12">',
     `        ${text}`,
     '      </Stack>',
     '    </section>',

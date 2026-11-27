@@ -60,19 +60,19 @@ test('a preview address is a kit catalog address whose path starts at previews/'
     hostname: 'kitvas.localhost',
     port: 5001,
     key: 'k3y',
-    kitId: 'base',
+    kitId: 'kitvas-ui',
     path: `previews/${SET}/component-0.png`,
   });
-  assert.equal(url, `http://kitvas.localhost:5001/k/k3y/base/previews/${SET}/component-0.png`);
+  assert.equal(url, `http://kitvas.localhost:5001/k/k3y/kitvas-ui/previews/${SET}/component-0.png`);
   const segments = new URL(url).pathname.split('/').slice(1);
   assert.deepEqual(parseFrameAddress(segments), {
     kind: 'catalog',
     key: 'k3y',
-    kitId: 'base',
+    kitId: 'kitvas-ui',
     relPath: `previews/${SET}/component-0.png`,
   });
   // Each segment is encoded on its own: a slash inside a name could never make another folder.
-  const target = { hostname: 'h', port: 1, key: 'k', kitId: 'base' };
+  const target = { hostname: 'h', port: 1, key: 'k', kitId: 'kitvas-ui' };
   const odd = catalogPreviewUrl({ ...target, path: 'a b/c?d' });
-  assert.equal(odd, 'http://h:1/k/k/base/a%20b/c%3Fd');
+  assert.equal(odd, 'http://h:1/k/k/kitvas-ui/a%20b/c%3Fd');
 });

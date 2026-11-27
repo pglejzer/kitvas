@@ -96,7 +96,7 @@ test('without previews the palette says none and stays valid', async () => {
 });
 
 test('none hides an old set; every answer fits the schema the pane reads', () => {
-  const src = (path: string): string => `http://h:1/k/k/base/${path}`;
+  const src = (path: string): string => `http://h:1/k/k/kitvas-ui/${path}`;
   const none = previewsAnswer({ state: 'none' }, src);
   assert.deepEqual(none, NO_PREVIEWS);
   const plain = previewsStamp(KEY, { icons: null });

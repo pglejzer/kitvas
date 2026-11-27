@@ -1,0 +1,81 @@
+@use "../core/mixins";
+
+// A select is a field (`_field.scss`). Its list is drawn in the page where the browser can do that
+// (`base-select`): it takes the kit's tokens and is laid out, scaled and captured with the page.
+// Elsewhere the system's own list opens (ADR 0087).
+@supports (appearance: base-select) {
+  select.kit-field__control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--kit-space-6);
+    cursor: pointer;
+
+    &,
+    &::picker(select) {
+      appearance: base-select;
+    }
+
+    // A chevron of two borders: a pseudo-element cannot hold the kit's icon.
+    &::picker-icon {
+      content: "";
+      flex: none;
+      box-sizing: border-box;
+      width: var(--kit-space-6);
+      height: var(--kit-space-6);
+      margin: 0 var(--kit-space-2) var(--kit-space-2);
+      border: solid var(--kit-color-ink-mid);
+      border-width: 0 1.5px 1.5px 0;
+      rotate: 45deg;
+    }
+
+    // The list opens under the field and goes above it only when it does not fit below. The
+    // browser's own order picks the side with more room, which puts it above in mid-page.
+    &::picker(select) {
+      @include mixins.pop;
+
+      position-try-order: normal;
+      box-sizing: border-box;
+      margin-block: var(--kit-space-4);
+      padding: var(--kit-space-4);
+      border: 0;
+    }
+
+    // The list is a floating surface: an option takes that surface's step under the pointer.
+    option {
+      @include mixins.on-raised;
+
+      min-height: var(--kit-size-row);
+      padding: 0 var(--kit-space-8);
+      border-radius: var(--kit-radius-sm);
+      gap: var(--kit-space-8);
+      align-items: center;
+      background: transparent;
+      color: var(--kit-color-ink);
+      cursor: pointer;
+
+      &:hover,
+      &:focus-visible {
+        background: mixins.quiet();
+      }
+
+      &:focus-visible {
+        @include mixins.focus-ring;
+
+        outline-offset: -2px;
+      }
+
+      &::checkmark {
+        color: var(--kit-color-accent);
+      }
+
+      &:checked {
+        font-weight: var(--kit-font-weight-medium);
+      }
+
+      &:disabled {
+        @include mixins.disabled;
+      }
+    }
+  }
+}

@@ -15,7 +15,7 @@ export type EditTextsInput = { t: Translate; nonce: string; kit: string; source:
 /**
  * The script's texts in one JSON block. Every draft page has it, editable or not: the screen's own
  * parts (the list of shortcuts, the rails) show some of them too. A draft has one kit, so its
- * name is filled in here ("Base component"); every other `{name}` is left for the script.
+ * name is filled in here ("kitvas UI component"); every other `{name}` is left for the script.
  */
 export function editTexts(input: EditTextsInput): Html {
   const { t, kit, source } = input;

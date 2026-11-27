@@ -113,7 +113,7 @@ body:
     id: kit
     attributes:
       label: Kit in use
-      description: Base, or a project kit with its source (an npm package and its version, a folder, Figma, a website, screenshots).
+      description: kitvas UI (the built-in kit), or a project kit with its source (an npm package and its version, a folder, Figma, a website, screenshots).
       placeholder: "acme, from npm: @acme/ui 1.2.0"
 
   - type: checkboxes

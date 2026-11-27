@@ -18,7 +18,7 @@ K() { node "$ROOT/bin/kitvas.ts" "$@" --json; }
 
 K craft pick booking-icon B
 K craft add booking-icon
-if [ ! -f .kitvas/additions/base/components/BookingIcon.tsx ]; then
+if [ ! -f .kitvas/additions/kitvas-ui/components/BookingIcon.tsx ]; then
   echo "scaffold: expected BookingIcon in the kit's additions after craft add" >&2
   exit 1
 fi

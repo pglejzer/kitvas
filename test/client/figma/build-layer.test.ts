@@ -27,7 +27,7 @@ const VARIABLES: [string, 'COLOR' | 'FLOAT' | 'STRING', VariableValue][] = [
 ];
 
 function kitVariables(figma: FigmaApi): { vars: Variable[]; mode: string } {
-  const collection = figma.variables.createVariableCollection('kitvas · base');
+  const collection = figma.variables.createVariableCollection('kitvas · kitvas-ui');
   const mode = collection.defaultModeId;
   const vars = VARIABLES.map(([name, type, value]) => {
     const variable = figma.variables.createVariable(name, collection, type);

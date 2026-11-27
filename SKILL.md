@@ -23,7 +23,7 @@ Example output:
     "version": "1.0.0",
     "node": "v26.13.1",
     "language": "en",
-    "kit": "base",
+    "kit": "kitvas-ui",
     "workspace": { "path": "/work/shop/.kitvas", "exists": false }
   }
 }

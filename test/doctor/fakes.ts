@@ -71,7 +71,7 @@ export const DRAFTS = join('/project', '.kitvas', 'drafts');
 
 export const SETTINGS: Settings = {
   language: 'en',
-  kit: 'base',
+  kit: 'kitvas-ui',
   copy: null,
   check: 'normal',
   studioIdleMinutes: 30,

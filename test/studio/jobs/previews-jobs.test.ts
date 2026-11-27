@@ -41,12 +41,12 @@ const isCode = (code: string) => (error: unknown) =>
 
 test('a previews job runs `kit previews <id>`, one per kit at a time', async () => {
   const { jobs, started } = setup();
-  const job = jobs.start('previews', 'base');
+  const job = jobs.start('previews', 'kitvas-ui');
   assert.equal(JobSchema.parse(job).kind, 'previews');
-  assert.equal(job.slug, 'base');
-  assert.deepEqual(started[0]?.args, ['kit', 'previews', 'base']);
+  assert.equal(job.slug, 'kitvas-ui');
+  assert.deepEqual(started[0]?.args, ['kit', 'previews', 'kitvas-ui']);
   assert.throws(
-    () => jobs.start('previews', 'base'),
+    () => jobs.start('previews', 'kitvas-ui'),
     (error: unknown) =>
       error instanceof KitvasError && error.code === 'JOB_RUNNING' && error.params.job === job.id,
   );
@@ -54,20 +54,20 @@ test('a previews job runs `kit previews <id>`, one per kit at a time', async () 
   started[0]?.finish({ state: 'succeeded', result: { cached: false } });
   await tick();
   assert.equal(jobs.get(job.id).state, 'succeeded');
-  assert.equal(jobs.start('previews', 'base').state, 'running');
+  assert.equal(jobs.start('previews', 'kitvas-ui').state, 'running');
 });
 
 test("a kit's previews, its examples and a draft of the same name do not hold each other up", () => {
   const { jobs, started } = setup();
-  jobs.start('previews', 'base');
-  jobs.start('catalog', 'base');
-  jobs.start('build', 'base');
+  jobs.start('previews', 'kitvas-ui');
+  jobs.start('catalog', 'kitvas-ui');
+  jobs.start('build', 'kitvas-ui');
   assert.deepEqual(
     started.map((entry) => entry.args),
     [
-      ['kit', 'previews', 'base'],
-      ['kit', 'build', 'base'],
-      ['build', 'base'],
+      ['kit', 'previews', 'kitvas-ui'],
+      ['kit', 'build', 'kitvas-ui'],
+      ['build', 'kitvas-ui'],
     ],
   );
 });
@@ -95,8 +95,8 @@ test('a previews job gets the shared browser; a catalog job does not', async () 
     close: async () => undefined,
   };
   const keeper = keepBrowser(async () => browser);
-  assert.deepEqual(await keeper.envFor(['kit', 'build', 'base']), {});
-  assert.deepEqual(await keeper.envFor(['kit', 'previews', 'base']), {
+  assert.deepEqual(await keeper.envFor(['kit', 'build', 'kitvas-ui']), {});
+  assert.deepEqual(await keeper.envFor(['kit', 'previews', 'kitvas-ui']), {
     [SHARED_BROWSER_ENV.endpoint]: 'ws://127.0.0.1:1/1',
     [SHARED_BROWSER_ENV.name]: 'fake',
   });
@@ -107,6 +107,6 @@ test('a browser that cannot start fails the previews job as BROWSER_MISSING', as
   const keeper = keepBrowser(async () => {
     throw new KitvasError('BROWSER_MISSING', { dir: 'x' });
   });
-  await assert.rejects(keeper.envFor(['kit', 'previews', 'base']), isCode('BROWSER_MISSING'));
+  await assert.rejects(keeper.envFor(['kit', 'previews', 'kitvas-ui']), isCode('BROWSER_MISSING'));
   await keeper.close();
 });
