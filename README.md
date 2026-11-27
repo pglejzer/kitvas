@@ -10,7 +10,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-b4571a" alt="Version 1.0.0">
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-PolyForm%20Shield%201.0.0-b4571a" alt="License: PolyForm Shield 1.0.0"></a>
-  <img src="https://img.shields.io/badge/node-24.22.3%2B-b4571a" alt="Node 24.22.3 or later">
+  <img src="https://img.shields.io/badge/node-24.22.3%2B%20%7C%2026.13.1%2B-b4571a" alt="Node 24.22.3 or later, or 26.13.1 or later">
 </p>
 
 kitvas is a Claude Code plugin that builds UI prototypes from your project's own design system, checks them in a real browser and shows them in a local studio with a visual editor. It is for developers and design-system maintainers who want a screen made of their own components and tokens. You end up with a checked React draft that you can edit, version and hand off to your code. Without a learned kit it builds from the built-in kit, Base.
@@ -130,7 +130,7 @@ The rest is in [docs/security.md](docs/security.md).
 ## Requirements
 
 - Claude Code.
-- Node 24.22.3 or later in the 24 line, or 26.13.1 or later.
+- Node 24.22.3 or later in the 24 line, or 26.13.1 or later. These are Node's [security releases of 11 November 2026](https://nodejs.org/en/blog/vulnerability/november-2026-security-releases), which fix flaws in HTTP/2, TLS and the HTTP parser. On an older 24 or 26, on Node 25 or on Node 22, kitvas stops with an error that names your version.
 - Access to the npm registry during the first session.
 - Chrome, Edge or Chromium for the browser checks. `kitvas browser` says which one is used; `kitvas browser install` downloads Chromium when none is found. Without a browser the browser checks are skipped with a note.
 - No MCP server is needed. kitvas can use ones you have: a Figma MCP to learn a kit from a Figma file or send a draft to one, an MCP that can read a page behind a login, and Context7.
