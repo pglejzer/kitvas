@@ -33,6 +33,7 @@ import { createLive } from './live/live.ts';
 import { createPins } from './live/pins.ts';
 import { createCanvas } from './page/canvas.ts';
 import { hushed } from './page/hush.ts';
+import { keepPage } from './page/links.ts';
 import { createMarks } from './page/marks.ts';
 import { measureElements, settle } from './page/measure.ts';
 import { createChoices } from './page/options.ts';
@@ -81,6 +82,9 @@ export function startFrame(input: FrameInput): void {
   }
   // Not framed, or no channel asked for: nothing more to do.
   if (!link || window.parent === window) return;
+
+  // A link that leads out of the screen loads nothing here: the card keeps its prototype.
+  keepPage();
 
   // In the studio the page keeps the card's whole width, as in a check and on a phone: its own
   // scrollbar takes no room. The wheel, the keys and a drag still scroll it.

@@ -133,6 +133,7 @@ export function main(argv: string[]): Promise<number> {
           'frame/drag/gesture/autoscroll.ts',
           'frame/drag/handles/handles-sheet.ts',
           'frame/page/hush.ts',
+          'frame/page/links.ts',
           'frame/page/example.ts',
           'frame/page/options.ts',
           'frame/page/shared-values.ts',
