@@ -14,6 +14,7 @@ export * from './app/notes.ts';
 export * from './app/options.ts';
 export * from './app/rename-log.ts';
 export * from './app/shared-values.ts';
+export * from './app/tailwind-facts.ts';
 export * from './app/trash.ts';
 export * from './app/version-info.ts';
 export * from './app/view.ts';

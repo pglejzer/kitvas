@@ -55,7 +55,7 @@ These apply when `options` in the context lists options (ADR 0082).
 ## Project kits and Tailwind
 
 - R-COMPOSE-28: A project kit (learned from the person's own design system) follows every rule above. Imports still come only from `@kit`, never from the design system's package or the project's folders.
-- R-COMPOSE-29: When `styling` in the context is `tailwind`, put utility classes from the theme in `className`; the context's `classes` lists the theme variables. Do not write arbitrary values such as `p-[13px]` or `bg-[#fff]`: that is a `ds/tailwind-arbitrary` finding. A class that makes no CSS is a `ds/tailwind-unknown` finding.
+- R-COMPOSE-29: When `styling` in the context is `tailwind`, put utility classes from the theme in `className`, of the version in `tailwind.version` and starting with `tailwind.prefix` (v3 `hover:tw-p-4`, v4 `tw:hover:p-4`). The context's `classes` lists what the kit's tokens map onto: a theme variable, or a theme key as a dot path (`colors.primary` gives `bg-primary`, `text-primary`). Do not write arbitrary values such as `p-[13px]` or `bg-[#fff]`: that is a `ds/tailwind-arbitrary` finding. A class that makes no CSS is a `ds/tailwind-unknown` finding.
 - R-COMPOSE-30: With `styling: 'tailwind'` the section SCSS file is still written, but it may hold only what classes cannot do, using `var(--kit-…)` names.
 
 ## Element ids

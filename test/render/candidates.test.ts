@@ -8,6 +8,7 @@ import {
   hasClassRule,
   looksLikeClass,
   probeRule,
+  unbuiltClasses,
 } from '../../src/render/domain/candidates.ts';
 
 test('candidates are the words of the text with a letter, unique, in order', () => {
@@ -85,4 +86,29 @@ test('the probe rule uses each custom property once and nothing else', () => {
   );
   assert.equal(probeRule([]), '');
   assert.equal(probeRule(['--x); } body { color: red']), '');
+});
+
+test('theme paths in the probe become variables the theme fills, on the root and the body', () => {
+  assert.equal(
+    probeRule(['--b', 'theme(colors.primary)', 'theme(colors.primary)', 'theme(spacing.4)']),
+    [
+      '.kitvas-probe {',
+      '  --kitvas-probe-0: var(--b);',
+      '}',
+      ':root, body {',
+      "  --kitvas-theme-colors-primary: theme('colors.primary');",
+      "  --kitvas-theme-spacing-4: theme('spacing.4');",
+      '}',
+      '',
+    ].join('\n'),
+  );
+  assert.equal(probeRule(["theme(colors.x'); } body { color: red; } x { --y: theme('a)"]), '');
+});
+
+test('the classes a CSS has no rule for are the ones that produced nothing', () => {
+  const css = '.p-4 {\n  padding: 1rem;\n}\n';
+  assert.deepEqual(unbuiltClasses(['p-4', 'flex', 'not-a-class', 'bg-x', 'state:'], css), [
+    'bg-x',
+    'not-a-class',
+  ]);
 });

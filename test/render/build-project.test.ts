@@ -1,6 +1,6 @@
 // Drafts and catalogs of project kits, built with the real tools on the fixture projects of
 // test/fixtures/projects (C8): an npm package, a folder of the project's own components with CSS
-// Modules and SCSS, and a shadcn-style folder with Tailwind v4.
+// Modules and SCSS, and component folders styled with Tailwind 4 and with Tailwind 3.
 
 import assert from 'node:assert/strict';
 import {
@@ -22,9 +22,19 @@ import { catalogDir, PLUGIN_ROOT, projectKitsDir, workspaceDir } from '../../src
 import { NOW } from '../helpers/draft/drafts.ts';
 import { closeRenderTools, projectKitStore, renderTools } from '../helpers/draft/render.ts';
 import { type FixtureName, fixtureProject } from '../helpers/kit/projects.ts';
-import { parseJson } from './helpers/json.ts';
+import { at, parseJson } from './helpers/json.ts';
 
 const FIXTURES = join(PLUGIN_ROOT, 'test', 'fixtures', 'projects');
+
+/** Tailwind's default screens, in px. */
+const SCREENS = { sm: 640, md: 768, lg: 1024, xl: 1280, '2xl': 1536 };
+/** The fixture's `@theme inline { --color-primary: var(--primary) }` is the one alias. */
+const V4_THEME = {
+  version: 4,
+  prefix: '',
+  screens: SCREENS,
+  aliases: { '--primary': '--color-primary' },
+};
 
 /** A KitWriter over the project's kit folders that notes what it wrote. */
 function folderWriter(project: string): KitWriter & { written: string[] } {
@@ -123,16 +133,18 @@ test('a Tailwind draft: tokens onto the theme, utilities of the draft and the ki
     assert.ok(!css.includes('--color-red-500'));
     assert.ok(css.indexOf('.gap-4') < css.lastIndexOf('color: var(--kit-color-primary)'));
     assert.deepEqual(parseJson(shad.read('build', 'json', 'tailwind.json')), {
-      schemaVersion: 1,
+      schemaVersion: 2,
       unknown: [],
+      theme: V4_THEME,
     });
 
     const hero = join(shad.versionDir, 'src', 'tsx', 'sections', 'Hero.tsx');
     writeFileSync(hero, readFileSync(hero, 'utf8').replace('gap-4 p-6', 'gap-4 p-6 not-a-class'));
     assert.equal((await shad.build()).cached, false);
     assert.deepEqual(parseJson(shad.read('build', 'json', 'tailwind.json')), {
-      schemaVersion: 1,
+      schemaVersion: 2,
       unknown: ['not-a-class'],
+      theme: V4_THEME,
     });
     assert.equal((await shad.build()).cached, true);
 
@@ -164,13 +176,68 @@ test('a Tailwind catalog: examples as sources, probed variables, verify.json kep
     const examples = readFileSync(join(dir, 'build', 'json', 'examples.tsx'), 'utf8');
     assert.ok(examples.includes('<Button variant="outline" size="sm">Cancel</Button>'));
     assert.equal(readFileSync(join(dir, 'verify.json'), 'utf8'), '{"kept":true}\n');
-    assert.equal(existsSync(join(dir, 'build', 'json', 'tailwind.json')), false);
+    const facts = readFileSync(join(dir, 'build', 'json', 'tailwind.json'), 'utf8');
+    assert.deepEqual(parseJson(facts), { schemaVersion: 2, unknown: [], theme: V4_THEME });
 
     assert.equal((await shad.catalog(['--color-red-500'])).cached, true);
     assert.equal((await shad.catalog()).cached, false);
     assert.ok(
       !readFileSync(join(dir, 'build', 'css', 'index.css'), 'utf8').includes('--color-red-500'),
     );
+  } finally {
+    await shad.close();
+  }
+});
+
+test('a Tailwind 3 draft: the config of the project, tokens onto theme paths, the theme kept', async () => {
+  const shad = projectDraft('acme-tailwind3');
+  try {
+    const report = await shad.build();
+    assert.deepEqual(report.errors, []);
+    const css = shad.read('build', 'css', 'index.css');
+    for (const part of [
+      // A token mapped onto a theme path follows the variable the probe fills from the theme.
+      '--kit-color-primary: var(--kitvas-theme-colors-primary);',
+      '--kitvas-theme-colors-primary: hsl(var(--primary));',
+      '--kitvas-theme-colors-brand: #1f5fd0;',
+      '--kit-radius-md: var(--radius);',
+      '--primary: 221 83% 53%',
+      '.bg-primary',
+      '.rounded-lg',
+      '.edge-dashed',
+    ]) {
+      assert.ok(css.includes(part), part);
+    }
+    assert.ok(css.includes('.dark\\:bg-brand:is(.dark *)'));
+    assert.match(css, /@media \(min-width: 700px\)\s*\{\s*\.tablet\\:flex-row/);
+    assert.deepEqual(parseJson(shad.read('build', 'json', 'tailwind.json')), {
+      schemaVersion: 2,
+      unknown: [],
+      theme: { version: 3, prefix: '', screens: { ...SCREENS, tablet: 700 }, aliases: {} },
+    });
+
+    assert.equal((await shad.build()).cached, true);
+    // The config is outside the kit's folder: its change builds again.
+    appendFileSync(join(shad.dir, 'tailwind.config.ts'), '\n// Changed by the test.\n');
+    assert.equal((await shad.build()).cached, false);
+  } finally {
+    await shad.close();
+  }
+});
+
+test('a Tailwind 3 catalog: its examples built, the theme beside them', async () => {
+  const shad = projectDraft('acme-tailwind3');
+  const dir = catalogDir(shad.dir, shad.kitId);
+  try {
+    const report = await shad.catalog();
+    assert.deepEqual(report.errors, []);
+    assert.deepEqual(report.shown, ['Button.1', 'Button.2', 'Card.1']);
+    const css = readFileSync(join(dir, 'build', 'css', 'index.css'), 'utf8');
+    for (const part of ['--kitvas-theme-colors-brand: #1f5fd0', '.bg-brand', '.border-primary']) {
+      assert.ok(css.includes(part), part);
+    }
+    const facts = parseJson(readFileSync(join(dir, 'build', 'json', 'tailwind.json'), 'utf8'));
+    assert.equal(at(facts, 'theme', 'version'), 3);
   } finally {
     await shad.close();
   }

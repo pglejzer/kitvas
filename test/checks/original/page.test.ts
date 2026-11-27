@@ -206,6 +206,8 @@ test('only what the project build would change is reported', () => {
       '::ng-deep .x',
       'button::-moz-focus-inner',
       ':-moz-focusring',
+      // Chromium reads it in a sheet, yet says no to it in `CSS.supports(selector())`.
+      '.field::-webkit-outer-spin-button',
       'display: -ms-flexbox',
       '-moz-appearance: none',
       'color: theme("colors.red")',
@@ -220,6 +222,27 @@ test('only what the project build would change is reported', () => {
     ],
   );
   assert.deepEqual(needsBuild(scanStyles('.a { color: red; }'), []), []);
+  // A sheet from the network: no build makes it readable, and both pages are drawn offline.
+  const remote =
+    "@import url('https://fonts.example.com/a.css');\n@import '//cdn.example.com/b.css';";
+  assert.deepEqual(needsBuild(scanStyles(`${remote}\n.a { color: red; }`), []), []);
+});
+
+test('a declaration every browser drops is no build step: the app drops it too', () => {
+  const scan = scanStyles(
+    '.a { cursor: hand; *zoom: 1; color: v-bind(tone); width: $gap; margin: @gap; composes: b; }',
+  );
+  assert.deepEqual(
+    needsBuild(scan, [
+      'cursor: hand',
+      '*zoom: 1',
+      'color: v-bind(tone)',
+      'width: $gap',
+      'margin: @gap',
+      'composes: b',
+    ]),
+    ['color: v-bind(tone)', 'width: $gap', 'margin: @gap', 'composes: b'],
+  );
 });
 
 test('a breakpoint is a width condition of the page or of a container', () => {

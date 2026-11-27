@@ -92,11 +92,11 @@ A design system's own themes are the kit's themes: official, with no mark. The s
 
 ## Tailwind
 
-- L32: A project with Tailwind v4 (`@import "tailwindcss"` in a CSS file) gets `runtime.styles.tailwind: { "entry": "<project path of that CSS file>" }`. Tailwind v3 (`tailwind.config.js`) is not supported yet: stop and tell the main agent.
-- L33: Theme variables (`--color-primary`, `--radius-md`, `--spacing`) are the variables to map in `css-var-map.json`.
-- L34: With `@theme inline { --color-primary: var(--primary); }` the theme variable is not written to the page. Map the token onto the variable it points at (`--primary`).
+- L32: A project with Tailwind gets `runtime.styles.tailwind: { "entry": "<project path of that CSS file>" }`. Its version is the major of the project's own `tailwindcss` (3 or 4); kitvas builds with that one. For v4 the entry is the CSS file with `@import "tailwindcss"`; for v3 it is the CSS file with the `@tailwind` lines. The v3 config (an `@config` line, else `tailwind.config.{js,cjs,mjs,ts}`) is found by Tailwind, never named in the kit. Tailwind 2 or older is refused by `kit new`: show the message and stop.
+- L33: In v4, theme variables (`--color-primary`, `--radius-md`, `--spacing`) are the variables to map in `css-var-map.json`. In v3 there are no theme variables: map each token onto a theme path written `theme(colors.primary)`, `theme(borderRadius.md)`, `theme(spacing.4)`, also when the config holds a literal colour. A path ends at a value: a nested colour (`primary: { DEFAULT: …, foreground: … }`) is `theme(colors.primary.DEFAULT)` and `theme(colors.primary.foreground)`, never `theme(colors.primary)`. Read the path in the project's config; never invent one.
+- L34: With `@theme inline { --color-primary: var(--primary); }` the v4 theme variable is not written to the page. Map the token onto the variable it points at (`--primary`). A v3 config that says `primary: 'hsl(var(--primary))'` is still the path `theme(colors.primary)`.
 - L35: In a Tailwind kit, `styling` is `className`, and examples use the component's own variants (`<Button variant="outline">`). Do not write utility classes in examples unless the component needs them.
-- L35a: A Tailwind v4 dark variant is a theme (L31b). Its `attributes` is the class or the attribute the project's `@custom-variant dark` or `.dark` block uses (`{ "class": "dark" }`), its token file the theme variables that block overrides.
+- L35a: A Tailwind dark variant is a theme (L31b). In v4 its `attributes` is the class or the attribute the project's `@custom-variant dark` or `.dark` block uses (`{ "class": "dark" }`); in v3 it is what `darkMode` says: `'class'` gives `{ "class": "dark" }`, a selector such as `['class', '[data-mode="dark"]']` its attribute. Its token file holds the values that variant overrides. `darkMode: 'media'` follows the system, not a switch: no theme, say so in the report.
 
 ## How the project finds its files
 

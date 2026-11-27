@@ -1,6 +1,6 @@
 # 0030. Project kits and the `npm` and `repo` sources
 
-Date: 2026-11-23. Status: accepted, changed in part by ADR 0076. Adds to `0006-kit-contract.md` and `0029-kit-catalog.md`. Spec: `docs/specs/2026-11-23-kitvas-stage-2a-project-kits-design.md`, sections 2, 3, 9 and 10.
+Date: 2026-11-23. Status: accepted, changed in part by ADR 0094. ADR 0076 changed it in part before. Adds to `0006-kit-contract.md` and `0029-kit-catalog.md`. Spec: `docs/specs/2026-11-23-kitvas-stage-2a-project-kits-design.md`, sections 2, 3, 9 and 10.
 
 ## Context
 

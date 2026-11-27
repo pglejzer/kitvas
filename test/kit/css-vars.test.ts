@@ -7,6 +7,7 @@ import {
   formatTokenValue,
   readCssVarMap,
   tokenSheet,
+  unknownTokenVars,
 } from '../../src/kit/domain/css-vars.ts';
 import { type FlatToken, flattenTokens } from '../../src/kit/domain/tokens.ts';
 import { PLUGIN_ROOT } from '../../src/shared/index.ts';
@@ -145,6 +146,29 @@ test('the cssVars map keeps entries that name a token and a custom property', ()
   ]);
 });
 
+test('a theme path maps a token onto the variable the probe defines', () => {
+  assert.equal(
+    sheet(tokens.slice(0, 1), { 'color.ink': 'theme(colors.primary)' }),
+    [':root, body {', '  --kit-color-ink: var(--kitvas-theme-colors-primary);', '}', ''].join('\n'),
+  );
+  const { map, issues } = readCssVarMap({ 'color.ink': 'theme(colors.primary)' }, tokens);
+  assert.deepEqual(map, { 'color.ink': 'theme(colors.primary)' });
+  assert.deepEqual(issues, []);
+});
+
+test('a map value that is neither a property nor a theme path is an issue', () => {
+  const raw = { 'color.ink': 'theme(colors.primary', 'space.sm': 'theme()' };
+  const { map, issues } = readCssVarMap(raw, tokens);
+  assert.deepEqual(map, {});
+  assert.deepEqual(
+    issues.map((issue) => [issue.key, issue.params]),
+    [
+      ['kitIssue.tokenShape', { path: 'color.ink', type: 'cssVars.map' }],
+      ['kitIssue.tokenShape', { path: 'space.sm', type: 'cssVars.map' }],
+    ],
+  );
+});
+
 test('a cssVars map that is not an object is one issue', () => {
   for (const raw of [[], 'x', null]) {
     assert.deepEqual(readCssVarMap(raw, tokens), {
@@ -158,4 +182,29 @@ test('a cssVars map that is not an object is one issue', () => {
       ],
     });
   }
+});
+
+test('a variable no token gives is found once a file, with the name it was meant to be', () => {
+  const kit: FlatToken[] = [
+    { path: ['fontSize', 'sm'], type: 'dimension', value: { value: 14, unit: 'px' } },
+    { path: ['color', 'brand'], type: 'number', value: 1 },
+  ];
+  const files = {
+    'components/Button.module.css': [
+      '.b { font-size: var(--kit-fontSize-sm); color: var(--kit-color-brand); }',
+      '.c { font-size: var( --kit-fontSize-sm ); }',
+    ].join('\n'),
+    'components/Button.tsx':
+      "export const B = () => <b style={{ color: 'var(--kit-color-ink)' }} />;",
+  };
+  assert.deepEqual(unknownTokenVars(files, kit), [
+    {
+      file: 'components/Button.module.css',
+      name: '--kit-fontSize-sm',
+      nearest: '--kit-font-size-sm',
+    },
+    { file: 'components/Button.tsx', name: '--kit-color-ink', nearest: undefined },
+  ]);
+  const known = { 'components/A.module.css': '.a { color: var(--kit-color-brand); }' };
+  assert.deepEqual(unknownTokenVars(known, kit), []);
 });

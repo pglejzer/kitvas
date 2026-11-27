@@ -22,7 +22,7 @@ import type { OptionChoice } from '../../../../src/shared/values/options.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import { styleValueOf } from '../props/values/steps.ts';
 import { keepsPart, opsForStyle, readOnlyReason, type StyleOptions } from './ops.ts';
-import { currentUtility, isOwn, splitUtility, variantPrefix } from './utility-ops.ts';
+import { currentUtility, isOwn, splitUtility, themeOf, utilityIn } from './utility-ops.ts';
 
 /**
  * Where the value a property shows in `context` comes from. `here`: set in exactly the block an
@@ -186,7 +186,10 @@ export function removeForContext(
   return ops.length > 0 ? ops : null;
 }
 
-/** The Tailwind ops of "Apply to all widths": the class without its screen, the others out. */
+/**
+ * The Tailwind ops of "Apply to all widths": the class without its screen, with the project's
+ * prefix where it was, the others out.
+ */
 function utilitiesToBase(
   inspect: Inspect,
   property: StyleProperty,
@@ -195,13 +198,17 @@ function utilitiesToBase(
   target: StyleContext,
 ): EditOp[] | null {
   const { id } = inspect;
-  if (here.utility === null || !isOwn(property, here.utility)) return null;
-  const value = `${variantPrefix(target)}${splitUtility(here.utility).base}`;
+  const theme = themeOf(inspect);
+  const moved = here.utility;
+  if (moved === null || !isOwn(property, moved, theme)) return null;
+  const split = splitUtility(moved, theme);
+  if (split === null) return null;
+  const value = utilityIn(split.base, target, theme);
   const current = currentUtility(inspect, property, target);
-  const before = current !== null && isOwn(property, current) ? current : null;
+  const before = current !== null && isOwn(property, current, theme) ? current : null;
   const ops: EditOp[] = current === value ? [] : [{ op: 'setUtility', id, value, before }];
   for (const { utility } of others) {
-    if (utility === null || !isOwn(property, utility)) continue;
+    if (utility === null || !isOwn(property, utility, theme)) continue;
     ops.push({ op: 'setUtility', id, value: null, before: utility });
   }
   return ops;

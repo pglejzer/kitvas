@@ -84,15 +84,18 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
   const shown = new Set(build.shown);
   const base = `${pathToFileURL(project).href.replace(/\/$/, '')}/`;
   const compiled = new Map<string, Awaited<ReturnType<ProjectStyles>>>();
-  const compile = async (file: string) => {
-    let result = compiled.get(file);
+  // `sources` are the files whose class names a Tailwind sheet is built for; the same sheet for
+  // other files is another result.
+  const compile = async (file: string, sources: string[]) => {
+    const key = `${file}\n${sources.join('\n')}`;
+    let result = compiled.get(key);
     if (!result) {
       try {
-        result = await input.projectStyles({ project, file, resolve: kit.resolve });
+        result = await input.projectStyles({ project, file, resolve: kit.resolve, sources });
       } catch (error) {
         result = { ok: false, reason: 'failed', detail: `${file}: ${failure(error)}` };
       }
-      compiled.set(file, result);
+      compiled.set(key, result);
     }
     return result;
   };
@@ -135,6 +138,15 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
 
       // The page's styles: the app's own, then each component the fragment marks, in kit order.
       const marks = new Set(originalMarks(markup));
+      // The classes the original uses: its own markup and the files of the components it marks.
+      const sources = [
+        join(loaded.dir, ...example.original.split('/')),
+        ...kit.components
+          .filter((other) => marks.has(other.name))
+          .flatMap((other) =>
+            (other.project?.files ?? []).map((file) => join(project, ...file.split('/'))),
+          ),
+      ];
       const wanted: { file: string; scope: string | undefined }[] = [
         ...source.styles.map((file) => ({ file, scope: undefined })),
         ...kit.components
@@ -149,7 +161,7 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
       const styles: OriginalStyle[] = [];
       let missing: string | undefined;
       for (const { file, scope } of wanted) {
-        const result = await compile(file);
+        const result = await compile(file, sources);
         if (!result.ok) {
           missing = result.detail;
           break;

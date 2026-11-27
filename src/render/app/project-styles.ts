@@ -1,5 +1,6 @@
 // Compiles a project's style file: a style file whole, any other file by its `<style>` blocks.
-// Every result goes through the Sass compiler, plain CSS too, so the text is always `expanded`.
+// Every result goes through the Sass compiler, plain CSS too, so the text is `expanded`; plain CSS
+// the compiler cannot parse is kept as it is.
 
 import { dirname, extname, posix } from 'node:path';
 import { readProjectResolve } from '../../shared/index.ts';
@@ -23,6 +24,9 @@ const SYNTAX_OF_LANG: Record<string, StyleSyntax> = {
   sass: 'indented',
 };
 
+/** A style file Tailwind builds: v3 `@tailwind base;`, v4 `@import "tailwindcss";`. */
+const TAILWIND_SHEET = /@tailwind\b|@import\s+(["'])tailwindcss\1/;
+
 /** The compiler's first message with its place. */
 function describe(cause: unknown, file: string): string {
   const failure = cause as { message?: unknown; line?: unknown };
@@ -38,13 +42,26 @@ const fail = (
 ): ProjectStyleResult => ({ ok: false, reason, detail });
 
 export function createProjectStyles(deps: ProjectStylesDeps): ProjectStyles {
-  return async ({ project, file, resolve }) => {
+  return async ({ project, file, resolve, sources: classSources = [] }) => {
     const root = project.split('\\').join('/');
     const absolute = posix.join(root, file);
     const text = deps.read(absolute);
     if (text === undefined) return fail('missing', `${file} is not there.`);
 
     const whole = SYNTAX_OF_EXTENSION[extname(file).toLowerCase()];
+    if (whole !== undefined && TAILWIND_SHEET.test(text)) {
+      // The project's own Tailwind draws the classes of these files, not Sass.
+      const built = await deps.utility.build({
+        project,
+        entry: absolute,
+        sources: classSources,
+        probe: [],
+      });
+      const first = built.errors[0];
+      if (first !== undefined) return fail('failed', `${file}: ${first.message}`);
+      return { ok: true, css: rebaseUrls(built.css, dirname(absolute), deps.exists) };
+    }
+
     let sources: { syntax: StyleSyntax; text: string }[];
     if (whole !== undefined) {
       sources = [{ syntax: whole, text }];
@@ -63,13 +80,16 @@ export function createProjectStyles(deps: ProjectStylesDeps): ProjectStyles {
 
     const lookup = deps.lookup(root, readProjectResolve(root, resolve));
     const parts: string[] = [];
-    try {
-      for (const source of sources) {
+    for (const source of sources) {
+      try {
         const { css } = await deps.compile(source.text, absolute, source.syntax, lookup);
         parts.push(css);
+      } catch (cause) {
+        // Plain CSS is already what the browser reads: a rule the compiler cannot parse (an old
+        // engine's hack such as `screen\0`) is dropped by the browser, in the app too.
+        if (source.syntax !== 'css') return fail('failed', describe(cause, file));
+        parts.push(source.text);
       }
-    } catch (cause) {
-      return fail('failed', describe(cause, file));
     }
     return { ok: true, css: rebaseUrls(parts.join('\n'), dirname(absolute), deps.exists) };
   };

@@ -2,8 +2,9 @@
 // count for the cache key, which hold class names, and the import paths of its providers.
 
 import { join } from 'node:path';
+import { serializeJson } from '../../drafts/index.ts';
 import { ADDITION_FILES, isWrittenKit, type LoadedKit, PROJECT_PATH } from '../../kit/index.ts';
-import { packageDirFrom } from '../../shared/index.ts';
+import { packageDirFrom, TAILWIND_FILE, type TailwindFile } from '../../shared/index.ts';
 import { CANDIDATE_LIMITS } from '../domain/candidates.ts';
 import type { MountProvider } from '../domain/provider-source.ts';
 import type { BuildFs } from '../ports/build-fs.ts';
@@ -153,6 +154,29 @@ export function utilityBuild(
     sources,
     probe,
   });
+}
+
+/**
+ * The Tailwind file (`TAILWIND_FILE`) of the build folder `dir`, a draft version or a catalog: what
+ * its utility build left unexplained and the project's Tailwind facts. Removed for a kit without
+ * Tailwind.
+ */
+export function writeTailwindFile(
+  fs: BuildFs,
+  dir: string,
+  utility: UtilityOutput | undefined,
+): void {
+  const file = join(dir, ...TAILWIND_FILE.split('/'));
+  if (utility === undefined) {
+    fs.remove(file);
+    return;
+  }
+  const facts: TailwindFile = {
+    schemaVersion: 2,
+    unknown: utility.unknown,
+    theme: utility.theme ?? null,
+  };
+  fs.writeText(file, serializeJson(facts));
 }
 
 /** Sheets in order, each on its own lines, empty ones left out. */

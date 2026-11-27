@@ -12,7 +12,7 @@ import {
   kitBreakpoints,
 } from '../../kit/index.ts';
 import { elementIds, readSites } from '../../render/index.ts';
-import { KitvasError } from '../../shared/index.ts';
+import { KitvasError, type TailwindTheme } from '../../shared/index.ts';
 import { constantClass } from '../domain/expr/class-start.ts';
 import { wrappedClass } from '../domain/list/item-class.ts';
 import { listRoots, showsExpression, textSource } from '../domain/list/source.ts';
@@ -36,7 +36,7 @@ import {
 } from '../domain/style/apply-scss.ts';
 import { newClassName } from '../domain/style/class-name.ts';
 import { type SourceInput, styleSource, tokenGroupsOf } from '../domain/style/source.ts';
-import { utilityOverrides } from '../domain/style/utilities.ts';
+import { themeOrDefault, utilityOverrides } from '../domain/style/utilities.ts';
 import { offsetOf, readTag } from '../domain/tsx/apply-tsx.ts';
 import {
   type PropView,
@@ -48,7 +48,13 @@ import {
   type TagView,
 } from '../domain/types.ts';
 import type { EditCompiler } from '../ports/compiler.ts';
-import { catalogComponent, editKit, styleFormat, tokenOptions } from './edit-state.ts';
+import {
+  catalogComponent,
+  editKit,
+  styleFormat,
+  tokenOptions,
+  versionTailwind,
+} from './edit-state.ts';
 import { type ItemScope, itemScoped } from './inspect-item.ts';
 import { type InspectSource, lineAt, sourceOf } from './inspect-source.ts';
 import { locateElement } from './locate.ts';
@@ -114,6 +120,11 @@ export type InspectView = {
   images: string[];
   /** The kit's breakpoints, ascending (spec 4c, goal 1). */
   breakpoints: number[];
+  /**
+   * Plan 29: the project's Tailwind facts the element's classes were read with and are written by
+   * (`versionTailwind`); `null` for an SCSS draft, or a Tailwind one whose build reported none.
+   */
+  tailwind: TailwindTheme | null;
   /**
    * Every value set for a width or a state: a context block of the class rule, or a prefixed
    * utility of a Tailwind draft (`utility`; `null` in SCSS). The base values are in `styles`.
@@ -318,7 +329,9 @@ export async function inspectElement(
   const props = tag.props.filter((prop) => prop.name !== 'className');
 
   const format = styleFormat(kit);
-  const tokens = tokenOptions(kit);
+  const tailwind = format === 'tailwind' ? versionTailwind(deps.drafts, slug, version) : null;
+  const theme = themeOrDefault(tailwind);
+  const tokens = tokenOptions(kit, tailwind);
   const tokenGroups = tokenGroupsOf(tokens);
   const input: Omit<SourceInput, 'property'> = {
     component: catalog === null ? null : { props: catalog },
@@ -326,13 +339,14 @@ export async function inspectElement(
     rule,
     classes: classesOf(tag),
     format,
+    tailwind: theme,
     tokenGroups,
   };
   // The values of the widths and states: prefixed utilities, or the rule's context blocks, read
   // with the token types the base is read with, so a shorthand splits the same in both.
   const overrides: InspectView['overrides'] =
     format === 'tailwind'
-      ? utilityOverrides(classesOf(tag), tokens)
+      ? utilityOverrides(classesOf(tag), tokens, theme)
       : rule === null || scssText === undefined
         ? []
         : scssOverrides(scssText, rule.className, varKindOf(tokenGroups)).map((each) => ({
@@ -395,6 +409,7 @@ export async function inspectElement(
     }),
     images: imageNames(deps.images?.(slug, version) ?? []),
     breakpoints: kit === null ? [...DEFAULT_BREAKPOINTS] : kitBreakpoints(kit.kit),
+    tailwind,
     overrides,
     list: listView(text, at, path),
     suggest: suggestFor({

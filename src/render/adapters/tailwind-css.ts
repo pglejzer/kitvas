@@ -1,6 +1,7 @@
-// Utility CSS from Tailwind v4 in the person's project. Each build runs tailwind-worker.ts in its own
-// Node process, like a job: an argument array and no shell, a time limit, a memory limit and a cap
-// on what it prints. The project's compiler and plugins never run inside kitvas's process.
+// Utility CSS from the Tailwind of the person's project, 3 or 4. Each build runs tailwind-worker.ts
+// in its own Node process, like a job: an argument array and no shell, a time limit, a memory limit
+// and a cap on what it prints. The project's compiler, its config and plugins never run inside
+// kitvas's process.
 
 import { type ChildProcess, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -111,8 +112,10 @@ function outputOf(run: Run, input: UtilityInput, limits: Limits): UtilityOutput 
       run.stderr.trim() || `The Tailwind worker ended with exit code ${run.exit ?? -1}.`,
     );
   }
-  if (answer.ok)
-    return { css: answer.css, unknown: answer.unknown, errors: [], files: answer.files };
+  if (answer.ok) {
+    const { css, unknown, files, theme } = answer;
+    return { css, unknown, errors: [], files, theme };
+  }
   if ('missing' in answer) throw new KitvasError('KIT_PACKAGE_MISSING', { name: answer.missing });
   return failed(answer.message);
 }

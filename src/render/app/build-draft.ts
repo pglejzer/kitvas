@@ -21,12 +21,7 @@ import {
 import { type Issue, KitvasError, PLUGIN_ROOT } from '../../shared/index.ts';
 import { mountSource } from '../domain/mount.ts';
 import { pageHtml } from '../domain/page.ts';
-import {
-  type BuildReport,
-  buildFiles,
-  TAILWIND_FILE,
-  type TailwindFile,
-} from '../domain/report.ts';
+import { type BuildReport, buildFiles } from '../domain/report.ts';
 import { type ElementId, elementIds, idsFile, readSites, siteMap } from '../domain/sites.ts';
 import type { BuildFs } from '../ports/build-fs.ts';
 import type { Bundler } from '../ports/bundler.ts';
@@ -39,6 +34,7 @@ import {
   projectInputs,
   sameFiles,
   utilityBuild,
+  writeTailwindFile,
 } from './project-kit.ts';
 import { sourceHash } from './source-hash.ts';
 
@@ -61,8 +57,8 @@ export type RenderDeps = {
   kitGate?: ((kit: LoadedKit) => void) | undefined;
 };
 
-/** Bump when the shape of the build output changes, so old outputs are rebuilt. */
-const OUTPUT_FORMAT = 4;
+/** Bump when the shape of the build output changes, so old outputs are rebuilt (5: Tailwind file 2). */
+const OUTPUT_FORMAT = 5;
 
 /** What the entry imports as `kitvas-frame`: the prototype's end of the studio channel. */
 const FRAME_RUNTIME = join(PLUGIN_ROOT, 'client', 'frame', 'runtime.ts');
@@ -214,13 +210,7 @@ export async function buildDraft(deps: RenderDeps, slug: string): Promise<BuildR
   fs.writeText(join(out, 'css', 'index.css'), `${css}\n`);
   fs.writeText(page, pageHtml({ title: draft.title }));
   fs.writeText(join(out, 'json', 'ids.json'), serializeJson(idsFile(ids)));
-  const tailwindFile = join(versionDir, ...TAILWIND_FILE.split('/'));
-  if (utility) {
-    const unexplained: TailwindFile = { schemaVersion: 1, unknown: utility.unknown };
-    fs.writeText(tailwindFile, serializeJson(unexplained));
-  } else {
-    fs.remove(tailwindFile);
-  }
+  writeTailwindFile(fs, versionDir, utility);
   fs.remove(join(out, 'img'));
   fs.copyDir(join(sourceDir, 'img'), join(out, 'img'));
   const utilityFiles = utility?.files ?? [];

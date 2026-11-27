@@ -31,16 +31,6 @@ export type BuildReport = {
   path: string;
 };
 
-/** Inside a version folder: what a Tailwind build of the draft left unexplained, for the ds check. */
-export const TAILWIND_FILE = 'build/json/tailwind.json';
-
-export type TailwindFile = {
-  schemaVersion: 1;
-  /** Class-like candidates that produced no CSS (`UtilityOutput.unknown`), sorted. */
-  unknown: string[];
-};
-
-/** `base` is the version folder: `v1`. */
 export const buildFiles = (base: string): BuildFiles => ({
   html: `${base}/build/html/index.html`,
   js: `${base}/build/js/index.js`,

@@ -5,7 +5,9 @@
 // Every edit replaces one span and leaves every other byte alone, which is what makes an
 // operation and its inverse exact.
 
+import type { TailwindTheme } from '../../../shared/values/tailwind-file.ts';
 import type { EditOp, PropValue } from '../ops.ts';
+import { themeOrDefault } from '../style/utilities.ts';
 import type { ApplyOptions, ApplyResult, Refusal } from '../types.ts';
 import { applyUtility, spaceStart, splice } from './apply-utility.ts';
 import {
@@ -25,6 +27,12 @@ export type TsxOp = Extract<
   { op: 'setProp' | 'removeProp' | 'setText' | 'addClass' | 'removeClass' | 'setUtility' }
 >;
 type PropOp = Extract<TsxOp, { op: 'setProp' | 'removeProp' }>;
+
+/**
+ * `tailwind`: the project's Tailwind facts a utility class is checked against (plan 29); none:
+ * Tailwind 4 with no prefix and its own screens.
+ */
+export type TsxOptions = ApplyOptions & { tailwind?: TailwindTheme | undefined };
 
 const refuse = (refused: Refusal): ApplyResult => ({ refused });
 const CONFLICT: ApplyResult = { conflict: 'changed' };
@@ -134,12 +142,14 @@ function setText(
  * Applies one operation to the tag at `at` (the offset of its `<`). The answer is the whole new
  * text with the span that changed, or a refusal or a conflict with no text at all.
  */
-export function applyTsx(text: string, at: number, op: TsxOp, options: ApplyOptions): ApplyResult {
+export function applyTsx(text: string, at: number, op: TsxOp, options: TsxOptions): ApplyResult {
   const open = openAt(text, at);
   if (open === null) return refuse('not-found');
   switch (op.op) {
-    case 'setUtility':
-      return applyUtility(text, open, op, options.force);
+    case 'setUtility': {
+      const tailwind = themeOrDefault(options.tailwind);
+      return applyUtility(text, open, op, { force: options.force, tailwind });
+    }
     case 'setProp':
     case 'removeProp':
       return editProp(text, open, op, options.force);

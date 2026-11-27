@@ -82,6 +82,11 @@ export type CodeBrief = {
     setIn: string[];
     readIn: string[];
   }[];
+  /**
+   * The project's Tailwind, when the kit has it: the draft's classes are of this version and start
+   * with this prefix (`tw-` in 3, `tw:` in 4). Absent for a kit without Tailwind.
+   */
+  tailwind?: { version: 3 | 4; prefix: string };
   /** Paths of `target.json`, the rules (`reference/handoff-code.md`) and the report to write. */
   target: string;
   rules: string;

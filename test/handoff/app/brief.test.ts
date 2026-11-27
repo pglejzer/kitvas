@@ -656,6 +656,35 @@ test('a draft that was never built is HANDOFF_BUILD_FAILED; one with no sections
   assert.throws(() => writeBrief(depsFor(store, tiny()), input), failsWith('HANDOFF_INVALID'));
 });
 
+test('a Tailwind kit names the version and the prefix of the built version; a kit without Tailwind has none', () => {
+  const input = {
+    slug: 'shop',
+    write: { to: 'src/app', scope: 'new' as const, files: [] },
+    base: '',
+  };
+  assert.equal('tailwind' in writeBrief(depsFor(screen({}), tiny()), input).brief, false);
+
+  const tailwind = withKit((json) => {
+    (json.runtime as { styles: Record<string, unknown> }).styles.tailwind = {
+      entry: 'src/app/globals.css',
+    };
+  });
+  // Nothing built says nothing of the prefix: with no package installed the major is 4.
+  const plain = writeBrief(depsFor(screen({}), tailwind), input).brief;
+  assert.deepEqual(plain.tailwind, { version: 4, prefix: '' });
+
+  const store = screen({});
+  writeVersionFiles(store, 'shop', 1, {
+    'build/json/tailwind.json': JSON.stringify({
+      schemaVersion: 2,
+      unknown: [],
+      theme: { version: 3, prefix: 'tw-', screens: { md: 768 } },
+    }),
+  });
+  const { brief } = writeBrief(depsFor(store, tailwind), input);
+  assert.deepEqual(brief.tailwind, { version: 3, prefix: 'tw-' });
+});
+
 test('the decisions are the bullets under Handoff, without their dates', () => {
   assert.deepEqual(handoffDecisions(DECISIONS), [
     'Write new screens under src/app',

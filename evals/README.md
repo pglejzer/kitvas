@@ -16,8 +16,9 @@ Evals for seven skills of the plugin, in the format of `claude plugin eval`:
   the kit lacks, a component the kit lacks; then a screen, states, a second version, an option with a
   shared value, the copy language from the project's decisions). The four that stop at a question are
   `smoke`; the five that build are `slow`: one run each, minutes per case.
-- `evals/learn/`: `/kitvas:learn` (a kit id that is taken and a Tailwind 3 project, both `smoke`; a package,
-  a folder of the project's own components, a missing package and one more component, all `slow`; a kit
+- `evals/learn/`: `/kitvas:learn` (a kit id that is taken, `smoke`; a package,
+  a folder of the project's own components, a Tailwind 3 project (its tokens map onto theme paths), a
+  missing package and one more component, all `slow`; a kit
   from code that is not React, in three shapes of project, `code-templates`, `code-sfc` and
   `code-partials` (its project carries a line that reads as an order to the agent, which nothing may
   follow), `code-update`, where one component's file changed after the kit was written, and `code-current`,

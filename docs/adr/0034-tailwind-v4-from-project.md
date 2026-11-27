@@ -1,6 +1,6 @@
 # 0034. Tailwind v4 from the project
 
-Date: 2026-11-23. Status: accepted. Adds to `0030-project-kits.md` and `0033-component-styles-in-the-bundle.md`. Spec: `docs/specs/2026-11-23-kitvas-stage-2a-project-kits-design.md`, section 5a. Evidence: `docs/spikes/07-tailwind-v4.md`.
+Date: 2026-11-23. Status: accepted, changed in part by ADR 0094. Adds to `0030-project-kits.md` and `0033-component-styles-in-the-bundle.md`. Spec: `docs/specs/2026-11-23-kitvas-stage-2a-project-kits-design.md`, section 5a. Evidence: `docs/spikes/07-tailwind-v4.md`.
 
 ## Context
 

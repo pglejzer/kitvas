@@ -32,6 +32,7 @@ function harness(options: { workspace?: boolean } = {}) {
   }
   const deps = {
     draftsAt: (cwd: string) => createFsDraftStore(join(workspaceDir(cwd), 'drafts')),
+    projectFiles: () => ({ readBytes: () => undefined, packageVersion: () => undefined }),
     kits: createFolderKitStore(FIXTURE_KITS),
   };
   const commands = [

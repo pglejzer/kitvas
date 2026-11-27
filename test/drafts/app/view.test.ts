@@ -15,7 +15,7 @@ import {
   writeView,
 } from '../../../src/drafts/index.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
-import { GOOD_LAYOUT, shopDraft } from '../../helpers/draft/drafts.ts';
+import { GOOD_LAYOUT, NO_FILES, shopDraft } from '../../helpers/draft/drafts.ts';
 import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 
 const T1 = '2026-11-24T10:30:00.000Z';
@@ -137,8 +137,8 @@ test("the section context lists the section's locked ids only", () => {
     hidden: [],
   });
   const kits = createFolderKitStore(FIXTURE_KITS);
-  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero').locked, [OLD]);
-  assert.deepEqual(sectionContext(store, kits, 'shop', 'order-summary').locked, [
+  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero', NO_FILES).locked, [OLD]);
+  assert.deepEqual(sectionContext(store, kits, 'shop', 'order-summary', NO_FILES).locked, [
     'sections/OrderSummary:section/Icon',
   ]);
 });

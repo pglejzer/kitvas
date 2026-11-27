@@ -6,6 +6,7 @@ Reads kits and checks them against the kit contract.
 - A problem inside a kit is a `KitIssue` with a message key (`kitIssue.<name>` in `locales/en.json`), not thrown text. Only a kit.json that fails the schema, or is not JSON, throws `KIT_INVALID`.
 - `loadKit` returns the kit with its issues; `requireKit` refuses a kit that has any. Code that builds from a kit uses `requireKit`.
 - Tokens are DTCG 2025.10. `domain/tokens.ts` reads six types; a new type needs a shape there and a case in `domain/css-vars.ts`.
+- A map value is a custom property or, in a kit with `runtime.styles.tailwind`, a theme path of the project's Tailwind 3 (`theme(colors.primary)`, `themePathOf`); `nativeVariable` turns it into the variable the build's probe defines (`--kitvas-theme-colors-primary`).
 - Prototype styles use `--kit-*` names only; `cssVarName` is the one place that builds them. `tokenSheet` (`domain/css-vars.ts`) is the one writer of the token sheet, for every build and `kit css`: the base under `:root`, a token mapped in `tokens.cssVars.map` as `var(<native>)` under `:root, body`, then each theme under `optionSelector('theme', id)`.
 
 ## Themes and added tokens (ADR 0083)

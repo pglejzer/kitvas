@@ -1,0 +1,13 @@
+{
+  "name": "acme-tailwind3-fixture",
+  "private": true,
+  "description": "A project on Tailwind 3: its own components, a TypeScript config, colours from CSS variables and one literal.",
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tailwindcss": "3.4.19"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0"
+  }
+}

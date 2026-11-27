@@ -39,6 +39,7 @@ import {
   projectInputs,
   sameFiles,
   utilityBuild,
+  writeTailwindFile,
 } from './project-kit.ts';
 import { sourceHash } from './source-hash.ts';
 
@@ -248,6 +249,7 @@ export async function buildCatalog(
     );
   }
   fs.writeText(page, pageHtml({ title: `${kit.name} examples` }));
+  writeTailwindFile(fs, dir, utility);
   // The stamp goes last: a half-written build never looks finished.
   fs.writeText(stampFile, serializeJson(stamp));
   return { ...report, shown, skipped };

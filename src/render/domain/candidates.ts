@@ -1,6 +1,9 @@
 // Class names a utility build looks for, read from source text without a parser. Tailwind ignores
 // a word that is no class, so a generous split is enough (docs/spikes/07-tailwind-v4.md).
 
+// The file itself, not shared/index.ts: the Tailwind worker loads this module and has no use for zod.
+import { themePathOf, themeVariable } from '../../shared/values/theme-path.ts';
+
 /** Characters that end a candidate. `[`, `]`, `:`, `/`, `.`, `#`, `%` and `!` stay: `md:p-[13px]`, `w-1/2`. */
 const SEPARATORS = /[\s"'`{}()<>=;,]+/;
 const LETTER = /[A-Za-z]/;
@@ -82,20 +85,40 @@ export function hasClassRule(css: string, candidate: string): boolean {
   return false;
 }
 
+/** The class-like candidates the CSS has no rule for, sorted: the classes that produced nothing. */
+export const unbuiltClasses = (candidates: string[], css: string): string[] =>
+  candidates
+    .filter((candidate) => looksLikeClass(candidate) && !hasClassRule(css, candidate))
+    .sort();
+
 const CUSTOM_PROPERTY = /^--[A-Za-z0-9_-]+$/;
 
 /**
- * A rule that uses each custom property, so Tailwind emits theme variables no class uses. No
- * element has the class. Names that are no custom property are left out, so nothing else can be
- * written into the stylesheet.
+ * What a build must define even when no class uses it. A rule no element has uses each custom
+ * property, so Tailwind 4 emits theme variables no class uses. Each theme path
+ * (`theme(colors.primary)`) becomes its variable (`themeVariable`), filled by the project's
+ * Tailwind; it is declared on the body too, since a theme's attributes, which switch the variables
+ * a theme value reads, are there (why the token sheet uses `:root, body`). Any other name is left
+ * out, so nothing else can be written into the stylesheet.
  */
 export function probeRule(names: string[]): string {
-  const valid = [...new Set(names)].filter((name) => CUSTOM_PROPERTY.test(name));
-  if (valid.length === 0) return '';
-  return [
-    '.kitvas-probe {',
-    ...valid.map((name, index) => `  --kitvas-probe-${index}: var(${name});`),
-    '}',
-    '',
-  ].join('\n');
+  const unique = [...new Set(names)];
+  const properties = unique.filter((name) => CUSTOM_PROPERTY.test(name));
+  const paths = unique.flatMap((name) => themePathOf(name) ?? []);
+  const lines: string[] = [];
+  if (properties.length > 0) {
+    lines.push(
+      '.kitvas-probe {',
+      ...properties.map((name, index) => `  --kitvas-probe-${index}: var(${name});`),
+      '}',
+    );
+  }
+  if (paths.length > 0) {
+    lines.push(
+      ':root, body {',
+      ...paths.map((path) => `  ${themeVariable(path)}: theme('${path}');`),
+      '}',
+    );
+  }
+  return lines.length === 0 ? '' : [...lines, ''].join('\n');
 }

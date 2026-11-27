@@ -4,18 +4,24 @@
 //
 // The tables, the split of a class, the prefixes of a context and a token's name in a class are
 // the server's own (`src/edit/domain/style/utilities.ts`, ADR 0080), so every class built here is
-// one the server knows and reads back.
+// one the server knows and reads back. A class is written as the project's Tailwind takes it
+// (plan 29): its version's keyword classes, its prefix and its screens, as the inspect answer
+// read them (`Inspect.tailwind`).
 
 import { isBaseContext, sameContext } from '../../../../src/edit/domain/op-kinds.ts';
 import { UTILITY } from '../../../../src/edit/domain/op-limits.ts';
 import {
   coreOf,
-  KEYWORD_UTILITY,
+  keywordClasses,
+  keywordUtility,
   ownPrefixes,
+  ownProperties,
   splitUtility,
-  tokenName,
-  variantPrefix,
+  themeName,
+  themeOrDefault,
+  utilityIn,
 } from '../../../../src/edit/domain/style/utilities.ts';
+import { isKeywordProperty } from '../../../../src/edit/domain/types.ts';
 import type {
   EditOp,
   StyleContext,
@@ -23,14 +29,15 @@ import type {
   StyleValue,
   TokenOption,
 } from '../../../../src/edit/index.ts';
+import type { TailwindTheme } from '../../../../src/shared/values/tailwind-file.ts';
 import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import { KIND } from '../props/values/kinds.ts';
 
-export { splitUtility, variantPrefix } from '../../../../src/edit/domain/style/utilities.ts';
+export { splitUtility, utilityIn } from '../../../../src/edit/domain/style/utilities.ts';
 
-/** The class of each keyword of a keyword property, read by any property (none for the rest). */
-const KEYWORD_CLASS: Readonly<Partial<Record<StyleProperty, Readonly<Record<string, string>>>>> =
-  KEYWORD_UTILITY;
+/** The theme an inspect answer read its classes with: Tailwind 4's defaults when it names none. */
+export const themeOf = (inspected: Pick<Inspect, 'tailwind'>): TailwindTheme =>
+  themeOrDefault(inspected.tailwind);
 
 /** How an arbitrary value says its type where a prefix has two meanings (`text-[color:…]`). */
 const HINT: Readonly<Partial<Record<StyleProperty, string>>> = {
@@ -44,46 +51,19 @@ const HINT: Readonly<Partial<Record<StyleProperty, string>>> = {
   'font-weight': 'number',
 };
 
-/** The token names a shared prefix reads as its own property; another name goes as a variable. */
-const NAMED: Readonly<Partial<Record<StyleProperty, RegExp>>> = {
-  'font-size': /^(?:xs|sm|base|lg|xl|[2-9]xl)$/,
-  'font-weight': /^(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|\d+)$/,
-  'border-width': /^\d+$/,
-  'outline-width': /^\d+$/,
-};
-
-/** Names `text-`, `bg-`, `border-` and `outline-` read as something other than a colour. */
-const OTHER_WORDS = [
-  'xs sm base lg xl left center right justify start end wrap nowrap balance pretty ellipsis',
-  'clip fixed local scroll auto cover contain none repeat no-repeat top bottom solid dashed',
-  'dotted double hidden collapse separate shadow x y t r b l e s',
-]
-  .join(' ')
-  .split(' ');
-const OTHER_STARTS = [
-  'shadow opacity clip origin gradient linear radial conic blend position size repeat',
-  'top bottom left right spacing offset x y t r b l e s',
-]
-  .join(' ')
-  .split(' ');
-
-function notAColor(name: string): boolean {
-  if (/^(?:\d+|[2-9]xl)$/.test(name) || OTHER_WORDS.includes(name)) return true;
-  return OTHER_STARTS.some((start) => name.startsWith(`${start}-`));
-}
-
 /**
- * The class is the property's own utility, so it may be swapped or removed for it: `p-4` is
- * `padding`'s, but for `padding-top` it sets three more sides and stays where it is. A name
- * without the trailing `-` is a whole class (`border` is a 1px border).
+ * The class is the property's own utility in the project's Tailwind, so it may be swapped or
+ * removed for it: `p-4` is `padding`'s, but for `padding-top` it sets three more sides and stays
+ * where it is; `border` is `border-width`'s; Tailwind 3's `outline` is the style's, never the
+ * width's. A class without the project's prefix is no one's.
  */
-export function isOwn(property: StyleProperty, className: string): boolean {
-  const core = coreOf(splitUtility(className).base);
-  const words = Object.values(KEYWORD_CLASS[property] ?? {});
-  if (words.length > 0) return words.includes(core);
-  return ownPrefixes(property).some((prefix) =>
-    prefix.endsWith('-') ? core.length > prefix.length && core.startsWith(prefix) : core === prefix,
-  );
+export function isOwn(property: StyleProperty, className: string, theme: TailwindTheme): boolean {
+  const split = splitUtility(className, theme);
+  if (split === null) return false;
+  if (isKeywordProperty(property)) {
+    return Object.values(keywordClasses(property, theme.version)).includes(coreOf(split.base));
+  }
+  return ownProperties(split.base, theme.version).includes(property);
 }
 
 /** `[13px]`, or `[length:13px]` where the prefix needs the type; `null` when it cannot be written. */
@@ -94,44 +74,51 @@ function arbitrary(property: StyleProperty, css: string): string | null {
   return hint === undefined ? `[${text}]` : `[${hint}:${text}]`;
 }
 
-/** What follows the property's prefix for a value: a token's name, or an arbitrary value. */
+/**
+ * What follows the property's prefix for a value: the name of the theme key the token maps onto
+ * (`md` of `--radius-md`), or an arbitrary value. A token mapped onto no key of the property's
+ * namespace, or onto a name the prefix reads as another property (`text-sm` is a size, never a
+ * colour), goes as its variable.
+ */
 function valuePart(
   property: StyleProperty,
+  prefix: string,
   value: StyleValue,
   tokens: readonly TokenOption[],
+  version: 3 | 4,
 ): string | null {
   if ('raw' in value) return arbitrary(property, value.raw);
   const token = tokens.find((each) => each.var === value.token);
   // Without the kit's token list its name is not known, and a guess would write a wrong class.
   if (token === undefined) return null;
-  const name = tokenName(token.path);
-  const named = NAMED[property];
-  const misread = HINT[property] === 'color' && notAColor(name);
-  const readable = named === undefined ? !misread : named.test(name);
-  return readable && /^[a-z0-9-]+$/.test(name) ? name : arbitrary(property, `var(${token.var})`);
+  const name = themeName(property, token, version);
+  const named = name !== null && ownProperties(`${prefix}${name}`, version).includes(property);
+  return named ? name : arbitrary(property, `var(${token.var})`);
 }
 
 /**
- * The class that sets `property` to `value` in `context`: the kit's token name or an arbitrary
- * value after the property's prefix, a keyword's own class, under the context's prefixes. `null`
- * for a value no class says (an image, a keyword outside the list, an unknown token).
+ * The class that sets `property` to `value` in `context`: the theme key's name or an arbitrary
+ * value after the property's prefix, a keyword's own class, under the context's prefixes and
+ * with the project's prefix (`theme`). `null` for a value no class says (an image, a keyword
+ * outside the list, an unknown token).
  */
 export function utilityFor(
   property: StyleProperty,
   value: StyleValue,
   context: StyleContext,
   tokens: readonly TokenOption[],
+  theme: TailwindTheme,
 ): string | null {
-  const kind = KIND[property];
   let base: string | null = null;
-  if (kind === 'keyword') {
-    base = 'raw' in value ? (KEYWORD_CLASS[property]?.[value.raw] ?? null) : null;
-  } else if (kind !== 'image') {
+  if (isKeywordProperty(property)) {
+    base = 'raw' in value ? (keywordUtility(property, value.raw, theme.version) ?? null) : null;
+  } else if (KIND[property] !== 'image') {
     const prefix = ownPrefixes(property)[0];
-    const part = prefix === undefined ? null : valuePart(property, value, tokens);
+    const part =
+      prefix === undefined ? null : valuePart(property, prefix, value, tokens, theme.version);
     base = prefix === undefined || part === null ? null : `${prefix}${part}`;
   }
-  const className = base === null ? null : `${variantPrefix(context)}${base}`;
+  const className = base === null ? null : utilityIn(base, context, theme);
   return className !== null && UTILITY.test(className) ? className : null;
 }
 
@@ -163,10 +150,11 @@ export function opsForUtility(
   tokens: readonly TokenOption[],
 ): EditOp[] {
   const { id } = inspected;
+  const theme = themeOf(inspected);
   const current = currentUtility(inspected, property, context);
-  const before = current !== null && isOwn(property, current) ? current : null;
+  const before = current !== null && isOwn(property, current, theme) ? current : null;
   if (value === null) return before === null ? [] : [{ op: 'setUtility', id, value: null, before }];
-  const next = utilityFor(property, value, context, tokens);
+  const next = utilityFor(property, value, context, tokens, theme);
   if (next === null || next === current) return [];
   return [{ op: 'setUtility', id, value: next, before }];
 }

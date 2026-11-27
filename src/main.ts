@@ -93,6 +93,7 @@ export function main(argv: string[]): Promise<number> {
   const drafts = {
     kits,
     draftsAt: (dir: string) => createFsDraftStore(join(workspaceDir(dir), 'drafts')),
+    projectFiles: createProjectFiles,
   };
   const render = (): RenderTools & { styles: SassPipeline } => {
     const roots = defaultDepRoots();
@@ -224,6 +225,7 @@ export function main(argv: string[]): Promise<number> {
             exists: existsSync,
             lookup: scssLookup,
             compile: tools.styles.compileText,
+            utility: tools.utility,
           }),
           types: types(),
           browser: browser(),

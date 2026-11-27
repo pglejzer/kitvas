@@ -4,7 +4,7 @@ A kit describes one design system: components, tokens and icons. The rework and 
 
 kitvas can learn from:
 
-- an npm package (public or private) or a folder of your own components, with Tailwind v4 supported;
+- an npm package (public or private) or a folder of your own components, with Tailwind 3 and 4 supported;
 - the code of your components, in any technology (`kitvas kit new <id> --from code:<folder>`);
 - a Figma file, read through your own Figma MCP;
 - a website, or screenshots.

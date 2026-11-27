@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "acme-tw",
+  "name": "Acme Tailwind partials",
+  "version": "0.0.0",
+  "source": {
+    "type": "code",
+    "path": "src/partials",
+    "styles": ["src/styles/app.css"],
+    "urls": []
+  },
+  "framework": "react",
+  "runtime": {
+    "packages": [
+      {
+        "name": "react",
+        "version": "19.3.1"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.3.1"
+      }
+    ],
+    "entry": "generated/kit.ts",
+    "styles": {
+      "files": [],
+      "generated": "none",
+      "imports": []
+    },
+    "providers": []
+  },
+  "tokens": {
+    "file": "json/tokens.json",
+    "format": "dtcg-2025.10"
+  },
+  "components": [
+    {
+      "name": "Button",
+      "category": "action",
+      "description": "Starts an action; a filled primary look or a quiet outlined one.",
+      "import": {
+        "from": "components/Button",
+        "name": "Button"
+      },
+      "props": [
+        {
+          "name": "variant",
+          "type": "enum",
+          "values": ["primary", "quiet"],
+          "default": "primary"
+        },
+        {
+          "name": "className",
+          "type": "string"
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "Primary",
+          "code": "<Button>Save changes</Button>",
+          "imports": ["Button"],
+          "original": "originals/Button.1.html"
+        },
+        {
+          "title": "Quiet",
+          "code": "<Button variant=\"quiet\">Cancel</Button>",
+          "imports": ["Button"],
+          "original": "originals/Button.2.html"
+        }
+      ],
+      "project": {
+        "files": ["src/partials/button.html"],
+        "name": "Button",
+        "styles": ["src/styles/app.css"],
+        "scoped": false
+      }
+    }
+  ]
+}

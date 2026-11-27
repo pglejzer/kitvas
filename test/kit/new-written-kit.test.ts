@@ -248,8 +248,8 @@ test('an images path that leaves the project is refused', () => {
   assert.equal(existsSync(kitDir(project)), false);
 });
 
-test('a written kit is not refused for Tailwind v3, and an npm and repo kit report no skipped files', () => {
-  const project = tempProject({ 'src/ds/Button.tsx': '' }, { tailwindcss: { version: '3.4.17' } });
+test('a written kit is not refused for an old Tailwind, and an npm and repo kit report no skipped files', () => {
+  const project = tempProject({ 'src/ds/Button.tsx': '' }, { tailwindcss: { version: '2.2.19' } });
   assert.equal(
     newKit(deps(project), 'site', { type: 'web', value: 'https://example.com/' }).id,
     'site',

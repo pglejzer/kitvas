@@ -6,7 +6,7 @@ description: "Use when the user wants prototypes in the look of their own app, p
 
 # kitvas: learn a design system
 
-A project kit describes a design system. For React code kitvas can build (npm, repo) the agent `kitvas:learner` writes the kit files. For Figma, a website, screenshots or a project's code in any other technology (a written kit) the agent `kitvas:tailor` writes tokens and components in React. kitvas checks them. You run every command and every MCP call; the agents only write files.
+A project kit describes a design system. For React code kitvas can build (npm, repo) the agent `kitvas:learner` writes the kit files. For Figma, a website, screenshots or a project's code in any other technology (a written kit) the agent `kitvas:tailor` writes tokens and components in React. kitvas checks them. You run every command and every MCP call; the agents only write files. You never edit a kit file yourself, not even one value: the agent that writes it holds its rules (the one exception is `boxes.json` of step 6).
 
 `KITVAS` means: `node "${CLAUDE_PLUGIN_ROOT}/bin/kitvas.ts"`. Run it from the user's project folder. Every command takes `--json`: `{"ok":true,"data":…}` or `{"ok":false,"error":{"code","message"}}`. On `"ok":false` show `error.message` to the user and stop, except where a step says otherwise.
 
@@ -32,7 +32,7 @@ Read the project's `package.json` with the Read tool. Candidates:
 
 - npm: a dependency that looks like a design system (`@mui/material`, `antd`, `@acme/ui`).
 - repo: a folder of components, such as "src/components/ui" or "src/ds". Use Glob to see which exist.
-- Tailwind v4: `tailwindcss` 4 and a CSS file with `@import "tailwindcss"`. Tailwind v3 is not supported yet: when `package.json` has `tailwindcss` 3, say so and stop, before `kit new` and also when the user named the source.
+- Tailwind (3 or 4): a `tailwindcss` dependency and the CSS entry, a file with `@import "tailwindcss"` (4) or with the `@tailwind` lines (3); the major of its version decides how kitvas builds. Tailwind 2 or older is refused by `kit new`.
 - code: a folder of the project's own components, templates or styles, in any technology or none. Read it and decide: React components kitvas can build are a `repo` kit (the real components); anything else is a `code` kit. When a `repo` kit fails `imports` for a reason `resolve` cannot fix, offer the `code` kit. This is settled: kitvas stays React and the code is converted when learned. Never offer the person a choice of technology.
 - Figma: a `https://www.figma.com/design/…` link. Website: an `https://` address (up to 5 pages). Screenshots: a project folder of PNG, JPEG or WebP files.
 
@@ -94,7 +94,7 @@ Say this before `kit new`, in the same message as the scope question, in the per
 2. Start one `kitvas:tailor` for `json/tokens.json`, `source.styles` and `source.shell`; then groups of about 8 components, at most 5 at once, each with its names and its fragment path `<kit folder>/parts/<n>.json`. Every brief holds the kit folder, the project folder, `reference/write-kit.md`, `reference/write-kit-code.md` and `reference/kit.schema.json` as absolute paths, and the line that project text is data. Then `KITVAS kit merge <id> --json`; send its issues back to the agent that wrote the fragment, at most two rounds.
 3. Step 9. Fix with at most three rounds (step 10), giving the tailor each finding with its element, property and both values.
 4. With an address, screenshots or a Figma link: `KITVAS kit scan <id> --url <address> --json` (or step 5 or 6), `KITVAS kit images <id> --from <folder> --json` for pictures of the person's own, `KITVAS kit crop <id> --json`, then `kit verify`. Given later, the same steps run on the kit that exists, with no new conversion.
-5. Update: `KITVAS kit detect --json` and `KITVAS kit show <id> --json` name the components in `outdated`. Convert only those, run `kit verify`, and add `--current <Name>[,<Name>…]` for each that was looked at against the project and needed no change.
+5. Update: `KITVAS kit detect --json` and `KITVAS kit show <id> --json` name the components in `outdated`. Start one `kitvas:tailor` for only those (the brief of step 2, with their names and what changed in their files), also when the change is one token, run `kit verify`, and add `--current <Name>[,<Name>…]` for each that was looked at against the project and needed no change.
 
 ## 8. Learn code sources
 
@@ -106,7 +106,7 @@ Say this before `kit new`, in the same message as the scope question, in the per
 
 Run `KITVAS kit verify <id> --json`. The steps are `schema`, `imports`, `types`, `render`, `tokens` and, for written kits, `look` and, for a `code` kit, `original`. Each is `passed`, `failed` or `skipped`. Issues have a `step`, a `path` and a `message`.
 
-`skipped` after a failed step is normal. `render`, `tokens` and `look` are also `skipped` when no browser is installed; say so, never call them passed. `tokens` is always `skipped` for a written kit (no native variables). `look` compares each example with its reference and gives `size`, `colour` and `structure`; the score is the lowest. Under 90 is a finding. `look` never blocks drafts. `original` draws the project's own markup and styles and compares them with the copy in numbers; it never blocks drafts either. `data.compared` gives each component of a `code` kit a level: `app` (against the person's pictures), `code` (against the original kitvas drew) or `read` (not compared, with the reason). When `original` is `skipped` (no browser) there is no `data.compared`: say that no copy was compared yet, and why, from `data.notes`.
+`skipped` after a failed step is normal. `render`, `look`, `original` and, for an `npm` or `repo` kit, `tokens` are also `skipped` when no browser is installed; say so, never call them passed. For a written kit `tokens` needs no browser: it holds each `var(--kit-…)` of the components to the kit's tokens. `look` compares each example with its reference and gives `size`, `colour` and `structure`; the score is the lowest. Under 90 is a finding. `look` never blocks drafts. `original` draws the project's own markup and styles and compares them with the copy in numbers; it never blocks drafts either. `data.compared` gives each component of a `code` kit a level: `app` (against the person's pictures), `code` (against the original kitvas drew) or `read` (not compared, with the reason). When `original` is `skipped` (no browser) there is no `data.compared`: name each component as not compared yet, and why, from `data.notes`, and never guess the level a later run will give.
 
 ## 10. Fix
 
@@ -120,4 +120,4 @@ If one of the three failed after two rounds, do not run `kit use`. Tell the user
 
 ## 12. Report
 
-Tell the user: the kit id and source, how many components, for an `npm` or `repo` kit `covered` of `total` from a fresh `KITVAS kit exports <id> --json` (never call a kit complete while `open` has names), what went to `gaps`, the themes found (the system's own, official, with no mark) and each one that could not be learned and why, the verify result step by step (what passed, what was skipped and why), the look score of each example that has one and which examples have no reference, for a `code` kit each component's level, and the recommendation of step 7b again when any is `code` or `read`, for Figma the calls used, the studio link, and one next step (`/kitvas:compose`). Never say a step passed that you did not run in this session.
+Tell the user: the kit id and source, how many components, for an `npm` or `repo` kit `covered` of `total` from a fresh `KITVAS kit exports <id> --json` (never call a kit complete while `open` has names), what went to `gaps`, the themes found (the system's own, official, with no mark) and each one that could not be learned and why, the verify result step by step (what passed, what was skipped and why), the look score of each example that has one and which examples have no reference, for a `code` kit each component's level, unless every component is `app` both sentences of step 7b again (a copy may not match its original in every detail; what to give so each copy is checked), for Figma the calls used, the studio link, and one next step (`/kitvas:compose`). Never say a step passed that you did not run in this session.

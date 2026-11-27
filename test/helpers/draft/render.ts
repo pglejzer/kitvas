@@ -38,6 +38,7 @@ export function projectStylesOf(tools: TestRenderTools): ProjectStyles {
     exists: existsSync,
     lookup: scssLookup,
     compile: tools.styles.compileText,
+    utility: tools.utility,
   });
 }
 

@@ -15,7 +15,7 @@ import {
 import { elementSpan, offsetOf } from '../../edit/index.ts';
 import { cssVarName, type FlatToken, type LoadedKit } from '../../kit/index.ts';
 import { type BuildError, type BuildFs, buildDraft, type RenderDeps } from '../../render/index.ts';
-import { KitvasError, type Translate } from '../../shared/index.ts';
+import { KitvasError, TAILWIND_FILE, type Translate } from '../../shared/index.ts';
 import { importFindings, rawControlFindings } from '../domain/code/code.ts';
 import { type IdEntry, idEntries } from '../domain/code/ids.ts';
 import { sourceRuleFindings } from '../domain/code/source-rules.ts';
@@ -225,7 +225,7 @@ function dsFindings({ fs, versionDir, kit, ids, built, sources }: DsInput): RawF
   // Tailwind CSS on purpose.
   const own = new Set(sheets.flatMap((sheet) => sheetClasses(sheet.text)));
   const unknown = built
-    ? tailwindUnknown(readJson(fs, join(versionDir, 'build', 'json', 'tailwind.json'))).filter(
+    ? tailwindUnknown(readJson(fs, join(versionDir, ...TAILWIND_FILE.split('/')))).filter(
         (name) => !own.has(name),
       )
     : [];

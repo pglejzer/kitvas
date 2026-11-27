@@ -12,15 +12,16 @@ import {
   type LoadedKit,
 } from '../../kit/index.ts';
 import { elementIds, readSites } from '../../render/index.ts';
-import type { DraftOption } from '../../shared/index.ts';
+import type { DraftOption, TailwindTheme } from '../../shared/index.ts';
 import { fileOfId } from '../domain/ops.ts';
 import type { SiteId } from '../domain/structure/renames.ts';
 import { parentOf } from '../domain/structure/subtree.ts';
+import { themeOrDefault } from '../domain/style/utilities.ts';
 import { offsetOf, openingTags, readTag } from '../domain/tsx/apply-tsx.ts';
 import { syncKitImports } from '../domain/tsx/kit-imports.ts';
 import type { ApplyOptions, OffsetMap, Refusal, Span } from '../domain/types.ts';
 import type { EditCompiler } from '../ports/compiler.ts';
-import { catalogComponent, editKit, kitNames } from './edit-state.ts';
+import { catalogComponent, editKit, kitNames, versionTailwind } from './edit-state.ts';
 
 /** What a request reads besides its texts: `ApplyEditsDeps` has all of it. */
 export type WorkDeps = {
@@ -77,6 +78,7 @@ export type Work = {
   /** Props a `replaceTag` dropped. */
   dropped: string[];
   kit?: Kit;
+  tailwind?: TailwindTheme;
 };
 
 /** Why an op wrote nothing: a refusal, or a change by someone else in a file (4a conflicts). */
@@ -116,6 +118,17 @@ export function createWork(
 export function breakpointsOf(work: Work): readonly number[] {
   const { loaded } = kitOf(work);
   return loaded === null ? DEFAULT_BREAKPOINTS : kitBreakpoints(loaded.kit);
+}
+
+/**
+ * The project's Tailwind facts a utility class of the version is written by (`versionTailwind`),
+ * read once per request, and only when an op names a class.
+ */
+export function tailwindOf(work: Work): TailwindTheme {
+  if (work.tailwind === undefined) {
+    work.tailwind = themeOrDefault(versionTailwind(work.deps.drafts, work.slug, work.version));
+  }
+  return work.tailwind;
 }
 
 /** The version's options in their file's order (ADR 0082); none without a readable file. */

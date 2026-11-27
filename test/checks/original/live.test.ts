@@ -104,6 +104,30 @@ for (const name of ['acme-templates', 'acme-sfc', 'acme-partials'] as const) {
   });
 }
 
+test("acme-twcode: every copy matches the original drawn with the project's own Tailwind 3", async (t) => {
+  await onFixture(
+    t,
+    'acme-twcode',
+    () => {},
+    (file) => {
+      assert.deepEqual(ofOriginal(file), []);
+      assert.equal(file.steps.original, 'passed');
+      const originals = file.originals ?? [];
+      // Two examples of one button, each at 1280 px at least.
+      assert.ok(originals.length >= 2, `${originals.length} measures`);
+      for (const entry of originals) {
+        assert.equal(entry.differences, 0, `${entry.key} at ${entry.width}`);
+        assert.equal(entry.score, 100, `${entry.key} at ${entry.width}`);
+        assert.ok(entry.frames >= 1, entry.key);
+      }
+      assert.deepEqual(
+        (file.compared ?? []).map((entry) => entry.level),
+        ['code'],
+      );
+    },
+  );
+});
+
 test('a control is read at rest, under the pointer, pressed and with focus', async (t) => {
   await onFixture(
     t,

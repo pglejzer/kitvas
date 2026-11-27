@@ -30,7 +30,7 @@ import { originalStep } from './verify/original.ts';
 import { renderStep } from './verify/render.ts';
 import { schemaStep } from './verify/schema.ts';
 import { SKIPPED, type StepResult } from './verify/step.ts';
-import { mappedVariables, tokensStep } from './verify/tokens.ts';
+import { mappedVariables, tokensStep, writtenTokensStep } from './verify/tokens.ts';
 import { typesStep } from './verify/types.ts';
 
 export type VerifyDeps = {
@@ -222,6 +222,15 @@ export async function verifyKit(
       examples,
       reported: exampleKeys(types.issues),
     });
+    // A written kit has no variables of a design system to read: its `tokens` holds the names its
+    // components use, and needs no browser.
+    if (isWritten(loaded)) {
+      page = {
+        ...page,
+        tokens: writtenTokensStep(loaded, deps.kits.readTree?.(kitId, 'components') ?? {}),
+        notes: page.notes.filter((note) => note !== 'kits.verify.noTokenMap'),
+      };
+    }
   }
 
   const steps = {

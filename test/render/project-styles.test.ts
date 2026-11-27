@@ -4,12 +4,15 @@ import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { createSassPipeline } from '../../src/render/adapters/sass-pipeline.ts';
 import { scssLookup } from '../../src/render/adapters/scss-plugin.ts';
+import { createTailwindCss } from '../../src/render/adapters/tailwind-css.ts';
 import { createProjectStyles } from '../../src/render/app/project-styles.ts';
 import type { ProjectStyleResult } from '../../src/render/ports/project-styles.ts';
+import type { UtilityCss, UtilityInput } from '../../src/render/ports/utility-css.ts';
 import { PLUGIN_ROOT } from '../../src/shared/index.ts';
 import { tempDir } from '../helpers/tmp.ts';
+import { TAILWIND_PACKAGES, tempProject } from './helpers/temp-project.ts';
 
-function setup(files: Record<string, string>) {
+function setup(files: Record<string, string>, utility?: UtilityCss) {
   const project = tempDir('kitvas-styles-');
   for (const [name, text] of Object.entries(files)) {
     const file = join(project, name);
@@ -22,6 +25,7 @@ function setup(files: Record<string, string>) {
     exists: existsSync,
     lookup: scssLookup,
     compile: pipeline.compileText,
+    utility: utility ?? createTailwindCss(),
   });
   return { project, styles, close: () => pipeline.dispose() };
 }
@@ -41,6 +45,26 @@ test('a style file is compiled whole', async () => {
     assert.equal(css(scss), '.a {\n  color: red;\n}');
     const plain = await styles({ project, file: 'b.css', resolve: undefined });
     assert.equal(css(plain), '.b {\n  color: blue;\n}');
+  } finally {
+    await close();
+  }
+});
+
+test('plain CSS the compiler cannot parse is kept as it is: the browser reads it as the app does', async () => {
+  // An old engine's hack (`screen\0`) stops the compiler; a browser drops only that rule.
+  const hack = '.a{color:red}@media screen\\0 and (min-width:40em){.a{color:blue}}.b{color:green}';
+  const { project, styles, close } = setup({
+    'dist/app.min.css': hack,
+    'bad.scss': '.a { color: ; }',
+  });
+  try {
+    assert.equal(
+      css(await styles({ project, file: 'dist/app.min.css', resolve: undefined })),
+      hack,
+    );
+    // Sass is the project's own source: a failure there is still reported.
+    const scss = await styles({ project, file: 'bad.scss', resolve: undefined });
+    assert.equal(scss.ok, false);
   } finally {
     await close();
   }
@@ -107,6 +131,66 @@ test("loads follow the project's own patterns", async () => {
     assert.match(css(paths), /padding: 3px;/);
   } finally {
     await close();
+  }
+});
+
+test('a style file with a Tailwind line goes to the utility port with the sources, not to Sass', async () => {
+  const seen: UtilityInput[] = [];
+  const utility: UtilityCss = {
+    build: async (input) => {
+      seen.push(input);
+      return { css: '.p-4 { padding: 1rem; }', unknown: [], errors: [], files: [] };
+    },
+    dispose: async () => {},
+  };
+  const { project, styles, close } = setup(
+    {
+      'v3.css': '@tailwind base;\n@tailwind utilities;\n',
+      'v4.css': "@import 'tailwindcss';\n",
+      'plain.scss': '.a { color: red; }\n',
+    },
+    utility,
+  );
+  try {
+    const sources = ['/app/page.html'];
+    for (const file of ['v3.css', 'v4.css']) {
+      assert.equal(
+        css(await styles({ project, file, resolve: undefined, sources })),
+        '.p-4 { padding: 1rem; }',
+      );
+    }
+    assert.equal(seen.length, 2);
+    assert.deepEqual(seen[0]?.sources, sources);
+    assert.equal(seen[0]?.entry, `${project.split('\\').join('/')}/v3.css`);
+    await styles({ project, file: 'plain.scss', resolve: undefined, sources });
+    assert.equal(seen.length, 2, 'a file with no Tailwind never reaches the port');
+  } finally {
+    await close();
+  }
+});
+
+test('a Tailwind style file is built with the project own Tailwind for the classes of its sources', async () => {
+  const real = createTailwindCss();
+  const project = tempProject(TAILWIND_PACKAGES, {
+    'app.css': '@import "tailwindcss";\n@theme {\n  --color-brand: #0055ff;\n}\n',
+    'page.html': '<p class="p-4 bg-brand">Hello</p>\n',
+  });
+  const { styles, close } = setup({}, real);
+  try {
+    const out = css(
+      await styles({
+        project,
+        file: 'app.css',
+        resolve: undefined,
+        sources: [join(project, 'page.html')],
+      }),
+    );
+    assert.match(out, /\.bg-brand/);
+    assert.match(out, /\.p-4/);
+    assert.doesNotMatch(out, /\.mt-8/);
+  } finally {
+    await close();
+    await real.dispose();
   }
 });
 

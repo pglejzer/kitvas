@@ -125,7 +125,12 @@ function classed(classes: string): Inspect {
 test('a stop picked in a Tailwind draft still writes the utility class', () => {
   const stop = stepperOf(KIT, 'border-radius', null, null).stops[1];
   assert.ok(stop);
-  const tailwind = { format: 'tailwind' as const, tokens: KIT };
+  // A Tailwind 4 kit maps each token onto its theme variable (`--radius-md`, `--color-ink`).
+  const tokens = KIT.map((token): TokenOption => {
+    const [group = '', name = ''] = token.path.split('.');
+    return { ...token, utility: { namespace: group === 'space' ? 'spacing' : group, name } };
+  });
+  const tailwind = { format: 'tailwind' as const, tokens };
   const view = classed('flex');
   const radius = opsForAll([view], 'border-radius', { token: stop.var }, tailwind);
   assert.deepEqual(radius, [{ op: 'setUtility', id: ID, value: 'rounded-md', before: null }]);

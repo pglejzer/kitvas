@@ -336,6 +336,12 @@ export type TokenOption = {
   css: string;
   /** The token comes from the project's additions, not from the design system (plan 25, C8). */
   added?: boolean | undefined;
+  /**
+   * The theme key the kit maps the token onto (`css-var-map.json`), as a Tailwind utility names it
+   * (plan 29): `--color-primary` is `color`/`primary`, `theme(borderRadius.md)` is
+   * `borderRadius`/`md`. Only through it is the token a named class (`themeKeyOf`).
+   */
+  utility?: { namespace: string; name: string } | undefined;
 };
 
 export type { PropValue, StyleValue };

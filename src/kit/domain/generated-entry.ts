@@ -6,7 +6,7 @@
 
 import { isAdditionImport } from './additions.ts';
 import type { Kit, KitComponent } from './contract.ts';
-import { componentKind, IDENTIFIER, moduleKind, type TargetKind } from './sources.ts';
+import { componentKind, IDENTIFIER, styleKind, type TargetKind } from './sources.ts';
 
 export const GENERATED_ENTRY = 'generated/kit.ts';
 
@@ -69,7 +69,7 @@ export function generatedEntry(
     out.push(`export * from ${JSON.stringify(additions.base)};`);
   } else {
     for (const from of kit.runtime.styles.imports) {
-      const kind = moduleKind(kit, from);
+      const kind = styleKind(kit, from);
       if (kind !== undefined) out.push(`import ${quoted(from, kind)};`);
     }
   }

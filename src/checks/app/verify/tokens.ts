@@ -1,8 +1,15 @@
 // Step `tokens`: every token mapped onto a variable of the design system has the value the
-// browser reads from that variable, inside the kit's providers.
+// browser reads from that variable, inside the kit's providers. For a written kit: every
+// `var(--kit-…)` of its components names a token of the kit.
 
-import { type FlatToken, formatTokenValue, type LoadedKit } from '../../../kit/index.ts';
+import {
+  type FlatToken,
+  formatTokenValue,
+  type LoadedKit,
+  unknownTokenVars,
+} from '../../../kit/index.ts';
 import type { CatalogReport } from '../../../render/index.ts';
+import { nativeVariable } from '../../../shared/index.ts';
 import type { VerifyIssue } from '../../domain/kit/kit-verify.ts';
 import {
   colorHex,
@@ -13,9 +20,9 @@ import {
 import { EXAMPLE_VIEWPORT, exampleSearch } from './render.ts';
 import { type Inspector, ran, SKIPPED, type StepResult } from './step.ts';
 
-/** The variables the kit's tokens are mapped onto, each once, in the map's order. */
+/** The page variables the kit's tokens are mapped onto, each once, in the map's order. */
 export const mappedVariables = (loaded: LoadedKit): string[] => [
-  ...new Set(Object.values(loaded.cssVarMap)),
+  ...new Set(Object.values(loaded.cssVarMap).map(nativeVariable)),
 ];
 
 function expectedOf(token: FlatToken): TokenExpected {
@@ -50,7 +57,8 @@ export async function tokensStep({ loaded, build, inspect }: TokensInput): Promi
 
   const tokens = new Map(loaded.tokens.map((token) => [token.path.join('.'), token]));
   const issues: VerifyIssue[] = [];
-  for (const [name, variable] of mapped) {
+  for (const [name, value] of mapped) {
+    const variable = nativeVariable(value);
     const token = tokens.get(name);
     // A map entry without a token is a `schema` issue.
     if (!token) continue;
@@ -77,4 +85,26 @@ export async function tokensStep({ loaded, build, inspect }: TokensInput): Promi
     });
   }
   return ran(issues);
+}
+
+/**
+ * `tokens` of a written kit, with no browser: a `var(--kit-…)` of its component files (path from
+ * the kit folder -> text) that names no token leaves that value unset in every draft.
+ */
+export function writtenTokensStep(loaded: LoadedKit, files: Record<string, string>): StepResult {
+  const placeOf = (file: string): string => {
+    const from = file.replace(/(?:\.module\.css|\.css|\.tsx)$/, '');
+    const index = loaded.kit.components.findIndex((component) => component.import.from === from);
+    return index === -1 ? 'components' : `components.${index}`;
+  };
+  return ran(
+    unknownTokenVars(files, loaded.tokens).map(
+      ({ file, name, nearest }): VerifyIssue => ({
+        step: 'tokens',
+        path: placeOf(file),
+        key: nearest === undefined ? 'kitIssue.tokenVarUnknown' : 'kitIssue.tokenVarMeant',
+        params: nearest === undefined ? { file, name } : { file, name, nearest },
+      }),
+    ),
+  );
 }

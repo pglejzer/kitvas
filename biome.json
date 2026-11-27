@@ -16,6 +16,7 @@
       "!test/fixtures/projects/acme-templates/src",
       "!test/fixtures/projects/acme-sfc/src",
       "!test/fixtures/projects/acme-partials/src",
+      "!test/fixtures/projects/acme-twcode/src",
       "!test/fixtures/projects/**/originals"
     ]
   },
@@ -47,6 +48,16 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["test/fixtures/projects/acme-tailwind3/src/styles/globals.css"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUnknownAtRules": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["kits/kitvas-ui/scss/core/_base.scss"],
       "linter": {

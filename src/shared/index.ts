@@ -23,3 +23,5 @@ export * from './values/numbers.ts';
 export * from './values/options.ts';
 export * from './values/paths.ts';
 export * from './values/shared-values.ts';
+export * from './values/tailwind-file.ts';
+export * from './values/theme-path.ts';

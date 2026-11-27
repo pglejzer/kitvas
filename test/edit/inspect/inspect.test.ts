@@ -315,19 +315,43 @@ test("the values of an option's block carry the option, with its width and state
 test('a Tailwind draft lists its prefixed utilities as the overrides', async () => {
   const hero = await inspectIn(draftWith(HERO), 'sections/Hero:div', tailwindKits());
   assert.deepEqual(hero.styles.padding, { kind: 'utility', className: 'p-4' });
+  // No build reported the project's Tailwind: the classes are read as Tailwind 4's.
+  assert.equal(hero.tailwind, null);
   const padding = hero.overrides.filter((each) => each.property === 'padding');
   assert.deepEqual(padding, [
     {
       context: { width: 768, state: null, option: null },
       property: 'padding',
-      // `6` names the kit's `space.6`, so the value is that token.
-      value: 'var(--kit-space-6)',
+      // The kit maps `space.6` onto no theme key, so `6` is Tailwind's own step, not the token.
+      value: '6',
       offKit: false,
       utility: 'md:p-6',
     },
   ]);
   // The same classes on an SCSS kit are no utilities at all.
   assert.deepEqual((await inspectIn(draftWith(HERO), 'sections/Hero:div')).overrides, []);
+});
+
+test('a Tailwind 3 draft is read with the prefix and the screens its build reported', async () => {
+  const tsx = [
+    'export function Hero(_props: { state: string }) {',
+    '  return <div className="tw-p-4 tablet:tw-p-6 md:p-2">Hello</div>;',
+    '}',
+    '',
+  ].join('\n');
+  const theme = { version: 3, prefix: 'tw-', screens: { tablet: 768 }, aliases: {} };
+  const drafts = draftWith({
+    ...HERO,
+    'src/tsx/sections/Hero.tsx': tsx,
+    'build/json/tailwind.json': JSON.stringify({ schemaVersion: 2, unknown: [], theme }),
+  });
+  const hero = await inspectIn(drafts, 'sections/Hero:div', tailwindKits());
+  assert.deepEqual(hero.tailwind, theme);
+  assert.deepEqual(hero.styles.padding, { kind: 'utility', className: 'tw-p-4' });
+  // `md:p-2` lacks the prefix: it is no class of the project's Tailwind.
+  const padding = hero.overrides.filter((each) => each.property === 'padding');
+  const read = padding.map((each) => [each.context.width, each.utility]);
+  assert.deepEqual(read, [[768, 'tablet:tw-p-6']]);
 });
 
 test('an element that is not in the current text is not found', async () => {

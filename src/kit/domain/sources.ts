@@ -143,7 +143,7 @@ export function importTargets(kit: Kit): ImportTarget[] {
 }
 
 /** A style import: as any module, and in a `code` kit a style file of the project too. */
-function styleKind(kit: Kit, from: string): TargetKind | undefined {
+export function styleKind(kit: Kit, from: string): TargetKind | undefined {
   const kind = moduleKind(kit, from);
   if (kind === undefined && kit.source.type === 'code' && PROJECT_PATH.test(from)) return 'project';
   return kind;

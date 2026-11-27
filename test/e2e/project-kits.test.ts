@@ -167,6 +167,24 @@ const FIXTURES: { name: FixtureName; studio: boolean }[] = [
   { name: 'acme-tailwind', studio: false },
 ];
 
+// A Tailwind 3 kit maps tokens onto theme paths: `theme(colors.primary)` is `hsl(var(--primary))`
+// in the project's config and `theme(colors.brand)` a literal colour; `tokens` compares both.
+test('project kit acme-tailwind3: check and verify pass all five steps', {
+  timeout: TEST_MS,
+}, async (t) => {
+  const fixtureBoxed = fixtureBox('acme-tailwind3');
+  const { box, fixture } = fixtureBoxed;
+  let passed = false;
+  try {
+    await checkKit(box, fixture.kitId);
+    await verifyKit(box, fixture.kitId);
+    passed = true;
+  } finally {
+    if (passed) removeFixtureBox(fixtureBoxed);
+    else t.diagnostic(`kept for a look: ${box.project} ${box.dataDir}`);
+  }
+});
+
 for (const { name, studio } of FIXTURES) {
   const title = `project kit ${name}: check, verify, use, a checked draft, examples`;
   test(studio ? `${title}, studio` : title, { timeout: TEST_MS }, async (t) => {

@@ -1,6 +1,6 @@
 // The ds check of a Tailwind draft's classes: they come from the kit's theme, not written by hand.
 
-import { z } from '../../../shared/index.ts';
+import { parseTailwindFile } from '../../../shared/index.ts';
 import type { Message, RawFinding, Severity } from '../findings/finding.ts';
 import { placeOf } from './source-rules.ts';
 import { codeLines } from './styles.ts';
@@ -28,16 +28,13 @@ const CLASS_SELECTOR = /\.(-?[A-Za-z_][\w-]*)/g;
 /** A class made from its parent rule's: `&-title`, `&__item`. */
 const PARENT_SUFFIX = /&([\w-]+)/g;
 
-const TailwindFileSchema = z.object({ schemaVersion: z.literal(1), unknown: z.array(z.string()) });
-
 /** A string or template literal. Offsets in `text` are offsets in the source from `start` on. */
 type Literal = { start: number; text: string };
 type Collect = (literal: Literal) => void;
 
 /** The `unknown` list of build/json/tailwind.json; none when the file is missing or of another shape. */
 export function tailwindUnknown(raw: unknown): string[] {
-  const parsed = TailwindFileSchema.safeParse(raw);
-  return parsed.success ? parsed.data.unknown : [];
+  return parseTailwindFile(raw)?.unknown ?? [];
 }
 
 /**

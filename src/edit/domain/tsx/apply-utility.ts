@@ -5,6 +5,7 @@
 // so do a new `className` attribute and the removal of its only class. A class taken out of the
 // middle is put back by the request's own hunks (`style-checks.ts`), since an op adds at the end.
 
+import type { TailwindTheme } from '../../../shared/values/tailwind-file.ts';
 import type { EditOp } from '../ops.ts';
 import { knownUtility } from '../style/utilities.ts';
 import type { ApplyResult, Refusal, Span } from '../types.ts';
@@ -59,12 +60,19 @@ function removeClass(text: string, tokens: readonly Token[], hit: Token): ApplyR
 
 /**
  * Applies a `setUtility` to the tag `open`. A `className` built in code is refused (`computed`), a
- * class kitvas does not know (`utility-unknown`), and so is a class that would then stand twice.
+ * class kitvas does not know in the project's Tailwind (`utility-unknown`), and so is a class that
+ * would then stand twice.
  */
-export function applyUtility(text: string, open: Open, op: UtilityOp, force: boolean): ApplyResult {
+export function applyUtility(
+  text: string,
+  open: Open,
+  op: UtilityOp,
+  options: { force: boolean; tailwind: TailwindTheme },
+): ApplyResult {
   const { value, before } = op;
+  const { force } = options;
   if (value === null && before === null) return refuse('invalid');
-  if (value !== null && !knownUtility(value)) return refuse('utility-unknown');
+  if (value !== null && !knownUtility(value, options.tailwind)) return refuse('utility-unknown');
   const attrs = open.attrs.filter((attr) => attr.name === 'className');
   const attr = attrs[0];
   if (attrs.length > 1) return refuse('ambiguous');

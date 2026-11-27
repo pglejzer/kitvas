@@ -150,7 +150,7 @@ There is no global `kitvas` command. In these docs `kitvas <command>` means `nod
 
 ## Status
 
-1.0.0. Prototypes are React, with SCSS or with Tailwind v4 when the kit uses it, whatever your application is written in; Tailwind v3 is not supported. A hand-off puts a finished prototype into your project in the project's own technology. Ideas for later are in [IDEAS.md](IDEAS.md).
+1.0.0. Prototypes are React, with SCSS or with Tailwind 3 or 4 when the kit uses it (built with your project's own Tailwind), whatever your application is written in. A hand-off puts a finished prototype into your project in the project's own technology. Ideas for later are in [IDEAS.md](IDEAS.md).
 
 ## Develop
 

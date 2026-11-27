@@ -516,7 +516,7 @@ test('verify answers what the verify use case found, with a sentence per issue',
     [
       'Kit "acme" passed: schema, imports, types.',
       'Not run: render, tokens.',
-      'render, tokens, look and original need Chrome, Edge or Chromium; none was found. Run "kitvas browser install".',
+      'render, look, original and the tokens of a kit from a package or a folder need Chrome, Edge or Chromium; none was found. Run "kitvas browser install".',
     ].join('\n'),
   );
 

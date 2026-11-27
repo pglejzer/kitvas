@@ -12,7 +12,7 @@ import {
 } from '../../../src/drafts/index.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
-import { NOW, shopDraft, TINY, tempDrafts } from '../../helpers/draft/drafts.ts';
+import { NO_FILES, NOW, shopDraft, TINY, tempDrafts } from '../../helpers/draft/drafts.ts';
 import { FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 
 const kits = createFolderKitStore(FIXTURE_KITS);
@@ -59,7 +59,7 @@ test('a screen draft keeps the brief of a screen', () => {
 
 test('a logo context holds the kit facts, the brief and the files, and no catalog', () => {
   const { store, root } = craftDraft('logo');
-  const context = craftContext(store, kits, 'spark');
+  const context = craftContext(store, kits, 'spark', NO_FILES);
   assert.deepEqual(context.draft, { slug: 'spark', title: 'Spark', version: 1 });
   assert.deepEqual(context.craft, {
     subject: 'logo',
@@ -93,11 +93,13 @@ test('a logo context holds the kit facts, the brief and the files, and no catalo
 test('an icon context holds the icon component alone, a component context the whole catalog', () => {
   const icon = craftDraft('icon');
   assert.deepEqual(
-    craftContext(icon.store, kits, 'spark').kit.components.map((component) => component.name),
+    craftContext(icon.store, kits, 'spark', NO_FILES).kit.components.map(
+      (component) => component.name,
+    ),
     ['Icon'],
   );
   const component = craftDraft('component');
-  const names = craftContext(component.store, kits, 'spark').kit.components.map(
+  const names = craftContext(component.store, kits, 'spark', NO_FILES).kit.components.map(
     (each) => each.name,
   );
   assert.ok(names.includes('Button') && names.includes('Icon'));
@@ -105,16 +107,16 @@ test('an icon context holds the icon component alone, a component context the wh
 
 test('the context is saved beside the build, and its path comes back', () => {
   const { store, root } = craftDraft('logo');
-  const saved = saveCraftContext(store, kits, 'spark');
+  const saved = saveCraftContext(store, kits, 'spark', NO_FILES);
   assert.equal(saved.path, join(root, 'spark', 'v1', 'build', 'context', 'craft.json'));
   const read: unknown = JSON.parse(readFileSync(saved.path, 'utf8'));
-  assert.deepEqual(read, craftContext(store, kits, 'spark'));
+  assert.deepEqual(read, craftContext(store, kits, 'spark', NO_FILES));
 });
 
 test('a draft that is no craft draft has no craft context', () => {
   const { store } = shopDraft();
   assert.throws(
-    () => craftContext(store, kits, 'shop'),
+    () => craftContext(store, kits, 'shop', NO_FILES),
     (error) => error instanceof KitvasError && error.code === 'DRAFT_KIND',
   );
 });

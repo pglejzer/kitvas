@@ -9,6 +9,7 @@ import {
   TAILWIND_ENTRY,
   TAILWIND_PACKAGES,
   TAILWIND_SOURCE,
+  TAILWIND3_PACKAGES,
   tempProject,
   writeFile,
 } from './helpers/temp-project.ts';
@@ -44,6 +45,28 @@ test('the worker builds the CSS in its own process', async () => {
     assert.ok(output.css.includes('--color-spare: #123456'));
     assert.deepEqual(output.unknown, ['bg-nope-x', 'not-a-class']);
     assert.equal(output.files[0], request(dir).entry);
+    assert.equal(output.theme?.version, 4);
+  } finally {
+    await utility.dispose();
+  }
+});
+
+test('the worker builds a Tailwind 3 project in its own process too', async () => {
+  const dir = tempProject(TAILWIND3_PACKAGES, {
+    'tailwind.config.cjs':
+      "module.exports = { theme: { extend: { colors: { brand: '#0055ff' } } } };\n",
+    'src/app.css': '@tailwind utilities;\n',
+    'src/Box.tsx': TAILWIND_SOURCE,
+  });
+  const utility = createTailwindCss();
+  try {
+    const output = await utility.build({ ...request(dir), probe: ['theme(colors.brand)'] });
+    assert.deepEqual(output.errors, []);
+    assert.ok(output.css.includes('.bg-brand'));
+    assert.ok(output.css.includes('--kitvas-theme-colors-brand: #0055ff'));
+    assert.deepEqual(output.unknown, ['bg-nope-x', 'not-a-class']);
+    assert.deepEqual(output.files, [request(dir).entry, join(dir, 'tailwind.config.cjs')]);
+    assert.equal(output.theme?.version, 3);
   } finally {
     await utility.dispose();
   }

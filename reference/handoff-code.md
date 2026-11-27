@@ -33,6 +33,7 @@ Also read `reference/anti-slop.md`, in this folder, for a `craft` logo or icon: 
 - R-FIT-23: When the brief has `shared`, the sections share those values through the page. Keep each one where the project keeps a page's state (the page component's state, a hook, a store, or the URL query when the project keeps filters there), starting at its `default`, with the choices in `values` (`null` is free text). Give the value to every file in `readIn` and a way to change it to every file in `setIn`, in the project's own way. Never port the `shared` and `setShared` props or `shared.json` as they are. A value you cannot keep the project's way goes under `open`.
 - R-FIT-15: Keep the accessibility of the draft: roles and landmarks, `alt` text, labels and `aria-*` attributes, the order of headings, focus order, visible focus rings, a target size of 24 px. When the project's component wraps a control, check the label and the focus ring still reach the element.
 - R-FIT-16: Keep the layout at 390 and 1280 px wide. The draft's SCSS is the reference for spacing, alignment and breakpoints; translate it to the project's styling, with its own units and tokens.
+- R-FIT-24: When the brief has `tailwind`, write the project's classes in that version and with that prefix (v3 `hover:tw-p-4`, v4 `tw:hover:p-4`); the draft's own classes already follow it. Never mix the two syntaxes.
 
 ## Draft kinds
 

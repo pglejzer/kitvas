@@ -207,6 +207,9 @@ const DECLARATION_BLOCKS = new Set([
 
 type Block = 'style' | 'group' | 'keyframes' | 'plain';
 
+/** `@import` of an address on the network: `https://…`, `http://…` or `//…`, bare or in `url()`. */
+const REMOTE_IMPORT = /^@import\s+(?:url\(\s*)?["']?(?:https?:)?\/\//i;
+
 /** `text` cut at the commas that stand outside brackets and strings. */
 function splitList(text: string): string[] {
   const parts: string[] = [];
@@ -245,7 +248,8 @@ export function scanStyles(css: string): StyleScan {
     buffer = '';
     if (text === '') return;
     if (text.startsWith('@')) {
-      atRules.add(atName(text));
+      // A sheet from the network is no build step: both pages are drawn offline, so neither has it.
+      if (!REMOTE_IMPORT.test(text)) atRules.add(atName(text));
       return;
     }
     const colon = text.indexOf(':');
@@ -309,20 +313,34 @@ export function scanStyles(css: string): StyleScan {
   };
 }
 
-/** A name written for another browser engine: this browser drops it, as it does in the app. */
-const OTHER_ENGINE = /(?:^|[\s:(,@])-(?:moz|ms|o|khtml)-/i;
+/**
+ * A name of one browser engine: no build step writes it, and the browser reads or drops it as the
+ * app's does. Chromium even reads `::-webkit-*` in a sheet while `CSS.supports(selector())` says no.
+ */
+const ENGINE_NAME = /(?:^|[\s:(,@])-(?:webkit|moz|ms|o|khtml)-/i;
+
+/** A mark of a build step in a value: a function, a Sass or Less variable, an interpolation. */
+const BUILD_MARK = /[($@~]|#\{/;
 
 /**
  * What of the styles only the project's own build would make readable: at-rules that are not CSS,
  * an `@import` left in the text, and each selector or declaration (`property: value`) the page did
- * not read (`unread`), unless it is written for another engine. [] when the page shows the styles
- * as the app does.
+ * not read (`unread`), unless it is the name of one engine or is a declaration every browser
+ * drops, the app's too (`cursor: hand`: no build mark in its value, and not `composes`). [] when the
+ * page shows the styles as the app does.
  */
 export function needsBuild(scan: StyleScan, unread: string[]): string[] {
   const found = scan.atRules
     .filter((name) => !STANDARD_AT_RULES.has(name) || name === 'import')
     .map((name) => `@${name}`);
-  return [...found, ...unread].filter((item) => !OTHER_ENGINE.test(item));
+  const declared = new Map(scan.declarations.map((pair) => [`${pair[0]}: ${pair[1]}`, pair]));
+  const droppedEverywhere = (item: string): boolean => {
+    const pair = declared.get(item);
+    return pair !== undefined && pair[0] !== 'composes' && !BUILD_MARK.test(pair[1]);
+  };
+  return [...found, ...unread].filter(
+    (item) => !ENGINE_NAME.test(item) && !droppedEverywhere(item),
+  );
 }
 
 /** True when the styles change with the width of the page or of a container. */

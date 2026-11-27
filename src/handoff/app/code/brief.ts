@@ -15,6 +15,7 @@ import {
   sectionPaths,
   serializeJson,
   sketchFile,
+  tailwindFacts,
 } from '../../../drafts/index.ts';
 import {
   cssVarName,
@@ -295,6 +296,11 @@ export function writeBrief(
       ? {}
       : { options: options.map((option) => ({ id: option.id, default: option.default })) }),
     ...(shared.length === 0 ? {} : { shared }),
+    ...(loaded.kit.runtime.styles.tailwind === undefined
+      ? {}
+      : {
+          tailwind: tailwindFacts(deps.files, deps.drafts, slug, base, loaded),
+        }),
     target: `${dir}/target.json`,
     rules: deps.rules,
     report: `${dir}/fit.json`,

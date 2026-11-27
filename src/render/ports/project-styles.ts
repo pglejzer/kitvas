@@ -2,6 +2,7 @@
 // styles. The project is in any technology and is never built.
 
 import type { DeclaredResolve, ProjectResolve } from '../../shared/index.ts';
+import type { UtilityCss } from './utility-css.ts';
 
 export type ProjectStyleInput = {
   /** Absolute project folder. */
@@ -10,6 +11,11 @@ export type ProjectStyleInput = {
   file: string;
   /** The kit's `resolve`. */
   resolve: DeclaredResolve | undefined;
+  /**
+   * Absolute files whose text holds class names. A style file with Tailwind in it is built for
+   * these files; any other style file ignores them.
+   */
+  sources?: string[];
 };
 
 export type ProjectStyleResult =
@@ -42,4 +48,6 @@ export type ProjectStylesDeps = {
   /** The lookup of loads for a project; the one a `repo` kit's Sass uses. */
   lookup: (project: string, found: ProjectResolve) => StyleLookup;
   compile: CompileStyleText;
+  /** The project's own Tailwind: builds a style file that holds `@tailwind` or `@import "tailwindcss"`. */
+  utility: UtilityCss;
 };

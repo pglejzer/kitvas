@@ -21,6 +21,7 @@ body:
         - An npm package (kit new --from npm:<package>)
         - A folder of components in the project (kit new --from repo:<folder>)
         - Tailwind v4
+        - Tailwind v3
         - A Figma file
         - A website
         - Screenshots
