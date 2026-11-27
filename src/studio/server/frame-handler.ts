@@ -3,10 +3,11 @@
 import { readFileSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
-import { type DraftStore, versionFolder } from '../../drafts/index.ts';
+import { type DraftStore, readOptions, versionFolder } from '../../drafts/index.ts';
 import { catalogDir, KitvasError, type Translate } from '../../shared/index.ts';
 import { catalogBuildDir } from '../frame/catalog-files.ts';
 import { frameFile, SERVED_PREVIEWS, type Served } from '../frame/frame-files.ts';
+import { pageWithChoice } from '../frame/frame-page.ts';
 import { type FrameAddress, parseFrameAddress } from '../frame/frame-url.ts';
 import { problemReply, RequestError } from '../http/problem.ts';
 import { send } from '../http/reply.ts';
@@ -58,7 +59,7 @@ function serve(
   head: boolean,
 ): void {
   checkTransport(req, ctx.port, ctx.t);
-  const { path } = requestTarget(req, ctx.t);
+  const { path, query } = requestTarget(req, ctx.t);
   if (req.method !== 'GET' && !head) {
     const method = req.method ?? '';
     throw new RequestError(
@@ -81,7 +82,19 @@ function serve(
   // Its opaque origin makes that a cross-origin read, so a sheet allows it; the key still guards it.
   const sheet = file.type.startsWith('text/css');
   const own = sheet ? { ...headers, 'access-control-allow-origin': '*' } : headers;
-  send(res, { status: 200, type: file.type, body: readFileSync(file.file) }, own, head);
+  send(res, { status: 200, type: file.type, body: bodyOf(ctx, found, file, query) }, own, head);
+}
+
+/** A draft's page carries the chosen options on its root (`frame-page.ts`); other files as stored. */
+function bodyOf(
+  ctx: FrameContext,
+  found: FrameAddress,
+  file: { file: string; type: string },
+  query: URLSearchParams,
+): Buffer | string {
+  if (found.kind !== 'draft' || !file.type.startsWith('text/html')) return readFileSync(file.file);
+  const options = readOptions(ctx.drafts, found.slug, versionFolder(found.version));
+  return pageWithChoice(readFileSync(file.file, 'utf8'), options, query);
 }
 
 export function handleFrame(ctx: FrameContext, req: IncomingMessage, res: ServerResponse): void {
