@@ -11,3 +11,4 @@ coverage/
 evals/results/
 *.log
 docs/spikes/
+evals-picked/
