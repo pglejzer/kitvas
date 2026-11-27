@@ -128,7 +128,7 @@ test('a built draft is framed at the phone width in its default state', async ()
   assert.match(
     text,
     new RegExp(
-      `<iframe src="http://localhost:5001/f/k3y/shop/v1/html/index\\.html\\?state=filled${HASH_5000}" width="390" sandbox="allow-scripts"`,
+      `<iframe src="http://localhost:5001/f/k3y/shop/v1/html/index\\.html\\?state=filled${HASH_5000}" width="390" height="844" sandbox="allow-scripts"`,
     ),
   );
   assert.ok(!text.includes('allow-same-origin'));
@@ -137,9 +137,10 @@ test('a built draft is framed at the phone width in its default state', async ()
     /^<!doctype html>[\s\S]*<main class="draft-page side-screen" data-draft="shop"/m,
   );
   // The latest built version can be edited; the screen opens in Preview.
+  // The opening mark is the first thing inside `main`: nothing of the screen is read before it.
   assert.ok(
     text.includes(
-      '<main class="draft-page side-screen" data-draft="shop" data-version="1" data-state="filled" data-width="390" data-mode="preview" data-edit-panel>',
+      '<main class="draft-page side-screen" data-draft="shop" data-version="1" data-state="filled" data-width="390" data-mode="preview" data-edit-panel><script nonce="N0nce">(function(){var M=document.currentScript.parentNode;',
     ),
   );
   assert.ok(text.includes('<script type="module" src="/assets/draft.js"></script></main>'));

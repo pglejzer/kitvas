@@ -5,7 +5,7 @@
 
 import { MAX_VIEW, MIN_VIEW, SIZES, WIDTHS, type Width } from '../../../src/studio/views/widths.ts';
 
-export { MAX_VIEW, MIN_VIEW, SIZES } from '../../../src/studio/views/widths.ts';
+export { frameHeight, MAX_VIEW, MIN_VIEW, SIZES } from '../../../src/studio/views/widths.ts';
 
 /** The three presets, phone first: the widths the checks run at. */
 export const PRESETS: readonly Width[] = WIDTHS;
@@ -78,16 +78,6 @@ export function snapToPreset(width: number, within: number = SNAP): number {
 export function dragWidth(start: number, dx: number, zoom: number, centred: boolean): number {
   const scale = zoom > 0 && Number.isFinite(zoom) ? zoom : 1;
   return clampView(start + (dx * (centred ? 2 : 1)) / scale);
-}
-
-/**
- * The height of the frame at a width: a phone, a tablet or a desktop window. The page inside
- * scrolls in the frame, so the card keeps the shape of a screen.
- */
-export function frameHeight(width: number): number {
-  if (width < 600) return 844;
-  if (width < 1100) return 1024;
-  return 800;
 }
 
 /**

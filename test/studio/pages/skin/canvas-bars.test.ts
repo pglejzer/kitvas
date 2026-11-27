@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { SKIN_EDITOR_LENS } from '../../../../src/studio/pages/skin/editor/canvas/lens.ts';
 import { SKIN_EDITOR_OPTIONS } from '../../../../src/studio/pages/skin/editor/canvas/options.ts';
 import { SKIN_EDITOR_STAGE } from '../../../../src/studio/pages/skin/editor/canvas/stage.ts';
+import { SKIN_EDITOR_BODY } from '../../../../src/studio/pages/skin/editor/shell/body.ts';
 
 /** The layer (`z-index`) a skin gives a bar of the canvas in the bar's own rule. */
 const layerOf = (skin: string, selector: string): number => {
@@ -12,6 +13,13 @@ const layerOf = (skin: string, selector: string): number => {
   assert.ok(found, `${selector} has a layer`);
   return Number(found[1]);
 };
+
+test('a screen that carries the opening mark is unseen, every part of it, so a reload shows it once', () => {
+  // Shown as the page script set them, the panes, the bars, the draft and its frame came in five
+  // steps on every load. Opacity: the open options row sets its own visibility, and would show.
+  assert.ok(SKIN_EDITOR_BODY.includes('\n.side-screen[data-opening] > * { opacity: 0; }'));
+  assert.ok(!SKIN_EDITOR_STAGE.includes('data-wait'));
+});
 
 test('the options row lies under the pills, so a menu that a pill opens is never drawn under it', () => {
   // A pill bar is a stacking context: the layer of its menu counts only inside the bar. On the

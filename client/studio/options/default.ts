@@ -17,8 +17,11 @@ import type { ChoiceControl } from './choice.ts';
 export const OPTIONS_FILE = 'src/json/options.json';
 
 export type MakeDefault = {
-  /** Edit is on, on the latest version, and no request is on its way. */
-  available(): boolean;
+  /**
+   * Edit is on, which only the latest version has: the button shows. Not whether a step can be
+   * made right now: a button that came and went with every request moved Reset beside it.
+   */
+  offered(): boolean;
   run(): Promise<void>;
 };
 
@@ -46,14 +49,12 @@ export function mountMakeDefault(
     control.redefine(defaults);
   });
 
-  const available = (): boolean => {
-    const state = store.get();
-    return state.on && state.edit !== null && !state.busy;
-  };
+  const offered = (): boolean => store.get().on;
 
   async function run(): Promise<void> {
-    const edit = store.get().edit;
-    if (!available() || edit === null) return;
+    const { edit, busy } = store.get();
+    // The draft's state is still being read, or a request is on its way: no step is made.
+    if (!offered() || edit === null || busy) return;
     const made = control.get();
     const before = defaultChoice(control.options());
     store.set({ busy: true });
@@ -109,5 +110,5 @@ export function mountMakeDefault(
     control.redefine(made);
   }
 
-  return { available, run };
+  return { offered, run };
 }

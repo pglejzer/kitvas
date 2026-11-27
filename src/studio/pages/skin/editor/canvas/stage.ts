@@ -87,11 +87,11 @@ export const SKIN_EDITOR_STAGE = `
   outline-offset: var(--st-space-4);
 }
 .card-frame { position: relative; width: max-content; max-width: none; overflow: visible; }
-/* A draft is not themed: its frame keeps the light canvas a page has in a browser. */
+/* A draft is not themed: its frame keeps the light canvas a page has in a browser. Its height is
+   the frame's own attribute, written for its width (frameHeight), so the canvas fits it once. */
 .card-frame > iframe {
   display: block;
   box-sizing: content-box;
-  height: 800px;
   min-height: 0;
   border: 0;
   border-radius: var(--st-radius-sm);

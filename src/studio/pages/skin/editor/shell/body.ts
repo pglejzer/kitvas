@@ -22,6 +22,10 @@ body.screen { height: 100vh; height: 100dvh; margin: 0; padding: 0; overflow: hi
   height: 100dvh;
   overflow: hidden;
 }
+/* The screen shows once: unseen while it carries the opening mark, which the page script takes off
+   when every part is in its place (pages/editor/first-layout.ts). Opacity, so a part that sets
+   its own visibility stays unseen too, and a frame is laid out and loads meanwhile. */
+.side-screen[data-opening] > * { opacity: 0; }
 .side-screen > .bar-editor { grid-area: bar; }
 .side-screen > .side-body { grid-area: body; }
 .side-screen[data-gripping] { cursor: col-resize; user-select: none; }

@@ -43,6 +43,45 @@ test('the framed address serves the page with the sandbox policy', async () => {
   }
 });
 
+test('a draft page arrives with the chosen theme on its root, before its script runs', async () => {
+  const { studio, store } = await shopStudio();
+  try {
+    store.writeText(
+      'shop',
+      'v1/src/json/options.json',
+      JSON.stringify({
+        schemaVersion: 1,
+        options: [
+          {
+            id: 'theme',
+            label: 'Theme',
+            default: 'light',
+            values: [
+              { id: 'light', label: 'Light' },
+              { id: 'dark', label: 'Dark' },
+            ],
+          },
+        ],
+      }),
+    );
+    store.writeText('shop', 'v1/build/html/index.html', '<!doctype html>\n<html lang="en">');
+    const key = await keyOf(studio);
+    const base = `/f/${key}/shop/v1/html/index.html`;
+    const dark = await call(studio.framePort, { path: `${base}?state=filled&opt-theme=dark` });
+    assert.equal(dark.status, 200);
+    assert.equal(dark.text, '<!doctype html>\n<html data-opt-theme="dark" lang="en">');
+    const plain = await call(studio.framePort, { path: base });
+    assert.equal(plain.text, '<!doctype html>\n<html data-opt-theme="light" lang="en">');
+    // The other files go out as they are.
+    const script = await call(studio.framePort, {
+      path: `/f/${key}/shop/v1/js/index.js?opt-theme=dark`,
+    });
+    assert.equal(script.text, 'document.title = "x";');
+  } finally {
+    await studio.close();
+  }
+});
+
 test('a page on kitvas.localhost frames the prototype origin on that name', async () => {
   const { studio } = await shopStudio();
   try {

@@ -14,9 +14,12 @@ import {
   type Side,
 } from '../../../../client/studio/shell/layout.ts';
 import {
+  MARK_CODE,
   MODE_KEY_START,
   OPENING_CODE,
+  OPENING_WAIT_MS,
   openingLayout,
+  openingMark,
   LAYOUT_KEY as SCRIPT_LAYOUT_KEY,
 } from '../../../../src/studio/pages/editor/first-layout.ts';
 
@@ -213,6 +216,30 @@ test('storage that throws leaves the defaults and does not throw', () => {
   assert.equal(page.main.getAttribute('data-mode'), 'preview');
   assert.equal(page.asides.left.hasAttribute('data-folded'), true);
   assert.equal(page.asides.right.hasAttribute('data-folded'), false);
+});
+
+test('the mark makes the screen unseen from its first tag on, and takes itself off after a while', () => {
+  const main = new Fake();
+  const timers: [() => void, number][] = [];
+  runInNewContext(MARK_CODE, {
+    document: { currentScript: { parentNode: main } },
+    setTimeout: (run: () => void, ms: number): void => void timers.push([run, ms]),
+  });
+  assert.equal(main.getAttribute('data-opening'), '');
+  // A page whose script never shows it still shows.
+  assert.deepEqual(
+    timers.map(([, ms]) => ms),
+    [OPENING_WAIT_MS],
+  );
+  timers[0]?.[0]();
+  assert.equal(main.getAttribute('data-opening'), null);
+});
+
+test('the mark is a script on the response nonce that carries no any', () => {
+  const script = openingMark('N0nce').text;
+  assert.ok(script.startsWith('<script nonce="N0nce">'));
+  assert.ok(script.endsWith('</script>'));
+  assert.ok(!/\bany\b/.test(MARK_CODE));
 });
 
 test('a document without the editor page does nothing', () => {
