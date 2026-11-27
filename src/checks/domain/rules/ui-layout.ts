@@ -28,7 +28,7 @@ import {
   textNodes,
 } from './geometry.ts';
 import type { VisitInput, VisitRule } from './types.ts';
-import { ruleFinding } from './types.ts';
+import { kitComponentOf, ruleFinding } from './types.ts';
 
 const msg = (key: string, params: Record<string, string | number> = {}) => ({ key, params });
 
@@ -314,6 +314,10 @@ const nestedFrame: VisitRule = {
       if (frameOf(facts, index) === null || !holds[index]) return;
       const outer = ancestorsOf(facts, index).find((parent) => frameOf(facts, parent) !== null);
       if (outer === undefined) return;
+      // Both frames are one kit component's own markup (the chosen segment in its track): the
+      // kit drew them, and the draft has nothing to take away.
+      const own = kitComponentOf(input, index) !== null;
+      if (own && facts.nodes[outer]?.ks === facts.nodes[index]?.ks) return;
       found.push(at(input, UI_NESTED_FRAME.id, index, UI_NESTED_FRAME.key, {}, {}));
     });
     return found;
