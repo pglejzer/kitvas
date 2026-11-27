@@ -1,8 +1,8 @@
 name: check
 
+# A pull request runs the check once, on Linux and the lower Node floor; a merge to main runs
+# nothing again. Every system and both Node floors run only when started by hand (before a release).
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -14,8 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node: ["24.22.3", "26.13.1"]
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest"]' || '["ubuntu-latest", "windows-latest", "macos-latest"]') }}
+        node: ${{ fromJSON(github.event_name == 'pull_request' && '["24.22.3"]' || '["24.22.3", "26.13.1"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
