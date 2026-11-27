@@ -32,7 +32,7 @@ Read the project's `package.json` with the Read tool. Candidates:
 
 - npm: a dependency that looks like a design system (`@mui/material`, `antd`, `@acme/ui`).
 - repo: a folder of components, such as "src/components/ui" or "src/ds". Use Glob to see which exist.
-- Tailwind v4: `tailwindcss` 4 and a CSS file with `@import "tailwindcss"`. Tailwind v3 is not supported yet: say so and stop.
+- Tailwind v4: `tailwindcss` 4 and a CSS file with `@import "tailwindcss"`. Tailwind v3 is not supported yet: when `package.json` has `tailwindcss` 3, say so and stop, before `kit new` and also when the user named the source.
 - Figma: a `https://www.figma.com/design/…` link. Website: an `https://` address (up to 5 pages). Screenshots: a project folder of PNG, JPEG or WebP files.
 
 If the user named a source, use it. Otherwise ask at most two questions in one message: which source, and which kit id. For an `npm` or `repo` source, the same message asks the scope: the core (about 30 components, a few minutes) or everything the source exports. Give a safe default for each and use it when the user does not answer; the default scope is the core. When the person named components, do not ask the scope. Remember component names the user gave.

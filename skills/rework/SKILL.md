@@ -105,7 +105,7 @@ From here it is the compose skill, steps 4 to 8. In short:
 
 ## 7. Studio
 
-Run `KITVAS studio <slug> --open --json`. Give the user `data.openUrl` (and `data.fallbackUrl` if the first does not load): a one-time link that works once, for 60 seconds. If it expires, run the command again. The original is shown as version 0 in the compare view, next to the version.
+Run `KITVAS studio <slug> --open --json`. Run it also when `check` found no browser for its checks: the studio needs none of its own, the person opens the link in theirs. Give the user `data.openUrl` (and `data.fallbackUrl` if the first does not load): a one-time link that works once, for 60 seconds. If it expires, run the command again. The original is shown as version 0 in the compare view, next to the version.
 
 ## 8. Next version
 
