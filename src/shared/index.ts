@@ -9,6 +9,8 @@ export * from './env/version.ts';
 export * from './errors/errors.ts';
 export * from './i18n/i18n.ts';
 export type * from './issues/issue.ts';
+export * from './project/resolve.ts';
+export * from './project/tsconfig.ts';
 export * from './settings/config.ts';
 export * from './settings/decision-warnings.ts';
 export * from './settings/decisions.ts';

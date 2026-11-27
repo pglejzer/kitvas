@@ -18,6 +18,7 @@ Your prompt holds the kit folder (`.kitvas/kits/<id>/`), the project folder, the
 - npm source: the package folder in `<project>/node_modules/<name>/` (`package.json`, `.d.ts` files, style files, docs in the package). When the library is well known and the Context7 tools are available, use them for props and a11y notes. If they are not available, read the package alone.
 - repo source: the components folder, the files next to it that define the theme and the tokens, and the project's `package.json`.
 - Read the project's theme and token files before you write `json/tokens.json`.
+- When the kit uses files of the project (a repo kit's components, a theme module, a style file): the project's `tsconfig.json` and its build configuration, for `resolve` (L35b to L35d).
 
 ## Write
 

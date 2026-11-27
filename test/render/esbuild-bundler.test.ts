@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { createEsbuildBundler } from '../../src/render/adapters/esbuild-bundler.ts';
@@ -218,6 +218,98 @@ test('without a Sass compiler an imported .scss file is a bundle error', async (
     const result = await bundler.bundle(input(project, "import './legacy.scss';\n"));
     assert.equal(result.errors.length, 1);
     assert.equal(result.errors[0]?.source, 'bundle');
+  } finally {
+    await close();
+  }
+});
+
+const LOOKUP_FILES: Record<string, string> = {
+  ...PROJECT_REACT,
+  'node_modules/theme-pkg/_vars.scss': '$gap: 12px;\n',
+  'src/shared/marker.ts': 'export const baseMarker = "base-folder";\n',
+  'src/style/_space.scss': '$pad: 24px;\n',
+  'design/tokens/names.ts': 'export const aliasMarker = "declared-alias";\n',
+  'design/tokens/_ink.scss': '$ink: #123456;\n',
+  'work/page.ts': "export { baseMarker as Page } from 'shared/marker';\n",
+  'work/card.scss': [
+    '@use "style/space" as space;',
+    '@use "~tokens/ink" as ink;',
+    '@use "theme-pkg/vars" as v;',
+    '.card {',
+    '  padding: space.$pad;',
+    '  color: ink.$ink;',
+    '  gap: v.$gap;',
+    '}',
+    '',
+  ].join('\n'),
+};
+
+const LOOKUP_ENTRY = [
+  "import { marker } from 'react';",
+  "import { baseMarker } from 'shared/marker';",
+  "import { aliasMarker } from '~tokens/names';",
+  "import './card.scss';",
+  'console.log(marker, baseMarker, aliasMarker);',
+  '',
+].join('\n');
+
+const TOKENS_ALIAS = { roots: [], alias: { '~tokens': 'design/tokens' }, types: [] };
+
+test("scripts and Sass find a project's files as its tsconfig and its kit say", async () => {
+  const project = tempProject([], {
+    ...LOOKUP_FILES,
+    'tsconfig.json': JSON.stringify({ compilerOptions: { baseUrl: 'src' } }),
+  });
+  const { bundler, close } = tools();
+  try {
+    const result = await bundler.bundle({
+      ...input(project, LOOKUP_ENTRY),
+      resolve: TOKENS_ALIAS,
+    });
+    assert.deepEqual(result.errors, []);
+    // The base folder of the tsconfig and the name the kit declares, in scripts and in Sass.
+    assert.ok(result.js.includes('base-folder'));
+    assert.ok(result.js.includes('declared-alias'));
+    assert.ok(result.css.includes('padding: 24px'));
+    assert.ok(result.css.includes('color: #123456'));
+    // Packages are still found in node_modules, React still by kitvas's alias.
+    assert.ok(result.css.includes('gap: 12px'));
+    assert.ok(result.js.includes('project-react-18'));
+  } finally {
+    await close();
+  }
+});
+
+test('a project with no tsconfig is described by its kit alone', async () => {
+  const project = tempProject([], LOOKUP_FILES);
+  const written = join(project, 'work', 'build', 'json', 'tsconfig.esbuild.json');
+  const { bundler, close } = tools();
+  try {
+    // Nothing says where `shared/marker` is: no tsconfig of kitvas is written, the build stops.
+    const bare = await bundler.bundle(input(project, LOOKUP_ENTRY));
+    assert.match(bare.errors[0]?.message ?? '', /Could not resolve "shared\/marker"/);
+    assert.ok(!existsSync(written));
+
+    const resolve = { ...TOKENS_ALIAS, roots: ['src'] };
+    const result = await bundler.bundle({ ...input(project, LOOKUP_ENTRY), resolve });
+    assert.deepEqual(result.errors, []);
+    assert.ok(result.js.includes('base-folder'));
+    assert.ok(result.css.includes('padding: 24px'));
+    const config = readFileSync(written, 'utf8');
+    assert.ok(!config.includes('"extends"'));
+    assert.ok(config.includes('/src/*'));
+    assert.ok(!config.includes('\\'));
+
+    // `kit exports` reads the same record, and writes nothing into the project.
+    const home = project.split('\\').join('/');
+    const names = await bundler.exportNames({
+      workingDir: project,
+      modules: [`${home}/design/tokens/names.ts`, `${home}/work/page.ts`],
+      project,
+      resolve,
+    });
+    assert.deepEqual(names, { names: ['Page', 'aliasMarker'], errors: [] });
+    assert.deepEqual(readdirSync(join(project, 'work')).sort(), ['build', 'card.scss', 'page.ts']);
   } finally {
     await close();
   }

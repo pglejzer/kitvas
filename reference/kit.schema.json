@@ -286,6 +286,40 @@
       ],
       "additionalProperties": false
     },
+    "resolve": {
+      "type": "object",
+      "properties": {
+        "roots": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?!\\/)(?!\\.\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*:)(?!(?:.*\\/)?node_modules(?:\\/|$))[A-Za-z0-9_@.\\-/[\\]()]+$"
+          }
+        },
+        "alias": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(?![./])[A-Za-z0-9_@~#$.\\-/]+(?<!\\/)$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^(?!\\/)(?!\\.\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*:)(?!(?:.*\\/)?node_modules(?:\\/|$))[A-Za-z0-9_@.\\-/[\\]()]+$"
+          }
+        },
+        "types": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?!\\/)(?!\\.\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*:)(?!(?:.*\\/)?node_modules(?:\\/|$))[A-Za-z0-9_@.\\-/[\\]()]+$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "tokens": {
       "type": "object",
       "properties": {

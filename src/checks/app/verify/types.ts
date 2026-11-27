@@ -69,6 +69,7 @@ export async function typesStep(input: TypesInput): Promise<StepResult> {
     entry,
     kitEntry: entryFile(loaded),
     project: loaded.project,
+    resolve: loaded.kit.resolve,
   });
 
   const own = messages.filter((message) => message.file === KIT_TYPES_FILE);

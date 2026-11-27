@@ -105,6 +105,7 @@ test('a kit that bundles cleanly passes, bundled once from its catalog folder', 
     alias: { '@kit': join(loaded.dir, 'generated', 'kit.ts') },
     ids: {},
     project: PROJECT,
+    resolve: undefined,
   });
 });
 

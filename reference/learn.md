@@ -2,6 +2,22 @@
 
 Read by the `learner` agent before it writes a kit. Each rule has an id; reports cite it. These rules are for kits learned from code (an npm package or a folder). A kit written from Figma, a website or screenshots follows `write-kit.md` instead; it reuses the token rules L21 to L24 and the prop type rules L9 to L11.
 
+## Contents
+
+- Where you write (L1 to L4)
+- Core set (L5 to L7)
+- Props (L8 to L14)
+- Imports (L15 to L17)
+- Examples and notes (L18 to L20)
+- Tokens (L21 to L24c)
+- css-var-map.json (L25 to L27)
+- Providers and theme (L28 to L31a)
+- Themes (L31b to L31g)
+- Tailwind (L32 to L35a)
+- How the project finds its files (L35b to L35d)
+- Findings from `kit verify` (L36 to L37)
+- Report (L38)
+
 ## Where you write
 
 - L1: Write only inside the kit folder given in your prompt: `kit.json`, `json/tokens.json`, `json/css-var-map.json`, a theme's token file (L31c), `theme.ts` in the case of L31e, and a fragment file when the prompt names one (L8b). Never write `generated/`: kitvas writes it. Never edit the project's own files or the packages.
@@ -82,9 +98,18 @@ A design system's own themes are the kit's themes: official, with no mark. The s
 - L35: In a Tailwind kit, `styling` is `className`, and examples use the component's own variants (`<Button variant="outline">`). Do not write utility classes in examples unless the component needs them.
 - L35a: A Tailwind v4 dark variant is a theme (L31b). Its `attributes` is the class or the attribute the project's `@custom-variant dark` or `.dark` block uses (`{ "class": "dark" }`), its token file the theme variables that block overrides.
 
+## How the project finds its files
+
+kitvas builds and type-checks the project's own files that a kit uses (a repo kit's components, a theme module, a style file), so their imports and types must mean what they mean in the project. kitvas reads the project's `tsconfig.json` (or `jsconfig.json`) by itself: `baseUrl`, `paths`, the configs it extends or references, and the type files (`.d.ts`) its `include` and `files` take in. `resolve` in kit.json holds only what that file does not say. Its shape is in `reference/kit.schema.json`.
+
+- L35b: When the kit uses files of the project, read the project's build configuration (`vite.config.*`, `webpack.config.*`, `rspack.config.*`, `next.config.*`, `craco.config.*`, a Babel module resolver) and compare it with `tsconfig.json`. Write what the build configuration says and the tsconfig does not. `resolve.roots`: folders an import without `./` starts from, in scripts and in Sass (`resolve.modules: ["src", "node_modules"]`, a Sass `loadPaths` or `includePaths`), as `"roots": ["src"]`; never `node_modules`. `resolve.alias`: names that stand for a folder or a file (`resolve.alias`), as `"alias": { "@": "src", "~styles": "src/styles" }`.
+- L35c: `resolve.types` names the type files that give a library's or a component's types more values (`declare module '@mui/material/Button'`, `declare module '@mui/material/styles'`, `declare global`) when the tsconfig's `include` does not take them in. A `.ts` module that holds such a `declare module` goes there too when nothing the kit imports reaches it (a theme file). A folder stands for its `.d.ts` files: `"types": ["src/types/mui.d.ts", "typings"]`.
+- L35d: Every path in `resolve` is a project path: from the project's root, forward slashes, no `./`, no `..`. Write only folders and files you saw on disk, and only names you read in the build configuration. Never repeat what `tsconfig.json` says. A kit whose components, provider, bindings and style imports all come from packages needs no `resolve`.
+
 ## Findings from `kit verify`
 
 - L36: Fix each issue at its `path` in kit.json. `exportMissing`: the component is not exported under that name: reread the package's index or the file. `propRejected` and `exampleRejected`: the type or the example is wrong: reread the types. `tokenMismatch`: copy `actual` into the token (L23). `tokenUnread`: drop the key from the map and add the token to `gaps` as `unverified`.
+- L36a: An `imports` issue that says `Could not resolve "<name>"` or `Can't find stylesheet to import`, for an import without `./` that is no installed package, means the project finds that file through its build configuration: find the folder or the name there and write it in `resolve` (L35b). A `propRejected` or `exampleRejected` for a value the project's own code uses (its own `variant`, `color`, `size` or breakpoint) means a type file of the project adds that value: find it and name it in `resolve.types` (L35c). Never drop such a value from the kit to make the check pass.
 - L37: Do not hide a failure by deleting the component. Fix it, or move it to `gaps` and say so.
 
 ## Report

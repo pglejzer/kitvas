@@ -201,6 +201,7 @@ export async function buildCatalog(
     },
     ids: {},
     project: loaded.project,
+    resolve: kit.resolve,
   });
   const own: string[] = [];
   if (runtime.styles.tailwind) {

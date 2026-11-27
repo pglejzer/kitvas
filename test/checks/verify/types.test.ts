@@ -63,6 +63,7 @@ test('a kit tsc has nothing to say about passes; tsc runs in the catalog folder'
       entry: TYPES_FILE,
       kitEntry: join(loaded.dir, 'generated', 'kit.ts'),
       project: PROJECT,
+      resolve: undefined,
     },
   ]);
   assert.ok(text.includes('import { TextField } from "@kit";\n'));

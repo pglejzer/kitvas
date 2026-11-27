@@ -174,6 +174,7 @@ export async function buildDraft(deps: RenderDeps, slug: string): Promise<BuildR
     },
     ids: siteMap(ids),
     project: kit.project,
+    resolve: kit.kit.resolve,
   });
   const utility = await utilityBuild(
     deps.utility,

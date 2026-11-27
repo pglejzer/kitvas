@@ -4,15 +4,15 @@
 import { dirname } from 'node:path';
 import type { PartialMessage, Plugin } from 'esbuild';
 import { relativeFile } from './real-path.ts';
-import type { ScssCompile } from './sass-pipeline.ts';
+import type { ScssCompile, ScssLookup } from './sass-pipeline.ts';
 
 /** esbuild names the plugin on its messages; the adapter reports those as style errors. */
 export const SCSS_PLUGIN = 'kitvas-scss';
 
 export type ScssPluginOptions = {
   compile: ScssCompile;
-  /** Where `@use "pkg/..."` is looked up: the project's `node_modules`. */
-  loadPaths: string[];
+  /** Where a load is looked up: the project's import patterns, then its `node_modules`. */
+  lookup: ScssLookup;
   /** Error files are given relative to it, like esbuild's own. */
   workingDir: string;
 };
@@ -29,13 +29,13 @@ function failureMessage(cause: unknown, path: string, workingDir: string): Parti
   };
 }
 
-export function scssPlugin({ compile, loadPaths, workingDir }: ScssPluginOptions): Plugin {
+export function scssPlugin({ compile, lookup, workingDir }: ScssPluginOptions): Plugin {
   return {
     name: SCSS_PLUGIN,
     setup(build) {
       build.onLoad({ filter: /\.scss$/ }, async (args) => {
         try {
-          const { css, loaded } = await compile(args.path, loadPaths);
+          const { css, loaded } = await compile(args.path, lookup);
           return {
             contents: css,
             loader: args.path.endsWith('.module.scss') ? 'local-css' : 'css',

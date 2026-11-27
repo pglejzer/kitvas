@@ -3,7 +3,12 @@
 // re-exports the source; no code of the package runs in Node, nothing is installed or written.
 
 import { join, sep } from 'node:path';
-import { type KitStore, type ProjectSetup, parseKitSource } from '../../kit/index.ts';
+import {
+  type KitStore,
+  type ProjectSetup,
+  parseKitResolve,
+  parseKitSource,
+} from '../../kit/index.ts';
 import type { Bundler } from '../../render/index.ts';
 import { KitvasError } from '../../shared/index.ts';
 import { type ExportsSplit, isSourceModule, splitExports } from '../domain/kit/exports.ts';
@@ -67,7 +72,12 @@ export async function kitExports(deps: ExportsDeps, id: string): Promise<KitExpo
     source.type === 'npm'
       ? packageModules(disk, source.package)
       : folderModules(disk, project, source.path);
-  const read = await deps.bundler.exportNames({ workingDir: project, modules, project });
+  const read = await deps.bundler.exportNames({
+    workingDir: project,
+    modules,
+    project,
+    resolve: parseKitResolve(files.kitJson),
+  });
   const first = read.errors[0];
   if (first !== undefined) throw invalid(buildErrorText(first));
   return { id, source, ...splitExports(read.names, files.kitJson) };

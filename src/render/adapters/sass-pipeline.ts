@@ -2,8 +2,8 @@
 // sheets of drafts and kits, and the `.scss` files components import (through `compileFile`,
 // which the esbuild adapter's Sass plugin calls).
 
-import { fileURLToPath } from 'node:url';
-import { loadDep } from '../../shared/index.ts';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { loadDep, pathTargets } from '../../shared/index.ts';
 import type { BuildError } from '../domain/report.ts';
 import type { StylePipeline } from '../ports/style-pipeline.ts';
 import { relativeFile } from './real-path.ts';
@@ -14,8 +14,16 @@ type Compiler = import('sass-embedded').AsyncCompiler;
 /** The CSS of one file and the files Sass read for it. */
 export type ScssResult = { css: string; loaded: string[] };
 
+/** Where a load that is not beside its file is looked up. */
+export type ScssLookup = {
+  /** The project's import patterns (`ProjectResolve.paths`), tried first, as in its scripts. */
+  paths: Record<string, string[]>;
+  /** Then these folders: the project's `node_modules`, for `@use "pkg/..."`. */
+  loadPaths: string[];
+};
+
 /** Rejects with a `ScssFailure`. */
-export type ScssCompile = (file: string, loadPaths: string[]) => Promise<ScssResult>;
+export type ScssCompile = (file: string, lookup: ScssLookup) => Promise<ScssResult>;
 
 /** Where Sass stopped: `file` absolute, `line` and `column` 1-based (0 when unknown). */
 export type ScssFailure = Error & { file: string; line: number; column: number };
@@ -59,6 +67,26 @@ function toError(cause: unknown, file: string, workingDir: string): BuildError {
   };
 }
 
+/** A load with a scheme (`sass:math`, `pkg:`, `https:`) is never a path of the project. */
+const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+/**
+ * Importers that follow the project's import patterns. A pattern may have several targets, and
+ * Sass asks the next importer when one finds no file, so the n-th importer answers with the n-th
+ * target. Sass itself then looks for the partial, the extension and the index file.
+ */
+function pathImporters(
+  paths: Record<string, string[]>,
+): { findFileUrl(url: string): URL | null }[] {
+  const most = Math.max(0, ...Object.values(paths).map((targets) => targets.length));
+  return Array.from({ length: most }, (_, index) => ({
+    findFileUrl(url: string): URL | null {
+      const target = SCHEME.test(url) ? undefined : pathTargets(paths, url)[index];
+      return target === undefined ? null : pathToFileURL(target);
+    },
+  }));
+}
+
 export function createSassPipeline({ roots }: { roots: string[] }): SassPipeline {
   let started: Promise<Compiler> | undefined;
   const compiler = (): Promise<Compiler> => {
@@ -82,10 +110,16 @@ export function createSassPipeline({ roots }: { roots: string[] }): SassPipeline
       return { css: parts.join('\n'), errors };
     },
 
-    async compileFile(file, loadPaths) {
+    async compileFile(file, { paths, loadPaths }) {
       const sass = await compiler();
       try {
-        const result = await withTimeout(sass.compileAsync(file, { style: 'expanded', loadPaths }));
+        const result = await withTimeout(
+          sass.compileAsync(file, {
+            style: 'expanded',
+            importers: pathImporters(paths),
+            loadPaths,
+          }),
+        );
         const loaded = result.loadedUrls
           .filter((url) => url.protocol === 'file:')
           .map((url) => fileURLToPath(url));

@@ -314,6 +314,7 @@ export async function runChecks(
     entry: join(versionDir, 'src', 'tsx', 'index.tsx'),
     kitEntry: kit.entry,
     project: kit.project,
+    resolve: kit.kit.resolve,
   });
   // A project kit's own files and the project's are checked by `kit verify`.
   raw.push(...typeFindings(messages, ids, { onlyDraft: kit.project !== undefined }));

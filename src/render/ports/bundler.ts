@@ -1,5 +1,6 @@
 // Turns TSX into one script for the browser.
 
+import type { DeclaredResolve } from '../../shared/index.ts';
 import type { BuildError } from '../domain/report.ts';
 
 export type BundleInput = {
@@ -12,9 +13,12 @@ export type BundleInput = {
   ids: Record<string, string>;
   /**
    * The project of a project kit: its `node_modules` supply `react` and `react-dom` when it has
-   * them, and its `node_modules` folder is a Sass load path. Absent for a built-in kit.
+   * them, and scripts and Sass files find their imports as its tsconfig.json says and then in its
+   * `node_modules` (ADR 0092). Absent for a built-in kit.
    */
   project?: string | undefined;
+  /** `resolve` of the kit's kit.json: what the project's build configuration adds to that. */
+  resolve?: DeclaredResolve | undefined;
   /**
    * A plain script for a runtime outside the page (the hand-off's Figma builder): minified, and
    * the entry's exports kept on `var <globalName>`. Absent for drafts and catalogs.
@@ -34,8 +38,10 @@ export type ExportsInput = {
   workingDir: string;
   /** Package specifiers or absolute files with forward slashes; each is read on its own. */
   modules: string[];
-  /** As in BundleInput: the project whose `react` and `react-dom` the modules get. */
+  /** As in BundleInput: the project whose `react`, `react-dom` and import patterns the modules get. */
   project?: string | undefined;
+  /** As in BundleInput. */
+  resolve?: DeclaredResolve | undefined;
 };
 
 export type ExportsOutput = {

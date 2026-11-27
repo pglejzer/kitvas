@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- `resolve` in kit.json: the folders a project's imports start from (`roots`), the names its bundler puts in place of a folder (`alias`) and the type files nothing imports (`types`), for what the project's build configuration says and its `tsconfig.json` does not. The learner reads the build configuration and writes it. ADR 0092.
+
+### Fixed
+
+- A kit of a project that finds its files in its own way no longer fails `kit verify`, a build or a check. Scripts, Sass and the types check now follow one reading of the project's `tsconfig.json` or `jsconfig.json`: `paths`, `baseUrl` as a folder imports start from (also in Sass: `@use 'style/space'`), the configs it extends and references, and the type files its `include` takes in, so a value the project adds to a library's component in a `.d.ts` file is known. ADR 0092.
+
 ## [1.0.0] - 2026-11-27
 
 ### Added

@@ -123,6 +123,26 @@ test('a repo kit: the exports of the modules of its folder, tests and types left
   }
 });
 
+test("a repo kit's source is read the way its kit says the project finds its files", async () => {
+  const { dir, kitId } = fixtureProject('acme-repo');
+  try {
+    writeText(join(dir, 'src', 'shared', 'tones.ts'), 'export const TONES = ["info"];\n');
+    writeText(
+      join(dir, 'src', 'ds', 'Badge.tsx'),
+      'import { TONES } from "shared/tones";\nexport function Badge() {\n  return <span>{TONES[0]}</span>;\n}\n',
+    );
+    // The project's bundler starts imports from `src`; no tsconfig says so.
+    await assert.rejects(kitExports(deps(dir), kitId), failsWith('KIT_SOURCE_INVALID'));
+    editKit(dir, kitId, (json) => {
+      json.resolve = { roots: ['src'] };
+    });
+    const found = await kitExports(deps(dir), kitId);
+    assert.deepEqual(found.open, ['Badge']);
+  } finally {
+    removeFixture(dir);
+  }
+});
+
 test('a source that does not bundle is KIT_SOURCE_INVALID with the first build error', async () => {
   const { dir, kitId } = fixtureProject('acme-repo');
   try {

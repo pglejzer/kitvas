@@ -61,6 +61,12 @@ export const FIGMA_URL =
 /** A web page to scan: http or https, a host without user info. Addresses are checked when scanned. */
 export const WEB_URL = /^https?:\/\/[^\s/?#@]+(?:[/?#][^\s]*)?$/;
 
+/**
+ * A name the project's bundler puts in place of a folder or a file: `@`, `~`, `@app`, `components`.
+ * No `*`, no `.` or `/` in front, no `/` at the end.
+ */
+export const ALIAS_NAME = /^(?![./])[A-Za-z0-9_@~#$.\-/]+(?<!\/)$/;
+
 const packageName = z.string().regex(PACKAGE_SPECIFIER);
 const projectPath = z.string().regex(PROJECT_PATH);
 
@@ -185,6 +191,19 @@ const iconsSchema = z.discriminatedUnion('source', [
   }),
 ]);
 
+/**
+ * How the project's own code finds its files and types, where the project's build configuration
+ * says so and its tsconfig.json does not (ADR 0092). Every path is a project path.
+ */
+const resolveSchema = z.strictObject({
+  /** Folders an import without `./` starts from, in scripts and in Sass: `["src"]`. */
+  roots: z.array(projectPath).default([]),
+  /** Names the bundler puts in place of a folder or a file: `{ "@": "src" }`. */
+  alias: z.record(z.string().regex(ALIAS_NAME), projectPath).default({}),
+  /** Type files, or folders of them, that nothing imports and the tsconfig does not take in. */
+  types: z.array(projectPath).default([]),
+});
+
 export const KitSchema = z.strictObject({
   schemaVersion: z.literal(1),
   id: kitId,
@@ -208,6 +227,7 @@ export const KitSchema = z.strictObject({
   ]),
   framework: z.literal('react'),
   runtime: runtimeSchema,
+  resolve: resolveSchema.optional(),
   tokens: tokensSchema,
   components: z.array(ComponentSchema).min(1),
   icons: iconsSchema.optional(),
@@ -235,6 +255,15 @@ export function parseKitSource(raw: unknown, id: string): KitSource {
   const first = parsed.error.issues[0];
   const where = first?.path.join('.') || 'kit.json';
   throw new KitvasError('KIT_INVALID', { id, detail: `${where}: ${first?.message ?? ''}` });
+}
+
+/**
+ * Only the `resolve` of a kit.json, for `kit exports`, which reads a kit before it is complete.
+ * `undefined` for a kit without one, and for one the contract refuses (`kit verify` says why).
+ */
+export function parseKitResolve(raw: unknown): Kit['resolve'] {
+  const parsed = z.object({ resolve: resolveSchema.optional() }).safeParse(raw);
+  return parsed.success ? parsed.data.resolve : undefined;
 }
 
 /** How many of the contract's complaints a refused kit.json names, so one verify run shows most of them. */

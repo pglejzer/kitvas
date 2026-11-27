@@ -310,6 +310,7 @@ test("a Tailwind project kit: class findings, and only the draft's type errors",
       entry: join(versionDir, 'src', 'tsx', 'index.tsx'),
       kitEntry: join(project, '.kitvas', 'kits', 'shad', 'generated', 'kit.ts'),
       project,
+      resolve: undefined,
     },
   ]);
   const hero = 'src/tsx/sections/Hero.tsx';

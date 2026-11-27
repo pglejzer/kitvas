@@ -1,14 +1,23 @@
 // The bundler: esbuild, with kitvas's JSX dev runtime in place of React's. Styles the bundled
 // modules import come out as one CSS file: plain CSS, CSS Modules, SCSS through the Sass plugin.
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { Loader, Message } from 'esbuild';
-import { loadDep, nodeModulesFrom, packageDirFrom, resolveDep } from '../../shared/index.ts';
+import {
+  type DeclaredResolve,
+  loadDep,
+  nodeModulesFrom,
+  type ProjectResolve,
+  packageDirFrom,
+  readProjectResolve,
+  resolveDep,
+} from '../../shared/index.ts';
 import type { BuildError } from '../domain/report.ts';
 import type { Bundler } from '../ports/bundler.ts';
 import { exportedNames, exportsProbe, probeEntries } from './exports-probe.ts';
-import type { ScssCompile } from './sass-pipeline.ts';
+import type { ScssCompile, ScssLookup } from './sass-pipeline.ts';
 import { SCSS_PLUGIN, scssPlugin } from './scss-plugin.ts';
 
 type Esbuild = typeof import('esbuild');
@@ -90,19 +99,34 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
     return { react: packageDir('react'), 'react-dom': packageDir('react-dom') };
   };
 
+  /** How the project finds its files (ADR 0092), and where its Sass looks a load up. */
+  const projectLookup = (
+    project: string | undefined,
+    declared: DeclaredResolve | undefined,
+  ): { found: ProjectResolve | undefined; lookup: ScssLookup } => {
+    if (project === undefined) return { found: undefined, lookup: { paths: {}, loadPaths: [] } };
+    const found = readProjectResolve(project, declared);
+    return { found, lookup: { paths: found.paths, loadPaths: nodeModulesFrom(project) } };
+  };
+
   /**
-   * kitvas's own tsconfig for a project that has one: it extends the project's (its `paths`) and
-   * overrides only the JSX options, so a project set to classic JSX still compiles to `jsxDEV`.
+   * kitvas's own tsconfig for a project, written at `file`: it extends the project's config (the
+   * options esbuild reads from one), holds every import pattern of the project and overrides the
+   * JSX options, so a project set to classic JSX still compiles to `jsxDEV`. `undefined`, and no
+   * file, for a project with no config and no patterns.
    */
-  const projectTsconfig = (project: string | undefined, workingDir: string): string | undefined => {
-    if (project === undefined) return undefined;
-    const source = join(project, 'tsconfig.json');
-    if (!existsSync(source)) return undefined;
-    const file = join(workingDir, 'build', 'json', 'tsconfig.esbuild.json');
+  const writeTsconfig = (found: ProjectResolve | undefined, file: string): string | undefined => {
+    if (found === undefined) return undefined;
+    const hasPaths = Object.keys(found.paths).length > 0;
+    if (found.config === undefined && !hasPaths) return undefined;
     mkdirSync(dirname(file), { recursive: true });
     const config = {
-      extends: source.split('\\').join('/'),
-      compilerOptions: { jsx: 'react-jsxdev', jsxImportSource: JSX_SOURCE },
+      ...(found.config === undefined ? {} : { extends: found.config }),
+      compilerOptions: {
+        jsx: 'react-jsxdev',
+        jsxImportSource: JSX_SOURCE,
+        ...(hasPaths ? { paths: found.paths } : {}),
+      },
     };
     writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
     return file;
@@ -126,10 +150,13 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
       }
     },
 
-    async bundle({ workingDir, entry, alias, ids, project, script }) {
+    async bundle({ workingDir, entry, alias, ids, project, resolve, script }) {
       const { build } = await esbuild();
-      const loadPaths = project === undefined ? [] : nodeModulesFrom(project);
-      const tsconfig = projectTsconfig(project, workingDir);
+      const { found, lookup } = projectLookup(project, resolve);
+      const tsconfig = writeTsconfig(
+        found,
+        join(workingDir, 'build', 'json', 'tsconfig.esbuild.json'),
+      );
       try {
         const result = await build({
           ...(tsconfig === undefined ? {} : { tsconfig }),
@@ -153,7 +180,7 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
             ...reactDirs(project),
           },
           loader: LOADERS,
-          plugins: scss ? [scssPlugin({ compile: scss, loadPaths, workingDir })] : [],
+          plugins: scss ? [scssPlugin({ compile: scss, lookup, workingDir })] : [],
           define: { ...DEFINE, __KITVAS_IDS__: JSON.stringify(ids) },
           ...(script === undefined ? {} : { globalName: script.globalName, minify: true }),
           logLevel: 'silent',
@@ -166,14 +193,20 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
       }
     },
 
-    async exportNames({ workingDir, modules, project }) {
+    async exportNames({ workingDir, modules, project, resolve }) {
       if (modules.length === 0) return { names: [], errors: [] };
       const { build } = await esbuild();
-      const loadPaths = project === undefined ? [] : nodeModulesFrom(project);
+      const { found, lookup } = projectLookup(project, resolve);
+      // Nothing is written into the project: kitvas's tsconfig lives in a folder of its own for
+      // as long as the build runs.
+      const scratch =
+        found === undefined ? undefined : mkdtempSync(join(tmpdir(), 'kitvas-exports-'));
+      const tsconfig =
+        scratch === undefined ? undefined : writeTsconfig(found, join(scratch, 'tsconfig.json'));
       try {
-        // ESM, so the metafile names each entry's exports. The project's own tsconfig.json is
-        // found by esbuild for its files (its `paths`); nothing is written, not even kitvas's.
+        // ESM, so the metafile names each entry's exports.
         const result = await build({
+          ...(tsconfig === undefined ? {} : { tsconfig }),
           absWorkingDir: workingDir,
           entryPoints: probeEntries(modules),
           bundle: true,
@@ -188,7 +221,7 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
           loader: LOADERS,
           plugins: [
             exportsProbe(modules, workingDir),
-            ...(scss ? [scssPlugin({ compile: scss, loadPaths, workingDir })] : []),
+            ...(scss ? [scssPlugin({ compile: scss, lookup, workingDir })] : []),
           ],
           define: { ...DEFINE, __KITVAS_IDS__: '{}' },
           logLevel: 'silent',
@@ -196,6 +229,8 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
         return { names: exportedNames(result.metafile), errors: [] };
       } catch (cause) {
         return { names: [], errors: toErrors(cause) };
+      } finally {
+        if (scratch !== undefined) rmSync(scratch, { recursive: true, force: true });
       }
     },
 
