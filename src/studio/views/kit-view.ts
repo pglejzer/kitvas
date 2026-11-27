@@ -28,6 +28,11 @@ export type ComponentRow = {
 
 export type CategoryGroup = { category: string; components: ComponentRow[] };
 
+/** The part a kit's page shows: the one the address asks for when the kit has it, else its first. */
+export function shownPart(ids: readonly string[], asked: string | undefined): string | undefined {
+  return asked !== undefined && ids.includes(asked) ? asked : ids[0];
+}
+
 /** One rule per colour token, for the page's own `<style nonce>` block (no inline styles). */
 export function swatchRules(tokens: FlatToken[]): string {
   return tokens

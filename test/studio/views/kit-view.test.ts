@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import { loadKit } from '../../../src/kit/index.ts';
-import { groupComponents, swatchRules } from '../../../src/studio/views/kit-view.ts';
+import { groupComponents, shownPart, swatchRules } from '../../../src/studio/views/kit-view.ts';
 import { builtinKits, FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 
 const tiny = () => loadKit(createFolderKitStore(FIXTURE_KITS), 'tiny');
@@ -39,4 +39,13 @@ test('every component of the kitvas UI kit lands in a group', () => {
   const loaded = loadKit(builtinKits(), 'kitvas-ui');
   const components = groupComponents(loaded.kit.components).flatMap((g) => g.components);
   assert.equal(components.length, loaded.kit.components.length);
+});
+
+test('the page shows the part the address asks for when the kit has it, else its first', () => {
+  const ids = ['kit-colors', 'kit-cat-input', 'kit-icons'];
+  assert.equal(shownPart(ids, 'kit-icons'), 'kit-icons');
+  assert.equal(shownPart(ids, undefined), 'kit-colors');
+  assert.equal(shownPart(ids, 'kit-spacing'), 'kit-colors');
+  assert.equal(shownPart(ids, ''), 'kit-colors');
+  assert.equal(shownPart([], 'kit-icons'), undefined);
 });

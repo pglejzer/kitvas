@@ -1,11 +1,14 @@
-// The parts of a kit's catalog page: problems and components.
+// The parts of a kit's catalog page: the problems, and the components of each category. A
+// component is a card that folds: closed it shows its name and what it is for, open its examples
+// and props. It carries its words for the page's search (`data-search`).
 
 import type { KitIssue } from '../../../kit/index.ts';
 import type { Translate } from '../../../shared/index.ts';
 import type { CategoryGroup, ComponentRow, PropRow } from '../../views/kit-view.ts';
 import { type Html, html } from '../html.ts';
+import { icon } from '../icons/icon.ts';
 import { type CatalogInput, catalogNotes, exampleFigure } from './kit-examples.ts';
-import { cardPart } from './kit-token-view.ts';
+import { cardPart, type KitPart } from './kit-token-view.ts';
 
 export function problemsSection(t: Translate, issues: KitIssue[]): Html | '' {
   if (issues.length === 0) return '';
@@ -33,7 +36,7 @@ function propsTable(t: Translate, component: ComponentRow): Html {
   return html`<div class="kit-scroll" role="region" tabindex="0" aria-label="${component.name}"><table class="kit-props"><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
 }
 
-/** A component as one card: its name, the framed examples beside the props, and the notes. */
+/** A component as one card that folds: its name and purpose, then the examples beside the props. */
 function componentCard(t: Translate, component: ComponentRow, catalog: CatalogInput): Html {
   const deprecated = component.deprecated
     ? html` <span class="k-chip" data-tone="review">${t('studio.kit.deprecated')}</span>`
@@ -48,21 +51,26 @@ function componentCard(t: Translate, component: ComponentRow, catalog: CatalogIn
     component.a11y.length === 0
       ? ''
       : html`<h4>${t('studio.kit.a11y')}</h4><ul class="kit-list">${component.a11y.map((note) => html`<li>${note}</li>`)}</ul>`;
-  return html`<article class="kit-card"><h3>${component.name}${deprecated}</h3><p class="k-quiet">${component.description}</p><div class="kit-card-body">${examples}<div class="kit-card-facts">${propsTable(t, component)}${a11y}</div></div></article>`;
+  const words = `${component.name} ${component.description}`;
+  return html`<article class="kit-card kit-fold" data-search="${words}"><details><summary><h3>${component.name}${deprecated}</h3><span class="k-quiet">${component.description}</span>${icon('chevron-down')}</summary><div class="kit-card-body">${examples}<div class="kit-card-facts">${propsTable(t, component)}${a11y}</div></div></details></article>`;
 }
 
-/** The anchor of a category's heading. */
+/** The id of a category's part. */
 export const categoryId = (category: string): string => `kit-cat-${category}`;
 
-export function componentsSection(
+/** The components of each category as a part: its heading, the notes of the build, a card each. */
+export function componentParts(
   t: Translate,
   groups: CategoryGroup[],
   catalog: CatalogInput,
-): Html | '' {
-  if (groups.length === 0) return '';
-  const blocks = groups.map(
-    (group) =>
-      html`<p class="kit-category" id="${categoryId(group.category)}">${t(`studio.kit.category.${group.category}`)}</p>${group.components.map((component) => componentCard(t, component, catalog))}`,
-  );
-  return html`<section class="kit-part" aria-labelledby="kit-components"><h2 id="kit-components">${t('studio.kit.components')}</h2>${catalogNotes(catalog)}${blocks}</section>`;
+): KitPart[] {
+  return groups.map((group) => {
+    const id = categoryId(group.category);
+    const label = t(`studio.kit.category.${group.category}`);
+    const count = group.components.length;
+    const title = t('studio.kit.categoryTitle', { category: label });
+    const cards = group.components.map((component) => componentCard(t, component, catalog));
+    const body = html`<section class="kit-part" aria-labelledby="${id}"><header class="kit-part-head"><h2 id="${id}">${title}</h2><span class="k-meta" data-view-count>${count}</span></header>${catalogNotes(catalog)}${cards}</section>`;
+    return { id, label, count, body };
+  });
 }

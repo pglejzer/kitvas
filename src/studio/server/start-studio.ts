@@ -229,7 +229,8 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
     ...(deps.idleClock ? { clock: deps.idleClock } : {}),
   });
   const inbox = createInbox({ now, publish: (pending) => events.publish('inbox', { pending }) });
-  // One previews job per kit at a time, started by the palette route when they are stale.
+  // One previews job per kit at a time, started by the palette route and by a kit's page when
+  // they are stale.
   const previews = deps.previews
     ? {
         keeper: createPreviewsKeeper({ previews: deps.previews, jobs, onError }),
@@ -244,6 +245,7 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       t,
       skin,
       frame: { port: framePort, key },
+      previews,
       version: deps.version,
       projectKit: deps.projectKit ?? (() => DEFAULT_KIT),
       doctor: deps.doctor,

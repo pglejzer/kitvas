@@ -7,6 +7,21 @@ import { isRecord as isObject } from '../../../src/shared/values/guards.ts';
 import { jobOf } from '../live/job-events.ts';
 import type { StreamEvent } from '../live/sse.ts';
 
+/** What the end of a previews job means for a page that waits for its icons. */
+export type IconsStep = 'reload' | 'failed';
+
+/**
+ * A page whose icons have no picture yet (`data-icons="making"`) waits for the previews job of its
+ * kit: `reload` when the sheet is made, so the page draws from it; `failed` when none comes, so the
+ * note that says they are coming goes away. `undefined` for any other event.
+ */
+export function iconsStep(kit: string, event: StreamEvent): IconsStep | undefined {
+  const job = jobOf(event);
+  if (job?.kind !== 'previews' || job.slug !== kit) return undefined;
+  if (job.state === 'succeeded') return 'reload';
+  return job.state === 'failed' || job.state === 'cancelled' ? 'failed' : undefined;
+}
+
 /** `data-catalog` of the page: `ready` when a build's stamp existed as the page was made. */
 export type CatalogState = 'ready' | 'missing';
 
