@@ -3,7 +3,7 @@
 // open pages (the `drafts` event). With no studio the caller makes the change on the files itself.
 
 import { KitvasError, z } from '../../../shared/index.ts';
-import { type LifecycleDeps, studioStatus } from '../../run/lifecycle.ts';
+import { type LifecycleDeps, runningState } from '../../run/lifecycle.ts';
 import type { StudioState } from '../../run/state-file.ts';
 import { callStudio, type StudioAnswer, type StudioCall } from '../../run/studio-client.ts';
 import {
@@ -31,14 +31,6 @@ const ProblemSchema = z.object({ code: z.string(), detail: z.string().optional()
 const OWN_CODES = ['DRAFT_NOT_FOUND', 'DRAFT_NOT_DELETED', 'DRAFT_EXISTS'] as const;
 const isOwnCode = (code: string): code is (typeof OWN_CODES)[number] =>
   (OWN_CODES as readonly string[]).includes(code);
-
-/** The studio of this project, when one answers. */
-async function runningState(lifecycle: LifecycleDeps): Promise<StudioState | undefined> {
-  const found = await studioStatus(lifecycle);
-  if (!found) return undefined;
-  const state = lifecycle.readState();
-  return state?.pid === found.pid ? state : undefined;
-}
 
 /**
  * A refusal of the studio. One about the draft is the error the files would have thrown, so the

@@ -65,7 +65,6 @@ code, kbd, pre { font-family: var(--st-font-mono); font-size: var(--st-font-size
 /* Text helpers. */
 .k-quiet { color: var(--st-color-ink-mid); }
 .k-meta { color: var(--st-color-ink-mid); font-size: var(--st-font-size-xs); }
-.k-strong { font-weight: var(--st-font-weight-bold); }
 .k-fix { color: var(--st-color-fix); }
 .k-review { color: var(--st-color-review); }
 .k-good { color: var(--st-color-good); }

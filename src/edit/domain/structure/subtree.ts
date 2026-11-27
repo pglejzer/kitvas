@@ -44,6 +44,14 @@ const CONTROL = new Set(['if', 'for', 'while', 'switch', 'catch', 'with']);
 const holds = (span: Span, at: number): boolean => span.start <= at && at < span.end;
 const isFragment = (text: string, at: number): boolean => text.charAt(at + 1) === '>';
 
+/** The one element or fragment `source` is, from its `<`; `null` for anything else. */
+export function wholeElement(source: string): Span | null {
+  const start = source.length - source.trimStart().length;
+  if (source.charAt(start) !== '<') return null;
+  const span = elementSpan(source, start);
+  return span !== null && source.slice(span.end).trim() === '' ? span : null;
+}
+
 /** The element whose `<` is at `at`, through the end of its closing tag; `null` when it is none. */
 export function elementSpan(text: string, at: number): Span | null {
   const end = elementEnd(text, at);

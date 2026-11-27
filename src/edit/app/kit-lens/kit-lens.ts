@@ -28,9 +28,9 @@ import {
   tokenTypeOf,
 } from '../../domain/types.ts';
 import type { EditCompiler } from '../../ports/compiler.ts';
-import { editKit, styleFormat, tokenOptions } from '../edit-state.ts';
-import { catalogComponent, classesOf, pickStyleClass } from '../inspect.ts';
-import { sourceFiles } from '../structure/section-files.ts';
+import { catalogComponent, editKit, styleFormat, tokenOptions } from '../edit-state.ts';
+import { classesOf, pickStyleClass } from '../inspect.ts';
+import { inPageOrder, sourceFiles } from '../structure/section-files.ts';
 import { suggestFor } from '../suggest/suggest.ts';
 
 export type KitLensDeps = { drafts: DraftStore; kits: KitStore; compiler: EditCompiler };
@@ -60,16 +60,6 @@ const varOf = (text: string): string | null => VAR.exec(text.trim())?.[1] ?? nul
 
 /** `space.md` is named `space-md`, as the lens pin shows it. */
 const tokenLabel = (token: TokenOption): string => token.path.replaceAll('.', '-');
-
-/** The version's TSX files in the order the page shows them: the layout's sections first. */
-function inPageOrder(files: readonly string[], ids: readonly string[]): string[] {
-  const order = ids.map((id) => `src/tsx/sections/${pascalCase(id)}.tsx`);
-  const rank = (file: string): number => {
-    const at = order.indexOf(file);
-    return at < 0 ? order.length : at;
-  };
-  return files.filter((file) => file.endsWith('.tsx')).sort((a, b) => rank(a) - rank(b));
-}
 
 type Site = { id: string; at: number };
 

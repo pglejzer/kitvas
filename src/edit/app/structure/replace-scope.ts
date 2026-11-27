@@ -9,9 +9,8 @@
 // by file, not by scope: a name bound in another function of the file passes. There is no parser
 // here; the two questions are put to the readers the editor already trusts.
 
-import { elementSpan, freeIdentifiers } from '../../domain/structure/subtree.ts';
+import { elementSpan, freeIdentifiers, wholeElement } from '../../domain/structure/subtree.ts';
 import { syncKitImports } from '../../domain/tsx/kit-imports.ts';
-import type { Span } from '../../domain/types.ts';
 
 /** `missing`: names the file lacks. `imports`: kit components the kit import will gain. */
 export type ReplaceNeeds = { missing: string[]; imports: string[] };
@@ -25,14 +24,6 @@ const GLOBALS: ReadonlySet<string> = new Set([
   ...'RegExp Set String Symbol console document globalThis isFinite isNaN navigator'.split(' '),
   ...'parseFloat parseInt window location encodeURIComponent decodeURIComponent'.split(' '),
 ]);
-
-/** The one element or fragment `source` is, from its `<`; `null` for anything else. */
-function wholeElement(source: string): Span | null {
-  const start = source.length - source.trimStart().length;
-  if (source.charAt(start) !== '<') return null;
-  const span = elementSpan(source, start);
-  return span !== null && source.slice(span.end).trim() === '' ? span : null;
-}
 
 /**
  * Whether the file neither binds `name` at its top (an import from anywhere, a declaration) nor

@@ -2,7 +2,7 @@
 // defaults. The answer is an edit's own outcome (`EditOutcomeSchema`), so Undo sends its inverse
 // through the edits route like every other step.
 
-import { MAX_OPTIONS, OPTION_ID, OPTION_VALUE, type Zod, z } from '../../../shared/index.ts';
+import { MAX_OPTIONS, OPTION_ID, OPTION_VALUE, z } from '../../../shared/index.ts';
 
 /** `POST /api/v1/drafts/{slug}/options/default`. */
 export const OptionsDefaultRequestSchema = z.strictObject({
@@ -13,5 +13,3 @@ export const OptionsDefaultRequestSchema = z.strictObject({
     .record(z.string().regex(OPTION_ID), z.string().regex(OPTION_VALUE))
     .refine((choice) => Object.keys(choice).length <= MAX_OPTIONS),
 });
-
-export type OptionsDefaultRequest = Zod.infer<typeof OptionsDefaultRequestSchema>;

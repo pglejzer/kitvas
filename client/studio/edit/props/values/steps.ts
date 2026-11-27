@@ -24,8 +24,8 @@ const SPACE = ['space', 'spacing'];
 const NUMBER = /^-?(?:\d+\.?\d*|\.\d+)$/;
 const VAR = /^var\(\s*(--[A-Za-z0-9_-]+)\s*\)$/;
 
-/** A length in px; `rem` and `em` count 16 px. `null` when it is not a plain length. */
-function pixels(css: string): number | null {
+/** A length in px; `rem` and `em` count 16 px. `null` for a `%`, `calc` and so on. */
+export function pxOf(css: string): number | null {
   const match = /^(-?(?:\d+\.?\d*|\.\d+))(px|rem|em)?$/.exec(css.trim());
   if (!match?.[1]) return null;
   const size = Number(match[1]);
@@ -39,7 +39,7 @@ function plainNumber(css: string): number | null {
 
 /** The number a value is ordered by, by the type of the token scale; `null` for colours. */
 function orderOf(css: string, type: TokenOption['type']): number | null {
-  if (type === 'dimension') return pixels(css);
+  if (type === 'dimension') return pxOf(css);
   if (type === 'fontWeight' || type === 'number') return plainNumber(css);
   return null;
 }
@@ -77,7 +77,7 @@ const GROUPS: Partial<Record<StyleProperty, readonly string[]>> = {
 };
 
 /** `fontSize.md` is in the group `font-size`; `color.ink.mid` in `ink`. */
-const groupOf = (token: TokenOption): string =>
+export const groupOf = (token: TokenOption): string =>
   (token.path.split('.').slice(0, -1).at(-1) ?? '')
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
     .toLowerCase();

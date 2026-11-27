@@ -10,7 +10,6 @@ import {
   type KitComponent,
   type KitStore,
   kitBreakpoints,
-  type LoadedKit,
 } from '../../kit/index.ts';
 import { elementIds, readSites } from '../../render/index.ts';
 import { KitvasError } from '../../shared/index.ts';
@@ -49,7 +48,7 @@ import {
   type TagView,
 } from '../domain/types.ts';
 import type { EditCompiler } from '../ports/compiler.ts';
-import { editKit, styleFormat, tokenOptions } from './edit-state.ts';
+import { catalogComponent, editKit, styleFormat, tokenOptions } from './edit-state.ts';
 import { type ItemScope, itemScoped } from './inspect-item.ts';
 import { type InspectSource, lineAt, sourceOf } from './inspect-source.ts';
 import { locateElement } from './locate.ts';
@@ -185,13 +184,6 @@ const imageNames = (names: readonly string[]): string[] =>
     .filter((name) => IMAGE_FILE.test(name))
     .sort()
     .slice(0, MAX_IMAGES);
-
-/** `Card.Header` is the part `Header` of `Card`: the catalog entry is `Card`. */
-export function catalogComponent(kit: LoadedKit | null, tag: string): KitComponent | null {
-  const name = tag.split('.')[0] ?? tag;
-  if (!/^[A-Z]/.test(name)) return null;
-  return kit?.kit.components.find((component) => component.name === name) ?? null;
-}
 
 /** A part such as `Card.Header` takes none of the root's catalog props (`Card`'s `padding`). */
 const isPart = (tag: string): boolean => tag.includes('.');

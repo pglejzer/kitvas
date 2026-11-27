@@ -42,6 +42,7 @@ import type { PageRequest } from '../gallery.ts';
 import { type Html, html } from '../html.ts';
 import { page } from '../shell.ts';
 import type { Skin } from '../skin.ts';
+import { kitLabel } from '../start/block.ts';
 import { trashTexts } from '../trash/trash-texts.ts';
 import { craftPick } from './craft-board.ts';
 import { choiceLink } from './draft-links.ts';
@@ -57,16 +58,6 @@ export type DraftPageDeps = {
   skin: Skin;
   frame: FrameOrigin;
 };
-
-/** The kit's own name; its id when the kit is gone or cannot be read. */
-function kitName(kits: KitStore, id: string): string {
-  try {
-    return loadKit(kits, id).kit.name;
-  } catch (error) {
-    if (error instanceof KitvasError) return id;
-    throw error;
-  }
-}
 
 /**
  * What the project added to the draft's kit (plan 25, C8): the themes that come from the additions
@@ -250,7 +241,7 @@ export function draftPage(deps: DraftPageDeps, slug: string, request: PageReques
   const link = choiceLink(draft, choice);
   const block = editBlock({ built: info.built, version, latest, compare });
   const editable = block === null;
-  const kit = kitName(deps.kits, draft.kit.id);
+  const kit = kitLabel(deps.kits, draft.kit.id);
   const additions = additionsOf(t, deps.kits, draft.kit.id);
 
   const status = shownStatus(info.built, checks, shown);

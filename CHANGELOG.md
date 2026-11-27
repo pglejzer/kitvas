@@ -4,14 +4,16 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-27
+
 ### Added
 
 - Controls in `kitvas check`: every control is put under a real pointer and given keyboard focus at 390 and 1280 px, and its text must keep 4.5:1 there (`a11y/state-contrast`); at 1280 px each button, group of toggles, select and search field is used once, and one that changes nothing on the page is reported (`ux/dead-control`). ADR 0085. Chart bars and skeleton lines are no longer read as placeholder pictures or nested frames, a mapped navigation is not read as moving between states, and text that a sideways scroller cuts off is not measured against the screen edge.
-- Shared values: a control in one section can change another. A version declares what a person chooses on the page (a date range, a grouping, a search text) in `src/json/shared.json`; `kitvas layout` writes its type and hands `shared` and `setShared` to every section; the values stay when the studio brings in a new build; `ux/shared-unused` reports a value that no control sets or no section reads. A brief has a Controls part, and `reference/controls.md` holds the rules for makers. ADR 0086.
+- Shared values: a control in one section can change another. A version declares what a person chooses on the page (a date range, a grouping, a search text) in `src/json/shared.json`; `kitvas layout` writes its type and hands `shared` and `setShared` to every section; the values stay when the studio brings in a new build; `ux/shared-unused` reports a value that no control sets or no section reads; a hand-off to code keeps them as the page's state, set and read by the same sections (ADR 0088). A brief has a Controls part, and `reference/controls.md` holds the rules for makers. ADR 0086.
 - Options of a version: one version can hold choices (two or three columns, another kind of card), declared in `src/json/options.json`; the build, the check and the hand-off know them (ADR 0082). `kitvas layout` writes the options type and passes `options` to every section; the check visits each other value at two widths, with the rules `options/no-effect` and `options/unknown`; hand-off takes the default combination. In the editor a style edit goes to all options or to one value alone ("Only Cards: Filled"), written as a block of that value in the section's SCSS; Undo takes the block out again.
 - Themes: a kit lists its themes (`tokens.themes`, a token file each; a design system's own switch is named as `attributes` on the body) and a version offers them as the option `theme`; learning takes a system's own themes. The project may add tokens and theme values in `.kitvas/additions/<kit>/`, marked "Added by this project"; compose, rework and craft ask before adding anything (ADR 0083). The mark shows on an added theme in the Options row, on an added token in Properties and in a group of its own on the kit's page; `kitvas kit show` lists the themes and the added tokens, and the code hand-off's brief lists the added tokens a draft uses as tokens to create. `tokens.modes` is gone from the kit contract.
 - `CONTRIBUTING.md` (how to report a problem, the setup, what a pull request has to pass) and `CODE_OF_CONDUCT.md` (Contributor Covenant 3.0).
-- License: PolyForm Shield 1.0.0 (LICENSE.md). kitvas may be used, modified and distributed, including for commercial purposes, provided it is not used to offer competing products or services.
+- License: PolyForm Shield 1.0.0 (LICENSE.md) for kitvas, the MIT License (kits/base/LICENSE) for the Base kit, and LICENSING.md, which says which covers what. kitvas may be used, modified and distributed, including for commercial purposes, provided it is not used to offer competing products or services; the Base kit may be used, changed and distributed for any purpose; the kitvas name and logo may not be used outside kitvas, and the logo may not be changed.
 - `kitvas status` and `kitvas init`, each with `--json`.
 - The project's decisions file, `.kitvas/decisions.md`: a short front matter (`kit`, `copy`, `check`) the CLI reads, then dated decisions in five sections that every skill reads and keeps; `kitvas decisions [add | set | replace]` with `--json`, and a `decisions` check in `kitvas doctor` (ADR 0076).
 - Kit contract (`kit.json`), DTCG 2025.10 tokens turned into `--kit-*` custom properties, and `kitvas kit list | show | check | component | css`.
@@ -42,7 +44,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - An end-to-end test of the stage-1 path through the real CLI and studio, and evals for the three skills.
 - `kitvas map [slug]`: the workspace for agents in one answer, drafts or one draft's sections, files and element ids.
 - The `/kitvas:compose` skill with the `maker` and `patcher` agents: a draft from a brief, section by section, fixed until its checks pass.
-- Quality gate: lint, types, tests with coverage, audit, and architecture, size, legacy and docs guards.
+- Quality gate: lint, types, tests with coverage, audit, and architecture, size, English and docs guards.
 - Written kits from a Figma file, a website or screenshots: the `tailor` agent writes the components into the kit folder, `kitvas kit scan` reads a website and `kitvas kit crop` cuts the references. `kit verify` gains a sixth step, `look`, that scores each example against its reference. Figma is read only through the person's own MCP server (ADR 0035 to 0038).
 - Guidelines with ids and sources, and `kitvas guidelines` for the checklist a skill answers from the screenshots; facts read from the rendered page for the checks (ADR 0043, 0044, 0047).
 - `/kitvas:rework` and `/kitvas:craft`: a draft that reworks an existing page or screenshot, and one that sketches a missing component, icon or logo with the `sketcher` agent. `kitvas craft pick | add | export` keep a sketch, put it into the project's additions layer for the kit or write it to a folder; `kitvas kit detect` lists the project's kits and the signs of a design system not learned yet (ADR 0045, 0046).
@@ -63,7 +65,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - `kitvas doctor`: a report of the setup that holds nothing private, also as a studio page (ADR 0063).
 - `kitvas draft delete | restore | purge`, with a trash in `.kitvas/trash/` and a page for a draft in it (ADR 0064).
 - A kit page for an id that is not there: a 404 that says so and gives `kitvas kit list`.
-- Skill evals for `claude plugin eval` in `evals/`, for the `kitvas`, `kit`, `compose`, `learn`, `craft` and `rework` skills.
+- Skill evals for `claude plugin eval` in `evals/`, for the `kitvas`, `kit`, `compose`, `learn`, `craft`, `rework` and `handoff` skills.
 - `.claude-plugin/marketplace.json`, so the plugin installs with `claude plugin marketplace add pglejzer/kitvas` and `claude plugin install kitvas@kitvas`.
 - Notes are taken from the inbox only by `POST /api/v1/inbox/take` with the studio's Origin; no GET request changes state (ADR 0028).
 - Refused requests of the studio and the prototype origin are written to the studio log, without queries, tokens or cookies, at most 20 a minute.

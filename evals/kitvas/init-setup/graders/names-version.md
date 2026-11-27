@@ -1,9 +1,9 @@
 ---
 type: regex
-pattern: '0\.1\.0'
-flags: i
+pattern: '\b\d+\.\d+\.\d+\b'
 match: contains
 target: last_message
 ---
 
-The answer includes the kitvas version.
+The answer includes a version number. Which one is not written here, so a release does not break this grader:
+`answer-complete` holds it to what `status` printed.

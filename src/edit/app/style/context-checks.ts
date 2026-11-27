@@ -15,15 +15,8 @@ import { type SourceInput, styleSource, tokenGroupsOf } from '../../domain/style
 import { contextOfVariants, ownProperties, splitUtility } from '../../domain/style/utilities.ts';
 import { readTag } from '../../domain/tsx/apply-tsx.ts';
 import { isStyleProperty, type Refusal, type StyleProperty } from '../../domain/types.ts';
-import { tokenOptions } from '../edit-state.ts';
-import {
-  breakpointsOf,
-  componentOf,
-  kitOf,
-  locate,
-  optionsOf,
-  type Work,
-} from '../request-state.ts';
+import { catalogComponent, tokenOptions } from '../edit-state.ts';
+import { breakpointsOf, kitOf, locate, optionsOf, type Work } from '../request-state.ts';
 
 /** The context an op writes and the properties it sets there; `null` for an op of the base. */
 function written(op: SimpleOp): { context: StyleContext; properties: StyleProperty[] } | null {
@@ -69,7 +62,7 @@ export async function contextRefusal(work: Work, op: SimpleOp): Promise<Refusal 
   const { loaded } = kitOf(work);
   // A part such as `Card.Header` takes none of the root's catalog props.
   const component =
-    typeof tag === 'string' || tag.name.includes('.') ? null : componentOf(loaded, tag.name);
+    typeof tag === 'string' || tag.name.includes('.') ? null : catalogComponent(loaded, tag.name);
   if (typeof tag === 'string' || component === null) return null;
   const input: Omit<SourceInput, 'property'> = {
     component: { props: component.props },

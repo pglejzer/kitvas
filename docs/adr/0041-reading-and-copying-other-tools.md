@@ -1,6 +1,6 @@
 # 0041. Reading and copying other tools
 
-Date: 2026-11-23. Status: accepted. Changes 0001 in part.
+Date: 2026-11-23. Status: accepted, changed in part by ADR 0089. Changes 0001 in part.
 
 ## Context
 

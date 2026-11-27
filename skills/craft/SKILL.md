@@ -1,7 +1,7 @@
 ---
 
 name: craft
-description: "Use when the user names a missing component, icon or logo and gives an example (a screenshot, a page or a Figma link), wants a few sketches to pick from, and wants the result added to their project's kit."
+description: "Use when the user names a missing component, icon or logo and gives an example (a screenshot, a page or a Figma link), wants a few sketches to pick from, and wants the result added to their project's kit; also when they want a finished one written out as a plain file to use in another project."
 ---
 
 # kitvas: craft a component, an icon or a logo
@@ -42,13 +42,13 @@ Infer the subject from the description:
 - `icon`: a small symbol, usually asked as "an icon for …".
 - `logo`: a brand mark, with or without a word mark.
 
-Ask only when the description is unclear (for example "something for the header"). One question, with your best guess as the default. For a logo or an icon, a word about its look that can be read two ways is unclear too: a material, a craft or a mood ("kraft" may be the brown of kraft paper or a handmade style). Ask which before the brief: a round of sketches costs far more than one question. Also settle a name in PascalCase (`PricingCard`, `CalendarCheckIcon`, `AcmeLogo`) and a one-line description. Propose both; do not ask for them.
+Ask only when the description is unclear (for example "something for the header"). One question, with your best guess as the default. For a logo or an icon, a word about its look that can be read two ways is unclear too: a material, a craft or a mood ("kraft" may be the brown of kraft paper or a handmade style). Ask which before the brief: a round of sketches costs far more than one question. That one question is the only one: whatever else is open (a mark with or without the name, what it shows) you decide and say as what you will do, never as a second question. Also settle a name in PascalCase (`PricingCard`, `CalendarCheckIcon`, `AcmeLogo`) and a one-line description. Propose both; do not ask for them.
 
 Tell the example apart by itself: an image path, a URL (a local or private address needs the person's explicit yes, then `--allow-private`) or a Figma link. For Figma, use the person's own Figma MCP as in the rework skill: `whoami` first, one screenshot of the frame, saved to a PNG, then pass it as `--image`. kitvas holds no Figma key. Without the MCP, offer a screenshot. An example is optional: with none, the sketches follow the kit alone.
 
 ## 3. For a component: does the kit have it?
 
-Run `KITVAS kit show --json` and read the catalog: names, categories, descriptions. Look for near matches by what the thing does, not only by name. Read each near match with `KITVAS kit component <Name> --json` before you say what it can do, and name only the variants, tones and props that output lists ("the kit has `Card` with a `highlight` variant, which may already do this"). Then stop and ask whether they still want the new one: a request to sketch it is not that answer, since the person may not know the kit has the near match. They may stop here, or use the near match with `compose`. Start the draft only when they still want the new one, or when they already said they want it whatever the kit has; then name the near match in your report. An icon is checked against the kit's icon names (`icons` in the same answer) the same way.
+Run `KITVAS kit show --json` and read the catalog: names, categories, descriptions. Look for near matches by what the thing does, not only by name. Read each near match with `KITVAS kit component <Name> --json` before you say what it can do, and name only the variants, tones and props that output lists ("the kit has `Card` with a `highlight` variant, which may already do this"). Then stop and ask whether they still want the new one: a request to sketch it is not that answer, since the person may not know the kit has the near match. They may stop here, or use the near match with `compose`. Start the draft only when they still want the new one, or when they already said they want it whatever the kit has; then name the near match in your report. An icon is checked the same way against the kit's icon names: `icons` in the same answer is only how many there are, the names are in the entry of the kit's icon component (in Base `KITVAS kit component Icon --json`, the values of `name`).
 
 ## 4. Start the draft
 
@@ -72,7 +72,7 @@ Start one `kitvas:sketcher` agent on model Sonnet. Its prompt has: the draft fol
 
 Do not start three agents for three sketches: one agent writes all three, so they stay distinct from each other. When a sketch needs tokens or a theme the kit lacks, follow "What the kit lacks" in step 3 of `${CLAUDE_PLUGIN_ROOT}/skills/compose/SKILL.md` before you start the sketcher; the component's own addition (step 8) is a different thing.
 
-When it is done, check the three files are there. A missing sketch: start the agent again for that one. For a logo or an icon, read its nearest-mark line: a sketch it calls only a stock pictogram or a common trope (R-CRAFT-19), or one that differs from its nearest mark only in a detail (R-CRAFT-20), goes back to the agent once, with that line as the reason, for a new idea in that sketch, before the build.
+When it is done, check the three files are there. A missing sketch: start the agent again for that one. For a logo or an icon, read its nearest-mark line: a sketch it calls only a stock pictogram or a common trope (R-CRAFT-19), or one that differs from its nearest mark only in a detail (R-CRAFT-20), goes back to the agent once, with that line as the reason, for a new idea in that sketch, before the build. A sketch that goes back, for this or any other reason, comes back with a nearest-mark line of its own: ask for it in that prompt.
 
 ## 6. Build, check, board
 
@@ -80,9 +80,9 @@ Run `KITVAS build <slug> --json`. If `data.built` is false, send the errors to a
 
 Look at the screenshots in `build/shots/` with the Read tool. Does each sketch read as its subject? Does the icon sit with the kit's own icons beside it? Does the logo hold at 16 px and in one colour? Fix what you can; at most two rounds.
 
-Run `KITVAS studio <slug> --open --json`. Give the person `data.openUrl` (and `data.fallbackUrl` if the first does not load): a one-time link, 60 seconds, run the command again if it expires. The page is the board: the three sketches side by side with their context (an icon at 16, 24 and 32 px beside six of the kit's icons; a logo at 16 and 32 px and natural size, in colour and mono, on light and dark; a component with its states at 390 and 1280).
+Run `KITVAS studio <slug> --open --json`. Run it also when `check` found no browser for its checks: the studio needs none of its own, the person opens the link in theirs. Give the person `data.openUrl` (and `data.fallbackUrl` if the first does not load): a one-time link, 60 seconds, run the command again if it expires. The page is the board: the three sketches side by side with their context (an icon at 16, 24 and 32 px beside six of the kit's icons; a logo at 16 and 32 px and natural size, in colour and mono, on light and dark; a component with its states at 390 and 1280).
 
-Tell the person in a few lines what each sketch is (its one idea) and which has check problems left, in plain words. Do not paste findings. For a logo or an icon, give with each sketch the sketcher's nearest-mark line in plain words (which known mark or pictogram it comes closest to and what sets it apart), so the person picks knowing it. If the sketcher reports that a sketch is only a stock pictogram, say that too.
+Tell the person in a few lines what each sketch is (its one idea) and which has check problems left, in plain words. Do not paste findings. For a logo or an icon, give with each of the three sketches, a redrawn one too, the sketcher's nearest-mark line in plain words (which known mark or pictogram it comes closest to and what sets it apart, or that the sketcher knows none), so the person picks knowing it. If the sketcher reports that a sketch is only a stock pictogram, say that too.
 
 ## 7. Pick and refine
 

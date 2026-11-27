@@ -3,6 +3,7 @@
 
 import type { RawFinding } from '../findings/finding.ts';
 import type { IdEntry } from './ids.ts';
+import { placeOf } from './source-rules.ts';
 
 export type ImportInput = {
   /** Path inside the draft version: `src/tsx/sections/Hero.tsx`. */
@@ -31,11 +32,6 @@ const allowed = (source: string): boolean =>
 
 /** A draft's own style file: the entry `index.scss` includes every one with `@use`. */
 const STYLE_FILE = /\.(?:s[ac]ss|css)(?:\?.*)?$/i;
-
-function placeOf(text: string, index: number): { line: number; column: number } {
-  const before = text.slice(0, index);
-  return { line: before.split('\n').length, column: index - before.lastIndexOf('\n') };
-}
 
 function dsFinding(
   file: string,

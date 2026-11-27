@@ -11,6 +11,7 @@
   <img src="https://img.shields.io/badge/version-1.0.0-b4571a" alt="Version 1.0.0">
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-PolyForm%20Shield%201.0.0-b4571a" alt="License: PolyForm Shield 1.0.0"></a>
   <img src="https://img.shields.io/badge/node-24.22.3%2B%20%7C%2026.13.1%2B-b4571a" alt="Node 24.22.3 or later, or 26.13.1 or later">
+  <a href="https://github.com/sponsors/pglejzer"><img src="https://img.shields.io/badge/sponsor-GitHub%20Sponsors-b4571a" alt="Sponsor kitvas on GitHub Sponsors"></a>
 </p>
 
 kitvas is a Claude Code plugin that builds UI prototypes from your project's own design system, checks them in a real browser and shows them in a local studio with a visual editor. It is for developers and design-system maintainers who want a screen made of their own components and tokens. You end up with a checked React draft that you can edit, version and hand off to your code. Without a learned kit it builds from the built-in kit, Base.
@@ -160,6 +161,15 @@ npm run check
 
 The rules are in `AGENTS.md`, the decisions in `docs/adr/README.md`, the changes in `CHANGELOG.md` and the skill evals in `evals/README.md`. [CONTRIBUTING.md](CONTRIBUTING.md) says how to report a problem and what a pull request has to pass; everyone who takes part follows the [code of conduct](CODE_OF_CONDUCT.md).
 
+## Support
+
+kitvas is free. If it saves you time or money, you can support its work on [GitHub Sponsors](https://github.com/sponsors/pglejzer).
+
 ## License
 
-Licensed under the [PolyForm Shield License 1.0.0](LICENSE.md). You may use, modify, and distribute kitvas, including for commercial purposes, provided that you do not use it to offer competing products or services. This is a source-available license, not an OSI-approved open source license.
+kitvas is source-available, not open source in the OSI sense. [LICENSING.md](LICENSING.md) says which terms cover which part:
+
+- kitvas is under the [PolyForm Shield License 1.0.0](LICENSE.md). You may use, modify, and distribute it, including for commercial purposes, provided that you do not use it to offer competing products or services.
+- The built-in Base kit (`kits/base/`) is under the [MIT License](kits/base/LICENSE): use it, change it, copy it and ship it for any purpose, also in a product that competes with kitvas, and keep its notice with it.
+- The interface code you generate with kitvas is not covered: your drafts, the code a hand-off writes into your project and the layers it sends to Figma. A part of kitvas inside it keeps its own license, for example the runtime inside a built prototype.
+- The kitvas name and logo are not free to use. You may not change the logo, and you may not use the name or the logo outside kitvas: not for your own product, service, site, kit or fork, and not to suggest that the author of kitvas made or endorses your work. You may say in plain words that your work was made with kitvas.

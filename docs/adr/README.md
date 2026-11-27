@@ -47,7 +47,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0038](0038-figma-and-mcp-through-the-persons-servers.md) | Figma and other MCPs only through the person's own servers | 2026-11-23 | accepted |
 | [0039](0039-no-any-from-library-types.md) | No `any` from library types | 2026-11-23 | accepted |
 | [0040](0040-studio-address.md) | A studio address people can keep | 2026-11-23 | accepted (owner decision, plan 9b) |
-| [0041](0041-reading-and-copying-other-tools.md) | Reading and copying other tools | 2026-11-23 | accepted |
+| [0041](0041-reading-and-copying-other-tools.md) | Reading and copying other tools | 2026-11-23 | accepted, changed in part by ADR 0089 |
 | [0042](0042-studio-idle-stop.md) | The studio stops when nobody uses it | 2026-11-23 | accepted (owner decision, plan 10) |
 | [0043](0043-guidelines-with-ids-and-sources.md) | Guidelines with ids and sources | 2026-11-23 | accepted |
 | [0044](0044-page-facts-and-extra-passes.md) | Page facts and extra passes | 2026-11-23 | accepted, changed in part by ADR 0073 |
@@ -92,5 +92,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0083](0083-themes-and-token-additions.md) | Themes are token sets of the kit; the project adds tokens and theme values | 2026-11-26 | accepted |
 | [0084](0084-logo-dovetail.md) | The logo is a dovetail of two kit parts, with two loose parts that move | 2026-11-26 | accepted |
 | [0085](0085-controls-under-the-pointer-and-in-use.md) | A check puts every control under a real pointer, gives it focus and uses it | 2026-11-26 | accepted |
-| [0086](0086-shared-values.md) | Sections share what a person chose through shared values, held by the bundle's entry | 2026-11-26 | accepted |
+| [0086](0086-shared-values.md) | Sections share what a person chose through shared values, held by the bundle's entry | 2026-11-26 | accepted, changed in part by ADR 0088 |
 | [0087](0087-select-list-in-the-page.md) | The Base kit's Select draws its list in the page | 2026-11-26 | accepted |
+| [0088](0088-handoff-keeps-shared-values.md) | A hand-off to code keeps a version's shared values as the page's state | 2026-11-27 | accepted |
+| [0089](0089-no-forbidden-name-guard.md) | No guard searches the repo for forbidden names | 2026-11-27 | accepted |

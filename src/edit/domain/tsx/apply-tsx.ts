@@ -6,11 +6,10 @@
 // operation and its inverse exact.
 
 import type { EditOp, PropValue } from '../ops.ts';
-import type { ApplyOptions, ApplyResult, Refusal, Span } from '../types.ts';
-import { applyUtility } from './apply-utility.ts';
+import type { ApplyOptions, ApplyResult, Refusal } from '../types.ts';
+import { applyUtility, spaceStart, splice } from './apply-utility.ts';
 import {
   type Attr,
-  isSpace,
   type Open,
   openAt,
   plainText,
@@ -29,19 +28,6 @@ type PropOp = Extract<TsxOp, { op: 'setProp' | 'removeProp' }>;
 
 const refuse = (refused: Refusal): ApplyResult => ({ refused });
 const CONFLICT: ApplyResult = { conflict: 'changed' };
-
-function splice(text: string, span: Span, insert: string): ApplyResult {
-  return {
-    text: text.slice(0, span.start) + insert + text.slice(span.end),
-    changed: [{ start: span.start, end: span.start + insert.length }],
-  };
-}
-
-function spaceStart(text: string, end: number, floor: number): number {
-  let start = end;
-  while (start > floor && isSpace(text.charAt(start - 1))) start -= 1;
-  return start;
-}
 
 /**
  * What goes in front of a new attribute: the whitespace in front of the tag's first one, so a

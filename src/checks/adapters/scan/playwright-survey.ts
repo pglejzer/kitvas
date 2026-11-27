@@ -4,18 +4,15 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { setTimeout as delay } from 'node:timers/promises';
-import { PAGE_HEIGHT_MAX, SCAN_TIMEOUT_MS, SETTLE_MS } from '../../domain/scan/scan-facts.ts';
+import { PAGE_HEIGHT_MAX, SCAN_TIMEOUT_MS } from '../../domain/scan/scan-facts.ts';
 import type { Survey, SurveyReport } from '../../ports/browser.ts';
 import { measureFacts } from '../facts/playwright-facts.ts';
 import { readInventory } from '../facts/playwright-inventory.ts';
 import { firstLine } from '../images/playwright-images.ts';
-import { guardRequests } from './playwright-scan-policy.ts';
-import { scrollThrough, viewContext } from './playwright-scan-view.ts';
+import { openGuarded, viewContext } from './playwright-scan-view.ts';
 
 type PlaywrightBrowser = import('playwright-core').Browser;
 type BrowserContext = import('playwright-core').BrowserContext;
-type Page = import('playwright-core').Page;
 
 const failed = (cause: unknown): SurveyReport => ({ state: 'failed', error: firstLine(cause) });
 const blocked = (url: string): SurveyReport => ({ state: 'blocked', url });
@@ -32,32 +29,9 @@ function hasViewportMeta(): boolean {
 }
 
 async function surveyIn(context: BrowserContext, input: Survey): Promise<SurveyReport> {
-  let opened: Page | undefined;
-  // Routes first: web sockets are routed only in pages opened after the route.
-  const guard = await guardRequests(context, input.policy, () => opened?.mainFrame());
-  const page = await context.newPage();
-  opened = page;
-  page.setDefaultTimeout(SCAN_TIMEOUT_MS);
-  // A window the page opens is no part of the survey.
-  context.on('page', (other) => {
-    if (other !== page) other.close().catch(() => undefined);
-  });
-  let status = 0;
-  try {
-    const response = await page.goto(input.url, { waitUntil: 'load', timeout: SCAN_TIMEOUT_MS });
-    status = response?.status() ?? 0;
-  } catch (cause) {
-    if (guard.refused !== undefined) return blocked(guard.refused);
-    return failed(guard.failure ?? cause);
-  }
-  if (guard.refused !== undefined) return blocked(guard.refused);
-  if (status >= 400) return failed(`the page answered with status ${status}`);
-  if (status >= 300) return failed(`the page answered with status ${status}`);
-  await delay(SETTLE_MS);
-  if (guard.refused !== undefined) return blocked(guard.refused);
-
-  await scrollThrough(page);
-  if (guard.refused !== undefined) return blocked(guard.refused);
+  const visit = await openGuarded(context, input);
+  if ('state' in visit) return visit;
+  const { page, guard } = visit;
 
   const height = await page.evaluate(documentHeight);
   const shot = await page.screenshot({

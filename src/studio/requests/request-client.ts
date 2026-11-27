@@ -13,7 +13,7 @@ import {
   VariantsAnswerSchema,
 } from '../api/requests/request-schemas.ts';
 import { InboxItemSchema } from '../inbox/inbox.ts';
-import { type LifecycleDeps, studioStatus } from '../run/lifecycle.ts';
+import { type LifecycleDeps, runningState } from '../run/lifecycle.ts';
 import type { StudioState } from '../run/state-file.ts';
 import { callStudio, type StudioAnswer, type StudioCall } from '../run/studio-client.ts';
 import { type InboxRequest, InboxRequestSchema } from './inbox-take.ts';
@@ -57,14 +57,6 @@ const ProblemAnswerSchema = z.object({
 const OWN_CODES = ['REQUEST_NOT_FOUND', 'REQUEST_NOT_TAKEN'] as const;
 const isOwnCode = (code: string): code is (typeof OWN_CODES)[number] =>
   (OWN_CODES as readonly string[]).includes(code);
-
-/** The studio of this project, when one answers. */
-async function runningState(lifecycle: LifecycleDeps): Promise<StudioState | undefined> {
-  const found = await studioStatus(lifecycle);
-  if (!found) return undefined;
-  const state = lifecycle.readState();
-  return state?.pid === found.pid ? state : undefined;
-}
 
 /** A refusal of the studio as a kitvas error: its own code where the CLI can word it. */
 function refusal(answer: StudioAnswer, id: string | undefined): KitvasError {

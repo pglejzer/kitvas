@@ -2,6 +2,7 @@
 
 import { z } from '../../../shared/index.ts';
 import type { Message, RawFinding, Severity } from '../findings/finding.ts';
+import { placeOf } from './source-rules.ts';
 import { codeLines } from './styles.ts';
 
 export type TailwindInput = {
@@ -133,11 +134,6 @@ function arbitraryValue(token: string): string | undefined {
   const open = utility.indexOf('[');
   const close = open === -1 ? -1 : utility.indexOf(']', open);
   return close === -1 ? undefined : utility.slice(open + 1, close);
-}
-
-function placeOf(text: string, index: number): { line: number; column: number } {
-  const before = text.slice(0, index);
-  return { line: before.split('\n').length, column: index - before.lastIndexOf('\n') };
 }
 
 export function tailwindFindings({ file, text, unknown }: TailwindInput): RawFinding[] {

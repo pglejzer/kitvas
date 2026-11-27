@@ -1,6 +1,6 @@
 # 0086. Sections share what a person chose through shared values, held by the bundle's entry
 
-Date: 2026-11-26. Status: accepted.
+Date: 2026-11-26. Status: accepted, changed in part by ADR 0088.
 
 ## Context
 

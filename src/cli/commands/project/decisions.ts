@@ -13,7 +13,6 @@ import {
   isSettingKey,
   isValidSetting,
   KitvasError,
-  loadSettings,
   MAX_DECISION_LENGTH,
   type ProjectDecisions,
   readProjectDecisions,
@@ -23,7 +22,7 @@ import {
   updateDecisions,
   withSetting,
 } from '../../../shared/index.ts';
-import { type CommandContext, defineCommand } from '../../registry.ts';
+import { type CommandContext, defineCommand, requireWorkspace } from '../../registry.ts';
 
 export type DecisionsDeps = {
   /** The kits that exist: a `kit` setting must name one. */
@@ -85,11 +84,6 @@ export function createDecisionsCommand(deps: DecisionsDeps) {
     key: string,
     params: Record<string, string | number> = {},
   ) => new KitvasError('DECISION_INVALID', { detail: ctx.t(key, params) });
-  const requireWorkspace = (ctx: CommandContext): void => {
-    if (!loadSettings({ home: ctx.home, cwd: ctx.cwd }).workspace.exists) {
-      throw new KitvasError('WORKSPACE_MISSING');
-    }
-  };
   const sectionOf = (ctx: CommandContext): DecisionSection => {
     const { section } = ctx.flags;
     if (section === undefined || !isSection(section)) {

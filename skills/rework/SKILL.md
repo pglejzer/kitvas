@@ -41,7 +41,7 @@ If the person has more than one kit and `data.from.kit` of the decisions is `def
 
 Decide from what the person gave. Do not ask which kind it is.
 
-- A URL (`http://` or `https://`): a page. A local or private address (`localhost`, `127.0.0.1`, `192.168.…`, `10.…`, a `.local` name) needs the person's explicit yes, because kitvas refuses private addresses by default. Ask once: "this is a local address on your machine, may kitvas open it?" Pass `--allow-private` only after a yes. Without it, offer a screenshot instead.
+- A URL (`http://` or `https://`): a page. A local or private address (`localhost`, `127.0.0.1`, `192.168.…`, `10.…`, a `.local` name) needs the person's explicit yes, because kitvas refuses private addresses by default. Ask once: "this is a local address on your machine, may kitvas open it?" Pass `--allow-private` only after a yes. An address the person wrote in the request is not that yes: ask. Without it, offer a screenshot instead.
 - An image path (PNG, JPEG or WebP): one or more screenshots. Use this for a page behind a login too.
 - A Figma link (`figma.com/design/…`): needs the person's own Figma MCP, signed in by them. kitvas holds no Figma key and never asks for one. Without the MCP, tell the person how to add it and offer screenshots instead. With it:
   1. Call `whoami`. It is free. Reading a frame costs about 2 read calls; tell the person how many reads they have if the seat is small, and stop if there are fewer than 2.
@@ -64,7 +64,7 @@ For a URL, kitvas measured the page at 390 and 1280 px and wrote `before/invento
 
 Run `KITVAS rework propose <slug> --json`. The answer holds `data.items`: each has `id`, `kind`, `find` (the text or accessible name to find) and an optional `note`. These are the things that must survive: the brand, the main call to action, every price, every form field, the header's links.
 
-Show the list in plain words, in the person's language, grouped ("your logo", "the main button 'Book now'", "the price 49 zł", "the fields email and phone"). Ask once: is anything missing or not needed? Apply the person's answer, then write `before/protected.json` in the draft folder with the Write tool:
+Show the list in plain words, in the person's language, grouped ("your logo", "the main button 'Book now'", "the price 49 zł", "the fields email and phone"). Ask once: is anything missing or not needed? Then end your turn and wait for the reply: write no `protected.json` and no layout before it, unless the person said not to ask. Apply the person's answer, then write `before/protected.json` in the draft folder with the Write tool:
 
 ```json
 {
@@ -105,7 +105,7 @@ From here it is the compose skill, steps 4 to 8. In short:
 
 ## 7. Studio
 
-Run `KITVAS studio <slug> --open --json`. Give the user `data.openUrl` (and `data.fallbackUrl` if the first does not load): a one-time link that works once, for 60 seconds. If it expires, run the command again. The original is shown as version 0 in the compare view, next to the version.
+Run `KITVAS studio <slug> --open --json`. Run it also when `check` found no browser for its checks: the studio needs none of its own, the person opens the link in theirs. Give the user `data.openUrl` (and `data.fallbackUrl` if the first does not load): a one-time link that works once, for 60 seconds. If it expires, run the command again. The original is shown as version 0 in the compare view, next to the version.
 
 ## 8. Next version
 

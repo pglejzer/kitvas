@@ -8,7 +8,12 @@
 // another draft takes them along); it never changes the page's look by itself. That is also why a
 // rule that cannot be carried (a target without SCSS) simply stays where it is.
 
-import { elementSpan, freeIdentifiers, functionBodyOf } from '../../domain/structure/subtree.ts';
+import {
+  elementSpan,
+  freeIdentifiers,
+  functionBodyOf,
+  wholeElement,
+} from '../../domain/structure/subtree.ts';
 import { listRules, readRule } from '../../domain/style/apply-scss.ts';
 import { eolAt, eolBefore } from '../../domain/style/scss-reader.ts';
 import { newlineOf, withNewline } from '../../domain/tsx/format.ts';
@@ -290,14 +295,6 @@ export function checkScope(
     return null;
   }
   return portable(text, subtree, kitNames, usedKitComponents(text, kitNames), targetText);
-}
-
-/** The one element or fragment `source` is, from its `<`; `null` for anything else. */
-function wholeElement(source: string): Span | null {
-  const start = source.length - source.trimStart().length;
-  if (source.charAt(start) !== '<') return null;
-  const span = elementSpan(source, start);
-  return span !== null && source.slice(span.end).trim() === '' ? span : null;
 }
 
 /** The target holds the pasted element itself in the function body of `at`: a copy from there. */

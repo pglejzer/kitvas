@@ -1,6 +1,6 @@
 ---
 name: handoff-figma-no-mcp
-tags: [smoke]
+tags: [smoke, handoff]
 runs: 3
 max_turns: 12
 timeout_seconds: 300

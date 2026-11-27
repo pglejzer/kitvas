@@ -39,10 +39,6 @@ export type AssetPlan = {
   leftOut: LeftOut[];
 };
 
-/** The content type of a package asset by its file name; `image/png` for a name it does not know. */
-export const assetContentType = (file: string): string =>
-  TYPES[extname(file).slice(1).toLowerCase()] ?? 'image/png';
-
 function labelOf(src: string): string {
   if (src.startsWith('data:')) return 'data URI';
   if (/^https?:\/\//i.test(src)) {

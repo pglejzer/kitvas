@@ -12,19 +12,11 @@ import type { Inspect } from '../../../../src/studio/api/edit/edit-schemas.ts';
 import type { HandleValue, ScaleStep } from '../../../channel/structure-protocol.ts';
 import { inspect as readInspect } from '../api.ts';
 import type { EditorContext } from '../context.ts';
-import { PROPERTIES, styleValueOf, tokensFor } from '../props/values/steps.ts';
+import { PROPERTIES, pxOf, styleValueOf, tokensFor } from '../props/values/steps.ts';
 import { text } from '../texts.ts';
 import { opsForStyle, readOnlyReason } from './ops.ts';
 
 const MAX_STEPS = 100;
-
-/** A token's length in CSS pixels (`rem`, `em` count 16); `null` for a `%`, `calc` and so on. */
-export function pxOf(css: string): number | null {
-  const match = /^(-?(?:\d+\.?\d*|\.\d+))(px|rem|em)?$/.exec(css.trim());
-  if (!match?.[1]) return null;
-  const size = Number(match[1]);
-  return match[2] === 'rem' || match[2] === 'em' ? size * 16 : size;
-}
 
 function stepsOf(tokens: readonly TokenOption[]): ScaleStep[] {
   const steps: ScaleStep[] = [];

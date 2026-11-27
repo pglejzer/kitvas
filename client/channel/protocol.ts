@@ -27,7 +27,7 @@ import {
   parseEditFrame,
   parseEditStudio,
 } from './edit-protocol.ts';
-import { isCount, isText } from './guards.ts';
+import { isCount, isText, ours } from './guards.ts';
 import {
   LIVE_FRAME_TYPES,
   LIVE_STUDIO_TYPES,
@@ -167,14 +167,8 @@ export function withScroll(hash: string, scroll: Scroll): string {
   return link ? frameHash(link.channel, link.studioPort, scroll) : hash;
 }
 
-type Loose = Record<string, unknown>;
-
 const isSize = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= MAX_SIZE;
-
-function ours(data: unknown, channel: string): Loose | undefined {
-  return isObject(data) && data.kitvas === 1 && data.channel === channel ? data : undefined;
-}
 
 /**
  * A choice as the channel carries it: option ids and value ids of the shared patterns, at most

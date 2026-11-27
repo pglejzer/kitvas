@@ -12,7 +12,7 @@ import { type EditOp, fileOfId, hashOf, MAX_SOURCE } from '../../domain/ops.ts';
 import { reindent, sourceIndent } from '../../domain/tsx/format.ts';
 import { openingTags, readTag } from '../../domain/tsx/tsx-reader.ts';
 import type { EditCompiler } from '../../ports/compiler.ts';
-import { editKit } from '../edit-state.ts';
+import { editKit, kitNames } from '../edit-state.ts';
 import { replaceNeeds } from '../structure/replace-scope.ts';
 import { elementHistory } from './element-history.ts';
 import { readVersionFile } from './version-elements.ts';
@@ -38,14 +38,6 @@ const MAX_NAME = 120;
 const PASSED = /^(?:key|ref|style|children|id|role|aria-.+|data-.+|on[A-Z].*)$/;
 
 type Found = { file: string; text: string; raw: string; at: number };
-
-/** The kit's component names, with the icon component (as `request-state.ts` reads them). */
-function kitNames(loaded: LoadedKit | null): ReadonlySet<string> {
-  const names = new Set(loaded?.kit.components.map((component) => component.name) ?? []);
-  const icons = loaded?.kit.icons;
-  if (icons?.source === 'component') names.add(icons.component);
-  return names;
-}
 
 /** A raw slice of a file with its later lines moved to the margin, as a source of its own. */
 const dedent = (raw: string): string => reindent(raw, sourceIndent(raw), '');

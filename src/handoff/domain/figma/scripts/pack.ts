@@ -399,8 +399,3 @@ export function packedSection(section: TreeSection, options: PackOptions = {}): 
   });
   return { vars, continues, layers: packed };
 }
-
-/** The data literal of a section's layers: `{"vars":[…],"continues":[…],"layers":[…]}`. */
-export function packSection(section: TreeSection, options: PackOptions = {}): string {
-  return literal(packedSection(section, options));
-}

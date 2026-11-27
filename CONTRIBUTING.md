@@ -62,4 +62,4 @@ Documentation for people is in `docs/` and in the README; update it in the same 
 
 ## Licence of your contribution
 
-kitvas is under the [PolyForm Shield License 1.0.0](LICENSE.md). By opening a pull request you agree that your contribution is licensed under the same terms, and you confirm that you have the right to contribute it.
+kitvas is under the [PolyForm Shield License 1.0.0](LICENSE.md) and its Base kit under the [MIT License](kits/base/LICENSE); [LICENSING.md](LICENSING.md) says which covers what. By opening a pull request you agree that your contribution is licensed under the terms of the part it changes, and you confirm that you have the right to contribute it.

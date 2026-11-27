@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import {
   indexOnScale,
   isOffKit,
+  pxOf,
   stepToken,
   styleValueOf,
   tokensFor,
@@ -176,6 +177,13 @@ test('a keyword or an image row takes no token at all', () => {
   for (const property of ['display', 'justify-content', 'background-image'] as const) {
     assert.deepEqual(tokensFor(kit, property), [], property);
   }
+});
+
+test('lengths that are not pixels are left out of the scales', () => {
+  assert.equal(pxOf('100%'), null);
+  assert.equal(pxOf('calc(1px + 2px)'), null);
+  assert.equal(pxOf('1.5rem'), 24);
+  assert.equal(pxOf('0'), 0);
 });
 
 test('a value written without the marker is read back plain, as the server finds it', () => {

@@ -69,6 +69,19 @@ export type CodeBrief = {
   write: WriteSet;
   /** The version's options with the value handed off (the default); absent when it has none. */
   options?: { id: string; default: string }[];
+  /**
+   * The version's shared values (ADR 0086, 0088): what a person chooses on the page, such as a date
+   * range, kept by the page and handed to the sections. `values` is null for free text. `setIn` and
+   * `readIn` are the draft's TSX files that set the value and that read it. Absent when it has none.
+   */
+  shared?: {
+    id: string;
+    label: string;
+    default: string;
+    values: { id: string; label: string }[] | null;
+    setIn: string[];
+    readIn: string[];
+  }[];
   /** Paths of `target.json`, the rules (`reference/handoff-code.md`) and the report to write. */
   target: string;
   rules: string;

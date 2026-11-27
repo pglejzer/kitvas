@@ -1,25 +1,38 @@
 # Skill evals
 
-Evals for six skills of the plugin, in the format of `claude plugin eval`:
+Evals for seven skills of the plugin, in the format of `claude plugin eval`:
 
-- `evals/kitvas/`: `/kitvas` (status, init, language). Tagged `smoke`.
-- `evals/kit/`: `/kitvas:kit` (components, tones, a missing component). Tagged `smoke`.
-- `evals/craft/`: `/kitvas:craft` (a near match in the kit, a look word read two ways, three sketches of an
-  icon, a pick added to the kit). `near-match` and `look-word` are `smoke`, the other two are `slow`.
-- `evals/rework/`: `/kitvas:rework` (a local address, a design system not learned yet, a rework from a
-  screenshot). The first two are `smoke`, `from-image` is `slow`.
-- `evals/compose/`: `/kitvas:compose` (a screen, states, a second version). Tagged `slow`: one run each,
-  minutes per case.
-- `evals/learn/`: `/kitvas:learn` (a package, a missing package, one more component). Tagged `slow`.
+- `evals/kitvas/`: `/kitvas` (status, init, language, the doctor, a draft deleted and one brought back).
+  Tagged `smoke`.
+- `evals/kit/`: `/kitvas:kit` (components, tones, a missing component, spacing tokens, icons, a kit that
+  does not exist, a kit that is broken, an order hidden in the project's decisions). Tagged `smoke`.
+- `evals/craft/`: `/kitvas:craft` (a near match in the kit, a look word read two ways, a design system not
+  learned yet, a name the kit already has, an export; three sketches of an icon, of a new component and of
+  a logo, a pick added to the kit). The first five are `smoke`, the four that draw or add are `slow`.
+- `evals/rework/`: `/kitvas:rework` (a local address, a design system not learned yet, the protected list
+  shown before anything is built, a rework from a screenshot). The first three are `smoke`, `from-image`
+  is `slow`.
+- `evals/compose/`: `/kitvas:compose` (what is asked before a build: the brief, a lasting choice, a theme
+  the kit lacks, a component the kit lacks; then a screen, states, a second version, an option with a
+  shared value, the copy language from the project's decisions). The four that stop at a question are
+  `smoke`; the five that build are `slow`: one run each, minutes per case.
+- `evals/learn/`: `/kitvas:learn` (a kit id that is taken and a Tailwind 3 project, both `smoke`; a package,
+  a folder of the project's own components, a missing package and one more component, all `slow`).
   `website-kit` is tagged `browser` and cannot run yet, see "What a case cannot do".
+- `evals/handoff/`: `/kitvas:handoff` (no destination named, a draft that does not build, a draft into a
+  React project, a draft with a shared value into the same project, a draft into a Flask project with two
+  files the person named, a crafted icon into the React project, the folder taken from the project's
+  decisions, Figma without a Figma MCP). Tagged `smoke` and `handoff`, so
+  `bash evals/run.sh --tag handoff` runs these eight alone.
 
 `/kitvas:edit` has no evals: it answers requests through the running studio, and a case cannot keep a
 server alive between two commands.
 
 A case is a folder with `prompt.md` (the user's message and the run limits) and `graders/*.md`
 (`tool_used`, `regex`, `file_exists`, `llm`). A case that needs a prepared project also has `case.yaml`
-and `scaffold.sh`. The truth for components, props and tones is `kits/base/kit.json`; graders must never
-reward a name that is not in it.
+and `scaffold.sh`; a scaffold may run a neighbour case's scaffold first and then add its own steps
+(`craft/export` starts from `craft/pick-add`). The truth for components, props and tones is
+`kits/base/kit.json`; graders must never reward a name that is not in it.
 
 ## Run
 
@@ -29,12 +42,18 @@ On Linux, from the plugin folder:
 bash evals/run.sh --tag smoke
 bash evals/run.sh --tag slow --ablation none
 bash evals/run.sh --tag smoke --model haiku
+bash evals/run.sh --cases kit/icons,craft/export --ablation none
 ```
 
 `evals/run.sh` calls `claude plugin eval .` with what the cases need: `--allow-tools Bash Write Edit`
 (the skills run the CLI and write files), `--scaffold` (some cases prepare their project first), Sonnet
 as the model and as the judge of the `llm` graders (the judge is Haiku otherwise), three runs at a time,
 and the two settings below. Options after the script's name go to `claude plugin eval`.
+
+`--cases`, as the first option, takes case folders joined by commas: `claude plugin eval` itself filters by a
+tag or by one name pattern, never by a list. The script runs them from `evals-picked/`, a copy of `evals/`
+in which every other case has lost its `prompt.md` (its other files stay for a scaffold that starts from a
+neighbour), and removes the copy when the run ends.
 
 - A temp folder outside `/tmp`. `claude plugin eval` keeps each run's project folder under `$TMPDIR`,
   and its sandbox denies writes below `/tmp`. With the default the shell can write nothing, so
@@ -102,6 +121,15 @@ Checked on 2026-11-25 with Claude Code 2.1.332 on Ubuntu 24.04 under WSL:
 - A criterion names what the answer must state, never how it says it, and asks for no more than the
   skill's report rule does. A judge takes the words literally: "an empty state for a customer with no
   rentals" failed an answer that listed "Empty state: No rentals yet" with its button.
+- The judge is told to be strict and answers with one word, three times; the majority decides, and the
+  result keeps the votes, never a reason. It holds the answer to every word of a criterion: a detail in
+  brackets ("no address was given") becomes a statement the answer must make, and "says that the scripts
+  were not run" failed "I didn't run or typecheck anything". So ask for a statement only where the skill's
+  report rule asks for it, and write the rest as what the answer must not say. Name what is true in a run
+  and could look like a breach: "the hand-off is recorded" was read as an edit of an existing file until
+  the criteria said that kitvas keeps its own record.
+- A grader never holds the plugin's version or another value that a release changes: `0\.1\.0` failed
+  every run from the day the version became 1.0.0.
 - An `llm` grader's judge reads only the last message. The `honest-report` judge of a case that builds,
   checks or verifies starts its criteria with what an eval run can never do (no browser, so which checks
   or verify steps are skipped): that is the truth the answer is held to. With `focus: trace` the judge

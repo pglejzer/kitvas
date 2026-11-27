@@ -63,3 +63,14 @@ export function sourceFiles(drafts: DraftStore, slug: string, version: number): 
   ];
   return [...new Set(named)].filter((file) => drafts.exists(slug, `${base}/${file}`)).sort();
 }
+
+/** The TSX files in the order the page shows them: the layout's sections, then the sketches. */
+export function inPageOrder(files: readonly string[], ids: readonly string[]): string[] {
+  const order = ids.map((id) => `src/tsx/sections/${pascalCase(id)}.tsx`);
+  const rank = (file: string): number => {
+    const at = order.indexOf(file);
+    return at < 0 ? order.length : at;
+  };
+  // The sort is stable, so the sketches keep the sorted order `sourceFiles` gives them.
+  return files.filter((file) => file.endsWith('.tsx')).sort((a, b) => rank(a) - rank(b));
+}

@@ -1,7 +1,7 @@
 ---
 
 name: kitvas
-description: Use when the user runs /kitvas, asks whether kitvas is ready, or wants to start using kitvas (UI prototypes from any design system, checked in a local studio) in a project.
+description: Use when the user runs /kitvas, asks whether kitvas is ready, wants to start using kitvas (UI prototypes from any design system, checked in a local studio) in a project, says that kitvas does not work, or wants a kitvas draft deleted or a deleted draft brought back.
 ---
 
 # kitvas: setup and status

@@ -412,6 +412,54 @@ test('a version with options hands off the default of each; one without has no o
   assert.deepEqual(brief.options, [{ id: 'columns', default: '3' }]);
 });
 
+test('a version with shared values lists each with the files that set and read it', () => {
+  const input = {
+    slug: 'shop',
+    write: { to: 'src/app', scope: 'new' as const, files: [] },
+    base: '',
+  };
+  assert.equal('shared' in writeBrief(depsFor(screen({}), tiny()), input).brief, false);
+
+  const hero = HERO.replace(
+    '<Button>Buy</Button>',
+    "<Button onClick={() => setShared({ range: '30d' })}>Buy</Button>",
+  );
+  const store = screen({ hero });
+  writeVersionFiles(store, 'shop', 1, {
+    [ORDER_FILE]: ORDER.replace('<Icon name="check" />', '<Icon name="check" />{shared.range}'),
+    'src/json/shared.json': JSON.stringify({
+      schemaVersion: 1,
+      values: [
+        {
+          id: 'range',
+          label: 'Range',
+          default: '7d',
+          values: [
+            { id: '7d', label: 'Last 7 days' },
+            { id: '30d', label: 'Last 30 days' },
+          ],
+        },
+        { id: 'query', label: 'Search', default: '' },
+      ],
+    }),
+  });
+  const { brief } = writeBrief(depsFor(store, tiny()), input);
+  assert.deepEqual(brief.shared, [
+    {
+      id: 'range',
+      label: 'Range',
+      default: '7d',
+      values: [
+        { id: '7d', label: 'Last 7 days' },
+        { id: '30d', label: 'Last 30 days' },
+      ],
+      setIn: [`${D}/${HERO_FILE}`],
+      readIn: [`${D}/${ORDER_FILE}`],
+    },
+    { id: 'query', label: 'Search', default: '', values: null, setIn: [], readIn: [] },
+  ]);
+});
+
 test('a rework draft is a screen with its own kind', () => {
   const { brief } = writeBrief(depsFor(screen({ kind: 'rework' }), tiny()), {
     slug: 'shop',

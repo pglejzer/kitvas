@@ -37,3 +37,10 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): Html 
 
 /** Markup written in kitvas's own code, like a style sheet. Never for text from files or requests. */
 export const trusted = (text: string): Html => new Html(text);
+
+/** JSON that cannot end its `<script>` element or open a comment in it. */
+export const scriptJson = (value: unknown): string =>
+  JSON.stringify(value)
+    .replaceAll('<', '\\u003c')
+    .replaceAll('>', '\\u003e')
+    .replaceAll('&', '\\u0026');

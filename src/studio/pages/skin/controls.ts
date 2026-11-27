@@ -163,16 +163,6 @@ export const SKIN_CONTROLS = `
 /* A field made of a box (not an input): a value, an icon or a swatch, and a token name at its end. */
 div.k-field, label.k-field { display: flex; align-items: center; gap: var(--st-space-6); min-width: 0; }
 .k-field > .k-icon, .k-field > .k-swatch { flex: none; color: var(--st-color-ink-mid); }
-/* The name of the token a field's value sits on, at the field's right end: the code font, in the
-   quiet ink that passes AA (never the soft grey). */
-.k-field-tok {
-  flex: none;
-  margin-left: auto;
-  color: var(--st-color-ink-mid);
-  font-family: var(--st-font-mono);
-  font-size: var(--st-font-size-xs);
-  white-space: nowrap;
-}
 .k-field::placeholder { color: var(--st-color-ink-mid); opacity: 1; }
 .k-field:disabled { opacity: 0.45; }
 textarea.k-field { min-height: 64px; padding: var(--st-space-6) var(--st-space-8); resize: vertical; }

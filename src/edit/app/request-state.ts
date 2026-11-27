@@ -7,7 +7,6 @@
 import { type DraftStore, loadDraft, readOptions, versionFolder } from '../../drafts/index.ts';
 import {
   DEFAULT_BREAKPOINTS,
-  type KitComponent,
   type KitStore,
   kitBreakpoints,
   type LoadedKit,
@@ -21,7 +20,7 @@ import { offsetOf, openingTags, readTag } from '../domain/tsx/apply-tsx.ts';
 import { syncKitImports } from '../domain/tsx/kit-imports.ts';
 import type { ApplyOptions, OffsetMap, Refusal, Span } from '../domain/types.ts';
 import type { EditCompiler } from '../ports/compiler.ts';
-import { editKit } from './edit-state.ts';
+import { catalogComponent, editKit, kitNames } from './edit-state.ts';
 
 /** What a request reads besides its texts: `ApplyEditsDeps` has all of it. */
 export type WorkDeps = {
@@ -224,19 +223,11 @@ const VOID = new Set(
 const INTERACTIVE_TAGS = new Set(['a', 'button', 'input', 'select', 'textarea']);
 const INTERACTIVE_CATEGORIES: ReadonlySet<string> = new Set(['action', 'input']);
 
-/** The component names of a kit (the project's additions and the icon component included). */
-function namesOf(loaded: LoadedKit | null): ReadonlySet<string> {
-  const names = new Set(loaded?.kit.components.map((component) => component.name) ?? []);
-  const icons = loaded?.kit.icons;
-  if (icons?.source === 'component') names.add(icons.component);
-  return names;
-}
-
 /** The draft's kit, loaded once per request; `loaded: null` when it cannot be read. */
 export function kitOf(work: Work): Kit {
   if (work.kit === undefined) {
     const loaded = editKit(work.deps.kits, work.kitId);
-    work.kit = { loaded, names: namesOf(loaded) };
+    work.kit = { loaded, names: kitNames(loaded) };
   }
   return work.kit;
 }
@@ -244,26 +235,19 @@ export function kitOf(work: Work): Kit {
 /** Any draft's kit names, for the section ops (another draft's section must use the same kit). */
 export function kitNamesOf(work: Work, slug: string): ReadonlySet<string> {
   if (slug === work.slug) return kitOf(work).names;
-  return namesOf(editKit(work.deps.kits, loadDraft(work.deps.drafts, slug).kit.id));
-}
-
-/** `Card.Header` is the part `Header` of `Card`: the catalog entry is `Card`. */
-export function componentOf(kit: LoadedKit | null, tag: string): KitComponent | null {
-  const name = tag.split('.')[0] ?? tag;
-  if (!/^[A-Z]/.test(name)) return null;
-  return kit?.kit.components.find((component) => component.name === name) ?? null;
+  return kitNames(editKit(work.deps.kits, loadDraft(work.deps.drafts, slug).kit.id));
 }
 
 /** A kit component with `children: node`, a part, or an HTML element that is not void. */
 export function accepts(kit: LoadedKit | null, tag: string): boolean {
-  const component = componentOf(kit, tag);
+  const component = catalogComponent(kit, tag);
   if (component === null) return /^[a-z]/.test(tag) && !VOID.has(tag);
   if (tag.includes('.')) return true;
   return component.props.some((prop) => prop.name === 'children' && prop.type === 'node');
 }
 
 export function interactive(kit: LoadedKit | null, tag: string): boolean {
-  const component = componentOf(kit, tag);
+  const component = catalogComponent(kit, tag);
   return component === null
     ? INTERACTIVE_TAGS.has(tag)
     : INTERACTIVE_CATEGORIES.has(component.category);
