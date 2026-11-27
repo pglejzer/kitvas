@@ -9,7 +9,14 @@ import type { Translate } from '../../../shared/index.ts';
 import { readStampFile, readVerifyJson, refFileExists } from '../../frame/catalog-files.ts';
 import { NO_PREVIEWS, type PalettePreviews, palettePreviews } from '../../previews/answer.ts';
 import { iconsView } from '../../views/kit-icons.ts';
-import { lookView, sourceLine, sourceNoun, verifyView } from '../../views/kit-status.ts';
+import {
+  codeView,
+  lookView,
+  type OutdatedEntry,
+  sourceLine,
+  sourceNoun,
+  verifyView,
+} from '../../views/kit-status.ts';
 import { partitionAdded, scaleRules, splitTokens, typeRules } from '../../views/kit-tokens.ts';
 import { groupComponents, shownPart, swatchRules } from '../../views/kit-view.ts';
 import { addedNote } from '../added-mark.ts';
@@ -41,6 +48,8 @@ export type KitPageDeps = {
   version: string;
   /** The id of the kit the project uses. */
   projectKit(): string;
+  /** The components of a kit whose project files changed since they were copied; none when left out. */
+  outdated?: ((kit: string) => OutdatedEntry[]) | undefined;
 };
 /** The Host names the example frames' address and the studio in the foot line. */
 export type KitRequest = { nonce: string; host: string };
@@ -122,15 +131,25 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
     .join('\n');
   const verified = project === undefined ? undefined : readVerifyJson(project, kit.id);
   const line = sourceLine(kit.source);
+  const verify = verifyView(verified, loaded.hash);
+  const code = codeView({
+    source: kit.source,
+    verify,
+    components: kit.components.map((component) => component.name),
+    file: verified,
+    outdated: deps.outdated?.(kit.id),
+  });
   const provenance = {
     source: t(line.key, line.params),
     kitId: kit.id,
-    verify: verifyView(verified, loaded.hash),
+    verify,
+    counts: code?.counts,
   };
   const catalog = {
     t,
     kit: kit.id,
     stamp,
+    originals: code?.originals,
     host: request.host,
     src: (example: string) => catalogSrc(deps.frame, request.host, { kitId: kit.id, example }),
     ...(project === undefined
@@ -153,7 +172,7 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
   };
   const parts = {
     tokens: tokenParts(t, tokens, added),
-    components: componentParts(t, groupComponents(kit.components), catalog),
+    components: componentParts(t, groupComponents(kit.components, code), catalog),
     icons: iconsParts(t, icons),
   };
   const all = [...parts.tokens, ...parts.components, ...parts.icons];

@@ -21,6 +21,7 @@ import { cropImages } from '../images/playwright-images.ts';
 import { matchRendered } from '../images/playwright-match.ts';
 import { shootExamples } from '../images/playwright-shoot.ts';
 import { walkLayers } from '../layers/playwright-layers.ts';
+import { measurePage } from '../layers/playwright-measure.ts';
 import { scanPage } from '../scan/playwright-scan.ts';
 import { surveyPage } from '../scan/playwright-survey.ts';
 import { settle } from './settle.ts';
@@ -272,6 +273,7 @@ function createSession(
     crop: (inputs) => cropImages(browser, inputs),
     capture: (input) => captureExample(browser, input),
     layers: (visit) => walkLayers(browser, visit),
+    measure: (input) => measurePage(browser, input),
     match: (input) => matchRendered(browser, input),
     shoot: (input) => shootExamples(browser, input),
     async close() {

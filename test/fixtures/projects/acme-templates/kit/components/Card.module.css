@@ -1,0 +1,28 @@
+.host {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--kit-space-md);
+  width: var(--kit-size-card);
+  padding: var(--kit-space-xl);
+  border: var(--kit-border-width-thin) solid var(--kit-color-line);
+  border-radius: var(--kit-radius-md);
+  background: var(--kit-color-on-primary);
+  font-family: var(--kit-font-family-body);
+  color: var(--kit-color-ink);
+}
+
+.label {
+  margin: 0;
+  font-size: var(--kit-font-size-lg);
+  font-weight: var(--kit-font-weight-bold);
+  line-height: var(--kit-line-height-lg);
+  color: var(--kit-color-ink);
+}
+
+.body {
+  font-size: var(--kit-font-size-sm);
+  font-weight: var(--kit-font-weight-regular);
+  line-height: var(--kit-line-height-sm);
+  color: var(--kit-color-muted);
+}

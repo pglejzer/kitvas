@@ -8,12 +8,15 @@ import {
   type BuildFs,
   type Bundler,
   buildCatalog,
+  type ProjectStyles,
   type StylePipeline,
   type UtilityCss,
 } from '../../render/index.ts';
 import { catalogDir, KitvasError } from '../../shared/index.ts';
+import { comparedLevels, type Drawn } from '../domain/kit/compared.ts';
 import {
   type LookEntry,
+  type OriginalEntry,
   VERIFY_FILE,
   type VerifyFile,
   type VerifyIssue,
@@ -23,6 +26,7 @@ import type { TypeChecker } from '../ports/type-checker.ts';
 import { type ParsedExample, parseExamples } from './verify/example-parse.ts';
 import { importsStep } from './verify/imports.ts';
 import { isWritten, lookStep } from './verify/look.ts';
+import { originalStep } from './verify/original.ts';
 import { renderStep } from './verify/render.ts';
 import { schemaStep } from './verify/schema.ts';
 import { SKIPPED, type StepResult } from './verify/step.ts';
@@ -43,6 +47,8 @@ export type VerifyDeps = {
     utility: UtilityCss;
   };
   types: TypeChecker;
+  /** Compiles the style files of a `code` kit's project, for the step `original`. */
+  projectStyles: ProjectStyles;
   /** Without one, `render`, `tokens` and `look` are skipped with a note. */
   browser?: Browser | undefined;
   now(): Date;
@@ -52,6 +58,7 @@ type PageSteps = {
   render: StepResult;
   tokens: StepResult;
   look: StepResult & { look?: LookEntry[] };
+  original: StepResult & { originals?: OriginalEntry[]; drawn?: Drawn[] };
   notes: string[];
 };
 
@@ -59,6 +66,7 @@ const NO_BROWSER: PageSteps = {
   render: SKIPPED,
   tokens: SKIPPED,
   look: SKIPPED,
+  original: SKIPPED,
   notes: ['kits.verify.noBrowser'],
 };
 
@@ -105,23 +113,55 @@ async function pageSteps(deps: VerifyDeps, input: PageInput): Promise<PageSteps>
       );
     }
     if (!isWritten(loaded)) {
-      return { render, tokens, look: SKIPPED, notes: [...notes, 'kits.verify.notWritten'] };
+      return {
+        render,
+        tokens,
+        look: SKIPPED,
+        original: SKIPPED,
+        notes: [...notes, 'kits.verify.notWritten'],
+      };
     }
     // A written kit is held to its references; a browser that cannot capture says so.
-    const { capture } = session;
-    if (!capture) {
-      return { render, tokens, look: SKIPPED, notes: [...notes, 'kits.verify.noBrowser'] };
+    const { capture, measure } = session;
+    const isCode = loaded.kit.source.type === 'code';
+    // A `code` kit with no picture of the app has nothing to look at: `original` is its comparison.
+    const pictured = loaded.kit.components.some((component) =>
+      component.examples.some((example) => example.reference !== undefined),
+    );
+    let look: PageSteps['look'] = SKIPPED;
+    if (isCode && !pictured) {
+      notes.push('kits.verify.noPictures');
+    } else if (capture) {
+      // The adapter writes the screenshots here; the folder has to exist.
+      deps.render.fs.writeText(join(dir, 'look', '.gitkeep'), '');
+      look = await lookStep({
+        loaded,
+        build,
+        dir,
+        examples,
+        capture: (input) => capture.call(session, input),
+      });
+    } else {
+      notes.push('kits.verify.noBrowser');
     }
-    // The adapter writes the screenshots here; the folder has to exist.
-    deps.render.fs.writeText(join(dir, 'look', '.gitkeep'), '');
-    const look = await lookStep({
-      loaded,
-      build,
-      dir,
-      examples,
-      capture: (input) => capture.call(session, input),
-    });
-    return { render, tokens, look, notes };
+    // The copies of a `code` kit are also compared with the originals kitvas draws.
+    let original: PageSteps['original'] = SKIPPED;
+    if (isCode) {
+      if (measure) {
+        original = await originalStep({
+          loaded,
+          build,
+          dir,
+          examples,
+          measure: (input) => measure.call(session, input),
+          projectStyles: deps.projectStyles,
+          fs: deps.render.fs,
+        });
+      } else {
+        notes.push('kits.verify.originalNoBrowser');
+      }
+    }
+    return { render, tokens, look, original, notes };
   } finally {
     await session.close();
   }
@@ -164,6 +204,7 @@ export async function verifyKit(
     render: SKIPPED,
     tokens: SKIPPED,
     look: SKIPPED,
+    original: SKIPPED,
     notes: ['kits.verify.afterSchema'],
   };
 
@@ -190,10 +231,20 @@ export async function verifyKit(
     render: page.render.state,
     tokens: page.tokens.state,
     look: page.look.state,
+    original: page.original.state,
   };
   const scores = page.look.look ?? [];
+  const originals = page.original.originals ?? [];
+  // Only a run that compared copies with originals says how each component was compared.
+  const compared =
+    loaded && page.original.state !== 'skipped'
+      ? {
+          originals,
+          compared: comparedLevels(loaded.kit, scores, originals, page.original.drawn ?? []),
+        }
+      : {};
   const file: VerifyFile = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kit: kitId,
     // No hash without a readable kit.json: any later hash differs, so the studio asks again.
     hash: loaded?.hash ?? '',
@@ -207,10 +258,12 @@ export async function verifyKit(
       ...page.render.issues,
       ...page.tokens.issues,
       ...page.look.issues,
+      ...page.original.issues,
     ]),
     notes: page.notes,
     // Only a run that scored something leaves scores: the file of a kit without references has none.
     ...(page.look.state === 'skipped' ? {} : { look: scores }),
+    ...compared,
   };
   fs.writeText(join(dir, VERIFY_FILE), serializeJson(file));
   return file;

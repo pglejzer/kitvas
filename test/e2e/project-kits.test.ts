@@ -28,8 +28,8 @@ const TEST_MS = 300_000;
 
 const SLUG = 'demo';
 const STEPS = ['schema', 'imports', 'types', 'render', 'tokens'] as const;
-/** Steps a kit learned from code does not run: `look` holds only written kits to references. */
-const NOT_RUN = { look: 'skipped' } as const;
+/** Steps a kit of real components does not run: `look` and `original` hold only written kits. */
+const NOT_RUN = { look: 'skipped', original: 'skipped' } as const;
 
 type CheckView = Extract<KitView, { view: 'check' }>;
 type KitBuildView = Extract<KitView, { view: 'build' }>;

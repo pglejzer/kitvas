@@ -8,7 +8,6 @@ import type { Loader, Message } from 'esbuild';
 import {
   type DeclaredResolve,
   loadDep,
-  nodeModulesFrom,
   type ProjectResolve,
   packageDirFrom,
   readProjectResolve,
@@ -18,7 +17,7 @@ import type { BuildError } from '../domain/report.ts';
 import type { Bundler } from '../ports/bundler.ts';
 import { exportedNames, exportsProbe, probeEntries } from './exports-probe.ts';
 import type { ScssCompile, ScssLookup } from './sass-pipeline.ts';
-import { SCSS_PLUGIN, scssPlugin } from './scss-plugin.ts';
+import { SCSS_PLUGIN, scssLookup, scssPlugin } from './scss-plugin.ts';
 
 type Esbuild = typeof import('esbuild');
 
@@ -106,7 +105,7 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
   ): { found: ProjectResolve | undefined; lookup: ScssLookup } => {
     if (project === undefined) return { found: undefined, lookup: { paths: {}, loadPaths: [] } };
     const found = readProjectResolve(project, declared);
-    return { found, lookup: { paths: found.paths, loadPaths: nodeModulesFrom(project) } };
+    return { found, lookup: scssLookup(project, found) };
   };
 
   /**

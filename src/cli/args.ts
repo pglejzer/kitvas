@@ -82,6 +82,8 @@ export type Flags = {
   again: boolean;
   /** `handoff compare --selector <css>`: the region of the page to compare. */
   selector: string | undefined;
+  /** `kit verify --current Button,Card`: components looked at against the project, no change needed. */
+  current: string | undefined;
 };
 
 export type ParsedArgs = {
@@ -141,6 +143,7 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         files: { type: 'string' },
         again: { type: 'boolean' },
         selector: { type: 'string' },
+        current: { type: 'string' },
       },
     });
     const [command, ...rest] = positionals;
@@ -190,6 +193,7 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
         files: values.files,
         again: values.again === true,
         selector: values.selector,
+        current: values.current,
       },
     };
   } catch (cause) {

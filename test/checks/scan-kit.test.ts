@@ -323,3 +323,32 @@ test('the crops of a kit stop at 300: later candidates are dropped from the fact
   assert.equal(crops.length, 84);
   assert.equal(crops[0], 'source/web/2-390/crops/button-12.png');
 });
+
+test('scan takes a code kit: the address is added to source.urls, a sixth is refused', async () => {
+  const codeKit = (urls: string[]): Record<string, unknown> => ({
+    ...webKit(),
+    source: { type: 'code', path: 'src/app', styles: [], urls },
+  });
+  const kit = shop(codeKit([]));
+  await scanKit(kit.deps, 'p', 'site', { urls: [FIRST], allowPrivate: false });
+  const written = JSON.parse(kit.writes['kit.json'] ?? '') as { source: Record<string, unknown> };
+  assert.deepEqual(written.source, { type: 'code', path: 'src/app', styles: [], urls: [FIRST] });
+
+  // A code kit starts with no address: a scan with none to open says so.
+  await assert.rejects(
+    scanKit(shop(codeKit([])).deps, 'p', 'site', { urls: [], allowPrivate: false }),
+    failsWith('KIT_SOURCE_INVALID'),
+  );
+
+  const many = shop(codeKit([]));
+  const six = Array.from({ length: 6 }, (_, index) => `https://example.com/${index}`);
+  await assert.rejects(
+    scanKit(many.deps, 'p', 'site', { urls: six, allowPrivate: false }),
+    failsWith('KIT_SOURCE_INVALID'),
+  );
+  const images = shop({ ...webKit(), source: { type: 'images' } });
+  await assert.rejects(
+    scanKit(images.deps, 'p', 'site', { urls: [FIRST], allowPrivate: false }),
+    failsWith('KIT_SOURCE_INVALID'),
+  );
+});

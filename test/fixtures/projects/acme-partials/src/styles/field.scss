@@ -1,0 +1,41 @@
+@use "styles/mixins" as m;
+@use "styles/tokens" as t;
+
+.field {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: t.$space-xs;
+  font-family: var(--acme-font-body);
+  color: var(--acme-ink);
+}
+
+.field__label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--acme-ink);
+}
+
+.field__input {
+  box-sizing: border-box;
+  width: t.$size-input;
+  margin: 0;
+  padding: t.$space-sm t.$space-md;
+  border: t.$border-thin solid var(--acme-line);
+  border-radius: t.$radius-sm;
+  background: t.$on-primary;
+  font-family: var(--acme-font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  color: var(--acme-ink);
+
+  &:focus {
+    border-color: t.$primary;
+    @include m.focus-ring;
+  }
+}

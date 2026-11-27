@@ -262,6 +262,26 @@ test('a written kit is not refused for Tailwind v3, and an npm and repo kit repo
   assert.deepEqual(newKit(deps(plain), 'firma', { type: 'repo', value: 'src/ds' }).skipped, []);
 });
 
+test('kit new --from code: checks only the folder', () => {
+  const project = tempProject({ 'src/ui/Button.tsx': '' }, { tailwindcss: { version: '3.4.17' } });
+  assert.throws(
+    () => newKit(deps(project), 'mine', { type: 'code', value: 'src/nope' }),
+    fails('KIT_SOURCE_INVALID'),
+  );
+  assert.equal(existsSync(kitDir(project, 'mine')), false);
+  assert.throws(
+    () => newKit(deps(project), 'mine', { type: 'code', value: '../elsewhere' }),
+    fails('KIT_SOURCE_INVALID'),
+  );
+  // Tailwind 3 and no React: nothing else of the project is read.
+  const created = newKit(deps(project), 'mine', { type: 'code', value: 'src/ui' });
+  const source = { type: 'code', path: 'src/ui', styles: [], urls: [] };
+  assert.deepEqual(created.source, source);
+  assert.deepEqual(created.skipped, []);
+  assert.deepEqual(readKitJson(project, 'mine').source, source);
+  assert.equal(existsSync(join(kitDir(project, 'mine'), 'source', 'images')), false);
+});
+
 test('an id that is taken is refused for a written kit too', () => {
   const project = tempProject();
   newKit(deps(project), 'site', { type: 'web', value: 'https://example.com/' });

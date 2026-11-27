@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- A kit from code in any technology: `kitvas kit new <id> --from code:<folder>` and `/kitvas:learn` read a folder of components as text and write each one again in React, with the project's own names and values. Each component records the project files it came from (`project`), and a hand-off points at the project's own component.
+- Originals: for each example the agent writes the component's own markup as the project draws it (`originals/`). The new verify step `original` compiles the project's style files, draws the original in kitvas's browser and compares it with the copy in numbers (sizes within half a pixel, every other value exact, hover, focus and pressed looks), then by picture.
+- Each component of a `code` kit is labelled by how it was checked: compared with the app, compared with the code, or read only with the reason. `kitvas kit verify` prints the counts, and the kit's page shows the label.
+- `kitvas kit detect` and `kitvas kit show` name the components whose project files changed (`outdated`); `kitvas kit verify --current <Name>` records one that needed no change. `kitvas kit images <id> --from <folder>` adds pictures to a written kit, and `kit scan` takes a `code` kit.
 - `resolve` in kit.json: the folders a project's imports start from (`roots`), the names its bundler puts in place of a folder (`alias`) and the type files nothing imports (`types`), for what the project's build configuration says and its `tsconfig.json` does not. The learner reads the build configuration and writes it. ADR 0092.
 
 ### Fixed

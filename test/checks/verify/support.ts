@@ -7,6 +7,12 @@ import type {
   Browser,
   Inspect,
   InspectReport,
+  LayerFacts,
+  LayerNode,
+  Measure,
+  MeasuredFrame,
+  MeasureReport,
+  OutlineRead,
   ToolMessage,
   TypeChecker,
   TypeCheckInput,
@@ -18,9 +24,13 @@ import type {
   BundleInput,
   Bundler,
   CatalogReport,
+  ProjectStyleInput,
+  ProjectStyleResult,
+  ProjectStyles,
 } from '../../../src/render/index.ts';
 import { catalogDir, PLUGIN_ROOT, projectKitsDir } from '../../../src/shared/index.ts';
 import { tinyKitJson } from '../../helpers/kit/kits.ts';
+import { bar } from '../pixels.ts';
 
 /** A project that exists nowhere: the fakes never touch the disk. */
 export const PROJECT = join(PLUGIN_ROOT, 'no-such-project');
@@ -270,3 +280,164 @@ export const catalog = (over: Partial<CatalogReport> = {}): CatalogReport => ({
   path: join(ACME_CATALOG, 'build', 'html', 'index.html'),
   ...over,
 });
+
+/** The tiny kit as a `code` kit: Button.1 has an original, Icon has no example. */
+export function codeLoaded(change: (json: Record<string, unknown>) => void = () => {}): LoadedKit {
+  const json = tinyKitJson();
+  json.source = {
+    type: 'code',
+    path: 'src/components',
+    styles: ['src/app.css'],
+    urls: [],
+  };
+  const [button] = json.components as {
+    examples: { original?: string }[];
+    project?: unknown;
+  }[];
+  const example = button?.examples[0];
+  if (example) example.original = 'originals/Button.1.html';
+  if (button) button.project = { files: ['src/button.html'], styles: ['src/button.css'] };
+  change(json);
+  const dir = join(projectKitsDir(PROJECT), 'tiny');
+  return {
+    kit: parseKit(json, 'tiny'),
+    dir,
+    tokens: [],
+    issues: [],
+    hash: 'd'.repeat(64),
+    project: PROJECT,
+    cssVarMap: {},
+    additions: [],
+    additionsDir: undefined,
+    entry: join(dir, 'tsx', 'index.ts'),
+    ...noThemes(),
+  };
+}
+
+export const ORIGINAL_MARKUP =
+  '<button type="button" class="btn" data-kv-scope="Button"><span>Save</span></button>';
+
+export type FakeStyles = { styles: ProjectStyles; asked: ProjectStyleInput[] };
+
+/** Project styles: every file compiles to a small sheet unless `answers` says otherwise. */
+export function fakeStyles(answers: Record<string, ProjectStyleResult> = {}): FakeStyles {
+  const asked: ProjectStyleInput[] = [];
+  return {
+    asked,
+    styles: async (input) => {
+      asked.push(input);
+      return answers[input.file] ?? { ok: true, css: '.btn { padding: 4px; }' };
+    },
+  };
+}
+
+/** A walked node: a frame inside the root; change what the test is about. */
+export function layerNode(over: Partial<LayerNode> = {}): LayerNode {
+  return {
+    parent: -1,
+    ks: null,
+    ownKs: false,
+    tag: 'div',
+    box: [16, 16, 100, 40],
+    kind: 'frame',
+    placed: 'flow',
+    fill: [false, false],
+    flow: null,
+    paints: [],
+    border: null,
+    radius: [0, 0, 0, 0],
+    shadows: [],
+    opacity: 1,
+    clips: false,
+    text: null,
+    svg: null,
+    ...over,
+  };
+}
+
+type LayerText = NonNullable<LayerNode['text']>;
+
+export const layerText = (over: Partial<LayerText> = {}): LayerText => ({
+  characters: 'Save',
+  truncated: false,
+  family: 'inter',
+  weight: 500,
+  italic: false,
+  size: 14,
+  lineHeight: 20,
+  letterSpacing: 0,
+  align: 'left',
+  transform: 'none',
+  colour: '#ffffffff',
+  runs: [],
+  ...over,
+});
+
+export const layerFacts = (nodes: LayerNode[]): LayerFacts => ({
+  viewport: [1280, 900],
+  page: [1280, 900],
+  background: '#ffffffff',
+  nodes,
+  truncated: false,
+});
+
+/** A button with a label: two nodes, the second the first's child. */
+export function buttonNodes(): LayerNode[] {
+  return [
+    layerNode({
+      tag: 'button',
+      box: [16, 16, 120, 40],
+      flow: {
+        direction: 'row',
+        wrap: false,
+        gap: 8,
+        crossGap: 8,
+        padding: [8, 16, 8, 16],
+        justify: 'center',
+        align: 'center',
+      },
+      paints: [{ kind: 'solid', colour: '#1f5fd0ff' }],
+      radius: [6, 6, 6, 6],
+    }),
+    layerNode({ tag: 'span', parent: 0, kind: 'text', box: [32, 24, 88, 20], text: layerText() }),
+  ];
+}
+
+export const frameOf = (
+  state: MeasuredFrame['state'],
+  control: number,
+  nodes: LayerNode[] = buttonNodes(),
+  outlines: OutlineRead[] = [],
+): MeasuredFrame => ({ state, control, facts: layerFacts(nodes), outlines });
+
+type Measured = Extract<MeasureReport, { state: 'measured' }>;
+
+/** A measured page: the rest frame of a button, a picture with a bar, nothing unread. */
+export function measured(over: Partial<Measured> = {}): Measured {
+  return {
+    state: 'measured',
+    frames: [frameOf('rest', -1)],
+    pixels: bar(40, 20, 8),
+    unread: [],
+    ...over,
+  };
+}
+
+export type FakeMeasure = {
+  asked: Measure[];
+  measure: (input: Measure) => Promise<MeasureReport>;
+};
+
+/** Records every page measured; `answer` decides the report (the default is `measured()`). */
+export function fakeMeasure(
+  answer: (input: Measure) => MeasureReport | Promise<MeasureReport> = () => measured(),
+): FakeMeasure {
+  const asked: Measure[] = [];
+  return {
+    asked,
+    measure: async (input) => {
+      asked.push(input);
+      return answer(input);
+    },
+  };
+}

@@ -22,6 +22,7 @@ import {
   fakeBrowser,
   fakeBundler,
   fakeChecker,
+  fakeStyles,
   lineOf,
   tscMessage,
 } from './support.ts';
@@ -49,6 +50,7 @@ function workshop(options: Options = {}) {
       writeAddition: () => {},
       exportFiles: () => {},
     },
+    projectStyles: fakeStyles().styles,
     projectFiles: () => {
       throw new Error('a built-in kit has no project to look at');
     },
@@ -79,7 +81,7 @@ test('without a browser the first three steps run and the answer says what was s
   const shop = workshop();
   const file = await verifyKit(shop.deps, 'tiny', shop.project);
   assert.deepEqual(file, {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kit: 'tiny',
     hash: tinyHash(),
     at: AT,
@@ -91,6 +93,7 @@ test('without a browser the first three steps run and the answer says what was s
       render: 'skipped',
       tokens: 'skipped',
       look: 'skipped',
+      original: 'skipped',
     },
     issues: [],
     notes: ['kits.verify.noBrowser'],
@@ -117,6 +120,7 @@ test('with a browser all steps run: one build, one session, every example opened
     // The tiny kit maps no token onto a variable, and it is not a written kit.
     tokens: 'skipped',
     look: 'skipped',
+    original: 'skipped',
   });
   assert.equal(file.valid, true);
   assert.deepEqual(file.issues, []);
@@ -143,7 +147,7 @@ test('a kit that fails schema is not looked at any further', async () => {
   const shop = workshop({ kitsRoot: copyKit('tiny', 'other'), browser });
   const file = await verifyKit(shop.deps, 'other', shop.project);
   assert.deepEqual(file, {
-    schemaVersion: 2,
+    schemaVersion: 3,
     kit: 'other',
     hash: file.hash,
     at: AT,
@@ -155,6 +159,7 @@ test('a kit that fails schema is not looked at any further', async () => {
       render: 'skipped',
       tokens: 'skipped',
       look: 'skipped',
+      original: 'skipped',
     },
     issues: [
       {
@@ -212,6 +217,7 @@ test('failed steps make the kit invalid; the later steps still run', async () =>
     render: 'failed',
     tokens: 'skipped',
     look: 'skipped',
+    original: 'skipped',
   });
   assert.deepEqual(file.issues, [
     {
@@ -241,6 +247,7 @@ test('one problem met by two steps is listed once, where it came first', async (
     render: 'failed',
     tokens: 'skipped',
     look: 'skipped',
+    original: 'skipped',
   });
   assert.deepEqual(file.issues, [
     {

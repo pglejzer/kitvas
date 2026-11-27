@@ -3,6 +3,7 @@
 
 import { dirname } from 'node:path';
 import type { PartialMessage, Plugin } from 'esbuild';
+import { nodeModulesFrom, type ProjectResolve } from '../../shared/index.ts';
 import { relativeFile } from './real-path.ts';
 import type { ScssCompile, ScssLookup } from './sass-pipeline.ts';
 
@@ -16,6 +17,14 @@ export type ScssPluginOptions = {
   /** Error files are given relative to it, like esbuild's own. */
   workingDir: string;
 };
+
+/**
+ * Where the Sass of a project looks a load up: its import patterns (the record `found`), then its
+ * `node_modules`. The bundler and the project's style files both use it.
+ */
+export function scssLookup(project: string, found: ProjectResolve): ScssLookup {
+  return { paths: found.paths, loadPaths: nodeModulesFrom(project) };
+}
 
 function failureMessage(cause: unknown, path: string, workingDir: string): PartialMessage {
   const failure = cause as { message?: unknown; file?: unknown; line?: unknown; column?: unknown };

@@ -84,3 +84,13 @@ export type LayerFacts = {
   nodes: LayerNode[];
   truncated: boolean;
 };
+
+/** An element that paints an outline (a focus ring is one; the layer walk has none). */
+export type OutlineRead = {
+  /** The child numbers from the root, `/0/1`: the same element has the same place on both pages. */
+  place: string;
+  /** The tags from the root, `button > span[2]`, for a person. */
+  element: string;
+  /** Width, style, colour and offset as the browser computed them. */
+  value: string;
+};

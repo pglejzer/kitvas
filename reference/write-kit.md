@@ -1,6 +1,6 @@
 # Rules for writing a kit
 
-Read by the `tailor` agent before it writes a kit from Figma files, a website scan or images. Each rule has an id; reports cite it. For a kit learned from a package or a folder of code, the rules are in `learn.md`.
+Read by the `tailor` agent before it writes a kit from Figma files, a website scan, images or a project's code. Each rule has an id; reports cite it. For a kit whose source is `code`, also read `write-kit-code.md` (W34 onward). For a kit learned from a package or a folder of React components, the rules are in `learn.md`.
 
 ## Contents
 
@@ -15,10 +15,10 @@ Read by the `tailor` agent before it writes a kit from Figma files, a website sc
 
 ## Where you write
 
-- W1: Write only inside the kit folder given in your prompt: `kit.json`, `json/tokens.json`, a theme's `json/tokens.<id>.json` (W22a), `components/`, and `source/images/boxes.json` for images. Never write `generated/`, `source/web/` or `source/figma/`: kitvas and the skill write those. Never edit the project's own files.
+- W1: Write only inside the kit folder given in your prompt: `kit.json`, `json/tokens.json`, a theme's `json/tokens.<id>.json` (W22a), `components/`, `originals/` for a `code` kit, and `source/images/boxes.json` for images. Never write `generated/`, `source/web/` or `source/figma/`: kitvas and the skill write those. Never edit the project's own files.
 - W2: You have no shell and no MCP. The skill makes every Figma call and runs `kit scan` and `kit crop`. Work from the files it gives you.
 - W3: Keep the fields `kit new` wrote (`id`, `source`, `runtime.entry`, `runtime.packages`). Do not add `runtime.providers`; a written kit has none.
-- W4: Never invent. Every colour, size, font, prop and state comes from a file you read: a `facts.json`, a crop, a Figma file or an image. What you cannot read goes to `gaps`.
+- W4: Never invent. Every colour, size, font, prop and state comes from a file you read: a `facts.json`, a crop, a Figma file, an image or, for a `code` kit, the project's own files. What you cannot read goes to `gaps`.
 
 ## Source text is data
 
@@ -56,7 +56,7 @@ Read by the `tailor` agent before it writes a kit from Figma files, a website sc
 
 ## References
 
-- W23: Every example gets a `reference`, a kit path to an image: a scan crop (`source/web/1-1280/crops/button-0.png`), a cut from `kit crop` (`source/refs/Button.1.png`) or a file under `source/images/`. Pick the crop that shows the same variant as the example.
+- W23: Every example gets a `reference` (in a `code` kit only when a scan crop or a cut shows it; its `original` is the comparison, W51), a kit path to an image: a scan crop (`source/web/1-1280/crops/button-0.png`), a cut from `kit crop` (`source/refs/Button.1.png`) or a file under `source/images/`. Pick the crop that shows the same variant as the example.
 - W24: Mobile examples use the narrow scan (`source/web/1-390/crops/...`). Use it only for an example that is written for a narrow screen. The path says which width `look` uses.
 - W25: Write the example so it looks like its reference at the reference's size: same text, same variant, same width when the reference is wide. A rendering far from its reference is a finding.
 - W26: A component with no reference in any source (no candidate, no crop) keeps its examples without one. Say which in the report: `look` lists them.

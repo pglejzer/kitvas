@@ -4,6 +4,7 @@
 
 import type { KitIssue } from '../../../kit/index.ts';
 import type { Translate } from '../../../shared/index.ts';
+import type { CompareLevel } from '../../views/kit-status.ts';
 import type { CategoryGroup, ComponentRow, PropRow } from '../../views/kit-view.ts';
 import { type Html, html } from '../html.ts';
 import { icon } from '../icons/icon.ts';
@@ -36,11 +37,22 @@ function propsTable(t: Translate, component: ComponentRow): Html {
   return html`<div class="kit-scroll" role="region" tabindex="0" aria-label="${component.name}"><table class="kit-props"><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
 }
 
+/** The chip's tone for each level: compared with the real thing, with the code, not compared. */
+const LEVEL_TONE: Record<CompareLevel, string> = { app: 'good', code: 'accent', read: 'review' };
+
 /** A component as one card that folds: its name and purpose, then the examples beside the props. */
 function componentCard(t: Translate, component: ComponentRow, catalog: CatalogInput): Html {
   const deprecated = component.deprecated
     ? html` <span class="k-chip" data-tone="review">${t('studio.kit.deprecated')}</span>`
     : '';
+  const level =
+    component.level === undefined
+      ? ''
+      : html` <span class="k-chip" data-tone="${LEVEL_TONE[component.level]}" data-compared="${component.level}" title="${t(`studio.kit.comparedWhy.${component.why ?? component.level}`)}">${t(`studio.kit.compared.${component.level}`)}</span>`;
+  const outdated =
+    component.outdated === undefined
+      ? ''
+      : html` <span class="k-chip" data-tone="review" data-outdated="${component.outdated}" title="${t(`studio.kit.outdatedWhy.${component.outdated}`)}">${t('studio.kit.outdated')}</span>`;
   const examples =
     component.examples.length === 0
       ? ''
@@ -52,7 +64,7 @@ function componentCard(t: Translate, component: ComponentRow, catalog: CatalogIn
       ? ''
       : html`<h4>${t('studio.kit.a11y')}</h4><ul class="kit-list">${component.a11y.map((note) => html`<li>${note}</li>`)}</ul>`;
   const words = `${component.name} ${component.description}`;
-  return html`<article class="kit-card kit-fold" data-search="${words}"><details><summary><h3>${component.name}${deprecated}</h3><span class="k-quiet">${component.description}</span>${icon('chevron-down')}</summary><div class="kit-card-body">${examples}<div class="kit-card-facts">${propsTable(t, component)}${a11y}</div></div></details></article>`;
+  return html`<article class="kit-card kit-fold" data-search="${words}"><details><summary><h3>${component.name}${deprecated}${level}${outdated}</h3><span class="k-quiet">${component.description}</span>${icon('chevron-down')}</summary><div class="kit-card-body">${examples}<div class="kit-card-facts">${propsTable(t, component)}${a11y}</div></div></details></article>`;
 }
 
 /** The id of a category's part. */

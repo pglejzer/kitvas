@@ -17,7 +17,14 @@ import { generatedEntry, parseKit } from '../../../src/kit/index.ts';
 import { decisionsTemplate, initWorkspace, PLUGIN_ROOT } from '../../../src/shared/index.ts';
 import { tempDir } from '../tmp.ts';
 
-export type FixtureName = 'acme-npm' | 'acme-repo' | 'acme-tailwind' | 'acme-written';
+export type FixtureName =
+  | 'acme-npm'
+  | 'acme-partials'
+  | 'acme-repo'
+  | 'acme-sfc'
+  | 'acme-tailwind'
+  | 'acme-templates'
+  | 'acme-written';
 export type FixtureProject = { dir: string; kitId: string };
 
 /** The id of the kit each fixture holds in its `kit/` folder. */
@@ -26,6 +33,9 @@ export const FIXTURE_KITS: Record<FixtureName, string> = {
   'acme-repo': 'firma',
   'acme-written': 'acme-site',
   'acme-tailwind': 'shad',
+  'acme-templates': 'acme-tpl',
+  'acme-sfc': 'acme-sfc',
+  'acme-partials': 'acme-html',
 };
 
 /** Packages every fixture project gets from kitvas's own node_modules. */

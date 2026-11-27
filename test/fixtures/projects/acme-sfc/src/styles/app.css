@@ -1,0 +1,17 @@
+[data-theme='light'] {
+  --acme-ink: #1a2233;
+  --acme-font: Arial, Helvetica, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f4f6fb;
+}
+
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px;
+  font-family: var(--acme-font);
+  color: var(--acme-ink);
+}

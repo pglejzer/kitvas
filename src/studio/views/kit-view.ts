@@ -7,6 +7,7 @@ import {
   formatTokenValue,
   type KitComponent,
 } from '../../kit/index.ts';
+import type { CodeView, CompareLevel, OutdatedEntry, ReadReason } from './kit-status.ts';
 
 export type PropRow = {
   name: string;
@@ -24,6 +25,12 @@ export type ComponentRow = {
   props: PropRow[];
   examples: { title: string; code: string; reference?: string }[];
   a11y: string[];
+  /** A `code` kit verified as it is now: the strongest comparison of this component. */
+  level?: CompareLevel;
+  /** Why a `read` component was not compared. */
+  why?: ReadReason;
+  /** A `code` kit: why this component is out of date with its project. */
+  outdated?: OutdatedEntry['reason'];
 };
 
 export type CategoryGroup = { category: string; components: ComponentRow[] };
@@ -44,7 +51,10 @@ export function swatchRules(tokens: FlatToken[]): string {
     .join('\n');
 }
 
-function componentRow(component: KitComponent): ComponentRow {
+function componentRow(component: KitComponent, code: CodeView | undefined): ComponentRow {
+  const level = code?.levels[component.name];
+  const outdated = code?.outdated[component.name];
+  const why = code?.reasons[component.name];
   return {
     name: component.name,
     description: component.description,
@@ -63,13 +73,24 @@ function componentRow(component: KitComponent): ComponentRow {
       ...(reference === undefined ? {} : { reference }),
     })),
     a11y: component.a11y,
+    ...(level === undefined ? {} : { level }),
+    ...(why === undefined ? {} : { why }),
+    ...(outdated === undefined ? {} : { outdated }),
   };
 }
 
-/** Components by category in the contract's order; a category with none is left out. */
-export function groupComponents(components: KitComponent[]): CategoryGroup[] {
+/**
+ * Components by category in the contract's order; a category with none is left out. `code` carries
+ * the levels and the stale components of a `code` kit; any other kit passes none.
+ */
+export function groupComponents(
+  components: KitComponent[],
+  code?: CodeView | undefined,
+): CategoryGroup[] {
   return CATEGORIES.map((category) => ({
     category,
-    components: components.filter((component) => component.category === category).map(componentRow),
+    components: components
+      .filter((component) => component.category === category)
+      .map((component) => componentRow(component, code)),
   })).filter((group) => group.components.length > 0);
 }

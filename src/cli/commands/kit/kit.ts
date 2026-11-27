@@ -1,22 +1,11 @@
 // `kitvas kit …`: list kits, show one, check it, read one component, print its token sheet, build
 // its rendered examples; for project kits also start one, verify it and use it in this project,
-// list what its source exports and merge its fragments (`kit-exports.ts`, `kit-merge.ts`).
+// list what its source exports and merge its fragments (`kit-exports.ts`, `kit-merge.ts`), copy
+// screenshots into one (`kit-images.ts`), and say what changed in the project (`kit-detect.ts`).
 
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { CropResult, PreviewsResult, ScanResult, VerifyFile } from '../../../checks/index.ts';
 import {
-  type CropResult,
-  type PreviewsResult,
-  readVerifyFile,
-  type ScanResult,
-  VERIFY_FILE,
-  VERIFY_STEPS,
-  type VerifyFile,
-  type VerifyIssue,
-} from '../../../checks/index.ts';
-import {
-  type Detected,
-  detectKits,
   findComponent,
   type KitComponent,
   type KitIssue,
@@ -29,6 +18,7 @@ import {
   listKits,
   loadKit,
   newKit,
+  outdatedComponents,
   type ProjectSetup,
   parseSourceFlag,
   projectIssues,
@@ -52,16 +42,14 @@ import {
   requireWorkspace,
 } from '../../registry.ts';
 import type { RenderTools } from '../draft/build.ts';
+import { detectView, type KitDetectView, renderDetect } from './kit-detect.ts';
 import { exportsView, type KitExportsView, renderExports } from './kit-exports.ts';
+import { imagesView, type KitImagesView, renderImages } from './kit-images.ts';
 import { type KitMergeView, mergeView, renderMerge } from './kit-merge.ts';
+import { type KitVerifyView, renderVerify, verifyView } from './kit-verify.ts';
 import { projectKitId } from './project-kit.ts';
 
 type IssueLine = { path: string; message: string };
-
-/** `kit verify` as the CLI answers it: the verify file, each issue with its sentence. */
-export type KitVerifyView = { view: 'verify' } & Omit<VerifyFile, 'issues'> & {
-    issues: (VerifyIssue & { message: string })[];
-  };
 
 export type KitView =
   | { view: 'list'; kits: KitListItem[] }
@@ -89,7 +77,8 @@ export type KitView =
   | ({ view: 'scan' } & ScanResult)
   | ({ view: 'crop' } & CropResult)
   | { view: 'use'; id: string }
-  | ({ view: 'detect' } & Detected)
+  | KitDetectView
+  | KitImagesView
   | KitVerifyView
   | KitExportsView
   | KitMergeView;
@@ -111,6 +100,8 @@ const sourceLabel = (source: KitSource): string => {
       return source.urls.map(hostOf).join(', ');
     case 'images':
       return 'images';
+    case 'code':
+      return source.path;
     case 'builtin':
       return source.type;
   }
@@ -123,49 +114,6 @@ function hostOf(url: string): string {
   } catch {
     return url;
   }
-}
-
-function renderVerify(data: KitVerifyView, t: Translate): string {
-  const named = (state: string): string =>
-    VERIFY_STEPS.filter((step) => data.steps[step] === state).join(', ');
-  const lines = data.valid
-    ? [t('kits.verify.ok', { id: data.kit, steps: named('passed') })]
-    : [
-        t('kits.verify.failed', { id: data.kit, count: data.issues.length }),
-        ...data.issues.map((issue) => `  ${issue.step}  ${issue.path}: ${issue.message}`),
-      ];
-  // A valid kit can still carry advice (a component without a reference image).
-  if (data.valid && data.issues.length > 0) {
-    lines.push(
-      t('kits.verify.advice'),
-      ...data.issues.map((issue) => `  ${issue.step}  ${issue.path}: ${issue.message}`),
-    );
-  }
-  const skipped = named('skipped');
-  if (skipped) lines.push(t('kits.verify.skipped', { steps: skipped }));
-  return [...lines, ...data.notes.map((note) => t(note))].join('\n');
-}
-
-function renderDetect(data: Detected, t: Translate): string {
-  const { signs } = data;
-  const lines = data.kits.map((kit) =>
-    t(kit.stale ? 'kits.detect.kitStale' : 'kits.detect.kit', { id: kit.id, source: kit.source }),
-  );
-  if (lines.length === 0) lines.push(t('kits.detect.noKits'));
-  lines.push(
-    data.active === null ? t('kits.detect.noActive') : t('kits.detect.active', { id: data.active }),
-  );
-  if (signs.components.length > 0) {
-    lines.push(t('kits.detect.components', { folders: signs.components.join(', ') }));
-  }
-  if (signs.packages.length > 0) {
-    lines.push(t('kits.detect.packages', { names: signs.packages.join(', ') }));
-  }
-  if (signs.figma.length > 0) lines.push(t('kits.detect.figma', { urls: signs.figma.join(' ') }));
-  if (signs.components.length + signs.packages.length + signs.figma.length === 0) {
-    lines.push(t('kits.detect.noSigns'));
-  }
-  return lines.join('\n');
 }
 
 function renderView(data: KitView, t: Translate): string {
@@ -203,6 +151,10 @@ function renderView(data: KitView, t: Translate): string {
       }
       if (kit.addedTokens.length > 0) {
         lines.push(t('kits.show.addedTokens', { paths: kit.addedTokens.join(', ') }));
+      }
+      if (kit.outdated.length > 0) {
+        const list = kit.outdated.map((item) => `${item.name} (${t(`kits.show.${item.reason}`)})`);
+        lines.push(t('kits.show.outdated', { list: list.join(', ') }));
       }
       if (kit.gaps.length > 0) lines.push(t('kits.show.gaps', { count: kit.gaps.length }));
       if (kit.issues > 0) lines.push(t('kits.show.issues', { count: kit.issues, id: kit.id }));
@@ -268,6 +220,8 @@ function renderView(data: KitView, t: Translate): string {
       return renderDetect(data, t);
     case 'verify':
       return renderVerify(data, t);
+    case 'images':
+      return renderImages(data, t);
     case 'exports':
       return renderExports(data, t);
     case 'merge':
@@ -322,8 +276,18 @@ export function createKitCommand(deps: KitDeps): Command {
       switch (sub) {
         case 'list':
           return { view: 'list', kits: listKits(deps.kits) };
-        case 'show':
-          return { view: 'show', kit: summarizeKit(loadKit(deps.kits, idAt(ctx, 1))) };
+        case 'show': {
+          const id = idAt(ctx, 1);
+          const loaded = loadKit(deps.kits, id);
+          const outdated =
+            loaded.project === undefined
+              ? []
+              : outdatedComponents(
+                  { kits: deps.kits, kitWriter: deps.kitWriter, files: deps.projectFiles(ctx.cwd) },
+                  id,
+                );
+          return { view: 'show', kit: summarizeKit(loaded, outdated) };
+        }
         case 'check': {
           const explicit = ctx.positionals[1] !== undefined;
           const id = idAt(ctx, 1);
@@ -415,39 +379,17 @@ export function createKitCommand(deps: KitDeps): Command {
           saveProjectKit(ctx.cwd, id);
           return { view: 'use', id };
         }
-        case 'detect': {
-          const verifiedHash = (id: string): string | undefined => {
-            try {
-              const text = readFileSync(join(catalogDir(ctx.cwd, id), VERIFY_FILE), 'utf8');
-              return readVerifyFile(text)?.hash;
-            } catch {
-              return undefined;
-            }
-          };
-          return {
-            view: 'detect',
-            ...detectKits({
-              kits: deps.kits,
-              files: deps.projectFiles(ctx.cwd),
-              verifiedHash,
-              activeKit: projectKitId(deps.kits, ctx),
-            }),
-          };
-        }
+        case 'detect':
+          return detectView(deps, ctx);
         case 'verify': {
           const id = idAt(ctx, 1);
           requireWorkspace(ctx);
-          // verifyKit writes generated/kit.ts itself once the schema step passes; loading the kit
-          // here first would turn a kit.json that fails the schema into an error instead of a report.
-          const file = await deps.verify(ctx.cwd, id);
-          return {
-            view: 'verify',
-            ...file,
-            issues: file.issues.map((issue) => ({
-              ...issue,
-              message: ctx.t(issue.key, issue.params),
-            })),
-          };
+          return verifyView(deps, ctx, id);
+        }
+        case 'images': {
+          const id = requiredId(ctx, 'images');
+          requireWorkspace(ctx);
+          return imagesView(deps, ctx, id);
         }
         case 'exports':
           return exportsView(deps, idAt(ctx, 1));

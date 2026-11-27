@@ -2,7 +2,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { createBrowserInstaller } from './checks/adapters/browser/browser-installer.ts';
@@ -57,12 +57,13 @@ import { createFolderKitStore } from './kit/adapters/folder-store.ts';
 import { createFolderKitWriter } from './kit/adapters/folder-writer.ts';
 import { createLayeredKitStore } from './kit/adapters/layered-store.ts';
 import { createProjectFiles } from './kit/adapters/project-files.ts';
-import type { KitStore } from './kit/index.ts';
+import { type KitStore, outdatedComponents } from './kit/index.ts';
 import { createEsbuildBundler } from './render/adapters/esbuild-bundler.ts';
 import { createNodeBuildFs } from './render/adapters/node-build-fs.ts';
-import { createSassPipeline } from './render/adapters/sass-pipeline.ts';
+import { createSassPipeline, type SassPipeline } from './render/adapters/sass-pipeline.ts';
+import { scssLookup } from './render/adapters/scss-plugin.ts';
 import { createTailwindCss } from './render/adapters/tailwind-css.ts';
-import { buildDraft } from './render/index.ts';
+import { buildDraft, createProjectStyles } from './render/index.ts';
 import {
   defaultDepRoots,
   PLUGIN_ROOT,
@@ -93,7 +94,7 @@ export function main(argv: string[]): Promise<number> {
     kits,
     draftsAt: (dir: string) => createFsDraftStore(join(workspaceDir(dir), 'drafts')),
   };
-  const render = (): RenderTools => {
+  const render = (): RenderTools & { styles: SassPipeline } => {
     const roots = defaultDepRoots();
     const styles = createSassPipeline({ roots });
     const fs = createNodeBuildFs();
@@ -217,6 +218,13 @@ export function main(argv: string[]): Promise<number> {
           kitWriter,
           projectFiles: createProjectFiles,
           render: tools,
+          // A `code` kit's originals are drawn with the project's own style files (ADR 0093).
+          projectStyles: createProjectStyles({
+            read: (path) => (existsSync(path) ? readFileSync(path, 'utf8') : undefined),
+            exists: existsSync,
+            lookup: scssLookup,
+            compile: tools.styles.compileText,
+          }),
           types: types(),
           browser: browser(),
           now: () => new Date(),
@@ -329,6 +337,16 @@ export function main(argv: string[]): Promise<number> {
             ),
         },
         doctor: () => doctorReport(doctorDeps, { cwd: project, home: homedir(), t }),
+        // Read on each kit page: the project's files may change while the studio runs.
+        outdated: (kitId) =>
+          outdatedComponents(
+            {
+              kits: projectKits,
+              kitWriter: createFolderKitWriter(projectKitsDir(project)),
+              files: createProjectFiles(project),
+            },
+            kitId,
+          ),
         live: {
           watch: fsWatchPort(join(workspaceDir(project), 'drafts')),
           build: async (slug) => {

@@ -311,6 +311,42 @@ test('a token the project added is listed apart, to create, and a draft with non
   assert.equal('added' in brief, false);
 });
 
+test('the brief points at the person own component', () => {
+  const projectOf = (source: Record<string, unknown>, origin: unknown): unknown => {
+    const kits = withKit((json) => {
+      json.source = source;
+      json.runtime = { entry: 'generated/kit.ts', styles: { files: [] } };
+      // The tiny kit's icon component is not among the components below.
+      json.icons = undefined;
+      json.components = [
+        {
+          name: 'Button',
+          category: 'action',
+          description: 'Starts an action.',
+          import: { from: 'components/Button', name: 'Button' },
+          props: [{ name: 'children', type: 'node', required: true }],
+          ...(origin === undefined ? {} : { project: origin }),
+        },
+      ];
+    });
+    const { brief } = writeBrief(depsFor(screen({}), kits), {
+      slug: 'shop',
+      write: { to: 'src/app', scope: 'new', files: [] },
+      base: '',
+    });
+    return brief.components.find((item) => item.name === 'Button')?.project;
+  };
+  const code = { type: 'code', path: 'src/app', styles: [], urls: [] };
+  assert.equal(
+    projectOf(code, { files: ['src/app/button/button.component.ts'], name: 'app-button' }),
+    'src/app/button/button.component.ts#app-button',
+  );
+  assert.equal(projectOf(code, { files: ['src/app/button.vue'] }), 'src/app/button.vue');
+  assert.equal(projectOf(code, { package: '@acme/ui', name: 'Button' }), '@acme/ui#Button');
+  assert.equal(projectOf(code, undefined), null);
+  assert.equal(projectOf({ type: 'images' }, undefined), null);
+});
+
 test('a component that is a project addition says so', () => {
   const kits = withKit(() => {}, {
     additions: {

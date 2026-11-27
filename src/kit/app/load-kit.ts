@@ -173,6 +173,8 @@ export function loadKit(store: KitStore, id: string): LoadedKit {
     // A missing reference image is not checked here: it must not stop builds and drafts. The
     // `look` step of `kit verify` reports it at its example.
     hashed.push(store.readTree?.(id, 'components') ?? {});
+    // The originals of a `code` kit are its data too, hashed after the components.
+    if (own.source.type === 'code') hashed.push(store.readTree?.(id, 'originals') ?? {});
   }
   // The project's additions change the kit its drafts see, and the theme files its sheet; a kit
   // without them keeps its hash. A missing theme file is left out of the JSON.

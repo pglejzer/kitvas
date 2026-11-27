@@ -1,0 +1,6 @@
+@use "styles/tokens" as t;
+
+@mixin focus-ring($offset: 0) {
+  outline: t.$border-thick solid t.$primary;
+  outline-offset: $offset;
+}

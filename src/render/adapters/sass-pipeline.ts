@@ -5,6 +5,7 @@
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadDep, pathTargets } from '../../shared/index.ts';
 import type { BuildError } from '../domain/report.ts';
+import type { CompileStyleText } from '../ports/project-styles.ts';
 import type { StylePipeline } from '../ports/style-pipeline.ts';
 import { relativeFile } from './real-path.ts';
 
@@ -28,7 +29,13 @@ export type ScssCompile = (file: string, lookup: ScssLookup) => Promise<ScssResu
 /** Where Sass stopped: `file` absolute, `line` and `column` 1-based (0 when unknown). */
 export type ScssFailure = Error & { file: string; line: number; column: number };
 
-export type SassPipeline = StylePipeline & { compileFile: ScssCompile };
+/** Compiles a text as the file `file` (absolute): its relative loads start from that folder. */
+export type ScssTextCompile = CompileStyleText;
+
+export type SassPipeline = StylePipeline & {
+  compileFile: ScssCompile;
+  compileText: ScssTextCompile;
+};
 
 const TIMEOUT_MS = 20_000;
 
@@ -124,6 +131,24 @@ export function createSassPipeline({ roots }: { roots: string[] }): SassPipeline
           .filter((url) => url.protocol === 'file:')
           .map((url) => fileURLToPath(url));
         return { css: result.css, loaded };
+      } catch (cause) {
+        throw toFailure(cause, file);
+      }
+    },
+
+    async compileText(text, file, syntax, { paths, loadPaths }) {
+      const sass = await compiler();
+      try {
+        const result = await withTimeout(
+          sass.compileStringAsync(text, {
+            style: 'expanded',
+            syntax,
+            url: pathToFileURL(file),
+            importers: pathImporters(paths),
+            loadPaths,
+          }),
+        );
+        return { css: result.css };
       } catch (cause) {
         throw toFailure(cause, file);
       }

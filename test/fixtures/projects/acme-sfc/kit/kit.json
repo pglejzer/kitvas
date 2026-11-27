@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "id": "acme-sfc",
+  "name": "Acme single-file components",
+  "version": "0.0.0",
+  "source": {
+    "type": "code",
+    "path": "src/components",
+    "styles": ["src/styles/app.css"],
+    "shell": {
+      "html": {
+        "data-theme": "light"
+      },
+      "body": {},
+      "wrappers": [
+        {
+          "tag": "div",
+          "attributes": {
+            "id": "app"
+          }
+        }
+      ]
+    },
+    "urls": []
+  },
+  "framework": "react",
+  "runtime": {
+    "packages": [
+      {
+        "name": "react",
+        "version": "19.3.1"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.3.1"
+      }
+    ],
+    "entry": "generated/kit.ts",
+    "styles": {
+      "files": [],
+      "generated": "none",
+      "imports": []
+    },
+    "providers": []
+  },
+  "tokens": {
+    "file": "json/tokens.json",
+    "format": "dtcg-2025.10"
+  },
+  "components": [
+    {
+      "name": "Button",
+      "category": "action",
+      "description": "Starts an action; a filled primary look or a quiet outlined one.",
+      "import": {
+        "from": "components/Button",
+        "name": "Button"
+      },
+      "props": [
+        {
+          "name": "variant",
+          "type": "enum",
+          "values": ["primary", "quiet"],
+          "default": "primary"
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "name": "className",
+          "type": "string"
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "Primary",
+          "code": "<Button>Save changes</Button>",
+          "imports": ["Button"],
+          "original": "originals/Button.1.html"
+        },
+        {
+          "title": "Quiet",
+          "code": "<Button variant=\"quiet\">Cancel</Button>",
+          "imports": ["Button"],
+          "original": "originals/Button.2.html"
+        },
+        {
+          "title": "Disabled",
+          "code": "<Button disabled>Save changes</Button>",
+          "imports": ["Button"],
+          "original": "originals/Button.3.html"
+        }
+      ],
+      "project": {
+        "files": ["src/components/Button.vue"],
+        "name": "AcmeButton",
+        "styles": ["src/components/Button.vue"],
+        "scoped": true
+      }
+    },
+    {
+      "name": "Field",
+      "category": "input",
+      "description": "A text input with a label above it.",
+      "import": {
+        "from": "components/Field",
+        "name": "Field"
+      },
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "placeholder",
+          "type": "string"
+        },
+        {
+          "name": "defaultValue",
+          "type": "string"
+        }
+      ],
+      "examples": [
+        {
+          "title": "Empty",
+          "code": "<Field label=\"Email\" name=\"email\" placeholder=\"you@acme.test\" />",
+          "imports": ["Field"],
+          "original": "originals/Field.1.html"
+        },
+        {
+          "title": "Filled",
+          "code": "<Field label=\"Email\" name=\"email\" defaultValue=\"ada@acme.test\" />",
+          "imports": ["Field"],
+          "original": "originals/Field.2.html"
+        }
+      ],
+      "project": {
+        "files": ["src/components/Field.vue"],
+        "name": "AcmeField",
+        "styles": ["src/components/Field.vue"],
+        "scoped": true
+      }
+    },
+    {
+      "name": "Card",
+      "category": "display",
+      "description": "A bordered block with a title, content from its parent and a primary button.",
+      "import": {
+        "from": "components/Card",
+        "name": "Card"
+      },
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "actionLabel",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true
+        }
+      ],
+      "examples": [
+        {
+          "title": "Plan",
+          "code": "<Card title=\"Starter plan\" actionLabel=\"Choose plan\">Billing is monthly. Cancel any time.</Card>",
+          "imports": ["Card"],
+          "original": "originals/Card.1.html"
+        }
+      ],
+      "project": {
+        "files": ["src/components/Card.vue"],
+        "name": "AcmeCard",
+        "styles": ["src/components/Card.vue"],
+        "scoped": true
+      }
+    }
+  ]
+}

@@ -40,9 +40,12 @@ export function isPackageSpecifier(from: string): boolean {
 /** A kit learned for the person's project (any source but built-in), as opposed to one shipped with kitvas. */
 export const isProjectKit = (kit: Kit): boolean => kit.source.type !== 'builtin';
 
-/** A kit whose components an agent wrote into its own `components/` folder (Figma, web, images). */
+/** A kit whose components an agent wrote into its own `components/` folder (Figma, web, images, code). */
 export const isWrittenKit = (kit: Kit): boolean =>
-  kit.source.type === 'figma' || kit.source.type === 'web' || kit.source.type === 'images';
+  kit.source.type === 'figma' ||
+  kit.source.type === 'web' ||
+  kit.source.type === 'images' ||
+  kit.source.type === 'code';
 
 /** The packages a kit names on purpose: its npm source and `runtime.packages`. */
 function declaredPackages(kit: Kit): Set<string> {
@@ -85,6 +88,7 @@ export function componentKind(kit: Kit, from: string): TargetKind | undefined {
     case 'figma':
     case 'web':
     case 'images':
+    case 'code':
       return KIT_PATH.test(from) ? 'kit' : undefined;
     case 'builtin':
       return undefined;
@@ -132,10 +136,17 @@ export function importTargets(kit: Kit): ImportTarget[] {
       at: `runtime.styles.imports.${index}`,
       label: 'runtime.styles.imports',
       from,
-      kind: moduleKind(kit, from),
+      kind: styleKind(kit, from),
     });
   }
   return targets;
+}
+
+/** A style import: as any module, and in a `code` kit a style file of the project too. */
+function styleKind(kit: Kit, from: string): TargetKind | undefined {
+  const kind = moduleKind(kit, from);
+  if (kind === undefined && kit.source.type === 'code' && PROJECT_PATH.test(from)) return 'project';
+  return kind;
 }
 
 /**
@@ -166,9 +177,43 @@ function importIssueKey(kit: Kit): string {
   return isWrittenKit(kit) ? 'kitIssue.importNotKitPath' : 'kitIssue.importNotProjectPath';
 }
 
+/** `project` and `original` belong to a `code` kit, and a component names files or a package. */
+function codeKitIssues(kit: Kit): KitIssue[] {
+  const issues: KitIssue[] = [];
+  const isCode = kit.source.type === 'code';
+  for (const component of kit.components) {
+    const { project } = component;
+    if (project !== undefined && !isCode) {
+      issues.push({
+        path: `components.${component.name}.project`,
+        key: 'kitIssue.onlyCodeKit',
+        params: { component: component.name, field: 'project' },
+      });
+    }
+    const given = [project?.files, project?.package].filter((part) => part !== undefined).length;
+    if (project !== undefined && given !== 1) {
+      issues.push({
+        path: `components.${component.name}.project`,
+        key: 'kitIssue.originOneOf',
+        params: { component: component.name },
+      });
+    }
+    if (isCode) continue;
+    for (const [index, example] of component.examples.entries()) {
+      if (example.original === undefined) continue;
+      issues.push({
+        path: `components.${component.name}.examples.${index}.original`,
+        key: 'kitIssue.onlyCodeKit',
+        params: { component: component.name, field: 'original' },
+      });
+    }
+  }
+  return issues;
+}
+
 /** The source rules: plain names everywhere, and imports that fit a project kit's source. */
 export function sourceIssues(kit: Kit): KitIssue[] {
-  const issues = nameIssues(kit);
+  const issues = [...nameIssues(kit), ...codeKitIssues(kit)];
   const key = importIssueKey(kit);
   for (const target of importTargets(kit)) {
     if (target.kind !== undefined) continue;
@@ -179,23 +224,24 @@ export function sourceIssues(kit: Kit): KitIssue[] {
 
 /** What `kit new --from` names. */
 export type SourceFlag = {
-  type: 'npm' | 'repo' | 'figma' | 'web' | 'images';
+  type: 'npm' | 'repo' | 'figma' | 'web' | 'images' | 'code';
   value: string;
 };
 
 /**
- * `npm:<package>`, `repo:<folder>`, `figma:<url>`, `web:<url>` or `images:<folder>`. A folder may
+ * `npm:<package>`, `repo:<folder>`, `figma:<url>`, `web:<url>`, `images:<folder>` or
+ * `code:<folder>`. A folder may
  * be written with backslashes, a leading `./` or a trailing slash; it comes back with forward
  * slashes and without them. A package name and a URL are kept as written. `undefined` for any
  * other shape.
  */
 export function parseSourceFlag(text: string | undefined): SourceFlag | undefined {
-  const match = /^(npm|repo|figma|web|images):(.+)$/.exec(text?.trim() ?? '');
+  const match = /^(npm|repo|figma|web|images|code):(.+)$/.exec(text?.trim() ?? '');
   const type = match?.[1];
   const value = match?.[2]?.trim();
   if (!value) return undefined;
   if (type === 'npm' || type === 'figma' || type === 'web') return { type, value };
-  if (type !== 'repo' && type !== 'images') return undefined;
+  if (type !== 'repo' && type !== 'images' && type !== 'code') return undefined;
   const path = value
     .replaceAll('\\', '/')
     .replace(/^(?:\.\/)+/, '')

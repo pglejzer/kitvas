@@ -12,7 +12,7 @@ import { createFolderKitWriter } from '../../../src/kit/adapters/folder-writer.t
 import { createLayeredKitStore } from '../../../src/kit/adapters/layered-store.ts';
 import { createProjectFiles } from '../../../src/kit/adapters/project-files.ts';
 import { PLUGIN_ROOT, projectKitsDir } from '../../../src/shared/index.ts';
-import { closeRenderTools, renderTools } from '../../helpers/draft/render.ts';
+import { closeRenderTools, projectStylesOf, renderTools } from '../../helpers/draft/render.ts';
 import { builtinKits } from '../../helpers/kit/kits.ts';
 import { fixtureProject, removeFixture } from '../../helpers/kit/projects.ts';
 
@@ -25,6 +25,7 @@ async function verify(project: string, kitId: string): Promise<VerifyFile> {
     }),
     kitWriter: createFolderKitWriter(projectKitsDir(project)),
     projectFiles: (dir) => createProjectFiles(dir),
+    projectStyles: projectStylesOf(tools),
     render: tools,
     types: createTscChecker({ roots: [PLUGIN_ROOT] }),
     now: () => new Date('2026-11-27T10:00:00.000Z'),

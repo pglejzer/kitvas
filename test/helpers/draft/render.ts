@@ -1,11 +1,13 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
 import type { KitStore } from '../../../src/kit/index.ts';
 import { createEsbuildBundler } from '../../../src/render/adapters/esbuild-bundler.ts';
 import { createNodeBuildFs } from '../../../src/render/adapters/node-build-fs.ts';
 import { createSassPipeline } from '../../../src/render/adapters/sass-pipeline.ts';
+import { scssLookup } from '../../../src/render/adapters/scss-plugin.ts';
 import { createTailwindCss } from '../../../src/render/adapters/tailwind-css.ts';
+import { createProjectStyles, type ProjectStyles } from '../../../src/render/index.ts';
 import { PLUGIN_ROOT, projectKitsDir } from '../../../src/shared/index.ts';
 import { GOOD_LAYOUT } from './drafts.ts';
 
@@ -28,6 +30,16 @@ export function renderTools() {
 }
 
 export type TestRenderTools = ReturnType<typeof renderTools>;
+
+/** A project's own style files compiled by the Sass of `tools`, as `src/main.ts` wires it. */
+export function projectStylesOf(tools: TestRenderTools): ProjectStyles {
+  return createProjectStyles({
+    read: (file) => (existsSync(file) ? readFileSync(file, 'utf8') : undefined),
+    exists: existsSync,
+    lookup: scssLookup,
+    compile: tools.styles.compileText,
+  });
+}
 
 /** Stops esbuild, Sass and a running Tailwind worker of `renderTools()`. */
 export async function closeRenderTools(tools: TestRenderTools): Promise<void> {

@@ -103,7 +103,8 @@ export async function lookStep(input: LookInput): Promise<StepResult & { look: L
         });
       }
     }
-    if (referenced === 0) {
+    // A `code` kit says how each component was compared (`compared`), so it gets no advice here.
+    if (referenced === 0 && loaded.kit.source.type !== 'code') {
       issues.push({
         step: 'look',
         path: `components.${index}`,

@@ -58,7 +58,7 @@ test('detect --json answers kits, active and signs', async () => {
   const h = harness(cwd);
   assert.equal(await h.run('--json'), 0);
   const data = h.data();
-  assert.deepEqual(data.kits, [{ id: 'acme', source: 'npm', stale: true }]);
+  assert.deepEqual(data.kits, [{ id: 'acme', source: 'npm', stale: true, outdated: [] }]);
   assert.equal(data.active, null);
   assert.deepEqual(data.signs, {
     components: ['components'],
@@ -92,7 +92,7 @@ test('a kit verified at its current hash is not stale', async () => {
   );
   const h = harness(cwd);
   assert.equal(await h.run('--json'), 0);
-  assert.deepEqual(h.data().kits, [{ id: 'acme', source: 'npm', stale: false }]);
+  assert.deepEqual(h.data().kits, [{ id: 'acme', source: 'npm', stale: false, outdated: [] }]);
 });
 
 test('with no kits and no signs the text says so, and a broken package.json is no error', async () => {

@@ -45,7 +45,7 @@ In your project folder, in Claude Code:
 
 ### Build with your design system
 
-- `/kitvas:learn` reads an npm package, a components folder, a Figma file, a website or screenshots and writes a kit: components, tokens and icons. It then verifies the kit against the real packages and a browser.
+- `/kitvas:learn` reads an npm package, a components folder, a Figma file, a website or screenshots and writes a kit: components, tokens and icons. It then verifies the kit against the real packages and a browser. A folder of components written in any technology is read as code and written again in React; each copy is compared with the original and labelled by how it was checked (see [Your design system](docs/kits.md)).
 - `/kitvas:compose` writes a brief and a layout, then one agent writes each section in the kit's components and `--kit-*` tokens. Drafts import only from the kit.
 - `/kitvas:rework` takes a page you have, as a URL, a screenshot or a Figma link, builds a better version in your kit and checks it against a list of things that must stay.
 - `/kitvas:craft` draws a missing component, icon or logo as three sketches. The one you pick is added to your project's additions to the kit.
@@ -141,7 +141,7 @@ There is no global `kitvas` command. In these docs `kitvas <command>` means `nod
 ## Documentation
 
 - [How it works](docs/how-it-works.md): the path of one screen, where files live, and what each agent writes.
-- [Your design system](docs/kits.md): how to learn a kit from a package, a folder, Figma, a website or screenshots.
+- [Your design system](docs/kits.md): how to learn a kit from a package, a folder, code in any technology, Figma, a website or screenshots.
 - [Checks](docs/checks.md): what `kitvas check` covers and how findings are waived.
 - [The studio editor](docs/editor.md): the studio, every key and rule of the editor, and what works offline.
 - [Commands](docs/commands.md): every command, and how to run one by hand.

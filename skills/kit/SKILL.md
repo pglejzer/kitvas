@@ -12,18 +12,18 @@ A kit describes one design system: components, tokens, icons. Read it through th
 
 ## Commands
 
-| Need                                                                   | Command                                                                     |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Which kits exist                                                       | `KITVAS kit list --json`                                                    |
-| The project's kit: components, counts, gaps                            | `KITVAS kit show --json`                                                    |
-| One component: props, defaults, examples, a11y notes                   | `KITVAS kit component <Name> --json`                                        |
-| The token sheet (`--kit-*` custom properties)                          | `KITVAS kit css`                                                            |
-| Is the kit valid                                                       | `KITVAS kit check --json`                                                   |
-| Rendered examples for the studio's kit page                            | `KITVAS kit build --json`                                                   |
-| Create a project kit skeleton (then `/kitvas:learn`)                   | `KITVAS kit new <id> --from npm:<package>` or `--from repo:<folder> --json` |
-| Verify a project kit: imports, types, render, tokens                   | `KITVAS kit verify [id] --json`                                             |
-| Make a kit the project's kit (writes `kit:` in `.kitvas/decisions.md`) | `KITVAS kit use <id> --json`                                                |
-| The project's decisions: settings and preferences                      | `KITVAS decisions --json`                                                   |
+| Need                                                                   | Command                                                                                 |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Which kits exist                                                       | `KITVAS kit list --json`                                                                |
+| The project's kit: components, counts, gaps                            | `KITVAS kit show --json`                                                                |
+| One component: props, defaults, examples, a11y notes                   | `KITVAS kit component <Name> --json`                                                    |
+| The token sheet (`--kit-*` custom properties)                          | `KITVAS kit css`                                                                        |
+| Is the kit valid                                                       | `KITVAS kit check --json`                                                               |
+| Rendered examples for the studio's kit page                            | `KITVAS kit build --json`                                                               |
+| Create a project kit skeleton (then `/kitvas:learn`)                   | `KITVAS kit new <id> --from npm:<package>`, `repo:<folder>` or `code:<folder>` `--json` |
+| Verify a project kit: imports, types, render, tokens                   | `KITVAS kit verify [id] --json`                                                         |
+| Make a kit the project's kit (writes `kit:` in `.kitvas/decisions.md`) | `KITVAS kit use <id> --json`                                                            |
+| The project's decisions: settings and preferences                      | `KITVAS decisions --json`                                                               |
 
 Add a kit id as the last argument to read a kit other than the project's. Kits come from two places: built-in ones, and project kits in `.kitvas/kits/` that `/kitvas:learn` writes from the project's own design system. To learn one, use the learn skill; never write a kit's files yourself.
 

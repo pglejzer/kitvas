@@ -60,6 +60,8 @@ export const FIGMA_URL =
   /^https:\/\/(?:www\.)?figma\.com\/(?:design|file)\/[0-9A-Za-z]{22,128}(?:[/?#][^\s]*)?$/;
 /** A web page to scan: http or https, a host without user info. Addresses are checked when scanned. */
 export const WEB_URL = /^https?:\/\/[^\s/?#@]+(?:[/?#][^\s]*)?$/;
+/** A copy of an example's original markup inside a `code` kit: `originals/Button.1.html`. */
+export const ORIGINAL_PATH = /^originals\/[A-Za-z0-9_-]+\.[1-9][0-9]*\.html$/;
 
 /**
  * A name the project's bundler puts in place of a folder or a file: `@`, `~`, `@app`, `components`.
@@ -103,6 +105,20 @@ export const ExampleSchema = z.strictObject({
   imports: z.array(componentName),
   /** Written kits: the image this example should look like (`kit verify`, step `look`). */
   reference: z.string().regex(REFERENCE_PATH).optional(),
+  /** `code` kits: the original's own markup for this example. */
+  original: z.string().regex(ORIGINAL_PATH).optional(),
+});
+
+/** Where a `code` kit's component comes from in the project: its files or a library, never both. */
+const projectOriginSchema = z.strictObject({
+  files: z.array(projectPath).min(1).max(12).optional(),
+  package: text.optional(),
+  /** The selector, tag or class the project writes. */
+  name: text.optional(),
+  /** The files that style it. */
+  styles: z.array(projectPath).max(12).default([]),
+  /** Those styles reach only the component's own markup. */
+  scoped: z.boolean().default(false),
 });
 
 export const ComponentSchema = z.strictObject({
@@ -118,6 +134,8 @@ export const ComponentSchema = z.strictObject({
   examples: z.array(ExampleSchema).default([]),
   a11y: z.array(text).default([]),
   deprecated: z.boolean().default(false),
+  /** `code` kits: where the project has this component. */
+  project: projectOriginSchema.optional(),
 });
 
 export const GAP_REASONS = ['missing', 'unsupported', 'unverified'] as const;
@@ -204,6 +222,38 @@ const resolveSchema = z.strictObject({
   types: z.array(projectPath).default([]),
 });
 
+/** An attribute of an element of the app's shell: never an event handler. */
+const shellAttributes = z.record(
+  z.string().regex(/^(?!on)[a-z_:][a-z0-9_.:-]*$/i),
+  z.string().max(2000),
+);
+
+/**
+ * What the app has around every component and its styles depend on: the attributes of its
+ * `<html>` and `<body>` (a theme class, a `data-theme`) and the elements between the body and a
+ * component, from the outside in. An original is drawn inside it. Only what a component inherits
+ * counts: kitvas gives these elements no box of their own.
+ */
+const shellSchema = z.strictObject({
+  html: shellAttributes.default({}),
+  body: shellAttributes.default({}),
+  wrappers: z
+    .array(
+      z.strictObject({
+        /** A plain container, or a custom element (a name with a hyphen). */
+        tag: z
+          .string()
+          .regex(
+            /^(?:div|main|section|article|aside|header|footer|nav|form|span|[a-z][a-z0-9]*-[a-z0-9-]*)$/,
+          )
+          .default('div'),
+        attributes: shellAttributes.default({}),
+      }),
+    )
+    .max(6)
+    .default([]),
+});
+
 export const KitSchema = z.strictObject({
   schemaVersion: z.literal(1),
   id: kitId,
@@ -224,6 +274,16 @@ export const KitSchema = z.strictObject({
     }),
     /** Written by an agent from images the person gave, copied into `source/images/`. */
     z.strictObject({ type: z.literal('images') }),
+    /** Written by an agent from the code of a project folder, in any technology. */
+    z.strictObject({
+      type: z.literal('code'),
+      path: projectPath,
+      /** Style files drawn with every original, in order. */
+      styles: z.array(projectPath).max(12).default([]),
+      shell: shellSchema.optional(),
+      /** Pages for `kit scan`. */
+      urls: z.array(z.string().regex(WEB_URL)).max(5).default([]),
+    }),
   ]),
   framework: z.literal('react'),
   runtime: runtimeSchema,
@@ -243,7 +303,7 @@ export type Kit = Zod.infer<typeof KitSchema>;
 export type KitComponent = Kit['components'][number];
 export type KitSource = Kit['source'];
 /** A kit whose components an agent wrote into its `components/` folder. */
-export type WrittenSource = Extract<KitSource, { type: 'figma' | 'web' | 'images' }>;
+export type WrittenSource = Extract<KitSource, { type: 'figma' | 'web' | 'images' | 'code' }>;
 
 /**
  * Only the `source` of a kit.json, for commands that run before the kit is complete: `kit scan`

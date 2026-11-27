@@ -1,0 +1,8 @@
+{
+  "name": "acme-templates-fixture",
+  "private": true,
+  "description": "A project of class, template and style files, none of it React: kit acme-tpl.",
+  "dependencies": {
+    "@angular/core": "19.0.0"
+  }
+}

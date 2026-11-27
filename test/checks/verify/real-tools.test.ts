@@ -14,7 +14,7 @@ import { createLayeredKitStore } from '../../../src/kit/adapters/layered-store.t
 import { createProjectFiles } from '../../../src/kit/adapters/project-files.ts';
 import type { KitStore } from '../../../src/kit/index.ts';
 import { PLUGIN_ROOT, projectKitsDir } from '../../../src/shared/index.ts';
-import { renderTools } from '../../helpers/draft/render.ts';
+import { projectStylesOf, renderTools } from '../../helpers/draft/render.ts';
 import { builtinKits, FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 import { fixtureProject, removeFixture } from '../../helpers/kit/projects.ts';
 import { tempDir } from '../../helpers/tmp.ts';
@@ -32,6 +32,7 @@ const ALL_PASSED = {
   tokens: 'passed',
   // None of these kits is a written kit.
   look: 'skipped',
+  original: 'skipped',
 };
 
 /** Verifies one kit of `kits` for `project` with the real tools, and stops them afterwards. */
@@ -41,6 +42,7 @@ async function verify(kits: KitStore, kitId: string, project: string): Promise<V
     kits,
     kitWriter: createFolderKitWriter(projectKitsDir(project)),
     projectFiles: (dir) => createProjectFiles(dir),
+    projectStyles: projectStylesOf(tools),
     render: tools,
     types: createTscChecker({ roots: [PLUGIN_ROOT] }),
     browser,
@@ -141,6 +143,7 @@ test('wrong claims in kit.json come back at their places', async () => {
       render: 'passed',
       tokens: 'failed',
       look: 'skipped',
+      original: 'skipped',
     });
   } finally {
     removeFixture(dir);

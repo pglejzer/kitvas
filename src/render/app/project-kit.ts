@@ -60,14 +60,14 @@ export function mountProviders(fs: BuildFs, loaded: LoadedKit): MountProvider[] 
 export function componentDir(loaded: LoadedKit): string | undefined {
   const { project } = loaded;
   const { source } = loaded.kit;
-  if (source.type === 'figma' || source.type === 'web' || source.type === 'images') {
-    return join(loaded.dir, 'components');
-  }
-  if (project === undefined || source.type === 'builtin') return undefined;
-  return source.type === 'repo'
-    ? inProject(project, source.path)
-    : (packageDirFrom(project, source.package) ??
-        join(project, 'node_modules', ...source.package.split('/')));
+  if (isWrittenKit(loaded.kit)) return join(loaded.dir, 'components');
+  if (project === undefined) return undefined;
+  if (source.type === 'repo') return inProject(project, source.path);
+  if (source.type !== 'npm') return undefined;
+  return (
+    packageDirFrom(project, source.package) ??
+    join(project, 'node_modules', ...source.package.split('/'))
+  );
 }
 
 /**

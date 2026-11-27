@@ -2,6 +2,7 @@
 
 import { KitvasError } from '../../shared/index.ts';
 import type { Kit, KitComponent, KitSource } from '../domain/contract.ts';
+import type { OutdatedComponent } from '../domain/origins.ts';
 import type { KitThemes } from '../domain/themes.ts';
 import type { KitStore } from '../ports/kit-store.ts';
 import { type LoadedKit, loadKit } from './load-kit.ts';
@@ -22,6 +23,8 @@ export type KitSummary = {
   themes: KitThemes;
   /** Dot paths of the tokens the project added. */
   addedTokens: string[];
+  /** Components of a `code` kit whose project files changed since the copy was made; [] for any other kit. */
+  outdated: OutdatedComponent[];
 };
 
 export type KitListItem = {
@@ -34,7 +37,7 @@ export type KitListItem = {
   valid: boolean;
 };
 
-export function summarizeKit(loaded: LoadedKit): KitSummary {
+export function summarizeKit(loaded: LoadedKit, outdated: OutdatedComponent[] = []): KitSummary {
   const { kit } = loaded;
   return {
     id: kit.id,
@@ -54,6 +57,7 @@ export function summarizeKit(loaded: LoadedKit): KitSummary {
     issues: loaded.issues.length,
     themes: loaded.themes,
     addedTokens: loaded.addedTokens,
+    outdated,
   };
 }
 

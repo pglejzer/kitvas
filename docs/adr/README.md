@@ -41,7 +41,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0032](0032-packages-and-react-from-project.md) | Packages and React from the project | 2026-11-23 | accepted, changed in part by ADR 0092 |
 | [0033](0033-component-styles-in-the-bundle.md) | Component styles in the bundle | 2026-11-23 | accepted, changed in part by ADR 0092 |
 | [0034](0034-tailwind-v4-from-project.md) | Tailwind v4 from the project | 2026-11-23 | accepted |
-| [0035](0035-written-kits.md) | Written kits: components an agent writes into the kit folder | 2026-11-23 | accepted |
+| [0035](0035-written-kits.md) | Written kits: components an agent writes into the kit folder | 2026-11-23 | accepted, changed in part by ADR 0093 |
 | [0036](0036-website-scanner.md) | The website scanner | 2026-11-23 | accepted |
 | [0037](0037-look-check.md) | The look check | 2026-11-23 | accepted |
 | [0038](0038-figma-and-mcp-through-the-persons-servers.md) | Figma and other MCPs only through the person's own servers | 2026-11-23 | accepted |
@@ -99,3 +99,4 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0090](0090-one-built-in-kit.md) | One built-in kit, made from the studio's look | 2026-11-27 | accepted, changed in part by ADR 0091 |
 | [0091](0091-kit-product-icons.md) | The built-in kit has product icons of its own | 2026-11-27 | accepted |
 | [0092](0092-one-record-of-how-a-project-finds-its-files.md) | One record of how a project finds its files and types | 2026-11-27 | accepted |
+| [0093](0093-a-kit-from-code-in-any-technology.md) | A kit from a project's code in any technology, compared with its drawn original | 2026-11-27 | accepted |

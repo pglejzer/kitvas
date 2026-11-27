@@ -1,0 +1,11 @@
+{
+  "name": "acme-partials-fixture",
+  "private": true,
+  "description": "A project of HTML partials and a shared Sass folder, none of it React: kit acme-html.",
+  "dependencies": {
+    "handlebars": "4.7.8"
+  },
+  "devDependencies": {
+    "sass": "1.83.0"
+  }
+}
