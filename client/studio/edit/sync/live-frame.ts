@@ -7,6 +7,7 @@
 // once, when all of them show the build. The decisions are in `createLiveFrame`, over injected
 // ports, so they are tested without a browser; `watchSources` wires them to the page.
 
+import { OPTION_PARAM } from '../../../../src/shared/values/options.ts';
 import type {
   BuildEvent,
   EditState,
@@ -37,11 +38,13 @@ const FRAME_PATH = /^(\/f\/[^/]+\/[^/]+\/)v[1-9][0-9]{0,5}(\/.*)$/;
 /**
  * The frame's address for `version`, from the address it has now: the same origin, key and
  * channel, the state the page shows, and a fresh `live` number so that the same version loads
- * again. `undefined` for an address that is no draft frame's.
+ * again. With `page` (the studio page's address) it also names the option values that page shows
+ * (`opt-<id>`), in place of the ones the frame was first loaded with, so the new document opens in
+ * the chosen theme at once. `undefined` for an address that is no draft frame's.
  */
 export function frameAddress(
   current: string,
-  next: { version: number; state: string | undefined; live: number },
+  next: { version: number; state: string | undefined; live: number; page?: string },
 ): string | undefined {
   let url: URL;
   try {
@@ -53,6 +56,13 @@ export function frameAddress(
   if (!match) return undefined;
   url.pathname = `${match[1] ?? ''}v${next.version}${match[2] ?? ''}`;
   if (next.state) url.searchParams.set('state', next.state);
+  if (next.page !== undefined) {
+    const option = (name: string): boolean => name.startsWith(OPTION_PARAM);
+    for (const name of [...url.searchParams.keys()].filter(option)) url.searchParams.delete(name);
+    for (const [name, value] of new URL(next.page).searchParams) {
+      if (option(name)) url.searchParams.set(name, value);
+    }
+  }
   url.searchParams.set('live', String(next.live));
   return url.href;
 }
@@ -278,7 +288,7 @@ export function createLiveFrame(deps: LiveFrameDeps, io: LiveFrameIo): LiveFrame
     stopWaiting();
     loads += 1;
     const live = loads;
-    const next = { version, state: main.dataset.state, live };
+    const next = { version, state: main.dataset.state, live, page: io.page() };
     const moves: [Frame, string][] = [];
     for (const frame of bridge.frames()) {
       const address = frameAddress(from?.(frame) ?? frame.element.src, next);

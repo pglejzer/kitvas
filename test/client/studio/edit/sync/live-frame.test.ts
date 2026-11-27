@@ -128,6 +128,24 @@ function wideCard(): { card: Frame; element: { src: string } } {
   return { card, element };
 }
 
+test('the frame address names the option values the page shows, not the ones it was loaded with', () => {
+  const loaded = `${DRAFT}/v2/html/index.html?state=default&opt-theme=dark&opt-cards=big${HASH}`;
+  assert.equal(
+    frameAddress(loaded, {
+      version: 3,
+      state: 'default',
+      live: 2,
+      page: `${PAGE}&opt-theme=dark-teal`,
+    }),
+    `${DRAFT}/v3/html/index.html?state=default&opt-theme=dark-teal&live=2${HASH}`,
+  );
+  // A page that shows the defaults names none.
+  assert.equal(
+    frameAddress(loaded, { version: 3, state: 'default', live: 2, page: PAGE }),
+    `${DRAFT}/v3/html/index.html?state=default&live=2${HASH}`,
+  );
+});
+
 test('the frame address changes only its version, state and live number', () => {
   assert.equal(
     frameAddress(FRAME, { version: 12, state: 'empty', live: 4 }),
