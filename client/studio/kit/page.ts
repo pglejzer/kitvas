@@ -6,6 +6,7 @@ import {
   type CatalogStep,
   type CatalogWatch,
   catalogStep,
+  iconsStep,
   postStep,
   startedJob,
 } from './catalog.ts';
@@ -105,8 +106,27 @@ function watchCatalog(main: HTMLElement, kit: string): void {
   });
 }
 
+/** While the kit's icon sheet is being made the page waits for that job, then loads again. */
+function watchIcons(main: HTMLElement, kit: string): void {
+  if (main.dataset.icons !== 'making') return;
+  const stream = openStudioStream();
+  const stop = onStudioEvent((event) => {
+    const step = iconsStep(kit, event);
+    if (step === undefined) return;
+    stop();
+    if (step === 'reload') {
+      stream.abort();
+      location.reload();
+      return;
+    }
+    for (const note of main.querySelectorAll<HTMLElement>('[data-icons-note]')) note.hidden = true;
+  });
+}
+
 export function startKitPage(main: HTMLElement): void {
   listenToFrames(main);
   const kit = main.dataset.kit;
-  if (kit) watchCatalog(main, kit);
+  if (!kit) return;
+  watchCatalog(main, kit);
+  watchIcons(main, kit);
 }

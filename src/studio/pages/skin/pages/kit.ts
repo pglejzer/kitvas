@@ -100,8 +100,9 @@ export const SKIN_KIT = `
 .kit-list { margin: 0; padding-left: var(--st-space-16); overflow-wrap: anywhere; }
 .kit-list code, .kit-part code { color: var(--st-color-ink-mid); overflow-wrap: anywhere; }
 
-/* Colours: a swatch, the name, the value and the contrast on white and on black. */
-.kit-colors {
+/* Colours: a swatch, the name, the value and the contrast on white and on black. Icons: the
+   picture the kit draws, cut from its sheet by a rule of the page, and the name. */
+.kit-colors, .kit-icons {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: var(--st-space-12);
@@ -109,14 +110,17 @@ export const SKIN_KIT = `
   padding: 0;
   list-style: none;
 }
-.kit-color { display: flex; align-items: center; gap: var(--st-space-10); }
-.kit-swatch {
+.kit-icons { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }
+.kit-color, .kit-icon { display: flex; align-items: center; gap: var(--st-space-10); min-width: 0; }
+.kit-swatch, .kit-glyph-tile {
   width: 40px;
   height: 40px;
   flex: none;
   border-radius: var(--st-radius-md);
   box-shadow: inset 0 0 0 1px var(--st-color-frame-edge);
 }
+.kit-glyph-tile { display: grid; place-items: center; background: var(--st-color-raised-strong); }
+.kit-glyph { display: block; width: 32px; height: 32px; background-repeat: no-repeat; }
 .kit-color-text { display: grid; min-width: 0; }
 .kit-color-text > code { overflow-wrap: anywhere; }
 

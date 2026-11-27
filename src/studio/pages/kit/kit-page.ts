@@ -5,6 +5,8 @@
 import { type KitStore, loadKit } from '../../../kit/index.ts';
 import type { Translate } from '../../../shared/index.ts';
 import { readStampFile, readVerifyJson, refFileExists } from '../../frame/catalog-files.ts';
+import { NO_PREVIEWS, type PalettePreviews, palettePreviews } from '../../previews/answer.ts';
+import { iconsView } from '../../views/kit-icons.ts';
 import { lookView, sourceLine, sourceNoun, verifyView } from '../../views/kit-status.ts';
 import { partitionAdded, scaleRules, splitTokens, typeRules } from '../../views/kit-tokens.ts';
 import { groupComponents, swatchRules } from '../../views/kit-view.ts';
@@ -17,6 +19,7 @@ import type { Skin } from '../skin.ts';
 import { kitLabel } from '../start/block.ts';
 import { startFoot } from '../start/foot.ts';
 import { commandBox } from '../states/command.ts';
+import { iconsAnchor, iconsSection } from './kit-icons.ts';
 import { entries, kitTiles } from './kit-list.ts';
 import { kitSide } from './kit-nav.ts';
 import { kitLead, verifyIssuesCard } from './kit-provenance.ts';
@@ -30,6 +33,8 @@ export type KitPageDeps = {
   t: Translate;
   skin: Skin;
   frame: FrameOrigin;
+  /** The kits' previews, where the studio makes them: the icons are drawn from their sheet. */
+  previews?: PalettePreviews | undefined;
   /** The running kitvas version, for the foot line. */
   version: string;
   /** The id of the kit the project uses. */
@@ -95,12 +100,21 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
   const { t } = deps;
   const loaded = loadKit(deps.kits, id);
   const { kit } = loaded;
-  const rules = [swatchRules, scaleRules, typeRules]
-    .map((rulesOf) => rulesOf(loaded.tokens))
-    .filter((text) => text !== '')
-    .join('\n');
   const { project } = deps;
   const stamp = project === undefined ? undefined : readStampFile(project, kit.id);
+  const iconNames = kit.icons?.source === 'component' ? kit.icons.names : [];
+  // The sheet is asked for once the examples were built: its job builds the same catalog.
+  const previews =
+    stamp === undefined || iconNames.length === 0
+      ? NO_PREVIEWS
+      : palettePreviews(deps.previews, kit.id, request.host);
+  const icons = iconsView(iconNames, previews);
+  const rules = [
+    ...[swatchRules, scaleRules, typeRules].map((rulesOf) => rulesOf(loaded.tokens)),
+    icons.rules,
+  ]
+    .filter((text) => text !== '')
+    .join('\n');
   const verified = project === undefined ? undefined : readVerifyJson(project, kit.id);
   const line = sourceLine(kit.source);
   const provenance = {
@@ -145,6 +159,7 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
       : [
           { id: 'kit-components', label: t('studio.kit.components'), count: kit.components.length },
         ]),
+    ...iconsAnchor(t, icons),
   ];
   const categories = groups.map((group) => ({
     id: categoryId(group.category),
@@ -169,7 +184,9 @@ export function kitPage(deps: KitPageDeps, id: string, request: KitPageRequest):
     back: { href: '/kit', label: t('studio.kit.back') },
   });
 
-  const body = html`<main class="k-page start kit-page" data-kit="${kit.id}" data-catalog="${ready}">
+  // While the sheet is being made the page waits for that job, then loads again.
+  const making = previews.state === 'making' ? trusted(' data-icons="making"') : '';
+  const body = html`<main class="k-page start kit-page" data-kit="${kit.id}" data-catalog="${ready}"${making}>
 ${block}
 <div class="kit-layout">
 ${side}
@@ -178,6 +195,7 @@ ${verifyIssuesCard(t, provenance.verify)}
 ${problemsSection(t, loaded.issues)}
 ${tokenSections(t, tokens, added)}
 ${componentsSection(t, groups, catalog)}
+${iconsSection(t, icons)}
 </div>
 </div>
 ${pageEnd(deps, request)}

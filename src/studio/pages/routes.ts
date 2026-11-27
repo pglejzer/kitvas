@@ -7,6 +7,7 @@ import type { KitStore } from '../../kit/index.ts';
 import { httpStatusOf, KitvasError, type Translate } from '../../shared/index.ts';
 import { KitParams, NoParams, SlugParams } from '../api/schemas.ts';
 import { type PageRoute, pageRoute } from '../http/router.ts';
+import type { PalettePreviews } from '../previews/answer.ts';
 import { draftPage } from './draft/draft-page.ts';
 import type { FrameOrigin } from './draft/frame-src.ts';
 import { galleryPage } from './gallery.ts';
@@ -28,6 +29,8 @@ export type PageDeps = {
   /** The studio's style sheet, from `studioSkin`. */
   skin: Skin;
   frame: FrameOrigin;
+  /** The kits' previews: a kit's page draws its icons from their sheet. */
+  previews?: PalettePreviews | undefined;
   /** The running kitvas version. */
   version: string;
   /** The id of the kit the project uses (`kit use`); `base` when it chose none. */

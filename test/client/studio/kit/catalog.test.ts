@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import {
   type CatalogWatch,
   catalogStep,
+  iconsStep,
   postStep,
   startedJob,
 } from '../../../../client/studio/kit/catalog.ts';
@@ -144,4 +145,16 @@ test('the started job is named by a 202 answer only', () => {
   for (const body of [undefined, null, 'x', [JOB], { id: 7 }, { id: '' }, {}]) {
     assert.equal(startedJob(202, body), undefined, JSON.stringify(body));
   }
+});
+
+test('a page that waits for its icons loads again when the previews of its kit are made', () => {
+  const previews = (fields: Record<string, unknown> = {}): StreamEvent =>
+    job({ kind: 'previews', result: null, ...fields });
+  assert.equal(iconsStep('kitvas-ui', previews()), 'reload');
+  assert.equal(iconsStep('kitvas-ui', previews({ state: 'failed' })), 'failed');
+  assert.equal(iconsStep('kitvas-ui', previews({ state: 'cancelled' })), 'failed');
+  assert.equal(iconsStep('kitvas-ui', previews({ state: 'running' })), undefined);
+  assert.equal(iconsStep('mui', previews()), undefined, 'another kit');
+  assert.equal(iconsStep('kitvas-ui', job()), undefined, 'a catalog job');
+  assert.equal(iconsStep('kitvas-ui', { event: 'reset', data: '' }), undefined);
 });

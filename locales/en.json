@@ -1732,6 +1732,8 @@
   "studio.kit.section.radius": "Radius",
   "studio.kit.section.type": "Type",
   "studio.kit.section.other": "Other tokens",
+  "studio.kit.section.icons": "Icons",
+  "studio.kit.icons.making": "The pictures of the icons are being made.",
   "studio.kit.sample": "Plans for every team",
   "studio.kit.onPage": "On this page",
   "studio.kit.lead": "A kit describes a design system: its tokens and its components. Drafts are built only from the parts of a kit.",

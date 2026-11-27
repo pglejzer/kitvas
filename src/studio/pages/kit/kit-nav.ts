@@ -11,8 +11,8 @@ function link(anchor: Anchor, nested: boolean): Html {
 }
 
 /**
- * `sections` are the page's own parts (problems, tokens, components) in their order; `categories`
- * nest under the components link, which is the last of `sections` when there are any.
+ * `sections` are the page's own parts (problems, tokens, components, icons) in their order;
+ * `categories` nest under the components link.
  */
 export function kitSide(
   t: Translate,
