@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { PRODUCT_ICONS } from '../../scripts/kitvas-ui-icons.ts';
 import { DARK_THEMES, kitvasUiFiles } from '../../scripts/kitvas-ui-tokens.ts';
 import { PLUGIN_ROOT } from '../../src/shared/env/paths.ts';
 import { isRecord } from '../../src/shared/index.ts';
@@ -135,11 +136,11 @@ test('the dark locals are set under every dark theme', () => {
   assert.doesNotMatch(scss, /--st-/);
 });
 
-test("the kit's icons are the studio's", () => {
+test("the kit's icons are the studio's, then its product icons, each drawn once", () => {
   const text = fileText(`${KIT}/tsx/display/icon-paths.ts`);
   const names = [...text.matchAll(/^ {2}'([^']+)': \[$/gm)].map((match) => match[1]);
-  assert.deepEqual(names, Object.keys(ICONS));
-  assert.equal(names.length, 62);
+  assert.deepEqual(names, [...Object.keys(ICONS), ...Object.keys(PRODUCT_ICONS)]);
+  assert.equal(new Set(names).size, names.length);
 });
 
 test('the added steps add no colour', () => {

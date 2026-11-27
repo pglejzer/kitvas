@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { pathToFileURL } from 'node:url';
+import type { IconShape } from '../../kits/kitvas-ui/tsx/display/icon-paths.ts';
 import { createFolderKitStore } from '../../src/kit/adapters/folder-store.ts';
 import { cssVarName, type FlatToken, requireKit } from '../../src/kit/index.ts';
 import { PLUGIN_ROOT, resolveDep } from '../../src/shared/index.ts';
@@ -129,11 +130,12 @@ test("styles use only custom properties that are tokens or the kit's locals", ()
   assert.deepEqual([...unknown], []);
 });
 
-test('the icon names of the catalog are the icons that are drawn', async () => {
+test('the icon names of the catalog are the icons that are drawn, each inside the grid', async () => {
   const drawn = (await import(
     pathToFileURL(join(dir, 'tsx', 'display', 'icon-paths.ts')).href
   )) as {
     ICON_NAMES: string[];
+    ICON_SHAPES: Record<string, readonly IconShape[]>;
   };
   assert.ok(ui.kit.icons?.source === 'component');
   assert.deepEqual([...drawn.ICON_NAMES].sort(), [...ui.kit.icons.names].sort());
@@ -141,6 +143,28 @@ test('the icon names of the catalog are the icons that are drawn', async () => {
     .find((component) => component.name === 'Icon')
     ?.props.find((prop) => prop.name === 'name');
   assert.deepEqual(nameProp?.values, ui.kit.icons.names);
+
+  // The studio's icons and the kit's product icons alike: a plain name, inside the 16 px grid.
+  const inside = (...values: number[]): boolean => values.every((at) => at >= 1 && at <= 15);
+  for (const [name, shapes] of Object.entries(drawn.ICON_SHAPES)) {
+    assert.match(name, /^[a-z]+(-[a-z]+)*$/);
+    for (const shape of shapes) {
+      if (shape.tag === 'circle') {
+        const { cx, cy, r } = shape;
+        assert.ok(inside(cx - r, cx + r, cy - r, cy + r), `${name}: a circle leaves the grid`);
+      } else if (shape.tag === 'rect') {
+        const { x, y, width, height } = shape;
+        assert.ok(inside(x, y, x + width, y + height), `${name}: a rect leaves the grid`);
+      } else {
+        const start = /^M([0-9.]+) ([0-9.]+)/.exec(shape.d);
+        assert.ok(start, `${name}: a path does not start with a point`);
+        assert.ok(
+          inside(Number(start[1]), Number(start[2])),
+          `${name}: a path starts off the grid`,
+        );
+      }
+    }
+  }
 });
 
 test('components and styles sit in a folder per category, never loose', () => {

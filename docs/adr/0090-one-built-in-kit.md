@@ -1,6 +1,6 @@
 # 0090. One built-in kit, made from the studio's look
 
-Date: 2026-11-27. Status: accepted. Changes in part `0087-select-list-in-the-page.md`. Builds on `0057-studio-theme.md` and `0076-project-decisions-file.md`, which were written when the built-in kit was Base. Spec: `docs/specs/2026-11-27-kitvas-ui-kit-design.md`.
+Date: 2026-11-27. Status: accepted, changed in part by ADR 0091. Changes in part `0087-select-list-in-the-page.md`. Builds on `0057-studio-theme.md` and `0076-project-decisions-file.md`, which were written when the built-in kit was Base. Spec: `docs/specs/2026-11-27-kitvas-ui-kit-design.md`.
 
 ## Context
 

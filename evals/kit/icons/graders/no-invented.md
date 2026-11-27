@@ -1,9 +1,9 @@
 ---
 type: regex
-pattern: 'name=\\?["\x27]?(?:cart|shopping-cart|basket|bag|shop|store|bell|heart|star|home|user|menu|settings|edit|delete|bin|remove|cross)\b'
+pattern: 'name=\\?["\x27]?(?:print|printer|printing|fax|scanner|shopping-cart|basket|shop|store|delete|bin|remove|cross|gear|cog)\b'
 flags: i
 match: not_contains
 target: last_message
 ---
 
-No icon outside the kit's 62 is used in sample code as if it existed.
+No icon outside the kit's 112 is used in sample code as if it existed.

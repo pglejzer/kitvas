@@ -96,4 +96,5 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0087](0087-select-list-in-the-page.md) | The Base kit's Select draws its list in the page | 2026-11-26 | accepted, changed in part by ADR 0090 |
 | [0088](0088-handoff-keeps-shared-values.md) | A hand-off to code keeps a version's shared values as the page's state | 2026-11-27 | accepted |
 | [0089](0089-no-forbidden-name-guard.md) | No guard searches the repo for forbidden names | 2026-11-27 | accepted |
-| [0090](0090-one-built-in-kit.md) | One built-in kit, made from the studio's look | 2026-11-27 | accepted |
+| [0090](0090-one-built-in-kit.md) | One built-in kit, made from the studio's look | 2026-11-27 | accepted, changed in part by ADR 0091 |
+| [0091](0091-kit-product-icons.md) | The built-in kit has product icons of its own | 2026-11-27 | accepted |
