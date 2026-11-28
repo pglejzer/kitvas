@@ -36,12 +36,12 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0027](0027-page-access.md) | Pages open only from a one-time link | 2026-11-22 | accepted (owner decision after `docs/security.md`) |
 | [0028](0028-inbox-take-is-a-write.md) | Taking notes from the inbox is a POST | 2026-11-22 | accepted |
 | [0029](0029-kit-catalog.md) | Rendered examples on the kit page | 2026-11-23 | accepted |
-| [0030](0030-project-kits.md) | Project kits and the `npm` and `repo` sources | 2026-11-23 | accepted, changed in part by ADR 0076 |
+| [0030](0030-project-kits.md) | Project kits and the `npm` and `repo` sources | 2026-11-23 | accepted, changed in part by ADR 0094 |
 | [0031](0031-agent-written-kits-verified.md) | Agent-written kits, verified by kitvas | 2026-11-23 | accepted |
-| [0032](0032-packages-and-react-from-project.md) | Packages and React from the project | 2026-11-23 | accepted |
-| [0033](0033-component-styles-in-the-bundle.md) | Component styles in the bundle | 2026-11-23 | accepted |
-| [0034](0034-tailwind-v4-from-project.md) | Tailwind v4 from the project | 2026-11-23 | accepted |
-| [0035](0035-written-kits.md) | Written kits: components an agent writes into the kit folder | 2026-11-23 | accepted |
+| [0032](0032-packages-and-react-from-project.md) | Packages and React from the project | 2026-11-23 | accepted, changed in part by ADR 0092 |
+| [0033](0033-component-styles-in-the-bundle.md) | Component styles in the bundle | 2026-11-23 | accepted, changed in part by ADR 0092 |
+| [0034](0034-tailwind-v4-from-project.md) | Tailwind v4 from the project | 2026-11-23 | accepted, changed in part by ADR 0094 |
+| [0035](0035-written-kits.md) | Written kits: components an agent writes into the kit folder | 2026-11-23 | accepted, changed in part by ADR 0093 |
 | [0036](0036-website-scanner.md) | The website scanner | 2026-11-23 | accepted |
 | [0037](0037-look-check.md) | The look check | 2026-11-23 | accepted |
 | [0038](0038-figma-and-mcp-through-the-persons-servers.md) | Figma and other MCPs only through the person's own servers | 2026-11-23 | accepted |
@@ -98,3 +98,7 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0089](0089-no-forbidden-name-guard.md) | No guard searches the repo for forbidden names | 2026-11-27 | accepted |
 | [0090](0090-one-built-in-kit.md) | One built-in kit, made from the studio's look | 2026-11-27 | accepted, changed in part by ADR 0091 |
 | [0091](0091-kit-product-icons.md) | The built-in kit has product icons of its own | 2026-11-27 | accepted |
+| [0092](0092-one-record-of-how-a-project-finds-its-files.md) | One record of how a project finds its files and types | 2026-11-27 | accepted |
+| [0093](0093-a-kit-from-code-in-any-technology.md) | A kit from a project's code in any technology, compared with its drawn original | 2026-11-27 | accepted |
+| [0094](0094-tailwind-3-from-the-project.md) | Tailwind 3 from the project | 2026-11-27 | accepted |
+| [0095](0095-public-env-from-the-project.md) | Public environment variables from the project | 2026-11-28 | accepted |

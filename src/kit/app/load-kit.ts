@@ -2,7 +2,7 @@
 
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
-import { KitvasError } from '../../shared/index.ts';
+import { KitvasError, themePathOf } from '../../shared/index.ts';
 import { ADDITIONS_DIR, mergeAdditions, parseAdditions } from '../domain/additions.ts';
 import { type Kit, parseKit } from '../domain/contract.ts';
 import { readCssVarMap } from '../domain/css-vars.ts';
@@ -147,6 +147,17 @@ export function loadKit(store: KitStore, id: string): LoadedKit {
       const read = readCssVarMap(rawMap, baseTokens);
       cssVarMap = read.map;
       issues.push(...read.issues);
+      // A theme path is read by the project's Tailwind; a kit without it has nothing to read it.
+      if (
+        own.runtime.styles?.tailwind === undefined &&
+        Object.values(read.map).some((value) => themePathOf(value) !== undefined)
+      ) {
+        issues.push({
+          path: 'tokens.cssVars.map',
+          key: 'kitIssue.themePathNoTailwind',
+          params: {},
+        });
+      }
     }
   }
 
@@ -173,6 +184,8 @@ export function loadKit(store: KitStore, id: string): LoadedKit {
     // A missing reference image is not checked here: it must not stop builds and drafts. The
     // `look` step of `kit verify` reports it at its example.
     hashed.push(store.readTree?.(id, 'components') ?? {});
+    // The originals of a `code` kit are its data too, hashed after the components.
+    if (own.source.type === 'code') hashed.push(store.readTree?.(id, 'originals') ?? {});
   }
   // The project's additions change the kit its drafts see, and the theme files its sheet; a kit
   // without them keeps its hash. A missing theme file is left out of the JSON.

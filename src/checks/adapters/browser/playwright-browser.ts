@@ -21,6 +21,7 @@ import { cropImages } from '../images/playwright-images.ts';
 import { matchRendered } from '../images/playwright-match.ts';
 import { shootExamples } from '../images/playwright-shoot.ts';
 import { walkLayers } from '../layers/playwright-layers.ts';
+import { measurePage } from '../layers/playwright-measure.ts';
 import { scanPage } from '../scan/playwright-scan.ts';
 import { surveyPage } from '../scan/playwright-survey.ts';
 import { settle } from './settle.ts';
@@ -101,6 +102,14 @@ function hasContent(): boolean {
   return (document.getElementById('root')?.childElementCount ?? 0) > 0;
 }
 
+/** Runs in the page: the element ids on it, each once. */
+function readMarks(): string[] {
+  const marks = Array.from(document.querySelectorAll('[data-ks]'), (element) =>
+    element.getAttribute('data-ks'),
+  );
+  return [...new Set(marks.filter((mark) => mark !== null))];
+}
+
 /** Runs in the page: the mark `client/frame/page/example.ts` leaves after rendering an example. */
 function readExampleMark(): 'shown' | 'failed' | null {
   const mark = document.documentElement.dataset.example;
@@ -109,10 +118,11 @@ function readExampleMark(): 'shown' | 'failed' | null {
 
 /**
  * Runs in the page: each variable's computed value inside the kit's providers (the first element
- * in `#root`, else `:root`), and that value as the browser paints it. A canvas pixel is sRGB
- * whatever the notation was, so oklch, hsl and named colours all come back as hex.
+ * in `#root`, else `:root`), that value as the browser paints it and as the width it lays out. A
+ * canvas pixel is sRGB whatever the notation was, so oklch, hsl and named colours all come back as
+ * hex; a hidden probe's width turns a `calc()` into px.
  */
-function readVars(names: string[]): Pick<InspectReport, 'vars' | 'colors'> {
+function readVars(names: string[]): Pick<InspectReport, 'vars' | 'colors' | 'lengths'> {
   const holder = document.querySelector('#root > *') ?? document.documentElement;
   const style = getComputedStyle(holder);
   const canvas = document.createElement('canvas');
@@ -130,14 +140,27 @@ function readVars(names: string[]): Pick<InspectReport, 'vars' | 'colors'> {
     const opaque = `#${pair(red)}${pair(green)}${pair(blue)}`;
     return alpha < 255 ? `${opaque}${pair(alpha)}` : opaque;
   };
+  const probe = document.createElement('div');
+  probe.style.cssText =
+    'position:absolute;visibility:hidden;box-sizing:content-box;padding:0;border:0';
+  holder.appendChild(probe);
+  const measure = (value: string): number | null => {
+    if (value === '' || !CSS.supports('width', value)) return null;
+    probe.style.width = value;
+    const px = Number.parseFloat(getComputedStyle(probe).width);
+    return Number.isFinite(px) ? px : null;
+  };
   const vars: Record<string, string> = {};
   const colors: Record<string, string | null> = {};
+  const lengths: Record<string, number | null> = {};
   for (const name of names) {
     const value = style.getPropertyValue(name).trim();
     vars[name] = value;
     colors[name] = paint(value);
+    lengths[name] = measure(value);
   }
-  return { vars, colors };
+  probe.remove();
+  return { vars, colors, lengths };
 }
 
 function createSession(
@@ -239,8 +262,10 @@ function createSession(
         example: null,
         errors: [],
         failed: [],
+        marks: [],
         vars: Object.fromEntries(vars.map((name) => [name, ''])),
         colors: Object.fromEntries(vars.map((name) => [name, null])),
+        lengths: Object.fromEntries(vars.map((name) => [name, null])),
       };
       try {
         const page = await context.newPage();
@@ -261,6 +286,7 @@ function createSession(
         }
         await page.evaluate(settle);
         report.example = await page.evaluate(readExampleMark);
+        report.marks = await page.evaluate(readMarks);
         if (vars.length > 0) Object.assign(report, await page.evaluate(readVars, vars));
         return report;
       } finally {
@@ -272,6 +298,7 @@ function createSession(
     crop: (inputs) => cropImages(browser, inputs),
     capture: (input) => captureExample(browser, input),
     layers: (visit) => walkLayers(browser, visit),
+    measure: (input) => measurePage(browser, input),
     match: (input) => matchRendered(browser, input),
     shoot: (input) => shootExamples(browser, input),
     async close() {

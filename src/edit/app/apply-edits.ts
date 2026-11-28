@@ -46,6 +46,7 @@ import {
   sitesOf,
   startOf,
   stateOf,
+  tailwindOf,
   type Work,
 } from './request-state.ts';
 import { applyStructural } from './structure/structural.ts';
@@ -203,9 +204,12 @@ async function applySimple(work: Work, index: number, op: SimpleOp): Promise<OpR
   if (stop !== null) return { refused: stop };
   const at = isScss(op) ? scssPlace(work, op) : await locate(work, op.id);
   if (!('at' in at)) return at;
+  // A class is checked against the project's Tailwind, read only for an op that writes one.
+  const tsx =
+    op.op === 'setUtility' ? { ...work.options, tailwind: tailwindOf(work) } : work.options;
   const result = isScss(op)
     ? applyScss(at.text, op, scssOptions(work))
-    : applyTsx(at.text, at.at, op, work.options);
+    : applyTsx(at.text, at.at, op, tsx);
   if ('conflict' in result) return { conflict: 'changed', file: at.file };
   if ('refused' in result) return { refused: result.refused };
   commit(work, at.file, index, result.text, spliceMap(at.text, result.text));

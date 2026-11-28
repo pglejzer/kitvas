@@ -1,6 +1,7 @@
-// Step `render`: every example of the built catalog shows in the browser without an error.
+// Step `render`: every example of the built catalog shows in the browser without an error, and in
+// a written kit every component puts the element id kitvas hands it on the page (W10).
 
-import type { Bundler, CatalogReport } from '../../../render/index.ts';
+import { type Bundler, type CatalogReport, exampleMarkOf } from '../../../render/index.ts';
 import type { VerifyIssue } from '../../domain/kit/kit-verify.ts';
 import { type ParsedExample, parseError } from './example-parse.ts';
 import { buildErrorText, type Inspector, type StepResult, toolIssue } from './step.ts';
@@ -21,10 +22,16 @@ export type RenderInput = {
   reported: ReadonlySet<string>;
   inspect: Inspector;
   bundler: Bundler;
+  /** The components that must put the props they do not name on their root: a written kit's, by place. */
+  forwards: { name: string; path: string }[];
 };
 
+/** True when the example's code writes the component as an element: `<Button`, not `<ButtonGroup`. */
+const writes = (code: string, name: string): boolean =>
+  new RegExp(`<${name}(?![\\w$.])`).test(code);
+
 export async function renderStep(input: RenderInput): Promise<StepResult> {
-  const { build, dir, examples, reported, inspect, bundler } = input;
+  const { build, dir, examples, reported, inspect, bundler, forwards } = input;
   if (!build.built) {
     const issues = build.errors.map((error) =>
       toolIssue('render', 'runtime.entry', buildErrorText(error)),
@@ -49,6 +56,8 @@ export async function renderStep(input: RenderInput): Promise<StepResult> {
     });
   }
 
+  // The element ids on the page of each example that rendered.
+  const marks = new Map<string, Set<string>>();
   for (const key of build.shown) {
     const report = await inspect({
       page: build.path,
@@ -57,9 +66,8 @@ export async function renderStep(input: RenderInput): Promise<StepResult> {
       vars: [],
     });
     const path = pathOf(key);
-    if (report.example !== 'shown') {
-      issues.push({ step: 'render', path, key: 'kitIssue.exampleNotShown', params: { key } });
-    }
+    if (report.example === 'shown') marks.set(key, new Set(report.marks));
+    else issues.push({ step: 'render', path, key: 'kitIssue.exampleNotShown', params: { key } });
     for (const detail of [...report.errors, ...report.failed]) {
       issues.push({
         step: 'render',
@@ -67,6 +75,17 @@ export async function renderStep(input: RenderInput): Promise<StepResult> {
         key: 'kitIssue.exampleError',
         params: { key, detail },
       });
+    }
+  }
+  for (const { name, path } of forwards) {
+    const shown = examples.filter(
+      (example) => marks.has(example.key) && writes(example.code, name),
+    );
+    const reached = shown.some((example) =>
+      marks.get(example.key)?.has(exampleMarkOf(example.key, name)),
+    );
+    if (shown.length > 0 && !reached) {
+      issues.push({ step: 'render', path, key: 'kitIssue.restNotForwarded', params: { name } });
     }
   }
   return { state: issues.length > 0 ? 'failed' : 'passed', issues };

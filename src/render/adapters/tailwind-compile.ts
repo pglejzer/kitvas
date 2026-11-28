@@ -1,22 +1,34 @@
-// One Tailwind v4 build, run inside the worker process (tailwind-worker.ts) and spoken to over JSON.
-// The compiler comes from the person's project, never from kitvas (docs/spikes/07-tailwind-v4.md):
-// `compile(css, { base, onDependency })`, then `build(candidates)`; classes that produce nothing
-// come from `__unstable__loadDesignSystem(...).candidatesToCss` when it exists, else from the
-// selectors in the output.
+// One Tailwind build, run inside the worker process (tailwind-worker.ts) and spoken to over JSON.
+// The compiler comes from the person's project, never from kitvas, and the major of the project's
+// `tailwindcss` picks the build: 4 here, 3 in tailwind3-compile.ts, any other is refused.
+// Tailwind 4 (docs/spikes/07-tailwind-v4.md): `compile(css, { base, onDependency })`, then
+// `build(candidates)`. Its design system (`__unstable__loadDesignSystem`, when it exists) names the
+// classes that produce nothing (`candidatesToCss`), the prefix and the `--breakpoint-*` screens;
+// without it the classes come from the selectors in the output.
 
-import { readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 // One shared file at a time, not shared/index.ts: the worker process has no use for zod.
 import { loadDep } from '../../shared/deps/deps.ts';
 import { packageDirFrom } from '../../shared/env/packages.ts';
 import { KitvasError } from '../../shared/errors/errors.ts';
 import { isRecord } from '../../shared/values/guards.ts';
-import { fileCandidates, hasClassRule, looksLikeClass, probeRule } from '../domain/candidates.ts';
+import { parseTailwindFile, type TailwindTheme } from '../../shared/values/tailwind-file.ts';
+import { fileCandidates, looksLikeClass, probeRule, unbuiltClasses } from '../domain/candidates.ts';
 import type { UtilityInput } from '../ports/utility-css.ts';
+import {
+  compileTailwind3,
+  messageOf,
+  packageVersion,
+  readText,
+  screenWidths,
+} from './tailwind3-compile.ts';
 
 /** Exactly what kitvas calls of `@tailwindcss/node` 4.3. */
 type TailwindCompiler = { build(candidates: string[]): string };
-type TailwindDesignSystem = { candidatesToCss(classes: string[]): (string | null)[] };
+type TailwindDesignSystem = {
+  candidatesToCss(classes: string[]): (string | null)[];
+  theme: { prefix: string | null; namespace(name: string): Map<string | null, string> };
+};
 type TailwindNode = {
   compile(
     css: string,
@@ -30,22 +42,11 @@ type TailwindNode = {
 
 /** The worker's answer on stdout. `missing` names a package the project does not have. */
 export type TailwindAnswer =
-  | { ok: true; css: string; unknown: string[]; files: string[] }
+  | { ok: true; css: string; unknown: string[]; files: string[]; theme: TailwindTheme }
   | { ok: false; missing: string }
   | { ok: false; message: string };
 
 const NODE_PACKAGE = '@tailwindcss/node';
-
-const readText = (file: string): string | undefined => {
-  try {
-    return readFileSync(file, 'utf8');
-  } catch {
-    return undefined;
-  }
-};
-
-const messageOf = (cause: unknown): string =>
-  cause instanceof Error ? cause.message : String(cause);
 
 const isStrings = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
@@ -76,9 +77,10 @@ export function parseAnswer(text: string): TailwindAnswer | undefined {
   if (!isRecord(raw)) return undefined;
   if (raw.ok === true) {
     const { css, files } = raw;
-    const classes = raw.unknown;
-    if (typeof css !== 'string' || !isStrings(classes) || !isStrings(files)) return undefined;
-    return { ok: true, css, unknown: classes, files };
+    // The classes and the theme are what the Tailwind file keeps: read them the way it is read.
+    const facts = parseTailwindFile({ schemaVersion: 2, unknown: raw.unknown, theme: raw.theme });
+    if (typeof css !== 'string' || !isStrings(files) || !facts?.theme) return undefined;
+    return { ok: true, css, unknown: facts.unknown, files, theme: facts.theme };
   }
   if (raw.ok !== false) return undefined;
   if (typeof raw.missing === 'string') return { ok: false, missing: raw.missing };
@@ -87,11 +89,9 @@ export function parseAnswer(text: string): TailwindAnswer | undefined {
 
 type Loaded = { tailwind: TailwindNode } | { answer: TailwindAnswer };
 
-/** `@import "tailwindcss"` resolves from the project, so the project must have both packages. */
-async function loadTailwind(project: string): Promise<Loaded> {
-  // A hoisted workspace keeps both packages in a node_modules above the project.
-  const tailwindDir = packageDirFrom(project, 'tailwindcss');
-  if (tailwindDir === undefined) return { answer: { ok: false, missing: 'tailwindcss' } };
+/** `@import "tailwindcss"` resolves from the project: Tailwind 4 needs `@tailwindcss/node` there. */
+async function loadNode(project: string): Promise<Loaded> {
+  // A hoisted workspace keeps the package in a node_modules above the project.
   const nodeDir = packageDirFrom(project, NODE_PACKAGE);
   if (nodeDir === undefined) return { answer: { ok: false, missing: NODE_PACKAGE } };
   try {
@@ -106,27 +106,59 @@ async function loadTailwind(project: string): Promise<Loaded> {
   }
 }
 
-async function unknownOf(
-  tailwind: TailwindNode,
-  css: string,
-  base: string,
+function unknownOf(
+  design: TailwindDesignSystem | undefined,
   candidates: string[],
   built: string,
-): Promise<string[]> {
+): string[] {
+  if (design === undefined) return unbuiltClasses(candidates, built);
   const list = candidates.filter(looksLikeClass);
-  const load = tailwind.__unstable__loadDesignSystem;
-  let produced: (string | null | undefined)[];
-  if (typeof load === 'function') {
-    const design = await load(css, { base });
-    produced = design.candidatesToCss(list);
-  } else {
-    produced = list.map((candidate) => (hasClassRule(built, candidate) ? candidate : null));
-  }
+  const produced = design.candidatesToCss(list);
   return list.filter((_, index) => (produced[index] ?? null) === null).sort();
 }
 
-export async function compileTailwind(input: UtilityInput): Promise<TailwindAnswer> {
-  const loaded = await loadTailwind(input.project);
+/** The namespaces a token's page variable may stand behind, in the order an alias is taken. */
+const ALIAS_NAMESPACES = [
+  '--color',
+  '--radius',
+  '--spacing',
+  '--text',
+  '--font-weight',
+  '--leading',
+];
+/** `var(--primary)`: one custom property, no fallback. */
+const POINTER = /^var\((--[A-Za-z0-9_-]+)\)$/;
+
+/**
+ * For each page variable a theme variable only points at (`@theme inline { --color-primary:
+ * var(--primary) }`), that theme variable: `--primary` → `--color-primary`. The first one wins.
+ */
+function aliasesOf(theme: TailwindDesignSystem['theme']): Record<string, string> {
+  const aliases: Record<string, string> = {};
+  for (const namespace of ALIAS_NAMESPACES) {
+    for (const [key, value] of theme.namespace(namespace)) {
+      const page = POINTER.exec(value)?.[1];
+      if (page === undefined || aliases[page] !== undefined) continue;
+      aliases[page] = key === null ? namespace : `${namespace}-${key}`;
+    }
+  }
+  return aliases;
+}
+
+function themeOf(design: TailwindDesignSystem | undefined): TailwindTheme {
+  if (design === undefined) return { version: 4, prefix: '', screens: {}, aliases: {} };
+  const { prefix } = design.theme;
+  return {
+    version: 4,
+    // A Tailwind 4 prefix is a variant in front of every class: `tw:hover:p-4`.
+    prefix: prefix ? `${prefix}:` : '',
+    screens: screenWidths(design.theme.namespace('--breakpoint')),
+    aliases: aliasesOf(design.theme),
+  };
+}
+
+async function compileTailwind4(input: UtilityInput): Promise<TailwindAnswer> {
+  const loaded = await loadNode(input.project);
   if ('answer' in loaded) return loaded.answer;
   const { tailwind } = loaded;
   const text = readText(input.entry);
@@ -144,9 +176,29 @@ export async function compileTailwind(input: UtilityInput): Promise<TailwindAnsw
     });
     const candidates = fileCandidates(input.sources, readText);
     const built = compiler.build(candidates);
-    const unexplained = await unknownOf(tailwind, css, base, candidates, built);
-    return { ok: true, css: built, unknown: unexplained, files: [...files] };
+    const load = tailwind.__unstable__loadDesignSystem;
+    const design = typeof load === 'function' ? await load(css, { base }) : undefined;
+    return {
+      ok: true,
+      css: built,
+      unknown: unknownOf(design, candidates, built),
+      files: [...files],
+      theme: themeOf(design),
+    };
   } catch (cause) {
     return { ok: false, message: messageOf(cause) };
   }
+}
+
+export async function compileTailwind(input: UtilityInput): Promise<TailwindAnswer> {
+  // A hoisted workspace keeps the package in a node_modules above the project.
+  const tailwindDir = packageDirFrom(input.project, 'tailwindcss');
+  if (tailwindDir === undefined) return { ok: false, missing: 'tailwindcss' };
+  const version = packageVersion(tailwindDir);
+  const major = version === undefined ? undefined : /^(\d+)\./.exec(version)?.[1];
+  if (major === '4') return compileTailwind4(input);
+  if (major === '3') return compileTailwind3(input, tailwindDir);
+  const which = version ?? 'of an unknown version';
+  const message = `Tailwind CSS ${which} is not supported: kitvas builds with Tailwind 3 or 4.`;
+  return { ok: false, message };
 }

@@ -151,8 +151,22 @@ test('an id that is not a kit id is refused before anything is read', () => {
   );
 });
 
-test('Tailwind v3 is refused for the project folder and for packages that use it', () => {
-  const v3 = { tailwindcss: { version: '3.4.17' } };
+test('Tailwind 3 and 4 pass for a repo kit and for a package that uses it', () => {
+  for (const version of ['3.4.17', '4.3.5']) {
+    const project = tempProject(
+      { 'src/ds/Button.tsx': '' },
+      {
+        tailwindcss: { version },
+        '@acme/tw': { version: '2.0.0', peerDependencies: { tailwindcss: '>=3' } },
+      },
+    );
+    assert.equal(newKit(deps(project), 'firma', { type: 'repo', value: 'src/ds' }).id, 'firma');
+    assert.equal(newKit(deps(project), 'tw', { type: 'npm', value: '@acme/tw' }).id, 'tw');
+  }
+});
+
+test('Tailwind 2 is refused for the project folder and for packages that use it', () => {
+  const v3 = { tailwindcss: { version: '2.2.19' } };
   const project = tempProject(
     { 'src/ds/Button.tsx': '' },
     {
@@ -166,7 +180,8 @@ test('Tailwind v3 is refused for the project folder and for packages that use it
     (error: unknown) =>
       error instanceof KitvasError &&
       error.code === 'KIT_SOURCE_INVALID' &&
-      String(error.params.detail).includes('Tailwind CSS 3.4.17'),
+      error.params.detail ===
+        'the project has Tailwind CSS 2.2.19; kitvas builds with Tailwind 3 or 4',
   );
   assert.throws(
     () => newKit(deps(project), 'tw', { type: 'npm', value: '@acme/tw' }),

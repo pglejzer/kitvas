@@ -1,6 +1,6 @@
 # 0035. Written kits: components an agent writes into the kit folder
 
-Date: 2026-11-23. Status: accepted. Adds to `0030-project-kits.md` and `0031-agent-written-kits-verified.md`. Spec: `docs/specs/2026-11-23-kitvas-stage-2b-written-kits-design.md`, sections 3, 4 and 6.
+Date: 2026-11-23. Status: accepted, changed in part by ADR 0093. Adds to `0030-project-kits.md` and `0031-agent-written-kits-verified.md`. Spec: `docs/specs/2026-11-23-kitvas-stage-2b-written-kits-design.md`, sections 3, 4 and 6.
 
 ## Context
 

@@ -1,6 +1,6 @@
 # 0032. Packages and React from the project
 
-Date: 2026-11-23. Status: accepted. Adds to `0030-project-kits.md`. Spec: `docs/specs/2026-11-23-kitvas-stage-2a-project-kits-design.md`, section 4. Evidence: `docs/spikes/08-react-from-project.md`.
+Date: 2026-11-23. Status: accepted, changed in part by ADR 0092. Adds to `0030-project-kits.md`. Spec: `docs/specs/2026-11-23-kitvas-stage-2a-project-kits-design.md`, section 4. Evidence: `docs/spikes/08-react-from-project.md`.
 
 ## Context
 

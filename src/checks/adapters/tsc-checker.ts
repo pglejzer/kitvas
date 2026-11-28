@@ -1,10 +1,16 @@
 // The type checker: tsc of the `typescript` package, run as a child process of Node.
 
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
-import { KitvasError, PLUGIN_ROOT, packageDirFrom, resolveDep } from '../../shared/index.ts';
-import { parseTscOutput, projectPaths, typesConfig } from '../domain/code/tsc.ts';
+import {
+  KitvasError,
+  PLUGIN_ROOT,
+  packageDirFrom,
+  readProjectResolve,
+  resolveDep,
+} from '../../shared/index.ts';
+import { parseTscOutput, typesConfig } from '../domain/code/tsc.ts';
 import type { TypeChecker } from '../ports/type-checker.ts';
 
 const TIMEOUT_MS = 60_000;
@@ -19,14 +25,6 @@ const slashes = (path: string): string => path.split(sep).join('/');
  * keeps its path, so tsc reports it in the draft instead of the check failing here.
  */
 const real = (path: string): string => (existsSync(path) ? realpathSync.native(path) : path);
-
-const readText = (file: string): string | undefined => {
-  try {
-    return readFileSync(file, 'utf8');
-  } catch {
-    return undefined;
-  }
-};
 
 /** React's types: the project's own when it has them, so its components and the draft agree. */
 function reactTypesDir(roots: string[], project: string | undefined): string {
@@ -61,7 +59,7 @@ function run(args: string[], cwd: string): Promise<{ code: number | null; output
 
 export function createTscChecker({ roots }: { roots: string[] }): TypeChecker {
   return {
-    async check({ workingDir, entry, kitEntry, project }) {
+    async check({ workingDir, entry, kitEntry, project, resolve }) {
       // `lib/tsc.js` is what `bin/tsc` imports. Neither is in the package's exports, so it is found next to
       // package.json. A sandbox that hides `node_modules/.bin/tsc` hides `bin/tsc`, its target, too.
       const tsc = join(dirname(resolveDep('typescript/package.json', roots)), 'lib', 'tsc.js');
@@ -75,9 +73,7 @@ export function createTscChecker({ roots }: { roots: string[] }): TypeChecker {
         reactTypes: slashes(real(reactTypesDir(roots, home))),
         assets: slashes(real(ASSETS)),
         // A built-in kit has no project, so nothing of one is merged.
-        ...(home === undefined
-          ? {}
-          : { paths: projectPaths(`${slashes(home)}/tsconfig.json`, readText) }),
+        project: home === undefined ? undefined : readProjectResolve(home, resolve),
       });
       writeFileSync(config, `${JSON.stringify(settings, null, 2)}\n`);
 

@@ -128,6 +128,100 @@
             "type"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "code"
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^(?!\\/)(?!\\.\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*:)(?!(?:.*\\/)?node_modules(?:\\/|$))[A-Za-z0-9_@.\\-/[\\]()]+$"
+            },
+            "styles": {
+              "default": [],
+              "maxItems": 12,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!\\/)(?!\\.\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*:)(?!(?:.*\\/)?node_modules(?:\\/|$))[A-Za-z0-9_@.\\-/[\\]()]+$"
+              }
+            },
+            "shell": {
+              "type": "object",
+              "properties": {
+                "html": {
+                  "default": {},
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "pattern": "^(?!on)[a-z_:][a-z0-9_.:-]*$"
+                  },
+                  "additionalProperties": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "body": {
+                  "default": {},
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "pattern": "^(?!on)[a-z_:][a-z0-9_.:-]*$"
+                  },
+                  "additionalProperties": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "wrappers": {
+                  "default": [],
+                  "maxItems": 6,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "tag": {
+                        "default": "div",
+                        "type": "string",
+                        "pattern": "^(?:div|main|section|article|aside|header|footer|nav|form|span|[a-z][a-z0-9]*-[a-z0-9-]*)$"
+                      },
+                      "attributes": {
+                        "default": {},
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string",
+                          "pattern": "^(?!on)[a-z_:][a-z0-9_.:-]*$"
+                        },
+                        "additionalProperties": {
+                          "type": "string",
+                          "maxLength": 2000
+                        }
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "urls": {
+              "default": [],
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^https?:\\/\\/[^\\s/?#@]+(?:[/?#][^\\s]*)?$"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -284,6 +378,40 @@
         "entry",
         "styles"
       ],
+      "additionalProperties": false
+    },
+    "resolve": {
+      "type": "object",
+      "properties": {
+        "roots": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?!\\/)(?!\\.\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*:)(?!(?:.*\\/)?node_modules(?:\\/|$))[A-Za-z0-9_@.\\-/[\\]()]+$"
+          }
+        },
+        "alias": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(?![./])[A-Za-z0-9_@~#$.\\-/]+(?<!\\/)$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^(?!\\/)(?!\\.\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*:)(?!(?:.*\\/)?node_modules(?:\\/|$))[A-Za-z0-9_@.\\-/[\\]()]+$"
+          }
+        },
+        "types": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?!\\/)(?!\\.\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*:)(?!(?:.*\\/)?node_modules(?:\\/|$))[A-Za-z0-9_@.\\-/[\\]()]+$"
+          }
+        }
+      },
       "additionalProperties": false
     },
     "tokens": {
@@ -579,6 +707,42 @@
         "deprecated": {
           "default": false,
           "type": "boolean"
+        },
+        "project": {
+          "type": "object",
+          "properties": {
+            "files": {
+              "minItems": 1,
+              "maxItems": 12,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!\\/)(?!\\.\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*:)(?!(?:.*\\/)?node_modules(?:\\/|$))[A-Za-z0-9_@.\\-/[\\]()]+$"
+              }
+            },
+            "package": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "styles": {
+              "default": [],
+              "maxItems": 12,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?!\\/)(?!\\.\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*:)(?!(?:.*\\/)?node_modules(?:\\/|$))[A-Za-z0-9_@.\\-/[\\]()]+$"
+              }
+            },
+            "scoped": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -687,6 +851,10 @@
         "reference": {
           "type": "string",
           "pattern": "^(?!.*\\.\\.)source\\/(?:[A-Za-z0-9_-]+\\/)*[A-Za-z0-9_.-]+\\.(?:png|jpe?g|webp)$"
+        },
+        "original": {
+          "type": "string",
+          "pattern": "^originals\\/[A-Za-z0-9_-]+\\.[1-9][0-9]*\\.html$"
         }
       },
       "required": [

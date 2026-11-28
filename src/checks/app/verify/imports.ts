@@ -92,6 +92,7 @@ export async function importsStep({ loaded, dir, bundler }: ImportsInput): Promi
     alias: { '@kit': entryFile(loaded) },
     ids: {},
     project: loaded.project,
+    resolve: kit.resolve,
   });
 
   const issues: VerifyIssue[] = [];

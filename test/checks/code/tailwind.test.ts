@@ -98,10 +98,32 @@ test('a class string may span lines and a template may hold more strings', () =>
   );
 });
 
+test("a class with the project's prefix is held to the same rule, in Tailwind 3 and 4", () => {
+  const text = [
+    'export function Card() {',
+    '  return <div className="tw-bg-[#fff] hover:tw-bg-[#fff] tw:bg-[#fff] tw-p-[13px]" />;',
+    '}',
+  ].join('\n');
+  assert.deepEqual(
+    tailwindFindings({ file: FILE, text, unknown: [] }).map((finding) => [
+      finding.rule,
+      finding.severity,
+      finding.message.params,
+    ]),
+    [
+      ['ds/tailwind-arbitrary', 'fix', { value: 'tw-bg-[#fff]' }],
+      ['ds/tailwind-arbitrary', 'fix', { value: 'hover:tw-bg-[#fff]' }],
+      ['ds/tailwind-arbitrary', 'fix', { value: 'tw:bg-[#fff]' }],
+      ['ds/tailwind-arbitrary', 'review', { value: 'tw-p-[13px]' }],
+    ],
+  );
+});
+
 test('tailwind.json gives its unknown classes; anything else gives none', () => {
-  assert.deepEqual(tailwindUnknown({ schemaVersion: 1, unknown: ['bg-nope'] }), ['bg-nope']);
-  assert.deepEqual(tailwindUnknown({ schemaVersion: 2, unknown: ['bg-nope'] }), []);
-  assert.deepEqual(tailwindUnknown({ schemaVersion: 1, unknown: [1] }), []);
+  const theme = { version: 4, prefix: '', screens: {} };
+  assert.deepEqual(tailwindUnknown({ schemaVersion: 2, unknown: ['bg-nope'], theme }), ['bg-nope']);
+  assert.deepEqual(tailwindUnknown({ schemaVersion: 1, unknown: ['bg-nope'] }), []);
+  assert.deepEqual(tailwindUnknown({ schemaVersion: 2, unknown: [1], theme }), []);
   assert.deepEqual(tailwindUnknown(undefined), []);
 });
 

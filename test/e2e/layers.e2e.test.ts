@@ -76,8 +76,8 @@ test('one layer per painted, placed or written thing, parents first', {
   assert.equal(facts.truncated, false);
   const kinds: Record<string, number> = {};
   for (const node of facts.nodes) kinds[node.kind] = (kinds[node.kind] ?? 0) + 1;
-  assert.deepEqual(kinds, { frame: 13, text: 5, image: 1, svg: 1 });
-  assert.equal(facts.nodes.length, 20);
+  assert.deepEqual(kinds, { frame: 13, text: 6, image: 1, svg: 1 });
+  assert.equal(facts.nodes.length, 21);
   facts.nodes.forEach((node, index) => {
     assert.ok(node.parent >= -1 && node.parent < index, `layer ${index} comes after its parent`);
   });
@@ -207,6 +207,23 @@ test('a text of 5,000 characters is cut at LAYER_TEXT_MAX and says so', {
   assert.equal(node.kind, 'text');
   assert.equal(node.text?.characters.length, LAYER_TEXT_MAX);
   assert.equal(node.text?.truncated, true);
+});
+
+test('a text that is all one inline element is drawn in its look, not the block around it', {
+  timeout: TEST_MS,
+}, async (t) => {
+  const facts = await storyFacts();
+  if (facts === undefined) return t.skip(NO_BROWSER);
+  const { node } = own(facts, `${STORY}/p.lone`);
+  assert.equal(node.kind, 'text');
+  assert.ok(node.text);
+  assert.deepEqual(
+    [node.text.characters, node.text.family, node.text.size, node.text.lineHeight],
+    ['Help', 'monospace', 18, 28],
+  );
+  assert.equal(node.text.colour, '#2563ebff');
+  assert.deepEqual(node.text.runs, []);
+  assert.equal(node.box[3], 28);
 });
 
 test('an image that did not load is a frame of its size; one that did is an image', {

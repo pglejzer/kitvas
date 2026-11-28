@@ -121,6 +121,8 @@ export type ServeInput = {
   imageStore?: ImageStore;
   /** `kitvas doctor` for the Doctor page. */
   doctor?: ServeDeps['doctor'];
+  /** The components of a `code` kit whose project files changed, for the kit page. */
+  outdated?: ServeDeps['outdated'];
   /** The Insert pane's kit previews on disk (ADR 0075). */
   previews?: ServeDeps['previews'];
 };
@@ -139,6 +141,7 @@ export function serveProject(input: ServeInput): Promise<StudioState> {
     ...(input.live ? { live: input.live } : {}),
     ...(input.imageStore ? { imageStore: input.imageStore } : {}),
     ...(input.doctor ? { doctor: input.doctor } : {}),
+    ...(input.outdated ? { outdated: input.outdated } : {}),
     ...(input.previews ? { previews: input.previews } : {}),
     // Read on each page: `kit use` may change it while the studio runs. A config that does not
     // read is the doctor's to report; the start page then names the built-in kit.

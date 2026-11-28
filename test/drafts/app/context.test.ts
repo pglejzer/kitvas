@@ -2,10 +2,16 @@ import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { saveSectionContext, sectionContext } from '../../../src/drafts/index.ts';
+import {
+  pickTailwindFacts,
+  saveSectionContext,
+  sectionContext,
+  tailwindFacts,
+} from '../../../src/drafts/index.ts';
 import { createFolderKitStore } from '../../../src/kit/adapters/folder-store.ts';
+import { loadKit } from '../../../src/kit/index.ts';
 import { KitvasError } from '../../../src/shared/index.ts';
-import { GOOD_LAYOUT, shopDraft } from '../../helpers/draft/drafts.ts';
+import { GOOD_LAYOUT, NO_FILES, shopDraft } from '../../helpers/draft/drafts.ts';
 import { copyKit, FIXTURE_KITS, tinyKitJson } from '../../helpers/kit/kits.ts';
 
 const kits = createFolderKitStore(FIXTURE_KITS);
@@ -13,7 +19,7 @@ const kits = createFolderKitStore(FIXTURE_KITS);
 test('gives one section everything it needs and nothing else', () => {
   const { store, root } = shopDraft();
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
-  const context = sectionContext(store, kits, 'shop', 'order-summary');
+  const context = sectionContext(store, kits, 'shop', 'order-summary', NO_FILES);
   assert.deepEqual(context.draft, { slug: 'shop', title: 'Shop', version: 1 });
   assert.deepEqual(context.section, {
     id: 'order-summary',
@@ -65,19 +71,19 @@ test('the options of the version are in the context', () => {
     'v1/src/json/options.json',
     JSON.stringify({ schemaVersion: 1, options }),
   );
-  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero').options, options);
+  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero', NO_FILES).options, options);
 });
 
 test('the shared values of the version are in the context, and none read as an empty list', () => {
   const { store } = shopDraft();
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
-  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero').sharedValues, []);
+  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero', NO_FILES).sharedValues, []);
   store.writeText(
     'shop',
     'v1/src/json/shared.json',
     JSON.stringify({ schemaVersion: 1, values: [{ id: 'query', label: 'Search' }] }),
   );
-  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero').sharedValues, [
+  assert.deepEqual(sectionContext(store, kits, 'shop', 'hero', NO_FILES).sharedValues, [
     { id: 'query', label: 'Search', default: '', values: null },
   ]);
 });
@@ -85,7 +91,7 @@ test('the shared values of the version are in the context, and none read as an e
 test('tokens come with the value CSS reads and the group of their path', () => {
   const { store } = shopDraft();
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
-  const { tokens } = sectionContext(store, kits, 'shop', 'hero').kit;
+  const { tokens } = sectionContext(store, kits, 'shop', 'hero', NO_FILES).kit;
   const byName = new Map(tokens.map((token) => [token.name, token]));
   assert.deepEqual(byName.get('--kit-color-ink'), {
     name: '--kit-color-ink',
@@ -130,7 +136,7 @@ test('references list only the images of the section components that exist', () 
   writeFileSync(join(root, 'tiny', 'source', 'refs', 'Button.1.png'), 'png');
   const { store } = shopDraft();
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
-  const context = sectionContext(store, createFolderKitStore(root), 'shop', 'hero');
+  const context = sectionContext(store, createFolderKitStore(root), 'shop', 'hero', NO_FILES);
   assert.deepEqual(context.kit.references, [
     {
       component: 'Button',
@@ -147,7 +153,7 @@ test('the shared block of the layout is passed on as written', () => {
     'v1/md/layout.md',
     `${GOOD_LAYOUT}\n## shared\n<!-- note -->\nPage width: 1200px.\n\n  Hero owns the cart state.\n`,
   );
-  const context = sectionContext(store, kits, 'shop', 'hero');
+  const context = sectionContext(store, kits, 'shop', 'hero', NO_FILES);
   assert.equal(context.shared, 'Page width: 1200px.\n\n  Hero owns the cart state.');
   assert.deepEqual(
     context.outline.map((entry) => entry.id),
@@ -158,13 +164,13 @@ test('the shared block of the layout is passed on as written', () => {
 test('saving writes the context file of the version and answers its path', () => {
   const { store, root } = shopDraft();
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
-  const saved = saveSectionContext(store, kits, 'shop', 'hero');
+  const saved = saveSectionContext(store, kits, 'shop', 'hero', NO_FILES);
   const path = join(root, 'shop', 'v1', 'build', 'context', 'hero.json');
   assert.deepEqual(saved, { section: 'hero', path });
   const written: unknown = JSON.parse(readFileSync(path, 'utf8'));
-  assert.deepEqual(written, sectionContext(store, kits, 'shop', 'hero'));
+  assert.deepEqual(written, sectionContext(store, kits, 'shop', 'hero', NO_FILES));
   assert.throws(
-    () => saveSectionContext(store, kits, 'shop', 'footer'),
+    () => saveSectionContext(store, kits, 'shop', 'footer', NO_FILES),
     (error: unknown) => error instanceof KitvasError && error.code === 'SECTION_NOT_FOUND',
   );
 });
@@ -172,7 +178,7 @@ test('saving writes the context file of the version and answers its path', () =>
 test('a section lists only its own kit components', () => {
   const { store } = shopDraft();
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
-  const context = sectionContext(store, kits, 'shop', 'hero');
+  const context = sectionContext(store, kits, 'shop', 'hero', NO_FILES);
   assert.deepEqual(
     context.kit.components.map((component) => component.name),
     ['Button'],
@@ -199,16 +205,87 @@ test('a Tailwind kit says so and names the theme variables its tokens map onto',
   );
   const { store } = shopDraft();
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
-  const context = sectionContext(store, createFolderKitStore(root), 'shop', 'hero');
+  const context = sectionContext(store, createFolderKitStore(root), 'shop', 'hero', NO_FILES);
   assert.equal(context.styling, 'tailwind');
   assert.deepEqual(context.classes, ['--color-ink', '--spacing']);
-  assert.deepEqual(Object.keys(context).slice(-3), ['styling', 'classes', 'files']);
+  // Nothing built and no package: version 4, no prefix.
+  assert.deepEqual(context.tailwind, { version: 4, prefix: '' });
+  assert.deepEqual(Object.keys(context).slice(-4), ['styling', 'tailwind', 'classes', 'files']);
+
+  // A built version says its own version and prefix; a theme path is listed as its dot path.
+  writeFileSync(
+    join(root, 'tiny', 'json', 'css-var-map.json'),
+    JSON.stringify({ 'color.ink': 'theme(colors.primary)', 'space.sm': '--spacing' }),
+  );
+  store.writeText(
+    'shop',
+    'v1/build/json/tailwind.json',
+    JSON.stringify({
+      schemaVersion: 2,
+      unknown: [],
+      theme: { version: 3, prefix: 'tw-', screens: {}, aliases: {} },
+    }),
+  );
+  const built = sectionContext(store, createFolderKitStore(root), 'shop', 'hero', NO_FILES);
+  assert.deepEqual(built.tailwind, { version: 3, prefix: 'tw-' });
+  assert.deepEqual(built.classes, ['colors.primary', '--spacing']);
+});
+
+test('the catalog build is read through the project files, and the installed version too', () => {
+  const { store } = shopDraft();
+  const loaded = { ...loadKit(kits, 'tiny'), project: join('/', 'proj') };
+  const asked: string[] = [];
+  const files = {
+    readBytes: (file: string) => {
+      asked.push(file);
+      return new TextEncoder().encode(
+        JSON.stringify({
+          schemaVersion: 2,
+          unknown: [],
+          theme: { version: 4, prefix: 'tw:', screens: {}, aliases: {} },
+        }),
+      );
+    },
+    packageVersion: () => '3.4.1',
+  };
+  assert.deepEqual(tailwindFacts(files, store, 'shop', 'v1', loaded), {
+    version: 4,
+    prefix: 'tw:',
+  });
+  assert.deepEqual(asked, ['.kitvas/cache/catalog/tiny/build/json/tailwind.json']);
+  // The catalog says nothing: the installed package does.
+  const bare = { readBytes: () => undefined, packageVersion: () => '3.4.1' };
+  assert.deepEqual(tailwindFacts(bare, store, 'shop', 'v1', loaded), { version: 3, prefix: '' });
+});
+
+test('the Tailwind facts come from the version, else the catalog, else the installed major', () => {
+  const file = (version: 3 | 4, prefix: string) => ({
+    schemaVersion: 2 as const,
+    unknown: [],
+    theme: { version, prefix, screens: {}, aliases: {} },
+  });
+  assert.deepEqual(
+    pickTailwindFacts({ version: file(3, 'tw-'), catalog: file(4, 'tw:'), installed: '4.1.0' }),
+    { version: 3, prefix: 'tw-' },
+  );
+  assert.deepEqual(
+    pickTailwindFacts({ version: undefined, catalog: file(4, 'tw:'), installed: '3.4.1' }),
+    { version: 4, prefix: 'tw:' },
+  );
+  assert.deepEqual(
+    pickTailwindFacts({ version: undefined, catalog: undefined, installed: '3.4.17' }),
+    { version: 3, prefix: '' },
+  );
+  assert.deepEqual(
+    pickTailwindFacts({ version: undefined, catalog: undefined, installed: undefined }),
+    { version: 4, prefix: '' },
+  );
 });
 
 test('an unknown section or a layout with problems is an error', () => {
   const { store } = shopDraft();
   assert.throws(
-    () => sectionContext(store, kits, 'shop', 'hero'),
+    () => sectionContext(store, kits, 'shop', 'hero', NO_FILES),
     (error: unknown) =>
       error instanceof KitvasError &&
       error.code === 'DRAFT_INVALID' &&
@@ -216,7 +293,7 @@ test('an unknown section or a layout with problems is an error', () => {
   );
   store.writeText('shop', 'v1/md/layout.md', GOOD_LAYOUT);
   assert.throws(
-    () => sectionContext(store, kits, 'shop', 'footer'),
+    () => sectionContext(store, kits, 'shop', 'footer', NO_FILES),
     (error: unknown) =>
       error instanceof KitvasError &&
       error.code === 'SECTION_NOT_FOUND' &&

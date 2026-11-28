@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { type Kit, parseKit } from '../../src/kit/domain/contract.ts';
+import { type Kit, ORIGINAL_PATH, parseKit } from '../../src/kit/domain/contract.ts';
 import {
   componentKind,
   importTargets,
@@ -12,7 +12,7 @@ import {
   sourceIssues,
 } from '../../src/kit/domain/sources.ts';
 import { tinyKitJson } from '../helpers/kit/kits.ts';
-import { type Json, npmKitJson, repoKitJson } from './helpers/project-kit.ts';
+import { type Json, npmKitJson, repoKitJson, webKitJson } from './helpers/project-kit.ts';
 
 const kitOf = (raw: Json): Kit => parseKit(raw, String(raw.id));
 
@@ -209,4 +209,147 @@ test('a repo kit imports its components from paths inside the project', () => {
       params: { component: 'Card', from: 'src/../../etc/card' },
     },
   ]);
+});
+
+/** The web kit with its source changed to `code`, for the rules of that source. */
+const codeKitJson = (): Json => ({
+  ...webKitJson(),
+  source: { type: 'code', path: 'src/app/ui' },
+});
+
+type RawComponent = { project?: unknown; examples: { original?: string }[] };
+
+const componentsOf = (raw: Json): RawComponent[] => raw.components as RawComponent[];
+
+test('a code source keeps its path, styles and urls', () => {
+  assert.deepEqual(kitOf(codeKitJson()).source, {
+    type: 'code',
+    path: 'src/app/ui',
+    styles: [],
+    urls: [],
+  });
+  for (const path of ['src/../ui', '../ui', 'node_modules/ui', 'src/node_modules/ui']) {
+    assert.throws(() => kitOf({ ...codeKitJson(), source: { type: 'code', path } }), path);
+  }
+});
+
+test('a code source may say what the app has around every component', () => {
+  const withShell = (shell: Json): Json => ({
+    ...codeKitJson(),
+    source: { type: 'code', path: 'src/app/ui', shell },
+  });
+  const source = kitOf(
+    withShell({ html: { 'data-theme': 'light' }, wrappers: [{ attributes: { id: 'app' } }] }),
+  ).source;
+  assert.deepEqual(source.type === 'code' ? source.shell : undefined, {
+    html: { 'data-theme': 'light' },
+    body: {},
+    wrappers: [{ tag: 'div', attributes: { id: 'app' } }],
+  });
+  assert.doesNotThrow(() => kitOf(withShell({ wrappers: [{ tag: 'acme-shell' }] })));
+
+  const wrappers = (count: number): Json[] => Array.from({ length: count }, () => ({}));
+  const refused: [string, Json][] = [
+    ['a handler on html', { html: { onload: 'go()' } }],
+    ['a handler on body, in capitals', { body: { ONCLICK: 'go()' } }],
+    ['a handler on a wrapper', { wrappers: [{ attributes: { onclick: 'go()' } }] }],
+    ['a script as a wrapper', { wrappers: [{ tag: 'script' }] }],
+    ['a style as a wrapper', { wrappers: [{ tag: 'style' }] }],
+    ['an iframe as a wrapper', { wrappers: [{ tag: 'iframe' }] }],
+    ['seven wrappers', { wrappers: wrappers(7) }],
+    ['an unknown part', { head: {} }],
+  ];
+  for (const [name, shell] of refused) assert.throws(() => kitOf(withShell(shell)), name);
+  assert.doesNotThrow(() => kitOf(withShell({ wrappers: wrappers(6) })));
+});
+
+test('project and original are refused outside a code kit', () => {
+  const raw = webKitJson();
+  at(componentsOf(raw), 0).project = { files: ['src/button.js'] };
+  assert.deepEqual(sourceIssues(kitOf(raw)), [
+    {
+      path: 'components.Button.project',
+      key: 'kitIssue.onlyCodeKit',
+      params: { component: 'Button', field: 'project' },
+    },
+  ]);
+
+  const withOriginal = webKitJson();
+  at(at(componentsOf(withOriginal), 0).examples, 0).original = 'originals/Button.1.html';
+  assert.deepEqual(sourceIssues(kitOf(withOriginal)), [
+    {
+      path: 'components.Button.examples.0.original',
+      key: 'kitIssue.onlyCodeKit',
+      params: { component: 'Button', field: 'original' },
+    },
+  ]);
+
+  const code = codeKitJson();
+  at(componentsOf(code), 0).project = { files: ['src/button.js'] };
+  at(at(componentsOf(code), 0).examples, 0).original = 'originals/Button.1.html';
+  assert.deepEqual(sourceIssues(kitOf(code)), []);
+});
+
+test('project names files or a package, never both', () => {
+  const issuesOf = (project: unknown): unknown[] => {
+    const raw = codeKitJson();
+    at(componentsOf(raw), 0).project = project;
+    return sourceIssues(kitOf(raw));
+  };
+  const one = {
+    path: 'components.Button.project',
+    key: 'kitIssue.originOneOf',
+    params: { component: 'Button' },
+  };
+  assert.deepEqual(issuesOf({ files: ['src/button.js'], package: '@acme/ui' }), [one]);
+  assert.deepEqual(issuesOf({ name: 'app-button' }), [one]);
+  assert.deepEqual(issuesOf({ files: ['src/button.js'] }), []);
+  assert.deepEqual(issuesOf({ package: '@acme/ui', name: 'Button' }), []);
+});
+
+test("an original's path", () => {
+  assert.equal(ORIGINAL_PATH.test('originals/Button.1.html'), true);
+  assert.equal(ORIGINAL_PATH.test('originals/Card_x-y.12.html'), true);
+  for (const bad of ['originals/../x.html', 'originals/Button.html', 'originals/Button.0.html']) {
+    assert.equal(ORIGINAL_PATH.test(bad), false, bad);
+  }
+  const raw = codeKitJson();
+  at(at(componentsOf(raw), 0).examples, 0).original = 'originals/../x.html';
+  assert.throws(() => kitOf(raw));
+});
+
+test('code:<folder> is a source flag', () => {
+  assert.deepEqual(parseSourceFlag('code:.\\src\\app\\ui\\'), {
+    type: 'code',
+    value: 'src/app/ui',
+  });
+  assert.equal(parseSourceFlag('code:'), undefined);
+  assert.equal(parseSourceFlag('code:./'), undefined);
+});
+
+test('a code kit may import a project style file, and nothing else of the project', () => {
+  const raw = codeKitJson();
+  const runtime = raw.runtime as { styles: { imports: string[] }; providers?: unknown };
+  runtime.styles.imports = ['src/styles/icons.css'];
+  const kit = kitOf(raw);
+  assert.deepEqual(
+    importTargets(kit)
+      .filter((target) => target.at.startsWith('runtime.styles'))
+      .map((target) => [target.at, target.kind]),
+    [['runtime.styles.imports.0', 'project']],
+  );
+  assert.deepEqual(sourceIssues(kit), []);
+
+  runtime.providers = [{ import: { from: 'src/theme', name: 'T' } }];
+  assert.deepEqual(sourceIssues(kitOf(raw)), [
+    {
+      path: 'runtime.providers.0.import.from',
+      key: 'kitIssue.importNotKitPath',
+      params: { component: 'T', from: 'src/theme' },
+    },
+  ]);
+  // A web kit still names no project path in a style import.
+  const web = webKitJson();
+  (web.runtime as { styles: { imports: string[] } }).styles.imports = ['src/styles/icons.css'];
+  assert.equal(sourceIssues(kitOf(web)).length, 1);
 });

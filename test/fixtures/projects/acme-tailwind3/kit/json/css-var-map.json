@@ -1,0 +1,6 @@
+{
+  "color.primary": "theme(colors.primary)",
+  "color.primaryForeground": "theme(colors.primary-foreground)",
+  "color.brand": "theme(colors.brand)",
+  "radius.md": "--radius"
+}

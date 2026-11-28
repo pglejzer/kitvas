@@ -13,6 +13,8 @@ export type DetectedKit = {
   source: string;
   /** True when the last `kit verify` was for another kit hash, or there was none, or the kit cannot load. */
   stale: boolean;
+  /** Names of the components whose project files changed since they were converted (`code` kits). */
+  outdated: string[];
 };
 
 export type Detected = {
@@ -29,10 +31,31 @@ export type DetectDeps = {
   verifiedHash(id: string): string | undefined;
   /** The kit id the project's settings name. */
   activeKit: string;
+  /** Names of the kit's out-of-date components; without it no kit has any. */
+  outdated?(id: string): string[];
 };
 
-/** Folders where a project keeps its own components, and how many `.tsx` files make a sign. */
-export const COMPONENT_FOLDERS = ['src/components', 'components', 'src/ui', 'ui'] as const;
+/** Folders where a project keeps its own components, and how many files of any kind make a sign. */
+export const COMPONENT_FOLDERS = [
+  'src/components',
+  'components',
+  'src/ui',
+  'ui',
+  'src/app/components',
+  'src/app/shared',
+  'src/lib/components',
+  'app/components',
+  // Templates and partials: Handlebars and other static sites, Laravel, Rails, Hugo, Jekyll, Django.
+  'src/partials',
+  'partials',
+  'resources/views/components',
+  'app/views/components',
+  'layouts/partials',
+  '_includes',
+  'templates/components',
+] as const;
+/** Angular keeps a component's files side by side anywhere in its app folder: only they count there. */
+const ANGULAR_APP = { folder: 'src/app', file: /\.component\.[a-z]+$/ } as const;
 export const COMPONENT_SIGN_FILES = 10;
 /** Files looked at per folder; a folder this large is a sign long before the cap. */
 const LIST_CAP = 2000;
@@ -70,21 +93,30 @@ function detectKit(deps: DetectDeps, id: string): DetectedKit {
       id,
       source: loaded.kit.source.type,
       stale: deps.verifiedHash(id) !== loaded.hash,
+      outdated: deps.outdated?.(id) ?? [],
     };
   } catch (error) {
     if (!(error instanceof KitvasError)) throw error;
-    return { id, source: sourceOf(deps.kits, id), stale: true };
+    return { id, source: sourceOf(deps.kits, id), stale: true, outdated: [] };
   }
 }
 
+/** The files of a folder a sign counts: none in a dot folder or named with a dot first. */
+const countedFiles = (files: ProjectSetup, folder: string): string[] =>
+  files
+    .listFiles(folder)
+    .slice(0, LIST_CAP)
+    .filter((file) => !file.split('/').some((part) => part.startsWith('.')));
+
 function componentFolders(files: ProjectSetup): string[] {
-  return COMPONENT_FOLDERS.filter((folder) => {
-    const count = files
-      .listFiles(folder)
-      .slice(0, LIST_CAP)
-      .filter((file) => file.endsWith('.tsx')).length;
-    return count >= COMPONENT_SIGN_FILES;
-  });
+  const found: string[] = COMPONENT_FOLDERS.filter(
+    (folder) => countedFiles(files, folder).length >= COMPONENT_SIGN_FILES,
+  );
+  const { folder, file } = ANGULAR_APP;
+  const inside = found.some((sign) => sign.startsWith(`${folder}/`));
+  const angular = countedFiles(files, folder).filter((name) => file.test(name));
+  if (!inside && angular.length >= COMPONENT_SIGN_FILES) found.push(folder);
+  return found;
 }
 
 /** Known design-system packages the project depends on; a package.json that does not parse counts as none. */

@@ -1,0 +1,66 @@
+@use "styles/mixins" as m;
+@use "styles/tokens" as t;
+
+.btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: t.$space-sm t.$space-lg;
+  border: t.$border-thin solid transparent;
+  border-radius: t.$radius-sm;
+  font-family: var(--acme-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: normal;
+  text-align: center;
+  text-transform: none;
+  cursor: pointer;
+
+  &:focus-visible {
+    @include m.focus-ring(t.$space-hair);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn__label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.btn--primary {
+  border-color: t.$primary;
+  background: t.$primary;
+  color: t.$on-primary;
+
+  &:hover:not(:disabled) {
+    border-color: t.$primary-hover;
+    background: t.$primary-hover;
+  }
+
+  &:active:not(:disabled) {
+    border-color: t.$primary-active;
+    background: t.$primary-active;
+  }
+}
+
+.btn--quiet {
+  border-color: var(--acme-line);
+  background: transparent;
+  color: t.$primary;
+
+  &:hover:not(:disabled) {
+    background: t.$tint;
+  }
+
+  &:active:not(:disabled) {
+    background: t.$tint-active;
+  }
+}

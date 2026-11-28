@@ -17,6 +17,7 @@ import type { DraftStore } from '../ports/draft-store.ts';
 import { inspectLayout, sectionPaths } from './layout.ts';
 import { readOptions } from './options.ts';
 import { readSharedValues } from './shared-values.ts';
+import { type TailwindFiles, tailwindClasses, tailwindFacts } from './tailwind-facts.ts';
 import { lockedIdsNow } from './view.ts';
 
 export type ContextToken = {
@@ -58,7 +59,12 @@ export type SectionContext = {
    * (utility classes of the kit's theme in `className`).
    */
   styling: 'sheets' | 'tailwind';
-  /** Tailwind kits only: the theme variables the kit's tokens map onto (`cssVars.map`). */
+  /** Tailwind kits only: the version of the project's Tailwind and the prefix its classes carry. */
+  tailwind?: { version: 3 | 4; prefix: string };
+  /**
+   * Tailwind kits only: what the kit's tokens map onto (`cssVars.map`): a theme variable, or a
+   * theme path as its dot path (`colors.primary`).
+   */
   classes?: string[];
   /** Absolute paths of the two files the agent writes. */
   files: { tsx: string; scss: string };
@@ -88,8 +94,9 @@ export function saveSectionContext(
   kits: KitStore,
   slug: string,
   sectionId: string,
+  files: TailwindFiles,
 ): { section: string; path: string } {
-  const context = sectionContext(store, kits, slug, sectionId);
+  const context = sectionContext(store, kits, slug, sectionId, files);
   // The id passed `sectionContext`, so it is a section id and cannot leave the folder.
   const rel = `${versionFolder(context.draft.version)}/build/context/${sectionId}.json`;
   store.writeText(slug, rel, `${JSON.stringify(context, null, 2)}\n`);
@@ -101,6 +108,7 @@ export function sectionContext(
   kits: KitStore,
   slug: string,
   sectionId: string,
+  files: TailwindFiles,
 ): SectionContext {
   const { draft, version, base, kit, layout, issues } = inspectLayout(store, kits, slug);
   const first = issues[0];
@@ -154,7 +162,12 @@ export function sectionContext(
     ),
     shared: layout.shared,
     styling,
-    ...(tailwind ? { classes: [...new Set(Object.values(kit.cssVarMap))] } : {}),
+    ...(tailwind
+      ? {
+          tailwind: tailwindFacts(files, store, slug, base, kit),
+          classes: tailwindClasses(kit),
+        }
+      : {}),
     files: {
       tsx: join(store.dir(slug), ...paths.tsx.split('/')),
       scss: join(store.dir(slug), ...paths.scss.split('/')),

@@ -1,0 +1,8 @@
+{
+  "name": "acme-sfc-fixture",
+  "private": true,
+  "description": "A project of single-file components with scoped Sass, none of it React: kit acme-sfc.",
+  "dependencies": {
+    "vue": "3.5.13"
+  }
+}

@@ -55,6 +55,19 @@ export const TokenOptionSchema = z.strictObject({
   type: z.enum(['color', 'dimension', 'duration', 'fontFamily', 'fontWeight', 'number']),
   css: z.string(),
   added: z.boolean().optional(),
+  /** Plan 29: the theme key a Tailwind kit maps the token onto, as a class names it. */
+  utility: z.strictObject({ namespace: z.string(), name: z.string() }).optional(),
+});
+
+/** Plan 29: what the project's Tailwind says about itself (`TailwindTheme`, `tailwind.json`). */
+const TailwindThemeSchema = z.strictObject({
+  version: z.union([z.literal(3), z.literal(4)]),
+  /** What a class starts with: `tw-` (Tailwind 3, after the variants), `tw:` (Tailwind 4). */
+  prefix: z.string(),
+  /** The plain min-width screens by name, in px. */
+  screens: z.record(z.string(), z.number()),
+  /** Tailwind 4: a page variable to the theme variable that points at it (`--color-primary`). */
+  aliases: z.record(z.string(), z.string()),
 });
 
 export const StyleSourceSchema = z.discriminatedUnion('kind', [
@@ -235,6 +248,13 @@ export const InspectSchema = z.strictObject({
     .optional(),
   /** The kit's breakpoints, ascending (spec 4c, goal 1; `kitBreakpoints`). */
   breakpoints: z.array(z.number().int().min(1)).optional(),
+  /**
+   * Plan 29: the project's Tailwind facts the classes were read with, which the editor writes its
+   * classes by (version, prefix, screens); `null` for an SCSS draft or a build that reported none,
+   * when Tailwind 4 with no prefix and its own screens stand in. Optional so an answer of an older
+   * studio still reads.
+   */
+  tailwind: TailwindThemeSchema.nullable().optional(),
   /**
    * Spec 4d, goal 6: plain JSX a kit component covers. `source`: the element's source with the
    * component's tag, its children and the props both take kept (sent as `replaceElement`, which

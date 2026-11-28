@@ -22,6 +22,8 @@ export function sourceLine(source: KitSource): { key: string; params: Record<str
       return { key: 'studio.kit.source.web', params: { host: hostsOf(source.urls) } };
     case 'images':
       return { key: 'studio.kit.source.images', params: {} };
+    case 'code':
+      return { key: 'studio.kit.source.code', params: { path: source.path } };
   }
 }
 
@@ -40,6 +42,8 @@ export function sourceNoun(t: Translate, source: KitSource): string {
       return hostsOf(source.urls);
     case 'images':
       return t('studio.added.source.images');
+    case 'code':
+      return source.path;
   }
 }
 
@@ -59,6 +63,84 @@ export function lookView(file: VerifyFile | undefined, hash: string): LookView {
   if (file?.look === undefined) return { state: 'none' };
   if (file.hash !== hash) return { state: 'stale' };
   return { state: 'scored', entries: Object.fromEntries(file.look.map((e) => [e.key, e])) };
+}
+
+/** How a component of a `code` kit was compared with the project it was written from. */
+export type CompareLevel = 'app' | 'code' | 'read';
+/** Why a component is only `read`: nothing to compare with, styles not compiled, styles not readable. */
+export type ReadReason = 'none' | 'notDrawn' | 'partial';
+export type ComparedEntry = {
+  component: string;
+  level: CompareLevel;
+  why?: ReadReason | undefined;
+};
+/** The numbers of one example against its original (C8, `originals` of verify.json). */
+export type OriginalEntry = {
+  key: string;
+  width: number;
+  frames: number;
+  differences: number;
+  score: number;
+};
+export type OutdatedEntry = { name: string; reason: 'changed' | 'gone' };
+
+/** What a `code` kit's page adds: levels, counts, the originals' numbers and the stale components. */
+export type CodeView = {
+  /** The level of each component; empty when the kit was not verified as it is now. */
+  levels: Record<string, CompareLevel>;
+  /** Why a `read` component was not compared. */
+  reasons: Record<string, ReadReason>;
+  /** Components at each level; `undefined` when there are no levels. */
+  counts: Record<CompareLevel, number> | undefined;
+  /** The numbers against the original of each example key, one entry a width. */
+  originals: Record<string, OriginalEntry[]>;
+  outdated: Record<string, OutdatedEntry['reason']>;
+};
+
+/**
+ * The `code` kit's view, or `undefined` for any other kit. Levels appear only for a verification
+ * made for the kit as it is now; a component the list does not name counts as `read`.
+ */
+export function codeView(input: {
+  source: KitSource;
+  verify: VerifyView;
+  components: string[];
+  /** The verify file; `hash` makes it a `VerifyFile` before it carries the two lists. */
+  file?:
+    | {
+        hash: string;
+        compared?: ComparedEntry[] | undefined;
+        originals?: OriginalEntry[] | undefined;
+      }
+    | undefined;
+  outdated?: OutdatedEntry[] | undefined;
+}): CodeView | undefined {
+  if (input.source.type !== 'code') return undefined;
+  const fresh = input.verify.state === 'passed' || input.verify.state === 'failed';
+  const compared = fresh ? input.file?.compared : undefined;
+  const byName = new Map((compared ?? []).map((entry) => [entry.component, entry]));
+  const levels: Record<string, CompareLevel> = {};
+  const reasons: Record<string, ReadReason> = {};
+  const counts: Record<CompareLevel, number> = { app: 0, code: 0, read: 0 };
+  if (compared !== undefined) {
+    for (const name of input.components) {
+      const level = byName.get(name)?.level ?? 'read';
+      levels[name] = level;
+      counts[level] += 1;
+      if (level === 'read') reasons[name] = byName.get(name)?.why ?? 'none';
+    }
+  }
+  const originals: Record<string, OriginalEntry[]> = {};
+  for (const entry of fresh ? (input.file?.originals ?? []) : []) {
+    originals[entry.key] = [...(originals[entry.key] ?? []), entry];
+  }
+  return {
+    levels,
+    reasons,
+    counts: compared === undefined ? undefined : counts,
+    originals,
+    outdated: Object.fromEntries((input.outdated ?? []).map((entry) => [entry.name, entry.reason])),
+  };
 }
 
 export type VerifyState = 'passed' | 'failed' | 'stale' | 'never';

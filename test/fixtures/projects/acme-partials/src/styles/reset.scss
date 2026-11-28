@@ -1,0 +1,11 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+h3,
+button,
+input {
+  margin: 0;
+}

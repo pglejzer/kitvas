@@ -231,7 +231,11 @@ export function installLayerTools(): boolean {
     const whole = characters.replace(/[ \n]+$/, '');
     if (whole.trim() === '') return null;
     const truncated = whole.length > max;
-    const style = getComputedStyle(block);
+    // A text that is all one inline element (a link alone in its block) is drawn in that element's
+    // look, not the block's: the block's own font may come from the page around the component.
+    const holders = new Set(segments.map((segment) => segment.from));
+    const [only] = holders;
+    const style = getComputedStyle(holders.size === 1 && only !== undefined ? only : block);
     const text = styled(style, truncated ? whole.slice(0, max) : whole, truncated);
     for (const { start, end, from } of segments) {
       const last = Math.min(end, text.characters.length);

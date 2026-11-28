@@ -54,13 +54,16 @@ export async function scanKit(
   if (!files) throw new KitvasError('KIT_NOT_FOUND', { id });
   // Only the source: a kit is scanned before its components are written.
   const source = parseKitSource(files.kitJson, id);
-  if (source.type !== 'web') throw invalid(`kit "${id}" is not a web kit`);
+  if (source.type !== 'web' && source.type !== 'code') {
+    throw invalid(`kit "${id}" keeps no page addresses (a web or code kit scans pages)`);
+  }
 
   const urls = [...source.urls];
   for (const url of options.urls) {
     if (!WEB_URL.test(url)) throw invalid(`"${url}" is not an http or https address`);
     if (!urls.includes(url)) urls.push(url);
   }
+  if (urls.length === 0) throw invalid(`kit "${id}" has no page address yet; give one with --url`);
   if (urls.length > URLS_MAX) throw invalid(`a kit scans at most ${URLS_MAX} pages`);
   if (urls.length !== source.urls.length) {
     deps.kitWriter.writeText(id, 'kit.json', withUrls(files.kitJson, urls));

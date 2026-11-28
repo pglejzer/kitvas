@@ -9,7 +9,7 @@ import { createTscChecker } from '../../../src/checks/adapters/tsc-checker.ts';
 import { type VerifyDeps, verifyKit } from '../../../src/checks/index.ts';
 import { createNodeBuildFs } from '../../../src/render/adapters/node-build-fs.ts';
 import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
-import { closeRenderTools, renderTools } from '../../helpers/draft/render.ts';
+import { closeRenderTools, projectStylesOf, renderTools } from '../../helpers/draft/render.ts';
 import {
   type AdditionsProject,
   additionsProject,
@@ -17,7 +17,7 @@ import {
   star,
   starFile,
 } from '../../kit/helpers/additions.ts';
-import { fakeBrowser, fakeBundler, fakeChecker } from './support.ts';
+import { fakeBrowser, fakeBundler, fakeChecker, fakeStyles } from './support.ts';
 
 const AT = '2026-11-23T10:00:00.000Z';
 
@@ -34,6 +34,7 @@ function fakeTools(shop: AdditionsProject) {
     kits: shop.kits,
     kitWriter: shop.writer,
     projectFiles: noProject,
+    projectStyles: fakeStyles().styles,
     render: {
       bundler,
       styles: { compile: async () => ({ css: '', errors: [] }), dispose: async () => {} },
@@ -113,6 +114,7 @@ test('with the real bundler and tsc, an addition of a built-in kit imports and t
         kits: shop.kits,
         kitWriter: shop.writer,
         projectFiles: noProject,
+        projectStyles: projectStylesOf(tools),
         render: tools,
         types: createTscChecker({ roots: [PLUGIN_ROOT] }),
         now: () => new Date(AT),
@@ -128,6 +130,7 @@ test('with the real bundler and tsc, an addition of a built-in kit imports and t
       render: 'skipped',
       tokens: 'skipped',
       look: 'skipped',
+      original: 'skipped',
     });
   } finally {
     await closeRenderTools(tools);

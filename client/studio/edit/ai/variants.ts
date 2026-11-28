@@ -32,7 +32,7 @@ import {
   readOnlyReason,
   ruleHeld,
 } from '../style/ops.ts';
-import { currentUtility, utilityFor } from '../style/utility-ops.ts';
+import { currentUtility, themeOf, utilityFor } from '../style/utility-ops.ts';
 
 /** Why a variant cannot be applied: the panel's own refusals, and the ones of a variant. */
 export type VariantReason =
@@ -171,7 +171,7 @@ function styleAlready(
   const source = view.styles[property];
   if (source?.kind === 'prop') return coveredAlready(view, property, source.prop, value);
   if (env.format === 'tailwind') {
-    const next = utilityFor(property, value, env.context, env.tokens);
+    const next = utilityFor(property, value, env.context, env.tokens, themeOf(view));
     return next !== null && next === currentUtility(view, property, env.context);
   }
   const held = isBase(env.context)

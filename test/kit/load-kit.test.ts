@@ -200,6 +200,20 @@ test('problems of the cssVars map are issues, and the good entries stay', () => 
   ]);
 });
 
+test('a theme path in a kit without Tailwind is one issue; with Tailwind it is none', () => {
+  const map = { 'color.ink': 'theme(colors.primary)', 'space.sm': '--acme-space-2' };
+  const without = loadKit(layeredStore(acmeProject(npmKitJson(), map)), 'acme');
+  assert.deepEqual(without.cssVarMap, map);
+  assert.deepEqual(without.issues, [
+    { path: 'tokens.cssVars.map', key: 'kitIssue.themePathNoTailwind', params: {} },
+  ]);
+
+  const raw = npmKitJson();
+  (raw.runtime as { styles: Json }).styles = { tailwind: { entry: 'src/app/globals.css' } };
+  const withTailwind = loadKit(layeredStore(acmeProject(raw, map)), 'acme');
+  assert.deepEqual(withTailwind.issues, []);
+});
+
 test('the hash changes with the map', () => {
   const first = loadKit(layeredStore(acmeProject()), 'acme').hash;
   const other = loadKit(layeredStore(acmeProject(npmKitJson(), { 'color.ink': '--x' })), 'acme');

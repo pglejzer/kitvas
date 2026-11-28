@@ -370,6 +370,34 @@ test('negative and important classes are read by their utility; one under a vari
   assert.equal(utility('color', 'text-[color:var(--ink)]'), 'text-[color:var(--ink)]');
 });
 
+test("a class is read through the project's prefix; one without it is no utility (Review Focus 4)", () => {
+  const read = (
+    tailwind: SourceInput['tailwind'],
+    property: StyleProperty,
+    ...classes: string[]
+  ): string | null => {
+    const found = styleSource(input(property, { format: 'tailwind', classes, tailwind }));
+    return found.kind === 'utility' ? found.className : null;
+  };
+  const three = { version: 3, prefix: 'tw-' } as const;
+  assert.equal(read(three, 'padding', 'hero', 'tw-p-4'), 'tw-p-4');
+  assert.equal(read(three, 'padding', 'p-4'), null);
+  assert.equal(read(three, 'padding', 'hover:tw-p-2', 'tw-p-4'), 'tw-p-4');
+  // Tailwind 3 writes `!` and a negative value's `-` before the prefix.
+  assert.equal(read(three, 'margin-top', '!-tw-mt-2'), '!-tw-mt-2');
+  // A solid outline is `outline` there; none is the property itself, which takes no prefix.
+  assert.equal(read(three, 'outline-style', 'tw-outline'), 'tw-outline');
+  assert.equal(read(three, 'outline-style', '[outline-style:none]'), '[outline-style:none]');
+  // That `outline` sets no width (Tailwind 4's is a 1px line).
+  assert.equal(read(three, 'outline-width', 'tw-outline'), null);
+  assert.equal(read(three, 'outline-width', 'tw-outline', 'tw-outline-2'), 'tw-outline-2');
+  assert.equal(read({ version: 4, prefix: '' }, 'outline-width', 'outline'), 'outline');
+  const four = { version: 4, prefix: 'tw:' } as const;
+  assert.equal(read(four, 'padding', 'tw:p-4'), 'tw:p-4');
+  assert.equal(read(four, 'padding', 'p-4'), null);
+  assert.equal(read(four, 'padding', 'tw:md:p-4'), null);
+});
+
 test('tokenGroupsOf groups tokens by their path without the last part', () => {
   assert.deepEqual(
     tokenGroupsOf([

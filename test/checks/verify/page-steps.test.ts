@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { parseExamples } from '../../../src/checks/app/verify/example-parse.ts';
 import { renderStep } from '../../../src/checks/app/verify/render.ts';
-import { mappedVariables, tokensStep } from '../../../src/checks/app/verify/tokens.ts';
+import {
+  mappedVariables,
+  tokensStep,
+  writtenTokensStep,
+} from '../../../src/checks/app/verify/tokens.ts';
 import type { FlatToken } from '../../../src/kit/index.ts';
 import {
   ACME_CATALOG,
@@ -12,6 +16,7 @@ import {
   componentsOf,
   fakeBundler,
   fakeInspector,
+  writtenLoaded,
 } from './support.ts';
 
 const PAGE = catalog().path;
@@ -50,6 +55,7 @@ test('a catalog that did not build fails render with the build errors', async ()
     reported: new Set(),
     inspect: inspector.inspect,
     bundler: fakeBundler(),
+    forwards: [],
   });
   assert.deepEqual(result, {
     state: 'failed',
@@ -76,6 +82,7 @@ test('every shown example is opened at 1280 by 800 and passes when it shows clea
     reported: new Set(),
     inspect: inspector.inspect,
     bundler,
+    forwards: [],
   });
   assert.deepEqual(result, { state: 'passed', issues: [] });
   assert.deepEqual(inspector.asked, [
@@ -84,6 +91,45 @@ test('every shown example is opened at 1280 by 800 and passes when it shows clea
     { page: PAGE, search: '?example=TextField.1', width: 1280, height: 800, vars: [] },
     { page: PAGE, search: '?example=Badge.1', width: 1280, height: 800, vars: [] },
   ]);
+});
+
+test('a component whose element id reaches no page of its examples is reported once', async () => {
+  const { kit } = acmeLoaded();
+  const bundler = fakeBundler();
+  const inspector = fakeInspector({
+    // Button hands its id on in one of its two examples: enough.
+    '?example=Button.2': { marks: ['Button.2:Button'] },
+    '?example=Badge.1': { marks: ['Button.1:Button'] },
+    // TextField's one example did not render: no word on its id.
+    '?example=TextField.1': { example: 'failed' },
+  });
+  const result = await renderStep({
+    build: catalog({ shown: ['Button.1', 'Button.2', 'TextField.1', 'Badge.1'] }),
+    dir: ACME_CATALOG,
+    examples: await parseExamples(bundler, kit),
+    reported: new Set(),
+    inspect: inspector.inspect,
+    bundler,
+    forwards: [
+      { name: 'Button', path: 'components.0' },
+      { name: 'TextField', path: 'components.1' },
+      { name: 'Badge', path: 'components.2' },
+      // Written in no example: nothing to say.
+      { name: 'Bad', path: 'components.3' },
+    ],
+  });
+  assert.deepEqual(
+    result.issues.filter((issue) => issue.key === 'kitIssue.restNotForwarded'),
+    [
+      {
+        step: 'render',
+        path: 'components.2',
+        key: 'kitIssue.restNotForwarded',
+        params: { name: 'Badge' },
+      },
+    ],
+  );
+  assert.equal(result.state, 'failed');
 });
 
 test('an example that does not show, errors or fails a request is reported at its place', async () => {
@@ -101,6 +147,7 @@ test('an example that does not show, errors or fails a request is reported at it
     reported: new Set(),
     inspect: inspector.inspect,
     bundler,
+    forwards: [],
   });
   assert.deepEqual(result, {
     state: 'failed',
@@ -151,6 +198,7 @@ test('an example the build left out is reported unless types already did', async
     reported: new Set(['Button.2']),
     inspect: inspector.inspect,
     bundler,
+    forwards: [],
   });
   assert.deepEqual(result, {
     state: 'failed',
@@ -222,6 +270,37 @@ test('mapped tokens that match what the browser reads pass, read inside the firs
   ]);
 });
 
+test("mappedVariables gives a theme path's variable, and the step reads it from the page", async () => {
+  const loaded = acmeLoaded(undefined, {
+    tokens: TOKENS,
+    cssVarMap: {
+      'color.ink': 'theme(colors.primary)',
+      'color.accent': '--acme-color-accent',
+      'space.sm': 'theme(colors.primary)',
+    },
+  });
+  assert.deepEqual(mappedVariables(loaded), [
+    '--kitvas-theme-colors-primary',
+    '--acme-color-accent',
+  ]);
+  const inspector = fakeInspector({
+    '': {
+      vars: { '--kitvas-theme-colors-primary': '#1a1a1a', '--acme-color-accent': '#0055ff' },
+      colors: { '--kitvas-theme-colors-primary': '#1a1a1a', '--acme-color-accent': '#0055ff' },
+    },
+  });
+  const result = await tokensStep({ loaded, build: catalog(), inspect: inspector.inspect });
+  assert.deepEqual(inspector.asked[0]?.vars, [
+    '--kitvas-theme-colors-primary',
+    '--acme-color-accent',
+  ]);
+  // The dimension is held to a colour's value: one issue, named with the page variable.
+  assert.deepEqual(
+    result.issues.map((issue) => [issue.path, issue.params?.variable]),
+    [['tokens.space.sm', '--kitvas-theme-colors-primary']],
+  );
+});
+
 test('a token that differs is reported with the browser value; one without a value as unread', async () => {
   const loaded = acmeLoaded(undefined, {
     tokens: TOKENS,
@@ -286,4 +365,40 @@ test('a token that differs is reported with the browser value; one without a val
       },
     ],
   });
+});
+
+test('a written kit holds each kit variable of its components to its tokens, with no browser', () => {
+  const loaded = { ...writtenLoaded(), tokens: TOKENS };
+  const [button] = loaded.kit.components;
+  if (button) button.import.from = 'components/Button';
+  const files = {
+    'components/Button.module.css':
+      '.b { color: var(--kit-color-ink); padding: var(--kit-space-sm); }',
+    'components/Button.tsx': 'export const Button = () => <b className="x" />;',
+    'components/Card.module.css': '.c { color: var(--kit-colorInk); margin: var(--kit-space-xl); }',
+  };
+  assert.deepEqual(writtenTokensStep(loaded, files), {
+    state: 'failed',
+    issues: [
+      {
+        step: 'tokens',
+        path: 'components',
+        key: 'kitIssue.tokenVarMeant',
+        params: {
+          file: 'components/Card.module.css',
+          name: '--kit-colorInk',
+          nearest: '--kit-color-ink',
+        },
+      },
+      {
+        step: 'tokens',
+        path: 'components',
+        key: 'kitIssue.tokenVarUnknown',
+        params: { file: 'components/Card.module.css', name: '--kit-space-xl' },
+      },
+    ],
+  });
+  const wrong = { 'components/Button.module.css': '.b { gap: var(--kit-space-lg); }' };
+  assert.equal(writtenTokensStep(loaded, wrong).issues[0]?.path, 'components.0');
+  assert.deepEqual(writtenTokensStep(loaded, {}), { state: 'passed', issues: [] });
 });

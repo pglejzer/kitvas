@@ -1,6 +1,7 @@
-// Utility-class CSS generated from the classes a build uses. Stage 2a has one: Tailwind v4 from the
-// person's project (docs/spikes/07-tailwind-v4.md).
+// Utility-class CSS generated from the classes a build uses: the person's project's own Tailwind,
+// 3 or 4 (docs/spikes/07-tailwind-v4.md, ADR 0094).
 
+import type { TailwindTheme } from '../../shared/index.ts';
 import type { BuildError } from '../domain/report.ts';
 
 export type UtilityInput = {
@@ -10,11 +11,16 @@ export type UtilityInput = {
   entry: string;
   /** Absolute files whose text holds class names: the draft's TSX, the kit's components. */
   sources: string[];
-  /** Custom properties the output must define even when no class uses them (`--color-brand`). */
+  /**
+   * Custom properties (`--color-brand`) and theme paths (`theme(colors.brand)`, as the variable
+   * `themeVariable` names) the output must define even when no class uses them.
+   */
   probe: string[];
 };
 
 export type UtilityOutput = {
+  /** The project's Tailwind facts; absent when the build failed. */
+  theme?: TailwindTheme;
   css: string;
   /** Candidates that look like classes (contain `-` or `:`) but produced no CSS, sorted. */
   unknown: string[];

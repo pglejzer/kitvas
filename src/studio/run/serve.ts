@@ -47,6 +47,8 @@ export type ServeDeps = {
   projectKit?: () => string;
   /** `kitvas doctor` for the Doctor page, from `src/main.ts`. */
   doctor?: StudioDeps['doctor'];
+  /** The components of a `code` kit whose project files changed, from `src/main.ts`. */
+  outdated?: StudioDeps['outdated'];
   /** The Insert pane's kit previews on disk (ADR 0075), from `src/main.ts`. */
   previews?: StudioDeps['previews'];
 };
@@ -86,6 +88,7 @@ export async function serveStudio(deps: ServeDeps): Promise<StudioState> {
       ...(deps.view ? { view: deps.view } : {}),
       ...(deps.projectKit ? { projectKit: deps.projectKit } : {}),
       ...(deps.doctor ? { doctor: deps.doctor } : {}),
+      ...(deps.outdated ? { outdated: deps.outdated } : {}),
       ...(deps.previews ? { previews: deps.previews } : {}),
       // The browser's pid goes into the state file: `kitvas studio stop` ends one that lingers.
       onBrowser: (browserPid) => {

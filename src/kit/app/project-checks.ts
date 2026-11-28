@@ -41,7 +41,9 @@ export function projectIssues(files: ProjectFiles, loaded: LoadedKit): KitIssue[
     }
   };
 
-  if (kit.source.type === 'repo') checkPath(kit.source.path, 'source.path');
+  if (kit.source.type === 'repo' || kit.source.type === 'code') {
+    checkPath(kit.source.path, 'source.path');
+  }
   if (kit.source.type === 'npm') checkPackage(kit.source.package, 'source.package');
   const tailwind = kit.runtime.styles.tailwind;
   if (tailwind) checkPath(tailwind.entry, 'runtime.styles.tailwind.entry');

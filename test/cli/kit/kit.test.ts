@@ -402,7 +402,7 @@ test('new needs an id, a source and the workspace', async () => {
   assert.equal(await h.run('new', 'acme', '--json'), 2);
   assert.match(
     h.error().message,
-    /kit new needs --from npm:<package>, repo:<folder>, figma:<file URL>, web:<page URL> or images:<folder>/,
+    /kit new needs --from npm:<package>, repo:<folder>, figma:<file URL>, web:<page URL>, images:<folder> or code:<folder>/,
   );
   assert.equal(await h.run('new', 'acme', '--from', 'git:acme', '--json'), 2);
   assert.equal(h.error().code, 'USAGE');
@@ -516,7 +516,7 @@ test('verify answers what the verify use case found, with a sentence per issue',
     [
       'Kit "acme" passed: schema, imports, types.',
       'Not run: render, tokens.',
-      'render, tokens and look need Chrome, Edge or Chromium; none was found. Run "kitvas browser install".',
+      'render, look, original and the tokens of a kit from a package or a folder need Chrome, Edge or Chromium; none was found. Run "kitvas browser install".',
     ].join('\n'),
   );
 

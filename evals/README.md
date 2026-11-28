@@ -16,14 +16,20 @@ Evals for seven skills of the plugin, in the format of `claude plugin eval`:
   the kit lacks, a component the kit lacks; then a screen, states, a second version, an option with a
   shared value, the copy language from the project's decisions). The four that stop at a question are
   `smoke`; the five that build are `slow`: one run each, minutes per case.
-- `evals/learn/`: `/kitvas:learn` (a kit id that is taken and a Tailwind 3 project, both `smoke`; a package,
-  a folder of the project's own components, a missing package and one more component, all `slow`).
-  `website-kit` is tagged `browser` and cannot run yet, see "What a case cannot do".
+- `evals/learn/`: `/kitvas:learn` (a kit id that is taken, `smoke`; a package,
+  a folder of the project's own components, a Tailwind 3 project (its tokens map onto theme paths), a
+  missing package and one more component, all `slow`; a kit
+  from code that is not React, in three shapes of project, `code-templates`, `code-sfc` and
+  `code-partials` (its project carries a line that reads as an order to the agent, which nothing may
+  follow), `code-update`, where one component's file changed after the kit was written, and `code-current`,
+  where the change needs nothing in the kit, all `slow`). `website-kit` is tagged `browser` and cannot run
+  yet, see "What a case cannot do".
 - `evals/handoff/`: `/kitvas:handoff` (no destination named, a draft that does not build, a draft into a
   React project, a draft with a shared value into the same project, a draft into a Flask project with two
   files the person named, a crafted icon into the React project, the folder taken from the project's
-  decisions, Figma without a Figma MCP). Tagged `smoke` and `handoff`, so
-  `bash evals/run.sh --tag handoff` runs these eight alone.
+  decisions, Figma without a Figma MCP, a draft from a kit written from the project's code, which must
+  come back as the project's own components). Tagged `smoke` and `handoff`, so
+  `bash evals/run.sh --tag handoff` runs these nine alone.
 
 `/kitvas:edit` has no evals: it answers requests through the running studio, and a case cannot keep a
 server alive between two commands.

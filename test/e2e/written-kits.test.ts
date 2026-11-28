@@ -138,7 +138,8 @@ test('written kit acme-site: scan, verify with look, use, a checked draft, a blo
     const detail = `steps: ${JSON.stringify(verify.steps)}\nissues: ${JSON.stringify(verify.issues, null, 2)}\nlook: ${JSON.stringify(verify.look)}\nnotes: ${verify.notes.join(' ')}`;
     assert.equal(verify.valid, true, detail);
     assert.equal(verify.steps.look, 'passed', detail);
-    assert.equal(verify.steps.tokens, 'skipped', detail);
+    // Every `var(--kit-…)` the tailor wrote names a token of the kit.
+    assert.equal(verify.steps.tokens, 'passed', detail);
     // Only advice: TextField and Heading have no reference image, so their look is not scored.
     assert.deepEqual(
       verify.issues.map((issue) => [issue.step, issue.key, issue.params.component]),

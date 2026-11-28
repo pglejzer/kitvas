@@ -118,6 +118,26 @@ test('a written kit leaves out imports that are not its own files', () => {
   assert.deepEqual(generatedEntry(kitOf(raw)), { text: `${HEADER}\n`, lines: {} });
 });
 
+test("a code kit imports the project's style files it names, before its own components", () => {
+  const raw = webKitJson();
+  raw.source = { type: 'code', path: 'src/ui' };
+  (raw.runtime as { styles: { imports: string[] } }).styles.imports = [
+    'src/styles/fonts.css',
+    'components/base.css',
+  ];
+  assert.equal(
+    generatedEntry(kitOf(raw)).text,
+    [
+      HEADER,
+      'import "../../../../src/styles/fonts.css";',
+      'import "../components/base.css";',
+      'export { Button } from "../components/Button";',
+      'export { Card } from "../components/Card";',
+      '',
+    ].join('\n'),
+  );
+});
+
 test('names are quoted unless plain, and imports that do not fit are left out', () => {
   const raw = npmKitJson();
   const base = { category: 'display', description: 'x.', props: [] };

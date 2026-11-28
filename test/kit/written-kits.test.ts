@@ -118,6 +118,13 @@ test('npm and repo kits keep their rules: kit paths are not theirs', () => {
   assert.equal(moduleKind(kitOf(repoKitJson()), 'components/base.css'), 'project');
 });
 
+test('a code kit is a written kit, and its components are kit files', () => {
+  const kit = kitOf({ ...webKitJson(), source: { type: 'code', path: 'src/app/ui' } });
+  assert.equal(isWrittenKit(kit), true);
+  assert.equal(componentKind(kit, 'components/Button'), 'kit');
+  assert.equal(componentKind(kit, 'src/app/ui/Button'), undefined);
+});
+
 test('parseSourceFlag reads figma:, web: and images: too', () => {
   const figma = `https://www.figma.com/design/${'a'.repeat(22)}/Acme?node-id=1-2`;
   assert.deepEqual(parseSourceFlag(`figma:${figma}`), { type: 'figma', value: figma });
@@ -167,6 +174,24 @@ test('editing a component changes the hash of a written kit; the same files keep
   const before = hashOf(project, 'site');
   writeText(join(dir, 'components', 'forms', 'Field.tsx'), 'export {};');
   assert.notEqual(hashOf(project, 'site'), before);
+});
+
+test('editing an original makes the kit stale', () => {
+  const codeJson = { ...webKitJson(), source: { type: 'code', path: 'src/app/ui' } };
+  const project = siteProject(codeJson);
+  const dir = join(projectKitsDir(project), 'site');
+  const first = hashOf(project, 'site');
+  writeText(join(dir, 'originals', 'Button.1.html'), '<button class="btn">Save</button>');
+  const added = hashOf(project, 'site');
+  assert.notEqual(added, first);
+  writeText(join(dir, 'originals', 'Button.1.html'), '<button class="btn">Send</button>');
+  assert.notEqual(hashOf(project, 'site'), added);
+
+  // A web kit does not read that folder.
+  const web = siteProject();
+  const before = hashOf(web, 'site');
+  writeText(join(projectKitsDir(web), 'site', 'originals', 'Button.1.html'), '<b></b>');
+  assert.equal(hashOf(web, 'site'), before);
 });
 
 test('files outside components/ do not change the hash of a written kit', () => {

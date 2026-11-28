@@ -90,6 +90,8 @@ export type StudioDeps = {
   projectKit?: () => string;
   /** `kitvas doctor` for the Doctor page, from `src/main.ts`; without it the page shows the commands. */
   doctor?: PageDeps['doctor'];
+  /** The components of a `code` kit whose project files changed; without it the kit page marks none. */
+  outdated?: PageDeps['outdated'];
   /**
    * The Insert pane's kit previews on disk (`readPreviews`, ADR 0075), from `src/main.ts`; the
    * studio starts the jobs that make them. Without it the palette answers `none`.
@@ -249,6 +251,7 @@ export async function startStudio(deps: StudioDeps, options: StudioOptions = {})
       version: deps.version,
       projectKit: deps.projectKit ?? (() => DEFAULT_KIT),
       doctor: deps.doctor,
+      outdated: deps.outdated,
       ...(live ? { opened: (slug: string) => live.opened(slug) } : {}),
     }),
     ...assetRoutes(deps.assets),

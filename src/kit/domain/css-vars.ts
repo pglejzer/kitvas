@@ -1,6 +1,6 @@
 // Tokens as CSS custom properties. Prototype styles use these `--kit-*` names only.
 
-import { optionSelector, THEME_OPTION } from '../../shared/index.ts';
+import { nativeVariable, optionSelector, THEME_OPTION, themePathOf } from '../../shared/index.ts';
 import type { KitIssue } from './issues.ts';
 import type { FlatToken } from './tokens.ts';
 
@@ -12,8 +12,45 @@ const kebab = (name: string): string =>
 
 export const cssVarName = (path: string[]): string => `--kit-${path.map(kebab).join('-')}`;
 
+/** A `var(--kit-…)` in a file of a written kit's components that no token of the kit gives. */
+export type UnknownTokenVar = {
+  file: string;
+  name: string;
+  /** The variable of the token it was meant to be, when its name in kebab case is one. */
+  nearest: string | undefined;
+};
+
+const KIT_VAR_USE = /var\(\s*(--kit-[A-Za-z0-9_-]+)/g;
+
+/**
+ * Each `var(--kit-…)` of `files` (path -> text) that names no token, once a file, in order: the
+ * browser leaves such a value unset without a word (`--kit-fontSize-sm` for `--kit-font-size-sm`).
+ */
+export function unknownTokenVars(
+  files: Record<string, string>,
+  tokens: readonly FlatToken[],
+): UnknownTokenVar[] {
+  const known = new Set(tokens.map((token) => cssVarName(token.path)));
+  const found: UnknownTokenVar[] = [];
+  for (const [file, text] of Object.entries(files)) {
+    const named = new Set<string>();
+    for (const use of text.matchAll(KIT_VAR_USE)) {
+      const name = use[1] ?? '';
+      if (known.has(name) || named.has(name)) continue;
+      named.add(name);
+      const meant = `--kit-${kebab(name.slice('--kit-'.length))}`;
+      found.push({ file, name, nearest: known.has(meant) ? meant : undefined });
+    }
+  }
+  return found;
+}
+
 /** A custom property of the design system that a token may stand for: `--brand-ink`. */
 export const CSS_VAR_NAME = /^--[A-Za-z0-9_-]+$/;
+
+/** What a map may name: a custom property, or a theme path of Tailwind 3 (`theme(colors.primary)`). */
+const isMapValue = (value: string): boolean =>
+  CSS_VAR_NAME.test(value) || themePathOf(value) !== undefined;
 
 const byte = (part: number): number => Math.round(part * 255);
 const hexPair = (part: number): string => byte(part).toString(16).padStart(2, '0');
@@ -66,7 +103,7 @@ const rule = (selector: string, lines: string[]): string[] =>
 export function tokenSheet(kit: SheetTokens): string {
   const native = (token: FlatToken): string | undefined => {
     const name = kit.cssVarMap[token.path.join('.')];
-    return name !== undefined && CSS_VAR_NAME.test(name) ? name : undefined;
+    return name !== undefined && isMapValue(name) ? nativeVariable(name) : undefined;
   };
   const declare = (token: FlatToken, value: string): string =>
     `  ${cssVarName(token.path)}: ${value};`;
@@ -107,7 +144,7 @@ export function readCssVarMap(
   const entries: [string, string][] = [];
   const issues: KitIssue[] = [];
   for (const [key, value] of Object.entries(raw)) {
-    if (typeof value !== 'string' || !CSS_VAR_NAME.test(value)) {
+    if (typeof value !== 'string' || !isMapValue(value)) {
       issues.push({
         path: at,
         key: 'kitIssue.tokenShape',

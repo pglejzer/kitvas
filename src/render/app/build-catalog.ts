@@ -12,8 +12,10 @@ import {
 } from '../../kit/index.ts';
 import { PLUGIN_ROOT } from '../../shared/index.ts';
 import {
+  CATALOG_ENTRY,
   type CatalogExample,
   catalogCss,
+  catalogMarks,
   catalogMountSource,
   exampleFunction,
   examplesSource,
@@ -39,6 +41,7 @@ import {
   projectInputs,
   sameFiles,
   utilityBuild,
+  writeTailwindFile,
 } from './project-kit.ts';
 import { sourceHash } from './source-hash.ts';
 
@@ -75,8 +78,8 @@ export type CatalogReport = {
   path: string;
 };
 
-/** Bump when the shape of the catalog output changes, so old outputs are rebuilt (5: icon sheet). */
-const CATALOG_FORMAT = 5;
+/** Bump when the shape of the catalog output changes, so old outputs are rebuilt (6: element ids of the examples). */
+const CATALOG_FORMAT = 6;
 
 /** What the entry imports as `kitvas-example`: the example's end of the studio channel. */
 const EXAMPLE_RUNTIME = join(PLUGIN_ROOT, 'client', 'frame', 'page', 'example.ts');
@@ -183,24 +186,26 @@ export async function buildCatalog(
   if (!fs.exists(dir)) fs.writeText(join(dir, 'build', 'json', '.gitkeep'), '');
 
   const { runtime } = kit;
+  const components = kit.components.map((component) => component.name);
+  const source = catalogMountSource({
+    providers: mountProviders(fs, loaded),
+    components,
+    examples,
+    sheet,
+  });
+  // Every kit component written in an example gets an element id, as in a draft (W10).
+  const compiled = await bundler.transform(source, CATALOG_ENTRY);
   const bundle = await bundler.bundle({
     workingDir: dir,
-    entry: {
-      name: 'kitvas-catalog.tsx',
-      source: catalogMountSource({
-        providers: mountProviders(fs, loaded),
-        components: kit.components.map((component) => component.name),
-        examples,
-        sheet,
-      }),
-    },
+    entry: { name: CATALOG_ENTRY, source },
     alias: {
       // The kit's entry, or the one kitvas writes for a built-in kit with additions.
       '@kit': loaded.entry,
       'kitvas-example': EXAMPLE_RUNTIME,
     },
-    ids: {},
+    ids: compiled === undefined ? {} : catalogMarks(source, compiled, examples, components),
     project: loaded.project,
+    resolve: kit.resolve,
   });
   const own: string[] = [];
   if (runtime.styles.tailwind) {
@@ -247,6 +252,7 @@ export async function buildCatalog(
     );
   }
   fs.writeText(page, pageHtml({ title: `${kit.name} examples` }));
+  writeTailwindFile(fs, dir, utility);
   // The stamp goes last: a half-written build never looks finished.
   fs.writeText(stampFile, serializeJson(stamp));
   return { ...report, shown, skipped };

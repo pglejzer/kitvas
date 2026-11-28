@@ -31,8 +31,15 @@ const SCSS_FILE = 'src/scss/sections/pricing.scss';
 const BASE: StyleContext = { width: null, state: null, option: null };
 const AT_768: StyleContext = { width: 768, state: null, option: null };
 const MD: StyleValue = { token: '--kit-space-md' };
+/** A kit token mapped onto the theme variable `--spacing-md`: its class is `p-md`. */
 const TOKENS: TokenOption[] = [
-  { var: '--kit-space-md', path: 'space.md', type: 'dimension', css: '12px' },
+  {
+    var: '--kit-space-md',
+    path: 'space.md',
+    type: 'dimension',
+    css: '12px',
+    utility: { namespace: 'spacing', name: 'md' },
+  },
 ];
 const TAILWIND: Partial<VariantEnv> = { format: 'tailwind' };
 

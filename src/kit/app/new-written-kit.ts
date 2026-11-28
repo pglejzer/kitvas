@@ -6,12 +6,14 @@ import { KitvasError } from '../../shared/index.ts';
 import {
   FIGMA_URL,
   PROJECT_PATH,
+  parseKitSource,
   REFERENCE_PATH,
   WEB_URL,
   type WrittenSource,
 } from '../domain/contract.ts';
 import { IMAGE_BYTES_MAX, IMAGES_MAX, imageType } from '../domain/images.ts';
 import type { SourceFlag } from '../domain/sources.ts';
+import type { KitStore } from '../ports/kit-store.ts';
 import type { KitWriter } from '../ports/kit-writer.ts';
 import type { ProjectSetup } from '../ports/project-files.ts';
 
@@ -40,7 +42,8 @@ const BAD_NAME: SkipReason = 'kits.new.skip.name';
 
 const invalid = (detail: string): KitvasError => new KitvasError('KIT_SOURCE_INVALID', { detail });
 
-function imagePlan(files: ProjectSetup, folder: string): ImagePlan {
+/** A folder of the project that exists and stays inside it. Throws KIT_SOURCE_INVALID. */
+function checkFolder(files: ProjectSetup, folder: string): void {
   if (!PROJECT_PATH.test(folder)) {
     throw invalid(
       `"${folder}" is not a folder of the project (a path from its root, without "..")`,
@@ -48,7 +51,10 @@ function imagePlan(files: ProjectSetup, folder: string): ImagePlan {
   }
   if (!files.exists(folder)) throw invalid(`"${folder}" does not exist`);
   if (!files.realInside(folder)) throw invalid(`"${folder}" leads outside the project`);
+}
 
+function imagePlan(files: ProjectSetup, folder: string): ImagePlan {
+  checkFolder(files, folder);
   const copies: string[] = [];
   const skipped: SkippedImage[] = [];
   for (const rel of files.listFiles(folder)) {
@@ -104,9 +110,39 @@ export function resolveWrittenSource(
       return { source: { type: 'web', urls: [from.value] }, images: undefined };
     case 'images':
       return { source: { type: 'images' }, images: imagePlan(files, from.value) };
+    case 'code':
+      checkFolder(files, from.value);
+      return {
+        source: { type: 'code', path: from.value, styles: [], urls: [] },
+        images: undefined,
+      };
     default:
       throw invalid(`"${from.type}" is not a written source`);
   }
+}
+
+export type AddedImages = { id: string; copied: number; skipped: SkippedImage[] };
+
+/**
+ * `kit images`: copies a project folder of screenshots into `source/images/` of a written kit, by
+ * the plan and the limits of `kit new --from images:`. KIT_NOT_FOUND for no such kit;
+ * KIT_SOURCE_INVALID for a built-in kit, a source that is not written, or a bad folder.
+ */
+export function addImages(
+  deps: { kits: KitStore; kitWriter: KitWriter; files: ProjectSetup },
+  id: string,
+  folder: string,
+): AddedImages {
+  const found = deps.kits.read(id);
+  if (!found) throw new KitvasError('KIT_NOT_FOUND', { id });
+  if (found.project === undefined) throw invalid(`kit "${id}" is built in`);
+  const source = parseKitSource(found.kitJson, id);
+  if (!['figma', 'web', 'images', 'code'].includes(source.type)) {
+    throw invalid(`kit "${id}" is not a written kit; it keeps no screenshots`);
+  }
+  const plan = imagePlan(deps.files, folder);
+  copyImages(deps.kitWriter, deps.files, id, plan);
+  return { id, copied: plan.copies.length, skipped: plan.skipped };
 }
 
 /** Copies the planned screenshots to `source/images/<same relative path>`. */

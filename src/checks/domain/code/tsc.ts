@@ -1,7 +1,6 @@
 // The types check: the tsconfig kitvas writes for a draft, and what tsc prints.
 
-import { posix } from 'node:path';
-import { isRecord } from '../../../shared/index.ts';
+import type { ProjectResolve } from '../../../shared/index.ts';
 import { type RawFinding, toolText } from '../findings/finding.ts';
 import type { IdEntry } from './ids.ts';
 
@@ -14,17 +13,22 @@ export type TypesConfigInput = {
   reactTypes: string;
   /** Absolute path of `client/types/assets.d.ts`: style and asset imports as modules. */
   assets: string;
-  /** A project's `compilerOptions.paths` with absolute targets (`projectPaths`). */
-  paths?: Record<string, string[]>;
+  /** How the project of a project kit finds its files and types (ADR 0092). */
+  project?: ProjectResolve | undefined;
 };
 
 /** Names kitvas points at its own files; a project's entries for them are dropped. */
 const OWN_NAMES = /^(?:@kit|react)(?:\/|$)/;
 
-/** Only the entry and the asset types are listed; the sections and the kit come in by imports. */
-export function typesConfig({ entry, kitEntry, reactTypes, assets, paths = {} }: TypesConfigInput) {
+/**
+ * The entry and the asset types are listed, and the sections and the kit come in by imports. A
+ * project adds its import patterns and the type files its own check reads without an import (a
+ * module it widens, a global it declares), so its components mean here what they mean there.
+ */
+export function typesConfig({ entry, kitEntry, reactTypes, assets, project }: TypesConfigInput) {
   const react = (file: string): string[] => [`${reactTypes}/${file}`];
-  const project = Object.entries(paths).filter(([name]) => !OWN_NAMES.test(name));
+  const paths = Object.entries(project?.paths ?? {}).filter(([name]) => !OWN_NAMES.test(name));
+  const types = project?.types;
   return {
     compilerOptions: {
       noEmit: true,
@@ -42,156 +46,19 @@ export function typesConfig({ entry, kitEntry, reactTypes, assets, paths = {} }:
       types: [],
       paths: {
         // The project's first, so `@/lib/utils` in its components resolves as in the project.
-        ...Object.fromEntries(project),
+        ...Object.fromEntries(paths),
         '@kit': [kitEntry],
         react: react('index.d.ts'),
         'react/jsx-runtime': react('jsx-runtime.d.ts'),
         'react/jsx-dev-runtime': react('jsx-dev-runtime.d.ts'),
       },
     },
-    files: [entry, assets],
+    files: [entry, assets, ...(types?.files ?? [])],
+    // Patterns, so tsc finds the files; a project without type files of its own adds none.
+    ...(types === undefined || types.include.length === 0
+      ? {}
+      : { include: types.include, exclude: types.exclude }),
   };
-}
-
-/** Reads a file; `undefined` when it is missing or cannot be read. */
-export type ReadText = (file: string) => string | undefined;
-
-/** How many `extends` hops `projectPaths` follows from the project's tsconfig.json. */
-const MAX_EXTENDS = 3;
-const ABSOLUTE = /^(?:[A-Za-z]:)?\//;
-const RELATIVE = /^\.\.?\//;
-
-/** The index just past the JSON string that opens at `start`. */
-function stringEnd(text: string, start: number): number {
-  let index = start + 1;
-  while (index < text.length && text.charAt(index) !== '"') {
-    index += text.charAt(index) === '\\' ? 2 : 1;
-  }
-  return Math.min(index + 1, text.length);
-}
-
-/** JSON with comments and trailing commas, as tsconfig.json allows, made plain JSON. */
-export function stripJsonc(text: string): string {
-  const source = text.replace(/^\uFEFF/, '');
-  let plain = '';
-  let index = 0;
-  while (index < source.length) {
-    if (source.charAt(index) === '"') {
-      const end = stringEnd(source, index);
-      plain += source.slice(index, end);
-      index = end;
-    } else if (source.startsWith('//', index)) {
-      const end = source.indexOf('\n', index);
-      index = end === -1 ? source.length : end;
-    } else if (source.startsWith('/*', index)) {
-      const end = source.indexOf('*/', index + 2);
-      index = end === -1 ? source.length : end + 2;
-      plain += ' ';
-    } else {
-      plain += source.charAt(index);
-      index += 1;
-    }
-  }
-
-  // Comments are gone, so only spaces can stand between a trailing comma and its bracket.
-  const closing = /\s*[}\]]/y;
-  let json = '';
-  index = 0;
-  while (index < plain.length) {
-    const char = plain.charAt(index);
-    if (char === '"') {
-      const end = stringEnd(plain, index);
-      json += plain.slice(index, end);
-      index = end;
-      continue;
-    }
-    closing.lastIndex = index + 1;
-    if (char !== ',' || !closing.test(plain)) json += char;
-    index += 1;
-  }
-  return json;
-}
-
-function parseJsonc(text: string): unknown {
-  try {
-    const parsed: unknown = JSON.parse(stripJsonc(text));
-    return parsed;
-  } catch {
-    return undefined;
-  }
-}
-
-const isList = (value: unknown): value is unknown[] => Array.isArray(value);
-
-/** A path written in a config, absolute against `dir`, with forward slashes. */
-function absolute(dir: string, path: string): string {
-  const slashed = path.split('\\').join('/');
-  return ABSOLUTE.test(slashed) ? posix.normalize(slashed) : posix.join(dir, slashed);
-}
-
-type FoundPaths = {
-  /** `compilerOptions.paths` of the nearest config that has them, and that config's folder. */
-  paths?: { entries: [string, string[]][]; dir: string };
-  /** The absolute `baseUrl` of the nearest config that sets one. */
-  baseUrl?: string;
-};
-
-const pathEntries = (paths: Record<string, unknown>): [string, string[]][] =>
-  Object.entries(paths).flatMap(([name, targets]): [string, string[]][] => {
-    const list = isList(targets)
-      ? targets.filter((target): target is string => typeof target === 'string')
-      : [];
-    return list.length > 0 ? [[name, list]] : [];
-  });
-
-/** The config at `path`, or at `path.json` as tsc tries for an `extends` without the extension. */
-function readConfig(path: string, read: ReadText): { file: string; json: unknown } | undefined {
-  const text = read(path);
-  if (text !== undefined) return { file: path, json: parseJsonc(text) };
-  if (path.endsWith('.json')) return undefined;
-  const file = `${path}.json`;
-  const fallback = read(file);
-  return fallback === undefined ? undefined : { file, json: parseJsonc(fallback) };
-}
-
-function findPaths(path: string, read: ReadText, hops: number): FoundPaths {
-  const config = readConfig(path, read);
-  const json = config?.json;
-  if (!config || !isRecord(json)) return {};
-  const dir = posix.dirname(config.file);
-
-  let found: FoundPaths = {};
-  const parents = isList(json.extends) ? json.extends : [json.extends];
-  // Later parents win over earlier ones, the file itself over all of them. A package such as
-  // `@tsconfig/strictest` is not followed: it holds no paths into the project.
-  for (const parent of hops < MAX_EXTENDS ? parents : []) {
-    if (typeof parent !== 'string') continue;
-    const relative = parent.split('\\').join('/');
-    if (!RELATIVE.test(relative)) continue;
-    found = { ...found, ...findPaths(absolute(dir, relative), read, hops + 1) };
-  }
-  const options: Record<string, unknown> = isRecord(json.compilerOptions)
-    ? json.compilerOptions
-    : {};
-  if (typeof options.baseUrl === 'string') found.baseUrl = absolute(dir, options.baseUrl);
-  if (isRecord(options.paths)) found.paths = { entries: pathEntries(options.paths), dir };
-  return found;
-}
-
-/**
- * `compilerOptions.paths` of a project's tsconfig.json with absolute targets, so the project's own
- * files (`import { cn } from "@/lib/utils"`) resolve in the types check as in the project. Relative
- * `extends` are followed up to three hops. Targets resolve as tsc resolves them: against the
- * nearest `baseUrl`, else against the folder of the config that holds the paths. A missing or
- * broken config gives none. `configFile` is absolute with forward slashes.
- */
-export function projectPaths(configFile: string, read: ReadText): Record<string, string[]> {
-  const { paths, baseUrl } = findPaths(configFile, read, 0);
-  if (!paths) return {};
-  const base = baseUrl ?? paths.dir;
-  return Object.fromEntries(
-    paths.entries.map(([name, targets]) => [name, targets.map((target) => absolute(base, target))]),
-  );
 }
 
 export type ToolMessage = {

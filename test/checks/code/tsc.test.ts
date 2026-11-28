@@ -7,9 +7,6 @@ import { idEntries } from '../../../src/checks/domain/code/ids.ts';
 import {
   elementAt,
   parseTscOutput,
-  projectPaths,
-  type ReadText,
-  stripJsonc,
   typeFindings,
   typesConfig,
 } from '../../../src/checks/domain/code/tsc.ts';
@@ -55,11 +52,6 @@ const CONFIG_INPUT = {
   assets: '/a/assets.d.ts',
 };
 
-const reader =
-  (files: Record<string, string>): ReadText =>
-  (file) =>
-    Object.hasOwn(files, file) ? files[file] : undefined;
-
 const slashes = (path: string): string => path.split(sep).join('/');
 
 test('ids.json becomes a list; anything else is no ids', () => {
@@ -98,109 +90,61 @@ test('the tsconfig points @kit and React at their files and checks the entry wit
 test("a project's paths come first; @kit and React stay kitvas's", () => {
   const config = typesConfig({
     ...CONFIG_INPUT,
-    paths: {
-      '@/*': ['/p/src/*'],
-      react: ['/p/preact/compat'],
-      'react/*': ['/p/preact/*'],
-      '@kit/*': ['/p/kit/*'],
-      'react-dom': ['/p/react-dom'],
+    project: {
+      config: '/p/tsconfig.json',
+      paths: {
+        '@/*': ['/p/src/*'],
+        '*': ['/p/src/*'],
+        react: ['/p/preact/compat'],
+        'react/*': ['/p/preact/*'],
+        '@kit/*': ['/p/kit/*'],
+        'react-dom': ['/p/react-dom'],
+      },
+      types: { files: [], include: [], exclude: [] },
     },
   });
   assert.deepEqual(config.compilerOptions.paths, {
     '@/*': ['/p/src/*'],
+    '*': ['/p/src/*'],
     'react-dom': ['/p/react-dom'],
     ...REACT_PATHS,
   });
   assert.deepEqual(Object.keys(config.compilerOptions.paths), [
     '@/*',
+    '*',
     'react-dom',
     '@kit',
     'react',
     'react/jsx-runtime',
     'react/jsx-dev-runtime',
   ]);
+  // A project with no type files of its own adds no patterns for tsc to walk.
+  assert.deepEqual(config.files, ['/d/v1/src/tsx/index.tsx', '/a/assets.d.ts']);
+  assert.ok(!('include' in config));
 });
 
-test('comments and trailing commas are taken out of a tsconfig, strings are left alone', () => {
-  const text =
-    '\uFEFF{\n  // comment\n  "a": "http://x/*y*/", /* block */\n  "b": [1, 2,],\n  "c": { "d": "e,}", },\n}\n';
-  const plain = stripJsonc(text);
-  assert.equal(
-    plain,
-    '{\n  \n  "a": "http://x/*y*/",  \n  "b": [1, 2],\n  "c": { "d": "e,}" }\n}\n',
+test("a project's type files are read with the entry", () => {
+  const config = typesConfig({
+    ...CONFIG_INPUT,
+    project: {
+      config: '/p/tsconfig.json',
+      paths: {},
+      types: {
+        files: ['/p/types/mui.d.ts'],
+        include: ['/p/src/**/*.d.ts'],
+        exclude: ['/p/dist'],
+      },
+    },
+  });
+  assert.deepEqual(config.files, [
+    '/d/v1/src/tsx/index.tsx',
+    '/a/assets.d.ts',
+    '/p/types/mui.d.ts',
+  ]);
+  assert.deepEqual(
+    { include: config.include, exclude: config.exclude },
+    { include: ['/p/src/**/*.d.ts'], exclude: ['/p/dist'] },
   );
-  const parsed: unknown = JSON.parse(plain);
-  assert.deepEqual(parsed, { a: 'http://x/*y*/', b: [1, 2], c: { d: 'e,}' } });
-});
-
-test("a project's paths get absolute targets against baseUrl or the config's folder", () => {
-  const read = reader({
-    '/p/tsconfig.json': [
-      '{',
-      '  // shadcn/ui writes the alias here and in tsconfig.app.json',
-      '  "files": [],',
-      '  "compilerOptions": {',
-      '    "baseUrl": ".",',
-      '    "paths": {',
-      '      "@/*": ["./src/*"],',
-      '      "~ui": ["src/components/ui/index.ts",],',
-      '      "#abs": ["/opt/lib/x.ts"],',
-      '      "bad": [1, null],',
-      '    },',
-      '  },',
-      '}',
-    ].join('\n'),
-    'C:/w/tsconfig.json':
-      '{ "compilerOptions": { "paths": { "@/*": [".\\\\src\\\\*"], "#lib": ["C:/lib/y.ts"] } } }',
-  });
-  assert.deepEqual(projectPaths('/p/tsconfig.json', read), {
-    '@/*': ['/p/src/*'],
-    '~ui': ['/p/src/components/ui/index.ts'],
-    '#abs': ['/opt/lib/x.ts'],
-  });
-  assert.deepEqual(projectPaths('C:/w/tsconfig.json', read), {
-    '@/*': ['C:/w/src/*'],
-    '#lib': ['C:/lib/y.ts'],
-  });
-});
-
-test('paths are found through relative extends, as tsc finds them', () => {
-  const read = reader({
-    // An extends without .json, a package that is not followed, the nearer paths winning.
-    '/q/tsconfig.json': '{ "extends": "./configs/app", "compilerOptions": { "strict": true } }',
-    '/q/configs/app.json': [
-      '{ "extends": ["@tsconfig/vite-react/tsconfig.json", "../base.json"],',
-      '  "compilerOptions": { "paths": { "@/*": ["../src/*"] } } }',
-    ].join('\n'),
-    '/q/base.json': '{ "compilerOptions": { "paths": { "#old/*": ["./old/*"] } } }',
-    // The child's baseUrl applies to the parent's paths.
-    '/r/tsconfig.json':
-      '{ "extends": "./tsconfig.paths.json", "compilerOptions": { "baseUrl": "./web" } }',
-    '/r/tsconfig.paths.json': '{ "compilerOptions": { "paths": { "@/*": ["src/*"] } } }',
-    // Three hops are followed, the fourth is not: its baseUrl would move the target.
-    '/s/tsconfig.json': '{ "extends": "./a.json" }',
-    '/s/a.json': '{ "extends": "./b.json" }',
-    '/s/b.json': '{ "extends": "./c.json" }',
-    '/s/c.json': '{ "extends": "./d.json", "compilerOptions": { "paths": { "@c/*": ["./c/*"] } } }',
-    '/s/d.json': '{ "compilerOptions": { "baseUrl": "./base" } }',
-    // A config that extends itself ends.
-    '/t/tsconfig.json':
-      '{ "extends": "./tsconfig.json", "compilerOptions": { "paths": { "x": ["./x.ts"] } } }',
-  });
-  assert.deepEqual(projectPaths('/q/tsconfig.json', read), { '@/*': ['/q/src/*'] });
-  assert.deepEqual(projectPaths('/r/tsconfig.json', read), { '@/*': ['/r/web/src/*'] });
-  assert.deepEqual(projectPaths('/s/tsconfig.json', read), { '@c/*': ['/s/c/*'] });
-  assert.deepEqual(projectPaths('/t/tsconfig.json', read), { x: ['/t/x.ts'] });
-});
-
-test('a missing, broken or pathless tsconfig gives no paths', () => {
-  const read = reader({
-    '/b/tsconfig.json': '{ "compilerOptions": ',
-    '/n/tsconfig.json': '{ "compilerOptions": { "strict": true } }',
-  });
-  assert.deepEqual(projectPaths('/none/tsconfig.json', read), {});
-  assert.deepEqual(projectPaths('/b/tsconfig.json', read), {});
-  assert.deepEqual(projectPaths('/n/tsconfig.json', read), {});
 });
 
 test('reads the errors tsc prints, with their continuation lines', () => {
@@ -314,6 +258,7 @@ const DRAFT = [
 const SavedConfig = z.object({
   compilerOptions: z.object({ paths: z.record(z.string(), z.array(z.string())) }),
   files: z.array(z.string()),
+  include: z.array(z.string()),
 });
 
 test('a project kit is checked with its paths, its React types and the asset types', async () => {
@@ -334,6 +279,12 @@ test('a project kit is checked with its paths, its React types and the asset typ
     'export { Button } from "../../../../src/ui/button";\n',
   );
   write('.kitvas/drafts/shop/v1/src/tsx/index.tsx', DRAFT);
+  // The config names no files, so tsc takes in the project's type files wherever they are, but
+  // never those of an installed package or of a folder whose name starts with a dot: read, either
+  // of these would be the one thing tsc reports.
+  const unreadable = 'export const unreadable: number = ;\n';
+  write('node_modules/some-package/index.d.ts', unreadable);
+  write('.kitvas/kits/shad/unreadable.d.ts', unreadable);
   // A copy, not a link, so the project's React types have a path of their own.
   cpSync(
     dirname(resolveDep('@types/react/package.json', [PLUGIN_ROOT])),
@@ -366,12 +317,15 @@ test('a project kit is checked with its paths, its React types and the asset typ
   const home = slashes(realpathSync.native(project));
   assert.deepEqual(Object.keys(config.compilerOptions.paths), [
     '@/*',
+    // `baseUrl: "."`: the project's root is a folder its imports start from.
+    '*',
     '@kit',
     'react',
     'react/jsx-runtime',
     'react/jsx-dev-runtime',
   ]);
   assert.deepEqual(config.compilerOptions.paths['@/*'], [`${home}/src/*`]);
+  assert.deepEqual(config.compilerOptions.paths['*'], [`${home}/*`]);
   assert.deepEqual(config.compilerOptions.paths['@kit'], [
     `${home}/.kitvas/kits/shad/generated/kit.ts`,
   ]);
@@ -382,4 +336,90 @@ test('a project kit is checked with its paths, its React types and the asset typ
     `${home}/.kitvas/drafts/shop/v1/src/tsx/index.tsx`,
     slashes(realpathSync.native(join(PLUGIN_ROOT, 'client', 'types', 'assets.d.ts'))),
   ]);
+  assert.deepEqual(config.include, [`${home}/**/*.d.ts`]);
+});
+
+const TONE_BUTTON = [
+  "import type { ReactNode } from 'react';",
+  "import type { Tone } from 'shared/tones';",
+  "import type { Size } from '~tokens/sizes';",
+  '',
+  'export interface ToneOverrides {}',
+  'export interface SizeOverrides {}',
+  '',
+  'export function Button(props: {',
+  '  tone?: Tone | keyof ToneOverrides;',
+  '  size?: Size | keyof SizeOverrides;',
+  '  children: ReactNode;',
+  '}) {',
+  '  return <button type="button">{props.children}</button>;',
+  '}',
+  '',
+].join('\n');
+
+/** A type file nothing imports: it gives one prop of the button one more value. */
+const widens = (name: string, value: string, from: string): string =>
+  `export {};\n\ndeclare module '${from}' {\n  interface ${name} {\n    ${value}: true;\n  }\n}\n`;
+
+const TONE_DRAFT = [
+  "import { Button } from '@kit';",
+  '',
+  'export function Draft() {',
+  '  return (',
+  '    <>',
+  '      <Button tone="loud" size="huge">Widened</Button>',
+  '      <Button tone="nope">Typed through the base folder</Button>',
+  '      <Button size="nope">Typed through the declared name</Button>',
+  '    </>',
+  '  );',
+  '}',
+  '',
+].join('\n');
+
+test("a project's base folder, its kit's declared names and its type files hold in the check", async () => {
+  const project = tempDir('kitvas-types-');
+  const write = (relPath: string, text: string): void => {
+    const file = join(project, ...relPath.split('/'));
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, text);
+  };
+  write('tsconfig.json', '{ "compilerOptions": { "baseUrl": "src" }, "include": ["src"] }\n');
+  write('src/shared/tones.ts', "export type Tone = 'primary' | 'quiet';\n");
+  write('design/tokens/sizes.ts', "export type Size = 'sm' | 'lg';\n");
+  write('src/ui/button.tsx', TONE_BUTTON);
+  // In the project's `include`, imported by nothing.
+  write('src/tones.d.ts', widens('ToneOverrides', 'loud', './ui/button'));
+  // Outside the `include`: only the kit names it.
+  write('typings/sizes.d.ts', widens('SizeOverrides', 'huge', '../src/ui/button'));
+  write(
+    '.kitvas/kits/own/generated/kit.ts',
+    'export { Button } from "../../../../src/ui/button";\n',
+  );
+  write('.kitvas/drafts/shop/v1/src/tsx/index.tsx', TONE_DRAFT);
+  const versionDir = join(project, '.kitvas', 'drafts', 'shop', 'v1');
+
+  const messages = await createTscChecker({ roots: [PLUGIN_ROOT] }).check({
+    workingDir: versionDir,
+    entry: join(versionDir, 'src', 'tsx', 'index.tsx'),
+    kitEntry: join(project, '.kitvas', 'kits', 'own', 'generated', 'kit.ts'),
+    project,
+    resolve: { roots: [], alias: { '~tokens': 'design/tokens' }, types: ['typings/sizes.d.ts'] },
+  });
+  // Both widened values are taken, and a value neither type has is refused: both imports of the
+  // button resolved, so its props are typed, and no file of the project has an error.
+  assert.deepEqual(
+    messages.map((message) => [message.file, message.line, message.code]),
+    [
+      ['src/tsx/index.tsx', 7, 'TS2322'],
+      ['src/tsx/index.tsx', 8, 'TS2322'],
+    ],
+  );
+
+  const saved: unknown = JSON.parse(
+    readFileSync(join(versionDir, 'build', 'json', 'tsconfig.json'), 'utf8'),
+  );
+  const config = SavedConfig.parse(saved);
+  const home = slashes(realpathSync.native(project));
+  assert.deepEqual(config.files.slice(2), [`${home}/typings/sizes.d.ts`]);
+  assert.deepEqual(config.include, [`${home}/src/**/*.d.ts`]);
 });

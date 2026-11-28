@@ -2,8 +2,9 @@
 // count for the cache key, which hold class names, and the import paths of its providers.
 
 import { join } from 'node:path';
+import { serializeJson } from '../../drafts/index.ts';
 import { ADDITION_FILES, isWrittenKit, type LoadedKit, PROJECT_PATH } from '../../kit/index.ts';
-import { packageDirFrom } from '../../shared/index.ts';
+import { ENV_FILES, packageDirFrom, TAILWIND_FILE, type TailwindFile } from '../../shared/index.ts';
 import { CANDIDATE_LIMITS } from '../domain/candidates.ts';
 import type { MountProvider } from '../domain/provider-source.ts';
 import type { BuildFs } from '../ports/build-fs.ts';
@@ -60,14 +61,14 @@ export function mountProviders(fs: BuildFs, loaded: LoadedKit): MountProvider[] 
 export function componentDir(loaded: LoadedKit): string | undefined {
   const { project } = loaded;
   const { source } = loaded.kit;
-  if (source.type === 'figma' || source.type === 'web' || source.type === 'images') {
-    return join(loaded.dir, 'components');
-  }
-  if (project === undefined || source.type === 'builtin') return undefined;
-  return source.type === 'repo'
-    ? inProject(project, source.path)
-    : (packageDirFrom(project, source.package) ??
-        join(project, 'node_modules', ...source.package.split('/')));
+  if (isWrittenKit(loaded.kit)) return join(loaded.dir, 'components');
+  if (project === undefined) return undefined;
+  if (source.type === 'repo') return inProject(project, source.path);
+  if (source.type !== 'npm') return undefined;
+  return (
+    packageDirFrom(project, source.package) ??
+    join(project, 'node_modules', ...source.package.split('/'))
+  );
 }
 
 /**
@@ -77,14 +78,17 @@ export function componentDir(loaded: LoadedKit): string | undefined {
  */
 export function projectInputs(loaded: LoadedKit): { dirs: string[]; files: string[] } {
   const added = loaded.additionsDir === undefined ? [] : [loaded.additionsDir];
+  const { project } = loaded;
+  // The bundle holds the public variables of these files (ADR 0095).
+  const env = project === undefined ? [] : ENV_FILES.map((name) => join(project, name));
   const dir = componentDir(loaded);
-  if (dir === undefined) return { dirs: added, files: [] };
+  if (dir === undefined) return { dirs: added, files: env };
   const { type } = loaded.kit.source;
   // A written kit's components are inside the kit folder, which is hashed already.
-  if (isWrittenKit(loaded.kit)) return { dirs: added, files: [] };
+  if (isWrittenKit(loaded.kit)) return { dirs: added, files: env };
   return type === 'repo'
-    ? { dirs: [dir, ...added], files: [] }
-    : { dirs: added, files: [join(dir, 'package.json')] };
+    ? { dirs: [dir, ...added], files: env }
+    : { dirs: added, files: [join(dir, 'package.json'), ...env] };
 }
 
 const SCRIPTS = { repo: /\.(tsx|ts|jsx|js)$/, npm: /\.(js|mjs)$/, written: /\.(tsx|ts)$/ };
@@ -153,6 +157,29 @@ export function utilityBuild(
     sources,
     probe,
   });
+}
+
+/**
+ * The Tailwind file (`TAILWIND_FILE`) of the build folder `dir`, a draft version or a catalog: what
+ * its utility build left unexplained and the project's Tailwind facts. Removed for a kit without
+ * Tailwind.
+ */
+export function writeTailwindFile(
+  fs: BuildFs,
+  dir: string,
+  utility: UtilityOutput | undefined,
+): void {
+  const file = join(dir, ...TAILWIND_FILE.split('/'));
+  if (utility === undefined) {
+    fs.remove(file);
+    return;
+  }
+  const facts: TailwindFile = {
+    schemaVersion: 2,
+    unknown: utility.unknown,
+    theme: utility.theme ?? null,
+  };
+  fs.writeText(file, serializeJson(facts));
 }
 
 /** Sheets in order, each on its own lines, empty ones left out. */

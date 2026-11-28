@@ -14,7 +14,7 @@ import { createLayeredKitStore } from '../../../src/kit/adapters/layered-store.t
 import { createProjectFiles } from '../../../src/kit/adapters/project-files.ts';
 import type { KitStore } from '../../../src/kit/index.ts';
 import { PLUGIN_ROOT, projectKitsDir } from '../../../src/shared/index.ts';
-import { renderTools } from '../../helpers/draft/render.ts';
+import { projectStylesOf, renderTools } from '../../helpers/draft/render.ts';
 import { builtinKits, FIXTURE_KITS } from '../../helpers/kit/kits.ts';
 import { fixtureProject, removeFixture } from '../../helpers/kit/projects.ts';
 import { tempDir } from '../../helpers/tmp.ts';
@@ -32,6 +32,7 @@ const ALL_PASSED = {
   tokens: 'passed',
   // None of these kits is a written kit.
   look: 'skipped',
+  original: 'skipped',
 };
 
 /** Verifies one kit of `kits` for `project` with the real tools, and stops them afterwards. */
@@ -41,6 +42,7 @@ async function verify(kits: KitStore, kitId: string, project: string): Promise<V
     kits,
     kitWriter: createFolderKitWriter(projectKitsDir(project)),
     projectFiles: (dir) => createProjectFiles(dir),
+    projectStyles: projectStylesOf(tools),
     render: tools,
     types: createTscChecker({ roots: [PLUGIN_ROOT] }),
     browser,
@@ -85,6 +87,75 @@ test('the npm fixture kit is valid in all five steps, its tokens read from the p
     assert.deepEqual(file.issues, []);
     assert.deepEqual(file.steps, ALL_PASSED);
     assert.equal(file.valid, true);
+  } finally {
+    removeFixture(dir);
+  }
+});
+
+/** Verifies the npm fixture kit with its `8px` space variable written as `value`. */
+async function verifySpace(value: string): Promise<VerifyFile> {
+  const { dir, kitId } = fixtureProject('acme-npm');
+  try {
+    const styles = join(dir, 'node_modules', '@acme', 'ui', 'styles.css');
+    writeFileSync(
+      styles,
+      readFileSync(styles, 'utf8').replace(
+        '--acme-space-2: 8px;',
+        `--acme-base: 0.5rem;\n  --acme-space-2: ${value};`,
+      ),
+    );
+    return await verify(projectKits(dir), kitId, dir);
+  } finally {
+    removeFixture(dir);
+  }
+}
+
+test('a variable the browser works out with calc() is held against its token in px', async () => {
+  // The way shadcn writes its radii: `calc(var(--radius) - 2px)`.
+  const same = await verifySpace('calc(var(--acme-base) - 0px)');
+  assert.deepEqual(same.issues, []);
+  assert.equal(same.steps.tokens, 'passed');
+
+  const other = await verifySpace('calc(var(--acme-base) - 2px)');
+  assert.deepEqual(
+    other.issues.map((issue) => [
+      issue.step,
+      issue.key,
+      issue.params.expected,
+      issue.params.actual,
+    ]),
+    [['tokens', 'kitIssue.tokenMismatch', '8px', '6px']],
+  );
+});
+
+test('a written component that keeps its element id off the page fails render (W10)', async () => {
+  const { dir, kitId } = fixtureProject('acme-written');
+  try {
+    const kitDir = join(projectKitsDir(dir), kitId);
+    // No scan here: without references `look` has nothing to score.
+    const kitJson = join(kitDir, 'kit.json');
+    const kit = JSON.parse(readFileSync(kitJson, 'utf8')) as {
+      components: { examples: { reference?: string }[] }[];
+    };
+    for (const component of kit.components) {
+      for (const example of component.examples) delete example.reference;
+    }
+    writeFileSync(kitJson, JSON.stringify(kit, null, 2));
+    const renderIssues = (file: VerifyFile) =>
+      file.issues
+        .filter((issue) => issue.step === 'render')
+        .map((issue) => [issue.path, issue.key, issue.params.name]);
+
+    const forwarding = await verify(projectKits(dir), kitId, dir);
+    assert.equal(forwarding.steps.render, 'passed', JSON.stringify(forwarding.issues));
+
+    const heading = join(kitDir, 'components', 'Heading.tsx');
+    writeFileSync(heading, readFileSync(heading, 'utf8').replace(' {...rest}', ''));
+    const dropping = await verify(projectKits(dir), kitId, dir);
+    assert.deepEqual(renderIssues(dropping), [
+      ['components.3', 'kitIssue.restNotForwarded', 'Heading'],
+    ]);
+    assert.equal(dropping.steps.render, 'failed');
   } finally {
     removeFixture(dir);
   }
@@ -141,6 +212,7 @@ test('wrong claims in kit.json come back at their places', async () => {
       render: 'passed',
       tokens: 'failed',
       look: 'skipped',
+      original: 'skipped',
     });
   } finally {
     removeFixture(dir);

@@ -311,6 +311,42 @@ test('a token the project added is listed apart, to create, and a draft with non
   assert.equal('added' in brief, false);
 });
 
+test('the brief points at the person own component', () => {
+  const projectOf = (source: Record<string, unknown>, origin: unknown): unknown => {
+    const kits = withKit((json) => {
+      json.source = source;
+      json.runtime = { entry: 'generated/kit.ts', styles: { files: [] } };
+      // The tiny kit's icon component is not among the components below.
+      json.icons = undefined;
+      json.components = [
+        {
+          name: 'Button',
+          category: 'action',
+          description: 'Starts an action.',
+          import: { from: 'components/Button', name: 'Button' },
+          props: [{ name: 'children', type: 'node', required: true }],
+          ...(origin === undefined ? {} : { project: origin }),
+        },
+      ];
+    });
+    const { brief } = writeBrief(depsFor(screen({}), kits), {
+      slug: 'shop',
+      write: { to: 'src/app', scope: 'new', files: [] },
+      base: '',
+    });
+    return brief.components.find((item) => item.name === 'Button')?.project;
+  };
+  const code = { type: 'code', path: 'src/app', styles: [], urls: [] };
+  assert.equal(
+    projectOf(code, { files: ['src/app/button/button.component.ts'], name: 'app-button' }),
+    'src/app/button/button.component.ts#app-button',
+  );
+  assert.equal(projectOf(code, { files: ['src/app/button.vue'] }), 'src/app/button.vue');
+  assert.equal(projectOf(code, { package: '@acme/ui', name: 'Button' }), '@acme/ui#Button');
+  assert.equal(projectOf(code, undefined), null);
+  assert.equal(projectOf({ type: 'images' }, undefined), null);
+});
+
 test('a component that is a project addition says so', () => {
   const kits = withKit(() => {}, {
     additions: {
@@ -618,6 +654,35 @@ test('a draft that was never built is HANDOFF_BUILD_FAILED; one with no sections
   const { store } = tempDrafts();
   createDraft(store, { slug: 'shop', title: 'Shop', kit: TINY, now: NOW });
   assert.throws(() => writeBrief(depsFor(store, tiny()), input), failsWith('HANDOFF_INVALID'));
+});
+
+test('a Tailwind kit names the version and the prefix of the built version; a kit without Tailwind has none', () => {
+  const input = {
+    slug: 'shop',
+    write: { to: 'src/app', scope: 'new' as const, files: [] },
+    base: '',
+  };
+  assert.equal('tailwind' in writeBrief(depsFor(screen({}), tiny()), input).brief, false);
+
+  const tailwind = withKit((json) => {
+    (json.runtime as { styles: Record<string, unknown> }).styles.tailwind = {
+      entry: 'src/app/globals.css',
+    };
+  });
+  // Nothing built says nothing of the prefix: with no package installed the major is 4.
+  const plain = writeBrief(depsFor(screen({}), tailwind), input).brief;
+  assert.deepEqual(plain.tailwind, { version: 4, prefix: '' });
+
+  const store = screen({});
+  writeVersionFiles(store, 'shop', 1, {
+    'build/json/tailwind.json': JSON.stringify({
+      schemaVersion: 2,
+      unknown: [],
+      theme: { version: 3, prefix: 'tw-', screens: { md: 768 } },
+    }),
+  });
+  const { brief } = writeBrief(depsFor(store, tailwind), input);
+  assert.deepEqual(brief.tailwind, { version: 3, prefix: 'tw-' });
 });
 
 test('the decisions are the bullets under Handoff, without their dates', () => {

@@ -2,6 +2,7 @@
 
 export * from './app/build-catalog.ts';
 export * from './app/build-draft.ts';
+export * from './app/project-styles.ts';
 export * from './domain/candidates.ts';
 export * from './domain/catalog-mount.ts';
 export * from './domain/catalog-stamp.ts';
@@ -12,5 +13,6 @@ export * from './domain/report.ts';
 export * from './domain/sites.ts';
 export type * from './ports/build-fs.ts';
 export type * from './ports/bundler.ts';
+export type * from './ports/project-styles.ts';
 export type * from './ports/style-pipeline.ts';
 export type * from './ports/utility-css.ts';

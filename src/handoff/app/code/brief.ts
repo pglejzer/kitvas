@@ -15,6 +15,7 @@ import {
   sectionPaths,
   serializeJson,
   sketchFile,
+  tailwindFacts,
 } from '../../../drafts/index.ts';
 import {
   cssVarName,
@@ -121,8 +122,15 @@ function builtIds(drafts: DraftStore, slug: string, base: string): IdsFile {
  */
 function projectModule(loaded: LoadedKit, name: string): string | null {
   const { source } = loaded.kit;
-  if (source.type !== 'npm' && source.type !== 'repo') return null;
   const component = loaded.kit.components.find((candidate) => candidate.name === name);
+  if (source.type === 'code') {
+    // The person's own component: its first file or its library, and the name the project writes.
+    const origin = component?.project;
+    const module = origin?.files?.[0] ?? origin?.package;
+    if (origin === undefined || module === undefined) return null;
+    return origin.name === undefined ? module : `${module}#${origin.name}`;
+  }
+  if (source.type !== 'npm' && source.type !== 'repo') return null;
   if (component === undefined) return null;
   const { from, name: exported } = component.import;
   return exported === undefined ? from : `${from}#${exported}`;
@@ -288,6 +296,11 @@ export function writeBrief(
       ? {}
       : { options: options.map((option) => ({ id: option.id, default: option.default })) }),
     ...(shared.length === 0 ? {} : { shared }),
+    ...(loaded.kit.runtime.styles.tailwind === undefined
+      ? {}
+      : {
+          tailwind: tailwindFacts(deps.files, deps.drafts, slug, base, loaded),
+        }),
     target: `${dir}/target.json`,
     rules: deps.rules,
     report: `${dir}/fit.json`,

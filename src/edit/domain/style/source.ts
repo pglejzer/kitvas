@@ -19,6 +19,7 @@ import {
 import type { Shorthand, VarKind } from './shorthand.ts';
 import { answerFor, type Said, varKindOf } from './shorthand-source.ts';
 import { keywordOfWord } from './style-values.ts';
+import { coreOf, NO_PREFIX, splitUtility, type UtilityPrefix } from './utility-class.ts';
 
 export type SourceInput = {
   property: StyleProperty;
@@ -36,6 +37,11 @@ export type SourceInput = {
   /** The element's classes in a string `className`. */
   classes: readonly string[];
   format: 'scss' | 'tailwind';
+  /**
+   * The project's Tailwind major and the prefix its classes carry (plan 29); none: Tailwind 4
+   * without a prefix.
+   */
+  tailwind?: UtilityPrefix | undefined;
   /**
    * The kit's token groups by type, for the value match: `{ dimension: { space: ['none','xs'] } }`.
    * A group is a token's path without its last part (`space` for `space.md`, `color.brand` for
@@ -101,7 +107,8 @@ const whole = (prefix: string, names: string): string[] =>
 /**
  * The Tailwind utility prefixes that set each property, the one that wins first (Tailwind writes
  * `py-` after `p-` in its sheet). An entry without the trailing `-` is a whole class: `border` is
- * a 1px border, `rounded` a small radius. Variants such as `md:` are stripped before matching.
+ * a 1px border, `rounded` a small radius, `outline` Tailwind 3's solid line. Variants such as
+ * `md:` and the project's prefix are stripped before matching.
  */
 export const UTILITY_PREFIXES: Record<StyleProperty, readonly string[]> = {
   padding: ['p-', 'px-', 'py-', 'pt-', 'pr-', 'pb-', 'pl-', 'ps-', 'pe-'],
@@ -140,7 +147,12 @@ export const UTILITY_PREFIXES: Record<StyleProperty, readonly string[]> = {
   'border-style': whole('border-', 'solid dashed dotted double hidden none'),
   'outline-color': ['outline-'],
   'outline-width': ['outline-', 'outline'],
-  'outline-style': whole('outline-', 'solid dashed dotted double hidden none'),
+  // Tailwind 3 says none only as the property itself, and a solid line as `outline`.
+  'outline-style': [
+    '[outline-style:none]',
+    ...whole('outline-', 'solid dashed dotted double hidden none'),
+    'outline',
+  ],
   'background-image': ['bg-'],
   'background-size': [...whole('bg-', 'auto cover contain'), 'bg-size-'],
   'min-width': ['min-w-'],
@@ -155,7 +167,7 @@ export function styleSource(input: SourceInput): StyleSource {
   const held = rule === null ? null : heldOf(rule, input.property, varKindOf(input.tokenGroups));
   if (rule !== null && held !== null) return { kind: 'scss', className: rule.className, ...held };
   if (input.format === 'tailwind') {
-    const className = utilityFor(input.property, input.classes);
+    const className = utilityFor(input.property, input.classes, input.tailwind ?? NO_PREFIX);
     if (className !== null) return { kind: 'utility', className };
   }
   return { kind: 'kit' };
@@ -365,8 +377,11 @@ function arbitraryKind(value: string, unsaid: ValueKind): ValueKind | null {
   return unsaid;
 }
 
-/** The kind of value of a `text-`, `font-`, `bg-`, `outline` or `border` utility, after its prefix. */
-function valueKind(prefix: string, rest: string): ValueKind {
+/**
+ * The kind of value of a `text-`, `font-`, `bg-`, `outline` or `border` utility, after its prefix,
+ * in that Tailwind.
+ */
+function valueKind(prefix: string, rest: string, version: 3 | 4): ValueKind {
   // `text-sm/6` carries a line height and `bg-ink/50` an opacity after the slash.
   const value = rest.replace(/\/[^\])]*$/, '');
   if (prefix === 'font-') {
@@ -381,8 +396,10 @@ function valueKind(prefix: string, rest: string): ValueKind {
     return arbitraryKind(value, 'color') ?? (BG_OTHER.test(value) ? 'other' : 'color');
   }
   // `outline` and `outline-2` set the width, `outline-ink` the colour; `outline-offset-2` neither.
+  // Tailwind 3's bare `outline` is only the solid line's style.
   if (prefix === 'outline-' || prefix === 'outline') {
-    if (value === '' || /^\d+$/.test(value)) return 'measure';
+    if (value === '') return version === 3 ? 'other' : 'measure';
+    if (/^\d+$/.test(value)) return 'measure';
     if (/^offset(?:-|$)/.test(value)) return 'other';
     return arbitraryKind(value, 'color') ?? (BORDER_OTHER.test(value) ? 'other' : 'color');
   }
@@ -392,58 +409,60 @@ function valueKind(prefix: string, rest: string): ValueKind {
   return arbitraryKind(part, 'color') ?? (BORDER_OTHER.test(part) ? 'other' : 'color');
 }
 
-function fits(property: StyleProperty, prefix: string, rest: string): boolean {
+function fits(property: StyleProperty, prefix: string, rest: string, version: 3 | 4): boolean {
   const wanted = SHARED_KIND[property];
-  return wanted === undefined || valueKind(prefix, rest) === wanted;
+  return wanted === undefined || valueKind(prefix, rest, version) === wanted;
 }
 
-/** `prefix` ends in `-` for a utility with a value (`p-4`), or it is a whole class (`border`). */
-export function utilityMatches(property: StyleProperty, prefix: string, base: string): boolean {
-  if (!prefix.endsWith('-')) return base === prefix && fits(property, prefix, '');
+/**
+ * `prefix` ends in `-` for a utility with a value (`p-4`), or it is a whole class (`border`); the
+ * base sets the property in that Tailwind.
+ */
+export function utilityMatches(
+  property: StyleProperty,
+  prefix: string,
+  base: string,
+  version: 3 | 4,
+): boolean {
+  if (!prefix.endsWith('-')) return base === prefix && fits(property, prefix, '', version);
   return (
     base.length > prefix.length &&
     base.startsWith(prefix) &&
-    fits(property, prefix, base.slice(prefix.length))
+    fits(property, prefix, base.slice(prefix.length), version)
   );
 }
 
-/** `md:hover:p-6` is `p-6` under variants; a `:` inside `[…]` or `(…)` belongs to the value. */
-function utilityOf(className: string): { base: string; variant: boolean } {
-  let depth = 0;
-  let cut = -1;
-  for (let at = 0; at < className.length; at += 1) {
-    const char = className.charAt(at);
-    if (char === '[' || char === '(') depth += 1;
-    else if ((char === ']' || char === ')') && depth > 0) depth -= 1;
-    else if (char === ':' && depth === 0) cut = at;
-  }
-  // `!p-4` (Tailwind 3) and `p-4!` (Tailwind 4) are important; `-mt-2` is a negative margin.
-  const base = className
-    .slice(cut + 1)
-    .replace(/^!/, '')
-    .replace(/!$/, '')
-    .replace(/^-/, '');
-  return { base, variant: cut >= 0 };
-}
-
 /** The index in `bases` of the one that sets the property: by prefix order, then class order. */
-export function utilityAmong(property: StyleProperty, bases: readonly string[]): number {
+export function utilityAmong(
+  property: StyleProperty,
+  bases: readonly string[],
+  version: 3 | 4,
+): number {
   for (const prefix of UTILITY_PREFIXES[property]) {
-    const hit = bases.findIndex((base) => utilityMatches(property, prefix, base));
+    const hit = bases.findIndex((base) => utilityMatches(property, prefix, base, version));
     if (hit >= 0) return hit;
   }
   return -1;
 }
 
-/** The class without a variant: one under a variant is a width or state override (spec 4c). */
-function utilityFor(property: StyleProperty, classes: readonly string[]): string | null {
-  const read = classes.map((name) => ({ name, ...utilityOf(name) })).filter((one) => !one.variant);
-  return (
-    read[
-      utilityAmong(
-        property,
-        read.map((one) => one.base),
-      )
-    ]?.name ?? null
+/**
+ * The class without a variant: one under a variant is a width or state override (spec 4c), and
+ * one without the project's prefix is no class of its Tailwind. `!p-4` (Tailwind 3) and `p-4!`
+ * (Tailwind 4) are important, `-mt-2` is a negative margin: each is read by its utility.
+ */
+function utilityFor(
+  property: StyleProperty,
+  classes: readonly string[],
+  tailwind: UtilityPrefix,
+): string | null {
+  const read = classes.flatMap((name) => {
+    const split = splitUtility(name, tailwind);
+    return split === null || split.variants.length > 0 ? [] : [{ name, base: coreOf(split.base) }];
+  });
+  const at = utilityAmong(
+    property,
+    read.map((one) => one.base),
+    tailwind.version,
   );
+  return read[at]?.name ?? null;
 }

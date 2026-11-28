@@ -2,6 +2,22 @@
 
 Read by the `learner` agent before it writes a kit. Each rule has an id; reports cite it. These rules are for kits learned from code (an npm package or a folder). A kit written from Figma, a website or screenshots follows `write-kit.md` instead; it reuses the token rules L21 to L24 and the prop type rules L9 to L11.
 
+## Contents
+
+- Where you write (L1 to L4)
+- Core set (L5 to L7)
+- Props (L8 to L14)
+- Imports (L15 to L17)
+- Examples and notes (L18 to L20)
+- Tokens (L21 to L24c)
+- css-var-map.json (L25 to L27)
+- Providers and theme (L28 to L31a)
+- Themes (L31b to L31g)
+- Tailwind (L32 to L35a)
+- How the project finds its files (L35b to L35d)
+- Findings from `kit verify` (L36 to L37)
+- Report (L38)
+
 ## Where you write
 
 - L1: Write only inside the kit folder given in your prompt: `kit.json`, `json/tokens.json`, `json/css-var-map.json`, a theme's token file (L31c), `theme.ts` in the case of L31e, and a fragment file when the prompt names one (L8b). Never write `generated/`: kitvas writes it. Never edit the project's own files or the packages.
@@ -22,7 +38,8 @@ Read by the `learner` agent before it writes a kit. Each rule has an id; reports
 - L8: Read props from the package's `.d.ts` (npm) or the component's source and its types (repo). Name each prop as written. A component entry has `name`, `category`, `description`, `import` and `props`, and may have `parts`, `polymorphic`, `styling`, `state`, `examples`, `a11y` and `deprecated`; no other key. `props` is a list, `[{ "name": "variant", "type": "enum", "values": ["primary", "ghost"], "default": "primary" }]`, and a prop takes only `name`, `type`, `values`, `default`, `required`, `responsive`, `deprecated` and `description`.
 - L9: Type mapping: a union of string literals is `enum` with `values`; `boolean` is `boolean`; `string` is `string`; `number` is `number`; `ReactNode` and `ReactNode | string` are `node`; a function is `callback`; `ReactElement` is `element`; `ElementType` or a component type is `component`; an object type is `object`; any other union is `union`.
 - L10: A prop without `?` is `"required": true`. Set `default` only when the docs or the source say so.
-- L11: Skip props inherited from HTML attributes. Keep `className`, `style`, `id` and `aria-*` only when they matter, and list the styling props in `styling` (`sx`, `className`, `style`, `classes`). Keep `children` when the component takes it.
+- L11: Skip props inherited from HTML attributes. Keep `className`, `style`, `id` and `aria-*` only when they matter, and list the styling props in `styling` (`sx`, `className`, `style`, `classes`). Keep `children` when the component takes it. Keep what a control needs to work in a draft even when it comes from HTML: on a component that renders a button or a menu item, its `onClick` (or the system's own handler, such as `onSelect`), `disabled` and, on a button, `type` (`button`, `submit`, `reset`); on a component that renders a form field (an input, a textarea, a select), its `name`, `autoComplete`, `inputMode` and `required`, which the checks ask a draft to set.
+- L11a: A prop is what the component's own code does with it. When the code draws from one prop and only hands another on (shadcn's `Progress` moves its bar by `value` as a percentage and gives `max` only to the accessibility tree), the prop it draws from says so in its `description` (`A percentage from 0 to 100.`) and the other one is left out.
 - L12: `deprecated` is set only when the types or the docs say so.
 - L13: A component that renders another element by a prop (`as`, `component`) gets `polymorphic: { "prop": "<name>" }`. A compound component lists its parts in `parts` (`Card` with `CardHeader`).
 - L14: Controlled inputs get `state`, an array with one entry for each controlled value: `[{ "value": "value", "default": "defaultValue", "onChange": "onChange" }]`, with the names the component really has. `default` may be left out; `value` and `onChange` are required.
@@ -62,6 +79,7 @@ Read by the `learner` agent before it writes a kit. Each rule has an id; reports
 - L30: Use the project's own theme when it has one: point `bindings` at the smallest module that exports it. A theme module that imports routers or stores is the wrong one: look for another, or use the library's default theme and say so in the report.
 - L31: Style files the system needs globally go to `runtime.styles.imports` (`@acme/ui/styles.css`, or a project path such as `"src/ds/tokens.css"`). Never add a style file you did not see imported or documented.
 - L31a: An unscoped package (no `@scope/`) that a provider, a binding or `runtime.styles.imports` comes from goes into `runtime.packages` with its installed version (`react-day-picker`). Otherwise kitvas reads the name as a project path.
+- L31h: A font the app loads at run time and hands on through a variable (Next's `next/font` with `variable: "--font-sans"`, put on `<body>` by a class) has no value in kitvas, so a font stack that starts with that variable falls to the browser's serif. Write `styles/fonts.css` in the kit folder with each such variable on `:root`, set to the font's family name and the generic families the system falls back to (`--font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;`; a local font file by its family name, `"Cal Sans"` for `CalSans-SemiBold.woff2`), and list it in `runtime.styles.files`. It is the one style file you write, and it never holds an `@font-face`: kitvas copies no fonts, so the font shows only where it is installed, and your report says so in one line.
 
 ## Themes
 
@@ -76,15 +94,24 @@ A design system's own themes are the kit's themes: official, with no mark. The s
 
 ## Tailwind
 
-- L32: A project with Tailwind v4 (`@import "tailwindcss"` in a CSS file) gets `runtime.styles.tailwind: { "entry": "<project path of that CSS file>" }`. Tailwind v3 (`tailwind.config.js`) is not supported yet: stop and tell the main agent.
-- L33: Theme variables (`--color-primary`, `--radius-md`, `--spacing`) are the variables to map in `css-var-map.json`.
-- L34: With `@theme inline { --color-primary: var(--primary); }` the theme variable is not written to the page. Map the token onto the variable it points at (`--primary`).
+- L32: A project with Tailwind gets `runtime.styles.tailwind: { "entry": "<project path of that CSS file>" }`. Its version is the major of the project's own `tailwindcss` (3 or 4); kitvas builds with that one. For v4 the entry is the CSS file with `@import "tailwindcss"`; for v3 it is the CSS file with the `@tailwind` lines. The v3 config (an `@config` line, else `tailwind.config.{js,cjs,mjs,ts}`) is found by Tailwind, never named in the kit. Tailwind 2 or older is refused by `kit new`: show the message and stop.
+- L33: In v4, theme variables (`--color-primary`, `--radius-md`, `--spacing`) are the variables to map in `css-var-map.json`. In v3 there are no theme variables: map each token onto a theme path written `theme(colors.primary)`, `theme(borderRadius.md)`, `theme(spacing.4)`, also when the config holds a literal colour. A path ends at a value: a nested colour (`primary: { DEFAULT: …, foreground: … }`) is `theme(colors.primary.DEFAULT)` and `theme(colors.primary.foreground)`, never `theme(colors.primary)`. Read the path in the project's config; never invent one.
+- L34: With `@theme inline { --color-primary: var(--primary); }` the v4 theme variable is not written to the page. Map the token onto the variable it points at (`--primary`). A v3 config that says `primary: 'hsl(var(--primary))'` is still the path `theme(colors.primary)`.
 - L35: In a Tailwind kit, `styling` is `className`, and examples use the component's own variants (`<Button variant="outline">`). Do not write utility classes in examples unless the component needs them.
-- L35a: A Tailwind v4 dark variant is a theme (L31b). Its `attributes` is the class or the attribute the project's `@custom-variant dark` or `.dark` block uses (`{ "class": "dark" }`), its token file the theme variables that block overrides.
+- L35a: A Tailwind dark variant is a theme (L31b). In v4 its `attributes` is the class or the attribute the project's `@custom-variant dark` or `.dark` block uses (`{ "class": "dark" }`); in v3 it is what `darkMode` says: `'class'` gives `{ "class": "dark" }`, a selector such as `['class', '[data-mode="dark"]']` its attribute. Its token file holds the values that variant overrides. `darkMode: 'media'` follows the system, not a switch: no theme, say so in the report.
+
+## How the project finds its files
+
+kitvas builds and type-checks the project's own files that a kit uses (a repo kit's components, a theme module, a style file), so their imports and types must mean what they mean in the project. kitvas reads the project's `tsconfig.json` (or `jsconfig.json`) by itself: `baseUrl`, `paths`, the configs it extends or references, and the type files (`.d.ts`) its `include` and `files` take in. `resolve` in kit.json holds only what that file does not say. Its shape is in `reference/kit.schema.json`.
+
+- L35b: When the kit uses files of the project, read the project's build configuration (`vite.config.*`, `webpack.config.*`, `rspack.config.*`, `next.config.*`, `craco.config.*`, a Babel module resolver) and compare it with `tsconfig.json`. Write what the build configuration says and the tsconfig does not. `resolve.roots`: folders an import without `./` starts from, in scripts and in Sass (`resolve.modules: ["src", "node_modules"]`, a Sass `loadPaths` or `includePaths`), as `"roots": ["src"]`; never `node_modules`. `resolve.alias`: names that stand for a folder or a file (`resolve.alias`), as `"alias": { "@": "src", "~styles": "src/styles" }`.
+- L35c: `resolve.types` names the type files that give a library's or a component's types more values (`declare module '@mui/material/Button'`, `declare module '@mui/material/styles'`, `declare global`) when the tsconfig's `include` does not take them in. A `.ts` module that holds such a `declare module` goes there too when nothing the kit imports reaches it (a theme file). A folder stands for its `.d.ts` files: `"types": ["src/types/mui.d.ts", "typings"]`.
+- L35d: Every path in `resolve` is a project path: from the project's root, forward slashes, no `./`, no `..`. Write only folders and files you saw on disk, and only names you read in the build configuration. Never repeat what `tsconfig.json` says. A kit whose components, provider, bindings and style imports all come from packages needs no `resolve`.
 
 ## Findings from `kit verify`
 
 - L36: Fix each issue at its `path` in kit.json. `exportMissing`: the component is not exported under that name: reread the package's index or the file. `propRejected` and `exampleRejected`: the type or the example is wrong: reread the types. `tokenMismatch`: copy `actual` into the token (L23). `tokenUnread`: drop the key from the map and add the token to `gaps` as `unverified`.
+- L36a: An `imports` issue that says `Could not resolve "<name>"` or `Can't find stylesheet to import`, for an import without `./` that is no installed package, means the project finds that file through its build configuration: find the folder or the name there and write it in `resolve` (L35b). A `propRejected` or `exampleRejected` for a value the project's own code uses (its own `variant`, `color`, `size` or breakpoint) means a type file of the project adds that value: find it and name it in `resolve.types` (L35c). Never drop such a value from the kit to make the check pass.
 - L37: Do not hide a failure by deleting the component. Fix it, or move it to `gaps` and say so.
 
 ## Report

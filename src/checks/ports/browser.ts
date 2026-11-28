@@ -3,7 +3,7 @@
 import type { OptionChoice } from '../../shared/index.ts';
 import type { Pixels } from '../domain/kit/look-score.ts';
 import type { PageFacts } from '../domain/page/facts.ts';
-import type { LayerFacts } from '../domain/page/layers.ts';
+import type { LayerFacts, OutlineRead } from '../domain/page/layers.ts';
 import type { PageReport } from '../domain/page/page.ts';
 import type { InventoryItem } from '../domain/rework/inventory.ts';
 import type { ScanFacts } from '../domain/scan/scan-facts.ts';
@@ -48,6 +48,8 @@ export type InspectReport = {
   errors: string[];
   /** Requests that failed: `<url> (<reason>)`. */
   failed: string[];
+  /** The element ids (`data-ks`) on the page after rendering, each once. */
+  marks: string[];
   /** Computed value of each asked variable, trimmed; `''` when it has none. */
   vars: Record<string, string>;
   /**
@@ -56,6 +58,11 @@ export type InspectReport = {
    * with the kit's hex values.
    */
   colors: Record<string, string | null>;
+  /**
+   * Each asked variable laid out as a width, in px; `null` when its value is no length. Lets a
+   * `calc()` (`calc(var(--radius) - 2px)`) be compared with the kit's px.
+   */
+  lengths: Record<string, number | null>;
 };
 
 /**
@@ -170,6 +177,47 @@ export type LayerReport =
   | { state: 'failed'; error: string };
 
 /**
+ * One page measured for the step `original` of `kit verify` (ADR 0093): a catalog example, or the
+ * original kitvas drew from the project's code. Opened from disk with the network off.
+ */
+export type Measure = {
+  /** Absolute path of the HTML file. */
+  page: string;
+  /** The query, `?example=Button.1`; `''` for an original. */
+  search: string;
+  width: number;
+  height: number;
+  /** Absolute path the PNG of the root's first element, at rest, is written to. */
+  shot: string;
+  /** The most controls put under the pointer, given focus and pressed. */
+  controls: number;
+  /** Selectors and declarations (`[property, value]`) the page is asked whether it reads. */
+  probe?: { selectors: string[]; declarations: [string, string][] };
+};
+
+export type MeasureState = 'rest' | 'hover' | 'focus' | 'active';
+
+export type MeasuredFrame = {
+  state: MeasureState;
+  /** The control's number in document order; -1 at rest. */
+  control: number;
+  facts: LayerFacts;
+  outlines: OutlineRead[];
+};
+
+export type MeasureReport =
+  | {
+      state: 'measured';
+      /** `rest` first, then for each control `hover`, `active`, `focus`, each when it took. */
+      frames: MeasuredFrame[];
+      /** The shot at rest. */
+      pixels: Pixels;
+      /** What of `probe` the page does not read. */
+      unread: string[];
+    }
+  | { state: 'failed'; error: string };
+
+/**
  * Catalog examples shot as PNG files one after another in one context, for the editor's Insert
  * pane (ADR 0075). Unlike `capture` nothing is compared: the page's own background is in the shot.
  */
@@ -214,6 +262,8 @@ export interface BrowserSession {
   capture?(input: Capture): Promise<CaptureReport>;
   /** Walks a built draft page for the layers the hand-off sends to Figma. */
   layers?(visit: LayerVisit): Promise<LayerReport>;
+  /** One example or drawn original: its layers at rest and in each control state, and a shot. */
+  measure?(input: Measure): Promise<MeasureReport>;
   /** Writes each shot of a batch as a PNG; one report per shot, in order. */
   shoot?(input: ShotBatch): Promise<ShotReport[]>;
   /** A live page for rework and craft: shot, page facts and inventory. */

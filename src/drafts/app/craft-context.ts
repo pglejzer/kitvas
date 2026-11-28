@@ -10,6 +10,7 @@ import { versionFolder } from '../domain/names.ts';
 import type { DraftStore } from '../ports/draft-store.ts';
 import { type ContextToken, contextTokens } from './context.ts';
 import { loadDraft } from './load-draft.ts';
+import { type TailwindFiles, tailwindClasses, tailwindFacts } from './tailwind-facts.ts';
 import { lockedIdsNow } from './view.ts';
 
 /** What the kit says of its icons: its own icon component with the names, or a package. */
@@ -36,7 +37,9 @@ export type CraftContext = {
   };
   /** As in a section context: `sheets` or `tailwind`. */
   styling: 'sheets' | 'tailwind';
-  /** Tailwind kits only: the theme variables the kit's tokens map onto. */
+  /** Tailwind kits only: the version of the project's Tailwind and the prefix its classes carry. */
+  tailwind?: { version: 3 | 4; prefix: string };
+  /** Tailwind kits only: what the kit's tokens map onto (a theme path as its dot path). */
   classes?: string[];
   /** Absolute paths of each sketch this version holds and of its reasons file. */
   files: { sketch: Sketch; tsx: string; why: string }[];
@@ -47,7 +50,12 @@ export type CraftContext = {
 /** Where `saveCraftContext` writes, inside the version folder. */
 export const CRAFT_CONTEXT_FILE = 'build/context/craft.json';
 
-export function craftContext(store: DraftStore, kits: KitStore, slug: string): CraftContext {
+export function craftContext(
+  store: DraftStore,
+  kits: KitStore,
+  slug: string,
+  files: TailwindFiles,
+): CraftContext {
   const draft = loadDraft(store, slug);
   const { craft } = draft;
   if (craft === undefined) {
@@ -77,7 +85,12 @@ export function craftContext(store: DraftStore, kits: KitStore, slug: string): C
     brief: store.readText(slug, `${base}/md/brief.md`) ?? '',
     kit: { id: kit.kit.id, tokens: contextTokens(kit), components, icons },
     styling: tailwind ? 'tailwind' : 'sheets',
-    ...(tailwind ? { classes: [...new Set(Object.values(kit.cssVarMap))] } : {}),
+    ...(tailwind
+      ? {
+          tailwind: tailwindFacts(files, store, slug, base, kit),
+          classes: tailwindClasses(kit),
+        }
+      : {}),
     // After a pick the version holds one sketch; only the files that are there are named.
     files: SKETCHES.filter((sketch) =>
       store.exists(slug, `${base}/src/tsx/sketches/${sketch}.tsx`),
@@ -98,8 +111,9 @@ export function saveCraftContext(
   store: DraftStore,
   kits: KitStore,
   slug: string,
+  files: TailwindFiles,
 ): { path: string } {
-  const context = craftContext(store, kits, slug);
+  const context = craftContext(store, kits, slug, files);
   const rel = `${versionFolder(context.draft.version)}/${CRAFT_CONTEXT_FILE}`;
   store.writeText(slug, rel, `${JSON.stringify(context, null, 2)}\n`);
   return { path: join(store.dir(slug), ...rel.split('/')) };

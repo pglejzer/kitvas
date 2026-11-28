@@ -10,6 +10,12 @@ export type LookResult = { score: number; size: number; colour: number; structur
 /** A score under this line is reported (`kitIssue.lookFar`). */
 export const LOOK_LINE = 90;
 
+/**
+ * A copy's picture scoring under this line against the original's is reported
+ * (`kitIssue.originalFar`). Both are drawn by one browser, so an unchanged copy scores 100.
+ */
+export const ORIGINAL_LINE = 100;
+
 /** Larger images are not decoded: a reference is a component, not a page. */
 export const PIXELS_MAX = 4_000_000;
 

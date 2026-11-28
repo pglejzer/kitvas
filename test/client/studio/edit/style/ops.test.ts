@@ -341,9 +341,23 @@ test('a property a prop covers is read-only at a width or in a state', () => {
 
 // ---- Tailwind -----------------------------------------------------------------------------------
 
+/** A Tailwind 4 kit's tokens, mapped onto `--spacing-md` and `--color-primary` or onto none. */
 const TOKENS: TokenOption[] = [
-  { var: '--kit-space-md', path: 'space.md', type: 'dimension', css: '12px' },
-  { var: '--kit-color-primary', path: 'color.primary', type: 'color', css: '#18181b' },
+  {
+    var: '--kit-space-md',
+    path: 'space.md',
+    type: 'dimension',
+    css: '12px',
+    utility: { namespace: 'spacing', name: 'md' },
+  },
+  {
+    var: '--kit-color-primary',
+    path: 'color.primary',
+    type: 'color',
+    css: '#18181b',
+    utility: { namespace: 'color', name: 'primary' },
+  },
+  { var: '--kit-space-xs', path: 'space.xs', type: 'dimension', css: '4px' },
 ];
 const TAILWIND = { format: 'tailwind' as const, tokens: TOKENS };
 
@@ -368,6 +382,61 @@ test('a Tailwind draft takes a style as one utility class, under the context pre
   // A token the client cannot name, and an image, give no class.
   assert.deepEqual(opsForStyle(view, 'gap', MD, { format: 'tailwind' }), []);
   assert.equal(readOnlyReason(view, 'background-image', 'tailwind'), 'utility-unknown');
+  // A token mapped onto no theme key goes as its variable.
+  assert.deepEqual(opsForStyle(view, 'gap', { token: '--kit-space-xs' }, TAILWIND), [
+    { op: 'setUtility', id: ID, value: 'gap-[var(--kit-space-xs)]', before: null },
+  ]);
+});
+
+test("a Tailwind 3 draft's class carries the prefix and the screens its inspect answer read", () => {
+  const base = classed('tw-flex tw-p-4');
+  const view: Inspect = {
+    ...base,
+    tailwind: { version: 3, prefix: 'tw-', screens: { tablet: 768 }, aliases: {} },
+    styles: { ...base.styles, padding: { kind: 'utility', className: 'tw-p-4' } },
+  };
+  assert.deepEqual(opsForStyle(view, 'padding', { raw: '8px' }, TAILWIND), [
+    { op: 'setUtility', id: ID, value: 'tw-p-[8px]', before: 'tw-p-4' },
+  ]);
+  assert.deepEqual(opsForStyle(view, 'padding', null, TAILWIND), [
+    { op: 'setUtility', id: ID, value: null, before: 'tw-p-4' },
+  ]);
+  // The kit's Tailwind 4 key is none of this theme: the colour goes as its variable.
+  const hover = { ...TAILWIND, context: HOVER_768 };
+  const primary: StyleValue = { token: '--kit-color-primary' };
+  assert.deepEqual(opsForStyle(view, 'background-color', primary, hover), [
+    {
+      op: 'setUtility',
+      id: ID,
+      value: 'tablet:hover:tw-bg-[color:var(--kit-color-primary)]',
+      before: null,
+    },
+  ]);
+  // Mapped onto `theme(colors.primary)`, it is the theme's own class.
+  const colors: TokenOption = {
+    var: '--kit-color-primary',
+    path: 'color.primary',
+    type: 'color',
+    css: '#18181b',
+    utility: { namespace: 'colors', name: 'primary' },
+  };
+  const keyed = { ...hover, tokens: [colors] };
+  assert.deepEqual(opsForStyle(view, 'background-color', primary, keyed), [
+    { op: 'setUtility', id: ID, value: 'tablet:hover:tw-bg-primary', before: null },
+  ]);
+  // Tailwind 3's solid outline.
+  assert.deepEqual(opsForStyle(view, 'outline-style', plainValue('solid'), hover), [
+    { op: 'setUtility', id: ID, value: 'tablet:hover:tw-outline', before: null },
+  ]);
+  // That `tw-outline` is the line's style only: a width goes beside it and it stays.
+  const outlined: Inspect = {
+    ...view,
+    className: { kind: 'string', value: 'tw-outline' },
+    styles: { ...view.styles, 'outline-style': { kind: 'utility', className: 'tw-outline' } },
+  };
+  assert.deepEqual(opsForStyle(outlined, 'outline-width', { raw: '2px' }, TAILWIND), [
+    { op: 'setUtility', id: ID, value: 'tw-outline-[length:2px]', before: null },
+  ]);
 });
 
 test("a property's own utility is swapped, another one stays and a class is added", () => {

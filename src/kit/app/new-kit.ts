@@ -80,13 +80,13 @@ function resolveSource(files: ProjectSetup, from: ProjectFlag): ProjectSource {
 }
 
 /**
- * Tailwind v3 needs its JavaScript config run in Node, which stage 2a does not do. A project's own
- * folder is styled with the project's Tailwind; a package only when it depends on Tailwind.
+ * kitvas builds with the project's Tailwind 3 or 4, so Tailwind 2 or older is refused. A project's
+ * own folder is styled with the project's Tailwind; a package only when it depends on Tailwind.
  */
-function refuseTailwindThree(files: ProjectSetup, source: ProjectSource): void {
+function refuseOldTailwind(files: ProjectSetup, source: ProjectSource): void {
   const version = files.packageVersion('tailwindcss');
   const major = version === undefined ? undefined : majorVersion(version);
-  if (major === undefined || major >= 4) return;
+  if (major === undefined || major >= 3) return;
   // Only the project's own folder and npm packages are styled with the project's Tailwind; a
   // written kit has its own CSS Modules.
   if (source.type !== 'repo' && source.type !== 'npm') return;
@@ -94,7 +94,7 @@ function refuseTailwindThree(files: ProjectSetup, source: ProjectSource): void {
     source.type === 'repo' || files.packageDependencies(source.package).includes('tailwindcss');
   if (!usesIt) return;
   throw new KitvasError('KIT_SOURCE_INVALID', {
-    detail: `the project has Tailwind CSS ${version}; kitvas reads Tailwind v4, v3 comes in a later stage`,
+    detail: `the project has Tailwind CSS ${version}; kitvas builds with Tailwind 3 or 4`,
   });
 }
 
@@ -132,7 +132,7 @@ function skeleton(id: string, source: ProjectSource, files: ProjectSetup): Kit {
  * Creates `<project>/.kitvas/kits/<id>/` with kit.json, an empty json/tokens.json and
  * generated/kit.ts. Refuses an id that is taken (KIT_EXISTS), a package that is not installed
  * (KIT_PACKAGE_MISSING) and a folder that does not exist or leads outside the project, or a source
- * styled with Tailwind v3 (KIT_SOURCE_INVALID). What it writes is not validated: it is a skeleton.
+ * styled with Tailwind 2 or older (KIT_SOURCE_INVALID). What it writes is not validated: it is a skeleton.
  */
 export function newKit(deps: NewKitDeps, id: string, from: SourceFlag): NewKit {
   const checked = KitSchema.shape.id.safeParse(id);
@@ -147,7 +147,7 @@ export function newKit(deps: NewKitDeps, id: string, from: SourceFlag): NewKit {
   let images: ImagePlan | undefined;
   if (from.type === 'npm' || from.type === 'repo') {
     source = resolveSource(deps.files, { ...from, type: from.type });
-    refuseTailwindThree(deps.files, source);
+    refuseOldTailwind(deps.files, source);
   } else {
     ({ source, images } = resolveWrittenSource(deps.files, from));
   }

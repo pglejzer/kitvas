@@ -8,6 +8,7 @@ import { httpStatusOf, KitvasError, type Translate } from '../../shared/index.ts
 import { KitParams, NoParams, SlugParams } from '../api/schemas.ts';
 import { type PageRoute, pageRoute } from '../http/router.ts';
 import type { PalettePreviews } from '../previews/answer.ts';
+import type { OutdatedEntry } from '../views/kit-status.ts';
 import { draftPage } from './draft/draft-page.ts';
 import type { FrameOrigin } from './draft/frame-src.ts';
 import { galleryPage } from './gallery.ts';
@@ -35,6 +36,8 @@ export type PageDeps = {
   version: string;
   /** The id of the kit the project uses (`kit use`); `base` when it chose none. */
   projectKit(): string;
+  /** The components of a kit whose project files changed since they were copied; none when left out. */
+  outdated?: ((kit: string) => OutdatedEntry[]) | undefined;
   /** The doctor's checks and its report with nothing private; left out where the studio has no doctor. */
   doctor?: (() => Promise<{ checks: CheckResult[]; report: string }>) | undefined;
   /** A draft's page was made: the live loop's `opened`, where the studio builds drafts. */

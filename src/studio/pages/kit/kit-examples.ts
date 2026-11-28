@@ -6,7 +6,7 @@ import { extname } from 'node:path';
 import { type CatalogStamp, exampleKey } from '../../../render/index.ts';
 import type { Translate } from '../../../shared/index.ts';
 import { newChannel } from '../../security/token.ts';
-import type { LookView } from '../../views/kit-status.ts';
+import type { LookView, OriginalEntry } from '../../views/kit-status.ts';
 import { withChannel } from '../draft/frame-channel.ts';
 import { type Html, html, trusted } from '../html.ts';
 
@@ -27,6 +27,8 @@ export type CatalogInput = {
     src(file: string): string;
     look: LookView;
   };
+  /** A `code` kit verified as it is now: the numbers against the originals, by example key. */
+  originals?: Record<string, OriginalEntry[]> | undefined;
 };
 
 const HIDDEN = trusted(' hidden');
@@ -59,8 +61,9 @@ export function exampleFigure(
   const shownPair =
     reference === '' ? frame : html`<div class="kit-pair">${frame}${reference}</div>`;
   const look = lookNote(catalog, key, example.reference);
+  const original = originalNotes(catalog, key);
   // The source line of the example. A scrolling box takes focus, so a keyboard can read all of it.
-  return html`<figure class="kit-example"><figcaption>${example.title}</figcaption>${shownPair}${look}${note}<pre class="kit-source" tabindex="0"><code>${example.code}</code></pre></figure>`;
+  return html`<figure class="kit-example"><figcaption>${example.title}</figcaption>${shownPair}${look}${original}${note}<pre class="kit-source" tabindex="0"><code>${example.code}</code></pre></figure>`;
 }
 
 /** The copied reference beside its frame; nothing when the build did not copy it. */
@@ -76,6 +79,21 @@ function referenceImage(
   if (!refs.has(file)) return '';
   const alt = t('studio.kit.reference', { component, title: example.title });
   return html`<img class="kit-ref" data-reference="${key}" src="${refs.src(file)}" alt="${alt}" loading="lazy">`;
+}
+
+/** The differences and the score of an example against its original, a line a width. */
+function originalNotes(catalog: CatalogInput, key: string): Html | '' {
+  const entries = catalog.originals?.[key] ?? [];
+  if (entries.length === 0) return '';
+  const lines = entries.map((entry) => {
+    const text = catalog.t('studio.kit.original', {
+      width: entry.width,
+      differences: entry.differences,
+      score: Math.round(entry.score * 10) / 10,
+    });
+    return html`<p class="k-quiet" data-original="${key}">${text}</p>`;
+  });
+  return html`${lines}`;
 }
 
 /** The score of an example with a reference, or the note that the kit changed since. */

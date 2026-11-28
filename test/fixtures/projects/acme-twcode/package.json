@@ -1,0 +1,8 @@
+{
+  "name": "acme-twcode-fixture",
+  "private": true,
+  "description": "A project of HTML partials styled with Tailwind 3 utility classes, none of it React: kit acme-tw.",
+  "dependencies": {
+    "tailwindcss": "3.4.19"
+  }
+}

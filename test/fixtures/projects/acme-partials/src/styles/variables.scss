@@ -1,0 +1,8 @@
+@use "styles/tokens" as t;
+
+:root {
+  --acme-font-body: Arial, Helvetica, sans-serif;
+  --acme-ink: #{t.$ink};
+  --acme-muted: #{t.$muted};
+  --acme-line: #{t.$line};
+}
