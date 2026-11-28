@@ -56,7 +56,7 @@ Read by the `tailor` agent when the kit's source is `code`, after `write-kit.md`
 
 ## Findings
 
-- W57: `kit verify` runs the step `original` for each example that has an original. Its findings name an element, a property and both values (`kitIssue.originalDiffers`). Change that value in the copy and nothing else.
+- W57: `kit verify` runs the step `original` for each example that has an original. Its findings name an element, a property and both values (`kitIssue.originalDiffers`); the property `display` of a custom element is its tag's look (W37). Change that value in the copy and nothing else. A finding `kitIssue.originalAroundElsewhere` names a project file that uses the component outside the page its example stands in: take that page's rule out of the copy and the page out of the example (W42).
 - W58: A finding with the property `structure` means the copy's elements differ from the source's at the place it names. Fix the copy to match the source's elements (W37), never the original.
 - W59: A finding with the property `states` means the copy and the original do not hold the same controls. A finding with the property `outline` means a focus ring differs: write the ring the source has, in the copy.
 - W60: A picture that is far from its original (`kitIssue.originalFar`) names two PNGs. Look at both. The picture catches what the numbers do not read: a `::before` or `::after`, an underline, a text shadow, a background picture. Fix the copy.

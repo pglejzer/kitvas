@@ -201,6 +201,28 @@ test('a root whose content floats out of it is shot with that content and compar
   );
 });
 
+test("a copy's root drawn as a block where the app's tag stays in line is a display finding (W37)", async (t) => {
+  await onFixture(
+    t,
+    'acme-templates',
+    (_dir, kitDir) =>
+      change(
+        join(kitDir, 'components', 'Button.module.css'),
+        '.host {\n  display: inline-flex;\n}',
+        '.host {\n  display: block;\n}',
+      ),
+    (file) => {
+      const display = ofOriginal(file).filter(
+        (issue) => issue.params?.key === 'Button.1' && issue.params?.property === 'display',
+      );
+      assert.deepEqual(
+        display.map((issue) => [issue.params?.copy, issue.params?.original]),
+        [['block', 'inline-flex']],
+      );
+    },
+  );
+});
+
 test("a rule of the app's page reaches the original only inside the example's around", async (t) => {
   await onFixture(
     t,

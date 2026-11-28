@@ -11,7 +11,7 @@ import {
   LAYER_SVG_MAX,
   LAYER_TEXT_MAX,
   LAYERS_NODE_CAP,
-  type OutlineRead,
+  type PlacedRead,
 } from '../../domain/page/layers.ts';
 import type { Measure, MeasuredFrame, MeasureReport, MeasureState } from '../../ports/browser.ts';
 import { settle } from '../browser/settle.ts';
@@ -89,20 +89,32 @@ function rendered(): { count: number; mark: string | null } {
 }
 
 /**
- * Runs in the page: every element under the root that paints an outline, by its place (the child
- * numbers from the root) and its tags. The layer walk has no outline, and a focus ring is one.
+ * Runs in the page: by place (the child numbers from the root) and tags, every element under the
+ * root that paints an outline, and a display: in an original that of each component's root (its
+ * `data-kv-scope`, SCOPE_MARK, on the tag a component stands for), in a copy that of every element,
+ * so the compare reads the copy at the original's places (W37). The layer walk reads neither: a focus
+ * ring is an outline, and a tag that is a block where the app leaves it in line can draw the same
+ * boxes.
  */
-function readOutlines(): OutlineRead[] {
+function readPlaced(original: boolean): { outlines: PlacedRead[]; hosts: PlacedRead[] } {
   const root = document.getElementById('root');
-  const reads: OutlineRead[] = [];
+  const outlines: PlacedRead[] = [];
+  const hosts: PlacedRead[] = [];
   const visit = (element: Element, place: string, path: string): void => {
     const style = getComputedStyle(element);
-    if (style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) > 0) {
-      reads.push({
+    if (
+      place !== '' &&
+      style.outlineStyle !== 'none' &&
+      Number.parseFloat(style.outlineWidth) > 0
+    ) {
+      outlines.push({
         place,
         element: path,
         value: `${style.outlineWidth} ${style.outlineStyle} ${style.outlineColor}, offset ${style.outlineOffset}`,
       });
+    }
+    if (place !== '' && (!original || element.hasAttribute('data-kv-scope'))) {
+      hosts.push({ place, element: path, value: style.display });
     }
     const children = Array.from(element.children);
     children.forEach((child, index) => {
@@ -113,7 +125,7 @@ function readOutlines(): OutlineRead[] {
     });
   };
   if (root !== null) visit(root, '', '');
-  return reads.filter((read) => read.place !== '');
+  return { outlines, hosts };
 }
 
 /** Runs in the page: the selectors and declarations of the probe this browser does not read. */
@@ -216,8 +228,8 @@ export async function measurePage(
         textMax: LAYER_TEXT_MAX,
         svgMax: LAYER_SVG_MAX,
       });
-      const outlines = await page.evaluate(readOutlines);
-      frames.push({ state, control, facts: layerFacts(raw), outlines });
+      const { outlines, hosts } = await page.evaluate(readPlaced, input.search === '');
+      frames.push({ state, control, facts: layerFacts(raw), outlines, hosts });
     };
 
     // Motion off before anything is read, so a look is read where it ends, at rest too.

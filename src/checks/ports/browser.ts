@@ -3,7 +3,7 @@
 import type { OptionChoice } from '../../shared/index.ts';
 import type { Pixels } from '../domain/kit/look-score.ts';
 import type { PageFacts } from '../domain/page/facts.ts';
-import type { LayerFacts, OutlineRead } from '../domain/page/layers.ts';
+import type { LayerFacts, PlacedRead } from '../domain/page/layers.ts';
 import type { PageReport } from '../domain/page/page.ts';
 import type { InventoryItem } from '../domain/rework/inventory.ts';
 import type { ScanFacts } from '../domain/scan/scan-facts.ts';
@@ -202,7 +202,9 @@ export type MeasuredFrame = {
   /** The control's number in document order; -1 at rest. */
   control: number;
   facts: LayerFacts;
-  outlines: OutlineRead[];
+  outlines: PlacedRead[];
+  /** A display: of each component root in an original (`app-card`), of every element in a copy (W37). */
+  hosts: PlacedRead[];
 };
 
 export type MeasureReport =
