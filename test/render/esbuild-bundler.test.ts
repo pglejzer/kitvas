@@ -103,6 +103,31 @@ test('one build gives the script and the CSS of every style the modules import',
   }
 });
 
+test("the project's public variables from its env files are in the bundle, its secrets never", async () => {
+  const project = tempProject([], {
+    '.env': 'NEXT_PUBLIC_APP_URL=http://localhost:3000\nAPI_SECRET=s3cr3t-value\n',
+    '.env.local': 'VITE_API=https://api.example.test\n',
+  });
+  const { bundler, close } = tools();
+  const source = [
+    'const { NEXT_PUBLIC_APP_URL: url } = process.env;',
+    'console.log(url, process.env.NEXT_PUBLIC_APP_URL, import.meta.env.VITE_API, process.env.API_SECRET);',
+    '',
+  ].join('\n');
+  try {
+    const result = await bundler.bundle(input(project, source));
+    assert.deepEqual(result.errors, []);
+    assert.ok(result.js.includes('http://localhost:3000'));
+    assert.ok(result.js.includes('https://api.example.test'));
+    assert.ok(!result.js.includes('s3cr3t-value'));
+    // Outside a project there are no env files to read.
+    const outside = await bundler.bundle(input(project, source, false));
+    assert.ok(!outside.js.includes('http://localhost:3000'));
+  } finally {
+    await close();
+  }
+});
+
 test('without a project, or in a project without React, React is the copy kitvas ships', async () => {
   const project = tempProject([], PROJECT_REACT);
   const plain = tempProject([]);

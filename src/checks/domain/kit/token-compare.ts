@@ -95,6 +95,8 @@ export type TokenSeen = {
   value: string;
   /** The value as the browser painted it; `null` when it is not a colour. */
   color: string | null;
+  /** The value laid out as a width, in px (a `calc()` worked out); `null` when it is no length. */
+  length: number | null;
 };
 
 export type TokenVerdict =
@@ -117,7 +119,11 @@ export function compareToken(expected: TokenExpected, seen: TokenSeen): TokenVer
     return { ...different, expected: colorHex(expected.rgba), actual: colorHex(painted) };
   }
   if (expected.type === 'dimension') {
-    return sameDimension(expected.css, seen.value) ? { result: 'same' } : different;
+    if (sameDimension(expected.css, seen.value)) return { result: 'same' };
+    // A value the browser had to work out is held, and shown, as the px it laid out.
+    if (seen.length === null || toPx(seen.value) !== undefined) return different;
+    const actual = `${Math.round(seen.length * 100) / 100}px`;
+    return sameDimension(expected.css, actual) ? { result: 'same' } : { ...different, actual };
   }
   return sameText(expected.css, seen.value) ? { result: 'same' } : different;
 }

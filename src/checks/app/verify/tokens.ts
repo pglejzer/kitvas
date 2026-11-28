@@ -65,6 +65,7 @@ export async function tokensStep({ loaded, build, inspect }: TokensInput): Promi
     const verdict = compareToken(expectedOf(token), {
       value: report.vars[variable] ?? '',
       color: report.colors[variable] ?? null,
+      length: report.lengths[variable] ?? null,
     });
     if (verdict.result === 'same') continue;
     const path = `tokens.${name}`;

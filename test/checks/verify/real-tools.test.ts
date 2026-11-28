@@ -92,6 +92,42 @@ test('the npm fixture kit is valid in all five steps, its tokens read from the p
   }
 });
 
+/** Verifies the npm fixture kit with its `8px` space variable written as `value`. */
+async function verifySpace(value: string): Promise<VerifyFile> {
+  const { dir, kitId } = fixtureProject('acme-npm');
+  try {
+    const styles = join(dir, 'node_modules', '@acme', 'ui', 'styles.css');
+    writeFileSync(
+      styles,
+      readFileSync(styles, 'utf8').replace(
+        '--acme-space-2: 8px;',
+        `--acme-base: 0.5rem;\n  --acme-space-2: ${value};`,
+      ),
+    );
+    return await verify(projectKits(dir), kitId, dir);
+  } finally {
+    removeFixture(dir);
+  }
+}
+
+test('a variable the browser works out with calc() is held against its token in px', async () => {
+  // The way shadcn writes its radii: `calc(var(--radius) - 2px)`.
+  const same = await verifySpace('calc(var(--acme-base) - 0px)');
+  assert.deepEqual(same.issues, []);
+  assert.equal(same.steps.tokens, 'passed');
+
+  const other = await verifySpace('calc(var(--acme-base) - 2px)');
+  assert.deepEqual(
+    other.issues.map((issue) => [
+      issue.step,
+      issue.key,
+      issue.params.expected,
+      issue.params.actual,
+    ]),
+    [['tokens', 'kitIssue.tokenMismatch', '8px', '6px']],
+  );
+});
+
 test('wrong claims in kit.json come back at their places', async () => {
   const { dir, kitId } = fixtureProject('acme-npm');
   try {

@@ -95,12 +95,31 @@ function projectDraft(name: FixtureName) {
       catalogDir(project.dir, project.kitId),
       probe ? { probe } : {},
     );
+  /** A build in which `during` runs once the bundle is made, as an edit saved meanwhile would. */
+  const buildWhile = (during: () => void) =>
+    buildDraft(
+      {
+        drafts: store,
+        kits,
+        ...tools,
+        bundler: {
+          ...tools.bundler,
+          bundle: async (input) => {
+            const result = await tools.bundler.bundle(input);
+            during();
+            return result;
+          },
+        },
+      },
+      'page',
+    );
   const read = (...parts: string[]): string => readFileSync(join(versionDir, ...parts), 'utf8');
   return {
     ...project,
     versionDir,
     writer,
     build,
+    buildWhile,
     catalog,
     read,
     close: () => closeRenderTools(tools),
@@ -155,6 +174,27 @@ test('a Tailwind draft: tokens onto the theme, utilities of the draft and the ki
     );
     assert.equal((await shad.build()).cached, false);
     assert.ok(shad.read('build', 'css', 'index.css').includes('.added-by-test'));
+  } finally {
+    await shad.close();
+  }
+});
+
+test('a source saved while a build runs is built again by the next build', async () => {
+  const shad = projectDraft('acme-tailwind');
+  try {
+    const hero = join(shad.versionDir, 'src', 'tsx', 'sections', 'Hero.tsx');
+    // The first build of a Tailwind version: its utility files are new, so its key is made last.
+    const first = await shad.buildWhile(() =>
+      writeFileSync(
+        hero,
+        readFileSync(hero, 'utf8').replace('gap-4 p-6', 'gap-4 p-6 saved-meanwhile'),
+      ),
+    );
+    assert.equal(first.built, true);
+    assert.ok(!shad.read('build', 'js', 'index.js').includes('saved-meanwhile'));
+    assert.equal((await shad.build()).cached, false);
+    assert.ok(shad.read('build', 'js', 'index.js').includes('saved-meanwhile'));
+    assert.equal((await shad.build()).cached, true);
   } finally {
     await shad.close();
   }

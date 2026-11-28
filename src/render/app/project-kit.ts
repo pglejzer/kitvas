@@ -4,7 +4,7 @@
 import { join } from 'node:path';
 import { serializeJson } from '../../drafts/index.ts';
 import { ADDITION_FILES, isWrittenKit, type LoadedKit, PROJECT_PATH } from '../../kit/index.ts';
-import { packageDirFrom, TAILWIND_FILE, type TailwindFile } from '../../shared/index.ts';
+import { ENV_FILES, packageDirFrom, TAILWIND_FILE, type TailwindFile } from '../../shared/index.ts';
 import { CANDIDATE_LIMITS } from '../domain/candidates.ts';
 import type { MountProvider } from '../domain/provider-source.ts';
 import type { BuildFs } from '../ports/build-fs.ts';
@@ -78,14 +78,17 @@ export function componentDir(loaded: LoadedKit): string | undefined {
  */
 export function projectInputs(loaded: LoadedKit): { dirs: string[]; files: string[] } {
   const added = loaded.additionsDir === undefined ? [] : [loaded.additionsDir];
+  const { project } = loaded;
+  // The bundle holds the public variables of these files (ADR 0095).
+  const env = project === undefined ? [] : ENV_FILES.map((name) => join(project, name));
   const dir = componentDir(loaded);
-  if (dir === undefined) return { dirs: added, files: [] };
+  if (dir === undefined) return { dirs: added, files: env };
   const { type } = loaded.kit.source;
   // A written kit's components are inside the kit folder, which is hashed already.
-  if (isWrittenKit(loaded.kit)) return { dirs: added, files: [] };
+  if (isWrittenKit(loaded.kit)) return { dirs: added, files: env };
   return type === 'repo'
-    ? { dirs: [dir, ...added], files: [] }
-    : { dirs: added, files: [join(dir, 'package.json')] };
+    ? { dirs: [dir, ...added], files: env }
+    : { dirs: added, files: [join(dir, 'package.json'), ...env] };
 }
 
 const SCRIPTS = { repo: /\.(tsx|ts|jsx|js)$/, npm: /\.(js|mjs)$/, written: /\.(tsx|ts)$/ };

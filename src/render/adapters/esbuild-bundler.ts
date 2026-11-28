@@ -11,6 +11,7 @@ import {
   type ProjectResolve,
   packageDirFrom,
   readProjectResolve,
+  readPublicEnv,
   resolveDep,
 } from '../../shared/index.ts';
 import type { BuildError } from '../domain/report.ts';
@@ -54,12 +55,24 @@ const LOADERS: Record<string, Loader> = {
   ...Object.fromEntries(ASSETS.map((extension): [string, Loader] => [extension, 'dataurl'])),
 };
 
-/** Project code written for Vite or webpack reads these; in an IIFE they would not exist. */
-const DEFINE = {
-  'process.env.NODE_ENV': '"development"',
-  'process.env': '{}',
-  'import.meta.env': JSON.stringify({ MODE: 'development', DEV: true, PROD: false, SSR: false }),
-};
+/**
+ * Project code written for Vite or webpack reads these; in an IIFE they would not exist. A project's
+ * public variables are in both, as its own bundler puts them (ADR 0095).
+ */
+function defineFor(project: string | undefined): Record<string, string> {
+  const env = project === undefined ? {} : readPublicEnv(project);
+  return {
+    'process.env.NODE_ENV': '"development"',
+    'process.env': JSON.stringify({ NODE_ENV: 'development', ...env }),
+    'import.meta.env': JSON.stringify({
+      MODE: 'development',
+      DEV: true,
+      PROD: false,
+      SSR: false,
+      ...env,
+    }),
+  };
+}
 
 /** esbuild rejects with an error that carries `errors`. Anything else is a real failure. */
 function toErrors(cause: unknown): BuildError[] {
@@ -180,7 +193,7 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
           },
           loader: LOADERS,
           plugins: scss ? [scssPlugin({ compile: scss, lookup, workingDir })] : [],
-          define: { ...DEFINE, __KITVAS_IDS__: JSON.stringify(ids) },
+          define: { ...defineFor(project), __KITVAS_IDS__: JSON.stringify(ids) },
           ...(script === undefined ? {} : { globalName: script.globalName, minify: true }),
           logLevel: 'silent',
         });
@@ -222,7 +235,7 @@ export function createEsbuildBundler({ roots, jsxRuntime, scss }: EsbuildBundler
             exportsProbe(modules, workingDir),
             ...(scss ? [scssPlugin({ compile: scss, lookup, workingDir })] : []),
           ],
-          define: { ...DEFINE, __KITVAS_IDS__: '{}' },
+          define: { ...defineFor(project), __KITVAS_IDS__: '{}' },
           logLevel: 'silent',
         });
         return { names: exportedNames(result.metafile), errors: [] };

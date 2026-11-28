@@ -67,22 +67,28 @@ test('other values are the same text once spaces are tidied', () => {
 
 test('a colour is held against what the browser painted, whatever the notation', () => {
   const ink = { type: 'color', css: '#1a1a1a', rgba: INK };
-  assert.deepEqual(compareToken(ink, { value: 'oklch(0.2 0 0)', color: '#1b1b1b' }), {
+  assert.deepEqual(compareToken(ink, { value: 'oklch(0.2 0 0)', color: '#1b1b1b', length: null }), {
     result: 'same',
   });
   // The browser's hex is what the kit should say instead.
-  assert.deepEqual(compareToken(ink, { value: 'hsl(220 100% 50%)', color: '#0055ff' }), {
-    result: 'different',
-    expected: '#1a1a1a',
-    actual: '#0055ff',
-  });
-  assert.deepEqual(compareToken(ink, { value: 'rgb(26 26 26 / 0.5)', color: '#1a1a1a80' }), {
-    result: 'different',
-    expected: '#1a1a1a',
-    actual: '#1a1a1a80',
-  });
+  assert.deepEqual(
+    compareToken(ink, { value: 'hsl(220 100% 50%)', color: '#0055ff', length: null }),
+    {
+      result: 'different',
+      expected: '#1a1a1a',
+      actual: '#0055ff',
+    },
+  );
+  assert.deepEqual(
+    compareToken(ink, { value: 'rgb(26 26 26 / 0.5)', color: '#1a1a1a80', length: null }),
+    {
+      result: 'different',
+      expected: '#1a1a1a',
+      actual: '#1a1a1a80',
+    },
+  );
   // Not a colour at all: the raw value is all there is to show.
-  assert.deepEqual(compareToken(ink, { value: '0  0% 10%', color: null }), {
+  assert.deepEqual(compareToken(ink, { value: '0  0% 10%', color: null, length: null }), {
     result: 'different',
     expected: '#1a1a1a',
     actual: '0 0% 10%',
@@ -91,23 +97,49 @@ test('a colour is held against what the browser painted, whatever the notation',
 
 test('a length and any other value are held against the computed text', () => {
   const space = { type: 'dimension', css: '8px' };
-  assert.deepEqual(compareToken(space, { value: '0.5rem', color: null }), { result: 'same' });
-  assert.deepEqual(compareToken(space, { value: '12px', color: null }), {
+  assert.deepEqual(compareToken(space, { value: '0.5rem', color: null, length: null }), {
+    result: 'same',
+  });
+  assert.deepEqual(compareToken(space, { value: '12px', color: null, length: null }), {
     result: 'different',
     expected: '8px',
     actual: '12px',
   });
   const weight = { type: 'fontWeight', css: '700' };
-  assert.deepEqual(compareToken(weight, { value: ' 700 ', color: null }), { result: 'same' });
-  assert.deepEqual(compareToken(weight, { value: 'bold', color: null }), {
+  assert.deepEqual(compareToken(weight, { value: ' 700 ', color: null, length: null }), {
+    result: 'same',
+  });
+  assert.deepEqual(compareToken(weight, { value: 'bold', color: null, length: null }), {
     result: 'different',
     expected: '700',
     actual: 'bold',
   });
 });
 
+test('a length the browser worked out, such as a calc(), is held in px', () => {
+  const radius = { type: 'dimension', css: '6px' };
+  const seen = (length: number | null) => ({ value: 'calc(0.5rem - 2px)', color: null, length });
+  assert.deepEqual(compareToken(radius, seen(6)), { result: 'same' });
+  // The px the browser laid out is what the kit should say instead.
+  assert.deepEqual(compareToken(radius, seen(4)), {
+    result: 'different',
+    expected: '6px',
+    actual: '4px',
+  });
+  // Nothing measured: the raw value is all there is to show.
+  assert.deepEqual(compareToken(radius, seen(null)), {
+    result: 'different',
+    expected: '6px',
+    actual: 'calc(0.5rem - 2px)',
+  });
+});
+
 test('a variable without a value was not read', () => {
   const space = { type: 'dimension', css: '8px' };
-  assert.deepEqual(compareToken(space, { value: '', color: null }), { result: 'unread' });
-  assert.deepEqual(compareToken(space, { value: '   ', color: null }), { result: 'unread' });
+  assert.deepEqual(compareToken(space, { value: '', color: null, length: null }), {
+    result: 'unread',
+  });
+  assert.deepEqual(compareToken(space, { value: '   ', color: null, length: null }), {
+    result: 'unread',
+  });
 });

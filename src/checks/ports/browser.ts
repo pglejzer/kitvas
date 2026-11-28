@@ -56,6 +56,11 @@ export type InspectReport = {
    * with the kit's hex values.
    */
   colors: Record<string, string | null>;
+  /**
+   * Each asked variable laid out as a width, in px; `null` when its value is no length. Lets a
+   * `calc()` (`calc(var(--radius) - 2px)`) be compared with the kit's px.
+   */
+  lengths: Record<string, number | null>;
 };
 
 /**

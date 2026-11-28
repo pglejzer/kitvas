@@ -215,6 +215,12 @@ export async function buildDraft(deps: RenderDeps, slug: string): Promise<BuildR
   fs.copyDir(join(sourceDir, 'img'), join(out, 'img'));
   const utilityFiles = utility?.files ?? [];
   const key = sameFiles(utilityFiles, previous?.utility ?? []) ? before : keyOf(utilityFiles);
+  // A source saved while this build ran (an edit) is not in its output, though a key made now
+  // would say so: no stamp, and the next build runs again.
+  if (keyOf(previous?.utility ?? []) !== before) {
+    fs.remove(stampFile);
+    return { ...report, warnings, elements: ids.length };
+  }
   fs.writeText(
     stampFile,
     serializeJson({ schemaVersion: 1, key, elements: ids.length, utility: utilityFiles }),

@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- A project's public env variables (`NEXT_PUBLIC_`, `VITE_`, `REACT_APP_`, `GATSBY_`, `EXPO_PUBLIC_`, `PUBLIC_`) from its `.env`, `.env.development`, `.env.local` and `.env.development.local` are in `process.env` and `import.meta.env` of every bundle of its code, as its own bundler puts them, so components whose files check their variables when imported render in kitvas. No other name is ever read (ADR 0095).
 - Tailwind 3 projects: a kit is learned, built and checked with the project's own Tailwind 3 like a Tailwind 4 one; its tokens map onto theme paths (`theme(colors.primary)`), checked by `kit verify`, and makers, the editor and the code hand-off follow the project's version, prefix and screens (ADR 0094).
 - A kit from code in any technology: `kitvas kit new <id> --from code:<folder>` and `/kitvas:learn` read a folder of components as text and write each one again in React, with the project's own names and values. Each component records the project files it came from (`project`), and a hand-off points at the project's own component.
 - Originals: for each example the agent writes the component's own markup as the project draws it (`originals/`). The new verify step `original` compiles the project's style files, draws the original in kitvas's browser and compares it with the copy in numbers (sizes within half a pixel, every other value exact, hover, focus and pressed looks), then by picture.
@@ -16,6 +17,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- A change made in the editor while the draft was still building from the one before is built too: before, the first build of a new version could mark the newer source as built, and the change never showed.
+- `kitvas kit verify` holds a length the browser works out, such as `calc(var(--radius) - 2px)`, against its token in px, instead of calling it different.
 - A kit written from Figma, a website, images or code passes kitvas's element id on to each component's root: the editor can pick the component, and a check names a problem inside it as the kit's own.
 - A text that is all one inline element, such as a link alone in its block, is measured in that element's font, size, line height and colour, not the block's: the Figma hand-off draws it as the page does.
 - A kit of a project that finds its files in its own way no longer fails `kit verify`, a build or a check. Scripts, Sass and the types check now follow one reading of the project's `tsconfig.json` or `jsconfig.json`: `paths`, `baseUrl` as a folder imports start from (also in Sass: `@use 'style/space'`), the configs it extends and references, and the type files its `include` takes in, so a value the project adds to a library's component in a `.d.ts` file is known. ADR 0092.

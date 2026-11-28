@@ -101,3 +101,4 @@ The status is `accepted`, `replaced by ADR NNNN` (the later record took its plac
 | [0092](0092-one-record-of-how-a-project-finds-its-files.md) | One record of how a project finds its files and types | 2026-11-27 | accepted |
 | [0093](0093-a-kit-from-code-in-any-technology.md) | A kit from a project's code in any technology, compared with its drawn original | 2026-11-27 | accepted |
 | [0094](0094-tailwind-3-from-the-project.md) | Tailwind 3 from the project | 2026-11-27 | accepted |
+| [0095](0095-public-env-from-the-project.md) | Public environment variables from the project | 2026-11-28 | accepted |

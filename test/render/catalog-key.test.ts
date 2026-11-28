@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { createFolderKitStore } from '../../src/kit/adapters/folder-store.ts';
+import { createLayeredKitStore } from '../../src/kit/adapters/layered-store.ts';
 import { createNodeBuildFs } from '../../src/render/adapters/node-build-fs.ts';
 import {
   buildCatalog,
@@ -10,9 +11,10 @@ import {
   currentCatalogKey,
   readCatalogStamp,
 } from '../../src/render/index.ts';
-import { KitvasError } from '../../src/shared/index.ts';
+import { KitvasError, projectKitsDir } from '../../src/shared/index.ts';
 import { closeRenderTools, renderTools } from '../helpers/draft/render.ts';
-import { copyKit, tinyKitJson } from '../helpers/kit/kits.ts';
+import { builtinKits, copyKit, tinyKitJson } from '../helpers/kit/kits.ts';
+import { fixtureProject, removeFixture } from '../helpers/kit/projects.ts';
 import { tempDir } from '../helpers/tmp.ts';
 
 test('the current key is the stamp key after a build and another one once the kit changes', async () => {
@@ -33,6 +35,23 @@ test('the current key is the stamp key after a build and another one once the ki
     assert.notEqual(currentCatalogKey({ kits, ...tools }, 'tiny', dir), key);
   } finally {
     await closeRenderTools(tools);
+  }
+});
+
+test("a project kit's key changes with the project's env files, whose public variables a build holds", () => {
+  const { dir, kitId } = fixtureProject('acme-npm');
+  try {
+    const kits = createLayeredKitStore(builtinKits(), {
+      dir,
+      store: createFolderKitStore(projectKitsDir(dir)),
+    });
+    const deps = { kits, fs: createNodeBuildFs(), runtimeFiles: [] };
+    const catalog = tempDir('kitvas-catalog-');
+    const before = currentCatalogKey(deps, kitId, catalog);
+    writeFileSync(join(dir, '.env.local'), 'NEXT_PUBLIC_APP_URL=http://localhost:3000\n');
+    assert.notEqual(currentCatalogKey(deps, kitId, catalog), before);
+  } finally {
+    removeFixture(dir);
   }
 });
 

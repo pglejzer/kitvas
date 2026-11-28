@@ -223,6 +223,7 @@ export const report = (over: Partial<InspectReport> = {}): InspectReport => ({
   failed: [],
   vars: {},
   colors: {},
+  lengths: {},
   ...over,
 });
 
