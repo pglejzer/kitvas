@@ -25,6 +25,7 @@ claude plugin eval . --allow-tools Bash Write Edit --tag smoke   # skill evals (
 - Modules talk through their `index.ts`. Only `src/main.ts` imports adapters. `test/guards/architecture.test.ts` enforces it.
 - Code files have at most 500 lines, test files at most 800. Keep code in folders by responsibility, never one catch-all folder: a folder holds at most 20 code files directly; before the 21st, split it into subfolders named for what their files do (tests mirror their source). `test/guards/file-size.test.ts` enforces all three.
 - KISS, DRY, YAGNI. Before you add a helper, a value or a mechanism, search for the one the repo has and use it. Build only what the task asks for. A change removes, in the same task, the code, texts (`locales/en.json` keys), styles and tests it makes unneeded: no second copy, no compatibility layer, no cleanup left for later.
+- No over-engineering: the least code that solves the case in front of you. No option, flag, parameter, setting or generic helper for one caller or for a case that does not occur; no checks for a state the types or the callers already rule out; no special case where the rule can simply cover it. When a change grows past the part that misbehaves, stop and look for the smaller one.
 - Text for people comes from `locales/en.json` through `t()`. English only.
 - Every CLI command supports `--json`: `{"ok":true,"data":…}` or `{"ok":false,"error":{"code","message"}}`.
 - New dependency: exact version, at least 14 days old unless it fixes a vulnerability, `npm audit` clean.
