@@ -90,7 +90,7 @@ test('kitvas studio starts the studio of this project and prints its address', a
     url: STUDIO,
     port: 7001,
     pid: 7001,
-    version: '1.0.0',
+    version: '1.1.0',
     draftUrl: null,
     openUrl: LINK,
     fallbackUrl: FALLBACK,
@@ -147,7 +147,7 @@ test('status and stop', async () => {
   assert.equal(await h.run('studio', 'status'), 0);
   assert.equal(
     h.out.at(-1),
-    `The studio runs at ${url}/ (kitvas 1.0.0, process ${SAMPLE_STATE.pid}).`,
+    `The studio runs at ${url}/ (kitvas 1.1.0, process ${SAMPLE_STATE.pid}).`,
   );
   assert.equal(await h.run('studio', 'stop'), 0);
   assert.equal(h.out.at(-1), `The studio (process ${SAMPLE_STATE.pid}) stopped.`);

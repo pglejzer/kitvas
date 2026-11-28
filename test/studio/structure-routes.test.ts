@@ -17,7 +17,7 @@ import { etagOf } from '../../src/studio/http/etag.ts';
 import { NOW, tempDrafts } from '../helpers/draft/drafts.ts';
 import { call, studioOver } from '../helpers/studio/studio.ts';
 
-const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.1.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';
 const SECTION = 'sections/Pricing:section';
 const CARD = `${SECTION}/Stack/Card`;

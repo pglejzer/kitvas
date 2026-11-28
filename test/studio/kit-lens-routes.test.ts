@@ -11,7 +11,7 @@ import { type KitLens, KitLensSchema } from '../../src/studio/api/edit/kit-lens-
 import { NOW, tempDrafts } from '../helpers/draft/drafts.ts';
 import { call, studioOver } from '../helpers/studio/studio.ts';
 
-const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.1.0', hash: 'b'.repeat(64) };
 const DRAFT = '/api/v1/drafts/shop';
 
 const TSX = [

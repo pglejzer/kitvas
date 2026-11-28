@@ -18,7 +18,7 @@ function draftRoute(store: DraftStore, opened: string[]) {
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
-    version: '1.0.0',
+    version: '1.1.0',
     projectKit: () => 'kitvas-ui',
     opened: (slug) => {
       opened.push(slug);

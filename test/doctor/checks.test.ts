@@ -82,12 +82,12 @@ test('kit: ok, stale, issues, a load failure and no settings', () => {
   assert.equal(checkKit(input, undefined).status, 'skipped');
 
   const stale = healthy({
-    kit: () => ({ id: 'kitvas-ui', version: '1.0.0', source: 'npm', issues: 0, stale: true }),
+    kit: () => ({ id: 'kitvas-ui', version: '1.1.0', source: 'npm', issues: 0, stale: true }),
   }).input;
   assert.equal(checkKit(stale, SETTINGS).status, 'warn');
 
   const issues = healthy({
-    kit: () => ({ id: 'kitvas-ui', version: '1.0.0', source: 'npm', issues: 3, stale: false }),
+    kit: () => ({ id: 'kitvas-ui', version: '1.1.0', source: 'npm', issues: 3, stale: false }),
   }).input;
   const found = checkKit(issues, SETTINGS);
   assert.equal(found.status, 'fail');

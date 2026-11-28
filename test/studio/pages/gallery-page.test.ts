@@ -27,7 +27,7 @@ function home(store: DraftStore, options: Options = {}): string {
       t,
       skin: '/* skin */',
       frame: { port: 5001, key: 'k3y' },
-      version: '1.0.0',
+      version: '1.1.0',
       projectKit: () => kit,
       now: () => now,
     },
@@ -283,7 +283,7 @@ test('first run keeps the filter when some draft is in the trash', () => {
 test('the foot line holds the version, the address and the three small pages', () => {
   const text = home(shopDraft().store);
   const foot = /<footer class="start-foot">([\s\S]*?)<\/footer>/.exec(text)?.[1] ?? '';
-  assert.ok(foot.includes('<span>kitvas 1.0.0</span>'));
+  assert.ok(foot.includes('<span>kitvas 1.1.0</span>'));
   assert.ok(foot.includes('<span>Studio at 127.0.0.1:5000</span>'));
   assert.ok(foot.includes('<a href="/guide">Guide</a>'));
   assert.ok(foot.includes('<a href="/shortcuts">Shortcuts</a>'));

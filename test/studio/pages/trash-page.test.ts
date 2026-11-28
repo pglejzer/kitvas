@@ -20,7 +20,7 @@ async function page(store: DraftStore, id: 'home' | 'draft', path = '', query = 
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
-    version: '1.0.0',
+    version: '1.1.0',
     projectKit: () => 'kitvas-ui',
   });
   const route = routes.find((candidate) => candidate.id === id);

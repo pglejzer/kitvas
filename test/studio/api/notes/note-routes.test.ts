@@ -8,7 +8,7 @@ import type { NoteView } from '../../../../src/studio/api/notes/note-schemas.ts'
 import { NOW, tempDrafts } from '../../../helpers/draft/drafts.ts';
 import { call, studioOver } from '../../../helpers/studio/studio.ts';
 
-const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.1.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';
 const TEXT = 'sections/Pricing:section/Stack/Text';
 

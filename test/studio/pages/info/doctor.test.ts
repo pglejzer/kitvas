@@ -16,7 +16,7 @@ const CHECKS: CheckResult[] = [
   { id: 'data', status: 'fail', detail: 'The folder is locked.', fix: 'Check its permissions.' },
   { id: 'studio', status: 'skipped', detail: 'Skipped: no workspace.' },
 ];
-const REPORT = 'kitvas doctor report\nkitvas 1.0.0\nok    node      Node 24 runs kitvas.';
+const REPORT = 'kitvas doctor report\nkitvas 1.1.0\nok    node      Node 24 runs kitvas.';
 
 const doctor = async () => ({ checks: CHECKS, report: REPORT });
 
