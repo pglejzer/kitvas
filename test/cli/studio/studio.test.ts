@@ -115,6 +115,14 @@ test('with a draft name the link opens that draft; an unknown draft is an error'
   assert.equal(await h.run('studio', 'Not_A_Slug'), 2);
 });
 
+test("with --kit the link opens that kit's page", async () => {
+  const h = harness(fakeLifecycle().deps);
+  assert.equal(await h.run('studio', '--kit', 'acme', '--json'), 0);
+  assert.equal(h.data().openUrl, `${STUDIO}/open?code=c0de&to=%2Fkit%2Facme`);
+  assert.equal(h.data().fallbackUrl, 'http://localhost:7001/open?code=c0de&to=%2Fkit%2Facme');
+  assert.equal(h.data().draftUrl, null);
+});
+
 test('--open opens the one-time link in the browser and still prints it', async () => {
   const h = harness(fakeLifecycle().deps);
   assert.equal(await h.run('studio', '--open'), 0);

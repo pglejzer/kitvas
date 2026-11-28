@@ -1,5 +1,5 @@
-// `kitvas studio [slug] [--open]`: start the project's studio when needed and print its address;
-// `--open` also opens the one-time link in the default browser.
+// `kitvas studio [slug] [--kit <id>] [--open]`: start the project's studio when needed and print its
+// address; the link opens the draft or the kit's page, and `--open` opens it in the default browser.
 // `status` and `stop`; `serve` runs the servers themselves and is what the detached process runs.
 
 import { realpathSync } from 'node:fs';
@@ -87,7 +87,9 @@ async function start(
   }
   const lifecycle = deps.lifecycle(project);
   const studio = await ensureStudio(lifecycle);
-  const link = await openLink(lifecycle, slug ? `/drafts/${slug}` : '/');
+  const kit = ctx.flags.kit;
+  const page = slug ? `/drafts/${slug}` : kit ? `/kit/${kit}` : '/';
+  const link = await openLink(lifecycle, page);
   // The browser opens only once the studio answers and the code exists, so it never lands on a
   // dead address.
   const opened = ctx.flags.open && deps.openBrowser(link.url, link.fallbackUrl);

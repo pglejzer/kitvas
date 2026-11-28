@@ -6,8 +6,8 @@ import { newToken } from './token.ts';
 export const LINK_TTL_MS = 60_000;
 /** Codes kept at once; the oldest goes first. */
 const MAX_LINKS = 20;
-/** The pages a link may lead to: the drafts, or one draft. */
-export const PAGE_PATH = /^\/(drafts\/[a-z0-9][a-z0-9-]{0,62})?$/;
+/** The pages a link may lead to: the drafts, one draft, or one kit's page. */
+export const PAGE_PATH = /^\/((?:drafts|kit)\/[a-z0-9][a-z0-9-]{0,62})?$/;
 
 export const pagePathAllowed = (path: string): boolean => PAGE_PATH.test(path);
 

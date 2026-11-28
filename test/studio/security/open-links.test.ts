@@ -26,14 +26,16 @@ test('at most 20 codes are kept; the oldest goes first', () => {
   assert.equal(links.redeem(codes[20] ?? ''), true);
 });
 
-test('links lead only to the drafts or one draft', () => {
-  for (const path of ['/', '/drafts/shop', '/drafts/a-1'])
+test("links lead only to the drafts, one draft or one kit's page", () => {
+  for (const path of ['/', '/drafts/shop', '/drafts/a-1', '/kit/acme-sfc'])
     assert.equal(pagePathAllowed(path), true);
   for (const path of [
     '',
     '//evil.example',
     '/drafts/',
     '/drafts/Shop',
+    '/kit/',
+    '/kit/acme/x',
     '/api/v1/status',
     '/open',
   ]) {

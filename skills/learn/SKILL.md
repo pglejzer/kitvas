@@ -114,7 +114,7 @@ When `data.valid` is false, start the same agent again (learner or tailor) with 
 
 ## 11. Use and show
 
-If `schema`, `imports` and `types` passed, offer to use the kit for the project, and on yes run `KITVAS kit use <id> --json` (it writes `kit: <id>` in `.kitvas/decisions.md`). Then run `KITVAS studio --open --json` and give the user `data.openUrl` (and `data.fallbackUrl` as a fallback) with `/kit/<id>` as the page to open: examples are rendered there, with their references beside them. The link works once, for 60 seconds. After the first visit, `http://kitvas.localhost:<port>/` opens without a link for 30 days.
+If `schema`, `imports` and `types` passed, offer to use the kit for the project, and on yes run `KITVAS kit use <id> --json` (it writes `kit: <id>` in `.kitvas/decisions.md`). Then run `KITVAS studio --kit <id> --open --json` and give the user `data.openUrl` (and `data.fallbackUrl` as a fallback): it opens the kit's page, where examples are rendered with their references beside them. The link works once, for 60 seconds. After the first visit, `http://kitvas.localhost:<port>/kit/<id>` opens without a link for 30 days.
 
 If one of the three failed after two rounds, do not run `kit use`. Tell the user which issues remain and offer to try again.
 

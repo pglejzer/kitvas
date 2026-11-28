@@ -4,7 +4,12 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { KitvasError, loadDep, OPTION_PARAM, resolveDep } from '../../../shared/index.ts';
-import { AXE_TAGS, type AxeViolation, type PageReport } from '../../domain/page/page.ts';
+import {
+  AXE_TAGS,
+  type AxeViolation,
+  consoleText,
+  type PageReport,
+} from '../../domain/page/page.ts';
 import type { UsageRecord } from '../../domain/page/usage.ts';
 import type {
   Browser,
@@ -203,7 +208,7 @@ function createSession(
         page.on('console', (message) => {
           const type = message.type();
           if (listening && (type === 'error' || type === 'warning')) {
-            report.console.push({ type, text: message.text() });
+            report.console.push({ type, text: consoleText(message.text()) });
           }
         });
         page.on('pageerror', (error) => report.pageErrors.push(error.message));
@@ -271,7 +276,7 @@ function createSession(
         const page = await context.newPage();
         page.setDefaultTimeout(PAGE_TIMEOUT_MS);
         page.on('console', (message) => {
-          if (message.type() === 'error') report.errors.push(message.text());
+          if (message.type() === 'error') report.errors.push(consoleText(message.text()));
         });
         page.on('pageerror', (error) => report.errors.push(error.message));
         page.on('requestfailed', (request) => {
