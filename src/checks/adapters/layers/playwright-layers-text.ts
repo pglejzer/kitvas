@@ -168,7 +168,8 @@ export function installLayerTools(): boolean {
     if (space === 'pre-line') {
       return [text.data.replace(/[ \t]+/g, ' ').replace(/ ?\n ?/g, '\n'), true];
     }
-    return [text.data.replace(/\s+/g, ' '), true];
+    // CSS collapses spaces, tabs and line breaks, never a no-break space (`&nbsp;`).
+    return [text.data.replace(/[ \t\n\r\f]+/g, ' '), true];
   };
 
   const range = document.createRange();
@@ -182,7 +183,7 @@ export function installLayerTools(): boolean {
     let left = Number.POSITIVE_INFINITY;
     let right = Number.NEGATIVE_INFINITY;
     for (const piece of pieces) {
-      if (!(piece instanceof Text) || piece.data.trim() === '') continue;
+      if (!(piece instanceof Text) || /^[ \t\n\r\f]*$/.test(piece.data)) continue;
       range.selectNodeContents(piece);
       for (const rect of Array.from(range.getClientRects())) {
         if (rect.width <= 0 || rect.height <= 0) continue;
@@ -232,8 +233,13 @@ export function installLayerTools(): boolean {
     if (whole.trim() === '') return null;
     const truncated = whole.length > max;
     // A text that is all one inline element (a link alone in its block) is drawn in that element's
-    // look, not the block's: the block's own font may come from the page around the component.
-    const holders = new Set(segments.map((segment) => segment.from));
+    // look, not the block's: the block's own font may come from the page around the component. The
+    // spaces of the markup around it (a file's last line break) paint no letter and do not count.
+    const holders = new Set(
+      segments
+        .filter(({ start, end }) => characters.slice(start, end).trim() !== '')
+        .map((segment) => segment.from),
+    );
     const [only] = holders;
     const style = getComputedStyle(holders.size === 1 && only !== undefined ? only : block);
     const text = styled(style, truncated ? whole.slice(0, max) : whole, truncated);
