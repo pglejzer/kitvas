@@ -7,8 +7,50 @@
 
 import { ICON_SHEET_KEY, type IconSheet, iconSheetSource } from './icon-sheet.ts';
 import { type MountProvider, providerSource } from './provider-source.ts';
+import { readSites } from './sites.ts';
 
 export type CatalogExample = { key: string; code: string };
+
+/** The file name the catalog's entry is bundled under; its element marks are keyed by it. */
+export const CATALOG_ENTRY = 'kitvas-catalog.tsx';
+
+/**
+ * The element id kitvas hands a kit component written in an example: `<example key>:<name>`. A
+ * component that puts the props it does not name on its root element shows it on the page (W10).
+ */
+export const exampleMarkOf = (key: string, component: string): string => `${key}:${component}`;
+
+/**
+ * The element ids of the catalog for the bundler: the place of each kit component written in an
+ * example (`<entry>:<line>:<column>`) to `exampleMarkOf`. `compiled` is `source` as the bundler's
+ * transform prints it with dev JSX under `CATALOG_ENTRY`; none when its elements cannot be read.
+ */
+export function catalogMarks(
+  source: string,
+  compiled: string,
+  examples: CatalogExample[],
+  components: string[],
+): Record<string, string> {
+  const sites = readSites(compiled);
+  if (!sites) return {};
+  // Each example's lines in the entry, as `exampleFunction` writes them; 1-based, like the sites.
+  const lines = source.split('\n');
+  const spans = examples.map((example, index) => {
+    const first = lines.indexOf(`function KitvasExample${index}() {`) + 1;
+    return { key: example.key, first, last: first + example.code.split('\n').length + 3 };
+  });
+  const names = new Set(components);
+  const marks: Record<string, string> = {};
+  for (const site of sites) {
+    if (!names.has(site.tag)) continue;
+    const span = spans.find(
+      (one) => one.first > 0 && one.first <= site.line && site.line <= one.last,
+    );
+    if (span)
+      marks[`${CATALOG_ENTRY}:${site.line}:${site.column}`] = exampleMarkOf(span.key, site.tag);
+  }
+  return marks;
+}
 
 export type CatalogMountInput = {
   providers: MountProvider[];

@@ -102,6 +102,14 @@ function hasContent(): boolean {
   return (document.getElementById('root')?.childElementCount ?? 0) > 0;
 }
 
+/** Runs in the page: the element ids on it, each once. */
+function readMarks(): string[] {
+  const marks = Array.from(document.querySelectorAll('[data-ks]'), (element) =>
+    element.getAttribute('data-ks'),
+  );
+  return [...new Set(marks.filter((mark) => mark !== null))];
+}
+
 /** Runs in the page: the mark `client/frame/page/example.ts` leaves after rendering an example. */
 function readExampleMark(): 'shown' | 'failed' | null {
   const mark = document.documentElement.dataset.example;
@@ -254,6 +262,7 @@ function createSession(
         example: null,
         errors: [],
         failed: [],
+        marks: [],
         vars: Object.fromEntries(vars.map((name) => [name, ''])),
         colors: Object.fromEntries(vars.map((name) => [name, null])),
         lengths: Object.fromEntries(vars.map((name) => [name, null])),
@@ -277,6 +286,7 @@ function createSession(
         }
         await page.evaluate(settle);
         report.example = await page.evaluate(readExampleMark);
+        report.marks = await page.evaluate(readMarks);
         if (vars.length > 0) Object.assign(report, await page.evaluate(readVars, vars));
         return report;
       } finally {

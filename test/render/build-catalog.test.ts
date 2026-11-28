@@ -52,6 +52,24 @@ function workshop(kitsRoot: string, kitId = 'tiny') {
   return { dir, build, close, read, stamp };
 }
 
+test('each kit component written in an example gets an element id, a plain element none', async () => {
+  const shop = workshop(
+    kitWith(
+      [button('In a row', '<div>\n  <Button>Save</Button>\n  <Button>Cancel</Button>\n</div>')],
+      [{ title: 'Check', code: '<Icon name="check" />', imports: ['Icon'] }],
+    ),
+  );
+  try {
+    assert.equal((await shop.build()).built, true);
+    const ids = [
+      ...shop.read('js', 'index.js').matchAll(/"kitvas-catalog\.tsx:\d+:\d+":\s*"([^"]+)"/g),
+    ].map((match) => match[1]);
+    assert.deepEqual(ids, ['Button.1:Button', 'Button.1:Button', 'Icon.1:Icon']);
+  } finally {
+    await shop.close();
+  }
+});
+
 test('builds the page, the script, the sheet and the stamp', async () => {
   const shop = workshop(kitWith([button('Solid', '<Button>Save</Button>')]));
   try {

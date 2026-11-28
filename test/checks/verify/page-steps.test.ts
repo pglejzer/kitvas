@@ -55,6 +55,7 @@ test('a catalog that did not build fails render with the build errors', async ()
     reported: new Set(),
     inspect: inspector.inspect,
     bundler: fakeBundler(),
+    forwards: [],
   });
   assert.deepEqual(result, {
     state: 'failed',
@@ -81,6 +82,7 @@ test('every shown example is opened at 1280 by 800 and passes when it shows clea
     reported: new Set(),
     inspect: inspector.inspect,
     bundler,
+    forwards: [],
   });
   assert.deepEqual(result, { state: 'passed', issues: [] });
   assert.deepEqual(inspector.asked, [
@@ -89,6 +91,45 @@ test('every shown example is opened at 1280 by 800 and passes when it shows clea
     { page: PAGE, search: '?example=TextField.1', width: 1280, height: 800, vars: [] },
     { page: PAGE, search: '?example=Badge.1', width: 1280, height: 800, vars: [] },
   ]);
+});
+
+test('a component whose element id reaches no page of its examples is reported once', async () => {
+  const { kit } = acmeLoaded();
+  const bundler = fakeBundler();
+  const inspector = fakeInspector({
+    // Button hands its id on in one of its two examples: enough.
+    '?example=Button.2': { marks: ['Button.2:Button'] },
+    '?example=Badge.1': { marks: ['Button.1:Button'] },
+    // TextField's one example did not render: no word on its id.
+    '?example=TextField.1': { example: 'failed' },
+  });
+  const result = await renderStep({
+    build: catalog({ shown: ['Button.1', 'Button.2', 'TextField.1', 'Badge.1'] }),
+    dir: ACME_CATALOG,
+    examples: await parseExamples(bundler, kit),
+    reported: new Set(),
+    inspect: inspector.inspect,
+    bundler,
+    forwards: [
+      { name: 'Button', path: 'components.0' },
+      { name: 'TextField', path: 'components.1' },
+      { name: 'Badge', path: 'components.2' },
+      // Written in no example: nothing to say.
+      { name: 'Bad', path: 'components.3' },
+    ],
+  });
+  assert.deepEqual(
+    result.issues.filter((issue) => issue.key === 'kitIssue.restNotForwarded'),
+    [
+      {
+        step: 'render',
+        path: 'components.2',
+        key: 'kitIssue.restNotForwarded',
+        params: { name: 'Badge' },
+      },
+    ],
+  );
+  assert.equal(result.state, 'failed');
 });
 
 test('an example that does not show, errors or fails a request is reported at its place', async () => {
@@ -106,6 +147,7 @@ test('an example that does not show, errors or fails a request is reported at it
     reported: new Set(),
     inspect: inspector.inspect,
     bundler,
+    forwards: [],
   });
   assert.deepEqual(result, {
     state: 'failed',
@@ -156,6 +198,7 @@ test('an example the build left out is reported unless types already did', async
     reported: new Set(['Button.2']),
     inspect: inspector.inspect,
     bundler,
+    forwards: [],
   });
   assert.deepEqual(result, {
     state: 'failed',

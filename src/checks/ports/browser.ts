@@ -48,6 +48,8 @@ export type InspectReport = {
   errors: string[];
   /** Requests that failed: `<url> (<reason>)`. */
   failed: string[];
+  /** The element ids (`data-ks`) on the page after rendering, each once. */
+  marks: string[];
   /** Computed value of each asked variable, trimmed; `''` when it has none. */
   vars: Record<string, string>;
   /**

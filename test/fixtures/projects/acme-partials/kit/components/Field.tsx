@@ -1,15 +1,16 @@
+import type { HTMLAttributes } from 'react';
 import styles from './Field.module.css';
 
-export type FieldProps = {
+export type FieldProps = HTMLAttributes<HTMLDivElement> & {
   label: string;
   name: string;
   placeholder?: string;
   defaultValue?: string;
 };
 
-export function Field({ label, name, placeholder, defaultValue }: FieldProps) {
+export function Field({ label, name, placeholder, defaultValue, ...rest }: FieldProps) {
   return (
-    <div className={styles.field}>
+    <div className={styles.field} {...rest}>
       <label className={styles.label} htmlFor={name}>
         {label}
       </label>

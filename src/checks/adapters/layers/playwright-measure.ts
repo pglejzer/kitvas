@@ -72,6 +72,14 @@ function fontsReady(): Promise<null> {
   return document.fonts.ready.then(() => null);
 }
 
+/**
+ * Runs in the page: an original carries no element ids, so a copy's come off as well and both are
+ * walked alike (the layer walk keeps an element that has one).
+ */
+function dropMarks(): void {
+  for (const element of document.querySelectorAll('[data-ks]')) element.removeAttribute('data-ks');
+}
+
 /** Runs in the page: what stands in the root, and the mark a catalog example leaves. */
 function rendered(): { count: number; mark: string | null } {
   return {
@@ -173,6 +181,7 @@ export async function measurePage(
     if (shown.mark === 'failed') return { state: 'failed', error: errors[0] ?? SAY.failed };
     if (shown.count === 0) return { state: 'failed', error: errors[0] ?? SAY.empty };
 
+    await page.evaluate(dropMarks);
     await page.evaluate(walkNodes, { cap: WALK_CAP, root: 'draft' as const });
     if (!(await page.evaluate(installLayerTools))) return { state: 'failed', error: SAY.tools };
     const read = async (state: MeasureState, control: number): Promise<void> => {

@@ -128,6 +128,39 @@ test('a variable the browser works out with calc() is held against its token in 
   );
 });
 
+test('a written component that keeps its element id off the page fails render (W10)', async () => {
+  const { dir, kitId } = fixtureProject('acme-written');
+  try {
+    const kitDir = join(projectKitsDir(dir), kitId);
+    // No scan here: without references `look` has nothing to score.
+    const kitJson = join(kitDir, 'kit.json');
+    const kit = JSON.parse(readFileSync(kitJson, 'utf8')) as {
+      components: { examples: { reference?: string }[] }[];
+    };
+    for (const component of kit.components) {
+      for (const example of component.examples) delete example.reference;
+    }
+    writeFileSync(kitJson, JSON.stringify(kit, null, 2));
+    const renderIssues = (file: VerifyFile) =>
+      file.issues
+        .filter((issue) => issue.step === 'render')
+        .map((issue) => [issue.path, issue.key, issue.params.name]);
+
+    const forwarding = await verify(projectKits(dir), kitId, dir);
+    assert.equal(forwarding.steps.render, 'passed', JSON.stringify(forwarding.issues));
+
+    const heading = join(kitDir, 'components', 'Heading.tsx');
+    writeFileSync(heading, readFileSync(heading, 'utf8').replace(' {...rest}', ''));
+    const dropping = await verify(projectKits(dir), kitId, dir);
+    assert.deepEqual(renderIssues(dropping), [
+      ['components.3', 'kitIssue.restNotForwarded', 'Heading'],
+    ]);
+    assert.equal(dropping.steps.render, 'failed');
+  } finally {
+    removeFixture(dir);
+  }
+});
+
 test('wrong claims in kit.json come back at their places', async () => {
   const { dir, kitId } = fixtureProject('acme-npm');
   try {

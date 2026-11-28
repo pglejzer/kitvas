@@ -101,7 +101,22 @@ async function pageSteps(deps: VerifyDeps, input: PageInput): Promise<PageSteps>
       { probe: mappedVariables(loaded) },
     );
     const { bundler } = deps.render;
-    const render = await renderStep({ build, dir, examples, reported, inspect, bundler });
+    // A written kit's components are kitvas's to fix, so each must hand on its element id (W10).
+    const forwards = isWritten(loaded)
+      ? loaded.kit.components.map((component, index) => ({
+          name: component.name,
+          path: `components.${index}`,
+        }))
+      : [];
+    const render = await renderStep({
+      build,
+      dir,
+      examples,
+      reported,
+      inspect,
+      bundler,
+      forwards,
+    });
     const tokens = await tokensStep({ loaded, build, inspect });
     // Each skipped step names its reason once.
     const notes: string[] = [];

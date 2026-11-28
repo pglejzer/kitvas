@@ -22,7 +22,7 @@ Your prompt holds the kit folder (`.kitvas/kits/<id>/`), the project folder, the
 
 ## Write
 
-Write only these files inside the kit folder: `kit.json`, `json/tokens.json`, `json/css-var-map.json`, a theme's token file `json/tokens.<id>.json` and, only in the case of rule L31e, `theme.ts`. When your prompt names a fragment file, write only that file (rule L8b) and never `kit.json`. Never write `generated/`: kitvas writes it. Never edit the project's files or anything in `node_modules`. Nothing outside the kit folder.
+Write only these files inside the kit folder: `kit.json`, `json/tokens.json`, `json/css-var-map.json`, a theme's token file `json/tokens.<id>.json`, only in the case of rule L31e `theme.ts` and only in the case of rule L31h `styles/fonts.css`. When your prompt names a fragment file, write only that file (rule L8b) and never `kit.json`. Never write `generated/`: kitvas writes it. Never edit the project's files or anything in `node_modules`. Nothing outside the kit folder.
 
 ## Rules in short
 

@@ -107,6 +107,7 @@
   "kitIssue.exampleRejected": "Example {key} does not compile: {detail}",
   "kitIssue.exampleNotShown": "Example {key} did not render.",
   "kitIssue.exampleError": "Example {key} reported an error: {detail}",
+  "kitIssue.restNotForwarded": "{name} does not put the props it does not name on its root element, so kitvas's element id never reaches the page: the editor cannot pick it in a draft and a check cannot name it. Take them as `...rest` and spread them on the root (W10).",
   "kitIssue.tokenMismatch": "Token {token} is {expected} in the kit but {actual} in the browser ({variable}).",
   "kitIssue.tokenUnread": "{variable} of token {token} has no value in the browser.",
   "kitIssue.entryNotGenerated": "A project kit's runtime.entry must be \"{expected}\", the file kitvas writes from the catalog; it is \"{entry}\".",

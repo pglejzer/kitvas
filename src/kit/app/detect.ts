@@ -45,7 +45,17 @@ export const COMPONENT_FOLDERS = [
   'src/app/shared',
   'src/lib/components',
   'app/components',
+  // Templates and partials: Handlebars and other static sites, Laravel, Rails, Hugo, Jekyll, Django.
+  'src/partials',
+  'partials',
+  'resources/views/components',
+  'app/views/components',
+  'layouts/partials',
+  '_includes',
+  'templates/components',
 ] as const;
+/** Angular keeps a component's files side by side anywhere in its app folder: only they count there. */
+const ANGULAR_APP = { folder: 'src/app', file: /\.component\.[a-z]+$/ } as const;
 export const COMPONENT_SIGN_FILES = 10;
 /** Files looked at per folder; a folder this large is a sign long before the cap. */
 const LIST_CAP = 2000;
@@ -91,14 +101,22 @@ function detectKit(deps: DetectDeps, id: string): DetectedKit {
   }
 }
 
+/** The files of a folder a sign counts: none in a dot folder or named with a dot first. */
+const countedFiles = (files: ProjectSetup, folder: string): string[] =>
+  files
+    .listFiles(folder)
+    .slice(0, LIST_CAP)
+    .filter((file) => !file.split('/').some((part) => part.startsWith('.')));
+
 function componentFolders(files: ProjectSetup): string[] {
-  return COMPONENT_FOLDERS.filter((folder) => {
-    const count = files
-      .listFiles(folder)
-      .slice(0, LIST_CAP)
-      .filter((file) => !file.split('/').some((part) => part.startsWith('.'))).length;
-    return count >= COMPONENT_SIGN_FILES;
-  });
+  const found: string[] = COMPONENT_FOLDERS.filter(
+    (folder) => countedFiles(files, folder).length >= COMPONENT_SIGN_FILES,
+  );
+  const { folder, file } = ANGULAR_APP;
+  const inside = found.some((sign) => sign.startsWith(`${folder}/`));
+  const angular = countedFiles(files, folder).filter((name) => file.test(name));
+  if (!inside && angular.length >= COMPONENT_SIGN_FILES) found.push(folder);
+  return found;
 }
 
 /** Known design-system packages the project depends on; a package.json that does not parse counts as none. */

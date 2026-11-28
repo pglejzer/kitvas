@@ -51,6 +51,44 @@ test('nine files are not a sign, ten of any kind are, and nested files count', (
   assert.deepEqual(detect(project).signs.components, ['src/ui', 'src/app/components']);
 });
 
+test('template folders of other technologies are signs, and Angular counts only its component files', () => {
+  const files = (folder: string, count: number, name: (i: number) => string) =>
+    Object.fromEntries(Array.from({ length: count }, (_, i) => [`${folder}/${name(i)}`, 'x']));
+  const project = tempProject({
+    ...files('resources/views/components', 10, (i) => `c${i}.blade.php`),
+    ...files('layouts/partials', 10, (i) => `p${i}.html`),
+    ...files('src/partials', 10, (i) => `p${i}.hbs`),
+    // Four Angular components of three files each, beside routes and services that do not count.
+    ...files(
+      'src/app',
+      12,
+      (i) => `part${Math.floor(i / 3)}/part.component.${['ts', 'html', 'css'][i % 3]}`,
+    ),
+    ...files('src/app', 9, (i) => `app.routes${i}.ts`),
+  });
+  assert.deepEqual(detect(project).signs.components, [
+    'src/partials',
+    'resources/views/components',
+    'layouts/partials',
+    'src/app',
+  ]);
+  // Nine component files in src/app, and a Next app folder of pages, are no sign.
+  const next = tempProject({
+    ...files('src/app', 9, (i) => `part${i}/part.component.ts`),
+    ...files('app', 12, (i) => `route${i}/page.tsx`),
+  });
+  assert.deepEqual(detect(next).signs.components, []);
+});
+
+test('Angular components under src/app/components are one sign, not two', () => {
+  const project = tempProject(
+    Object.fromEntries(
+      Array.from({ length: 12 }, (_, i) => [`src/app/components/c${i}.component.ts`, 'x']),
+    ),
+  );
+  assert.deepEqual(detect(project).signs.components, ['src/app/components']);
+});
+
 test('a folder of dot files is not a sign', () => {
   const project = tempProject(
     Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`app/components/.f${i}`, 'x'])),
