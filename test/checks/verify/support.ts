@@ -12,7 +12,7 @@ import type {
   Measure,
   MeasuredFrame,
   MeasureReport,
-  OutlineRead,
+  PlacedRead,
   ToolMessage,
   TypeChecker,
   TypeCheckInput,
@@ -199,7 +199,11 @@ export function memoryFs(): MemoryFs {
   return {
     files,
     exists: (path) => [...files.keys()].some((file) => file === path || file.startsWith(path)),
-    listFiles: () => [],
+    listFiles: (dir) =>
+      [...files.keys()]
+        .filter((file) => file.startsWith(join(dir, '/')))
+        .map((file) => file.slice(dir.length + 1).replaceAll('\\', '/'))
+        .sort(),
     readBytes: (file) => new TextEncoder().encode(files.get(file) ?? ''),
     readText: (file) => files.get(file),
     writeText: (file, text) => {
@@ -409,8 +413,9 @@ export const frameOf = (
   state: MeasuredFrame['state'],
   control: number,
   nodes: LayerNode[] = buttonNodes(),
-  outlines: OutlineRead[] = [],
-): MeasuredFrame => ({ state, control, facts: layerFacts(nodes), outlines });
+  outlines: PlacedRead[] = [],
+  hosts: PlacedRead[] = [],
+): MeasuredFrame => ({ state, control, facts: layerFacts(nodes), outlines, hosts });
 
 type Measured = Extract<MeasureReport, { state: 'measured' }>;
 

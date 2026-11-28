@@ -34,7 +34,7 @@ test('status --json reports version, node, settings and a missing workspace', as
     };
   };
   assert.equal(payload.ok, true);
-  assert.equal(payload.data.version, '1.0.0');
+  assert.equal(payload.data.version, '1.1.0');
   assert.equal(payload.data.node, process.version);
   assert.equal(payload.data.language, 'en');
   assert.equal(payload.data.kit, 'kitvas-ui');
@@ -44,7 +44,7 @@ test('status --json reports version, node, settings and a missing workspace', as
 test('status in words tells the user to run init', async () => {
   const h = harness();
   await h.run('status');
-  assert.match(h.out[0] ?? '', /kitvas 1\.0\.0/);
+  assert.match(h.out[0] ?? '', /kitvas 1\.1\.0/);
   assert.match(h.out[0] ?? '', /run "kitvas init"/);
 });
 

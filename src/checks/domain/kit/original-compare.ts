@@ -2,7 +2,7 @@
 // ADR 0093). Pure. Only what a person would call a different look is compared: sizes, paints,
 // spacing and type. Tags, element ids and vector markup never are.
 
-import type { LayerFacts, LayerNode, OutlineRead } from '../page/layers.ts';
+import type { LayerFacts, LayerNode, PlacedRead } from '../page/layers.ts';
 
 /** px: width, height, left and top inside the root. */
 export const BOX_TOLERANCE = 0.5;
@@ -208,9 +208,9 @@ export function compareLayers(
 }
 
 /** Outlines paired by place: one only on one side, or another value, is one finding. */
-export function compareOutlines(copy: OutlineRead[], original: OutlineRead[]): OriginalDiff[] {
+export function compareOutlines(copy: PlacedRead[], original: PlacedRead[]): OriginalDiff[] {
   const diffs: OriginalDiff[] = [];
-  const theirs = new Map(original.map((outline) => [outline.place, outline]));
+  const theirs = new Map(original.map((read) => [read.place, read]));
   const seen = new Set<string>();
   for (const mine of copy) {
     seen.add(mine.place);
@@ -233,4 +233,19 @@ export function compareOutlines(copy: OutlineRead[], original: OutlineRead[]): O
     });
   }
   return diffs;
+}
+
+/**
+ * The display of each component root of the original against the copy's element at its place (W37).
+ * A place the copy lacks is the layer walk's `structure` finding.
+ */
+export function compareHosts(copy: PlacedRead[], original: PlacedRead[]): OriginalDiff[] {
+  const mine = new Map(copy.map((read) => [read.place, read]));
+  return original.flatMap((other) => {
+    const read = mine.get(other.place);
+    if (read === undefined || read.value === other.value) return [];
+    return [
+      { element: read.element, property: 'display', copy: read.value, original: other.value },
+    ];
+  });
 }

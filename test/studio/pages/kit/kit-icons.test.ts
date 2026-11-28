@@ -95,7 +95,7 @@ function kitPage(
             },
           },
         }),
-    version: '1.0.0',
+    version: '1.1.0',
     projectKit: () => 'kitvas-ui',
   });
   const route = routes.find((candidate) => candidate.id === 'kit');

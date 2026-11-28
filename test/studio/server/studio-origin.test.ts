@@ -316,7 +316,7 @@ test('status and the generated OpenAPI document', async () => {
       (await call(studio.port, { path: '/api/v1/status', headers })).text,
     ) as { name: string; version: string; framePort: number };
     assert.equal(status.name, 'kitvas');
-    assert.equal(status.version, '1.0.0');
+    assert.equal(status.version, '1.1.0');
     assert.equal(status.framePort, studio.framePort);
     const answer = await call(studio.port, { path: '/api/v1/openapi.json', headers });
     const doc = JSON.parse(answer.text) as { paths: Record<string, unknown> };

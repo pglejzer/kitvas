@@ -4,6 +4,7 @@ import type { IdEntry } from '../../../src/checks/domain/code/ids.ts';
 import {
   a11yFindings,
   buildPath,
+  consoleText,
   type PageReport,
   runtimeFindings,
 } from '../../../src/checks/domain/page/page.ts';
@@ -147,4 +148,15 @@ test('the page itself: blank, errors, console and files that did not load', () =
 test('a file address of the build is shown from the build folder on', () => {
   assert.equal(buildPath('file:///C:/w/v1/build/img/a.png'), 'build/img/a.png');
   assert.equal(buildPath('https://example.test/a.png'), 'https://example.test/a.png');
+});
+
+test("a console message loses React's format string and the lines of its stack", () => {
+  const react = [
+    '%o\n\n%s\n\n%s\n ReferenceError: value is not defined',
+    '    at KitvasExample14 (file:///C:/w/build/js/index.js:25553:9)',
+    '    at renderWithHooks (file:///C:/w/build/js/index.js:7270:26)',
+  ].join('\n');
+  assert.equal(consoleText(react), 'ReferenceError: value is not defined');
+  assert.equal(consoleText('Failed to load resource: 404'), 'Failed to load resource: 404');
+  assert.equal(consoleText('Key "%s" is used twice'), 'Key "%s" is used twice');
 });

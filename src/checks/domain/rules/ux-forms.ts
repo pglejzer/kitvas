@@ -378,6 +378,8 @@ const brokenAnchor: VisitRule = {
     nodes.forEach((node, index) => {
       const href = node.action?.kind === 'link' ? node.action.href : null;
       if (href === null || !href.startsWith('#') || href.length <= 1) return;
+      // A hash router's route (`#/settings`, `#!/settings`) leads out of the screen, to no id.
+      if (/^#!?\//.test(href)) return;
       const target = href.slice(1);
       let decoded = target;
       try {

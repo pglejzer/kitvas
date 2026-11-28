@@ -24,7 +24,7 @@ type Doc = {
 };
 
 const routes = apiRoutes(apiDeps());
-const doc = openApi(routes, '1.0.0', 5000) as Doc;
+const doc = openApi(routes, '1.1.0', 5000) as Doc;
 
 test('either the token or the page cookie of this port opens the API', () => {
   assert.deepEqual(doc.security, [{ token: [] }, { page: [] }]);
@@ -36,7 +36,7 @@ test('either the token or the page cookie of this port opens the API', () => {
 
 test('the document lists exactly the routes of the table', () => {
   assert.equal(doc.openapi, '3.1.1');
-  assert.equal(doc.info.version, '1.0.0');
+  assert.equal(doc.info.version, '1.1.0');
   const fromDoc = Object.entries(doc.paths)
     .flatMap(([path, operations]) =>
       Object.entries(operations).map(

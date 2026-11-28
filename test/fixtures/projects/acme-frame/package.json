@@ -1,0 +1,5 @@
+{
+  "name": "acme-frame",
+  "private": true,
+  "description": "Plain templates on a shared page grid, for the eval learn/code-frame."
+}

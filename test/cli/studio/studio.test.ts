@@ -90,7 +90,7 @@ test('kitvas studio starts the studio of this project and prints its address', a
     url: STUDIO,
     port: 7001,
     pid: 7001,
-    version: '1.0.0',
+    version: '1.1.0',
     draftUrl: null,
     openUrl: LINK,
     fallbackUrl: FALLBACK,
@@ -113,6 +113,14 @@ test('with a draft name the link opens that draft; an unknown draft is an error'
   assert.equal(h.data().fallbackUrl, fallback);
   assert.equal(await h.run('studio', 'nope'), 9);
   assert.equal(await h.run('studio', 'Not_A_Slug'), 2);
+});
+
+test("with --kit the link opens that kit's page", async () => {
+  const h = harness(fakeLifecycle().deps);
+  assert.equal(await h.run('studio', '--kit', 'acme', '--json'), 0);
+  assert.equal(h.data().openUrl, `${STUDIO}/open?code=c0de&to=%2Fkit%2Facme`);
+  assert.equal(h.data().fallbackUrl, 'http://localhost:7001/open?code=c0de&to=%2Fkit%2Facme');
+  assert.equal(h.data().draftUrl, null);
 });
 
 test('--open opens the one-time link in the browser and still prints it', async () => {
@@ -147,7 +155,7 @@ test('status and stop', async () => {
   assert.equal(await h.run('studio', 'status'), 0);
   assert.equal(
     h.out.at(-1),
-    `The studio runs at ${url}/ (kitvas 1.0.0, process ${SAMPLE_STATE.pid}).`,
+    `The studio runs at ${url}/ (kitvas 1.1.0, process ${SAMPLE_STATE.pid}).`,
   );
   assert.equal(await h.run('studio', 'stop'), 0);
   assert.equal(h.out.at(-1), `The studio (process ${SAMPLE_STATE.pid}) stopped.`);

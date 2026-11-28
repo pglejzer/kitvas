@@ -11,7 +11,7 @@ import { PLUGIN_ROOT } from '../../../src/shared/index.ts';
 import { NOW, tempDrafts } from '../../helpers/draft/drafts.ts';
 import { builtinKits } from '../../helpers/kit/kits.ts';
 
-const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.1.0', hash: 'b'.repeat(64) };
 const TSX_FILE = 'src/tsx/sections/Pricing.tsx';
 const SCSS_FILE = 'src/scss/sections/pricing.scss';
 

@@ -325,11 +325,13 @@ test('broken-anchor fixes a link to an id that does not exist', () => {
   assert.deepEqual(found[0]?.hint, hint('uxBrokenAnchor', { target: 'email-error' }));
 });
 
-test('broken-anchor is silent for a present id, a bare hash and other links', () => {
+test('broken-anchor is silent for a present id, a bare hash, a hash route and other links', () => {
   const nodes = [
     node({ tag: 'a', action: action({ kind: 'link', href: '#email' }) }),
     node({ tag: 'a', action: action({ kind: 'link', href: '#' }) }),
     node({ tag: 'a', action: action({ kind: 'link', href: '/pricing' }) }),
+    node({ tag: 'a', action: action({ kind: 'link', href: '#/settings' }) }),
+    node({ tag: 'a', action: action({ kind: 'link', href: '#!/profile/jane' }) }),
     node({ domId: 'email' }),
   ];
   assert.deepEqual(run('ux/broken-anchor', page(nodes)), []);

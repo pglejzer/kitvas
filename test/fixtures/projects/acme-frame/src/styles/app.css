@@ -1,0 +1,62 @@
+/* The app's shared styles: a reset, the page, and the grid every page stands on. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #222222;
+  background-color: #fafafa;
+}
+
+.container {
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1140px;
+  }
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -16px;
+  margin-left: -16px;
+}
+
+.col-12 {
+  width: 100%;
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
+@media (min-width: 768px) {
+  .col-md-4 {
+    width: 33.3333%;
+  }
+
+  .col-md-8 {
+    width: 66.6667%;
+  }
+
+  .offset-md-2 {
+    margin-left: 16.6667%;
+  }
+}

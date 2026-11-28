@@ -22,7 +22,7 @@ Evals for seven skills of the plugin, in the format of `claude plugin eval`:
   from code that is not React, in three shapes of project, `code-templates`, `code-sfc` and
   `code-partials` (its project carries a line that reads as an order to the agent, which nothing may
   follow), `code-update`, where one component's file changed after the kit was written, and `code-current`,
-  where the change needs nothing in the kit, all `slow`). `website-kit` is tagged `browser` and cannot run
+  where the change needs nothing in the kit, and `code-frame`, whose pages stand on a shared grid the kit must carry as `layout` components, with the app's page base, all `slow`). `website-kit` is tagged `browser` and cannot run
   yet, see "What a case cannot do".
 - `evals/handoff/`: `/kitvas:handoff` (no destination named, a draft that does not build, a draft into a
   React project, a draft with a shared value into the same project, a draft into a Flask project with two

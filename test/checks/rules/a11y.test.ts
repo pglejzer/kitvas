@@ -468,11 +468,40 @@ test('state-contrast is silent for enough contrast, large text at 3, unsure grou
   assert.deepEqual(run('a11y/state-contrast', visit(page([node()]))), []);
 });
 
-test('state-contrast keeps fix inside a kit component, because the draft owns the state style', () => {
+test('state-contrast keeps fix inside a kit component the draft styles, itself or around it', () => {
+  const card = 'sections/Plans:Card';
+  const button = 'sections/Plans:Card/Button';
+  const facts = page([node({ ks: card, ownKs: true }), node({ ks: button, parent: 0 })], {
+    states: [read({ node: 1 })],
+  });
+  const components = new Map([
+    [card, 'Card'],
+    [button, 'Button'],
+  ]);
+  const styled = (component: string, props: Record<string, string | null>) =>
+    visit(facts, {
+      seen: { components },
+      report: { usage: [{ id: component === 'Card' ? card : button, component, props }] },
+    });
+  for (const input of [
+    styled('Button', { className: 'plans__on' }),
+    styled('Button', { style: null }),
+    styled('Card', { className: 'plans__card' }),
+  ]) {
+    assert.equal(run('a11y/state-contrast', input)[0]?.severity, 'fix');
+  }
+});
+
+test("state-contrast is review inside a kit component the draft does not style: the kit's own look", () => {
   const ks = 'sections/Plans:Button';
-  const facts = page([node({ ks })], { states: [read()] });
-  const input = visit(facts, { seen: { components: new Map([[ks, 'Button']]) } });
-  assert.equal(run('a11y/state-contrast', input)[0]?.severity, 'fix');
+  const facts = page([node({ ks, ownKs: true })], { states: [read()] });
+  const input = visit(facts, {
+    seen: { components: new Map([[ks, 'Button']]) },
+    report: { usage: [{ id: ks, component: 'Button', props: { variant: 'primary' } }] },
+  });
+  const found = run('a11y/state-contrast', input)[0];
+  assert.equal(found?.severity, 'review');
+  assert.deepEqual(found?.hint, { key: 'checkHint.kitInternal', params: { component: 'Button' } });
 });
 
 test('error-text reports an invalid field with no linked text, in an error state only', () => {

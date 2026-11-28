@@ -18,7 +18,7 @@ export async function infoPage(id: string, doctor?: DoctorFn): Promise<string> {
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
-    version: '1.0.0',
+    version: '1.1.0',
     projectKit: () => 'kitvas-ui',
     ...(doctor === undefined ? {} : { doctor }),
   });

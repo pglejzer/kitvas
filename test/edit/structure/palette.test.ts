@@ -6,7 +6,7 @@ import type { KitStore } from '../../../src/kit/index.ts';
 import { NOW, TINY, tempDrafts, writeVersionFiles } from '../../helpers/draft/drafts.ts';
 import { builtinKits } from '../../helpers/kit/kits.ts';
 
-const BASE = { id: 'kitvas-ui', version: '1.0.0', hash: 'b'.repeat(64) };
+const BASE = { id: 'kitvas-ui', version: '1.1.0', hash: 'b'.repeat(64) };
 
 const layout = (id: string, purpose: string): string =>
   `# Layout: Shop\n\n## ${id}\nPurpose: ${purpose}\nComponents: Stack\n`;

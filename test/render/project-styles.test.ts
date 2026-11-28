@@ -88,6 +88,22 @@ test('the blocks of another file are compiled in order', async () => {
   }
 });
 
+test("an Angular component's .ts is compiled by its decorator's styles", async () => {
+  const { project, styles, close } = setup({
+    'list.component.ts':
+      "@Component({\n  selector: 'app-list',\n  styles: `.page-link { cursor: pointer; }`,\n})\nexport class List {}\n",
+    'plain.ts': 'export const styles = `.x { color: red; }`;\n',
+  });
+  try {
+    const out = css(await styles({ project, file: 'list.component.ts', resolve: undefined }));
+    assert.equal(out, '.page-link {\n  cursor: pointer;\n}');
+    const none = await styles({ project, file: 'plain.ts', resolve: undefined });
+    assert.equal(none.ok ? '' : none.reason, 'unsupported');
+  } finally {
+    await close();
+  }
+});
+
 test('a language kitvas does not compile', async () => {
   const { project, styles, close } = setup({
     'A.vue': '<style lang="less">.a { .b; }</style>',

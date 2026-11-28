@@ -59,7 +59,7 @@ test('a scoped style starts at the parent of the marked root and reads :host as 
   assert.equal(
     scopedCss(css, 'Button'),
     [
-      '@scope (:has(> [data-kv-scope="Button"])) to (:scope > :not([data-kv-scope="Button"]), [data-kv-scope="Button"] [data-kv-scope] > *) {',
+      '@scope (:has(> [data-kv-scope="Button"])) to (:scope > :not([data-kv-scope="Button"]), [data-kv-scope="Button"] [data-kv-scope] > :not([data-kv-slot="Button"], :has([data-kv-slot="Button"]))) {',
       '[data-kv-scope="Button"] { display: inline-flex; }',
       '[data-kv-scope="Button"]:is(.wide:not(.x)) .btn { width: 100%; }',
       '}',
@@ -142,6 +142,33 @@ test('the app shell stands around the root, and no wrapper takes the id root', (
     ),
   );
   assert.equal(page.split('id="root"').length, 2);
+});
+
+test("an example's page stands inside the shell and around the root", () => {
+  const page = originalPage({
+    markup: BUTTON,
+    styles: [],
+    base: 'file:///p/',
+    frame: FRAME,
+    shell: { html: {}, body: {}, wrappers: [{ tag: 'app-root', attributes: {} }] },
+    around: [
+      { tag: 'div', attributes: { class: 'article-page' } },
+      { tag: 'div', attributes: { class: 'row', id: 'root' } },
+    ],
+  });
+  assert.ok(
+    page.includes(
+      [
+        '<app-root>',
+        '<div class="article-page">',
+        '<div class="row">',
+        `<div id="root">${BUTTON}</div>`,
+        '</div>',
+        '</div>',
+        '</app-root>',
+      ].join('\n'),
+    ),
+  );
 });
 
 test('a page without a shell is a plain page', () => {

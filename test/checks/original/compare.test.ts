@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  compareHosts,
   compareLayers,
   compareOutlines,
   DIFFS_MAX,
@@ -156,13 +157,24 @@ test('outlines are compared by place', () => {
   assert.deepEqual(compareOutlines([ring], []), [
     { element: 'button', property: 'outline', copy: ring.value, original: 'none' },
   ]);
-  assert.deepEqual(compareOutlines([ring], [{ ...ring, value: '1px solid red, offset 0px' }]), [
-    {
-      element: 'button',
-      property: 'outline',
-      copy: ring.value,
-      original: '1px solid red, offset 0px',
-    },
+  const other = { ...ring, value: '1px solid red, offset 0px' };
+  assert.deepEqual(compareOutlines([ring], [other]), [
+    { element: 'button', property: 'outline', copy: ring.value, original: other.value },
   ]);
   assert.deepEqual(compareOutlines([ring], [ring]), []);
+});
+
+test("a component's own tag that is a block where the app leaves it in line is a display finding", () => {
+  const host = { place: '/0', element: 'app-follow-button', value: 'inline' };
+  // The copy is read at every element; only the original's component roots count.
+  const copy = [
+    { place: '/0', element: 'span', value: 'block' },
+    { place: '/0/0', element: 'span > button', value: 'inline-block' },
+  ];
+  assert.deepEqual(compareHosts(copy, [host]), [
+    { element: 'span', property: 'display', copy: 'block', original: 'inline' },
+  ]);
+  assert.deepEqual(compareHosts([{ place: '/0', element: 'span', value: 'inline' }], [host]), []);
+  // A place the copy lacks is the layer walk's structure finding, not this one.
+  assert.deepEqual(compareHosts([], [host]), []);
 });

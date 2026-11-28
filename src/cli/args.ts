@@ -40,7 +40,7 @@ export type Flags = {
   to: string | undefined;
   /** `craft new --image <file>`, repeatable; empty when absent. */
   image: string[];
-  /** `craft new --kit <id>`: the kit to make the draft for. */
+  /** `craft new --kit <id>`: the kit to make the draft for; `studio --kit <id>`: the page to open. */
   kit: string | undefined;
   /** `rework new --figma-image <file>`: the PNG of a Figma frame the skill saved. */
   figmaImage: string | undefined;

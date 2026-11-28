@@ -7,7 +7,7 @@ import {
   blockingFailures,
   lookScore,
   type Measure,
-  type OutlineRead,
+  type PlacedRead,
   readVerifyFile,
 } from '../../../src/checks/index.ts';
 import type { LoadedKit } from '../../../src/kit/index.ts';
@@ -25,11 +25,12 @@ import {
   measured,
   memoryFs,
   ORIGINAL_MARKUP,
+  PROJECT,
   writtenLoaded,
 } from './support.ts';
 
 const PAGE = join(ACME_CATALOG, 'originals', 'Button.1.html');
-const RING: OutlineRead = {
+const RING: PlacedRead = {
   place: '/0',
   element: 'button',
   value: '2px solid rgb(31, 95, 208), offset 2px',
@@ -41,6 +42,8 @@ type Options = {
   measure?: FakeMeasure;
   styles?: Record<string, ProjectStyleResult>;
   markup?: string | null;
+  /** Project files by their path from the project folder. */
+  files?: Record<string, string>;
 };
 
 async function run(options: Options = {}) {
@@ -48,6 +51,9 @@ async function run(options: Options = {}) {
   const fs = memoryFs();
   const markup = options.markup === undefined ? ORIGINAL_MARKUP : options.markup;
   if (markup !== null) fs.writeText(join(loaded.dir, 'originals', 'Button.1.html'), markup);
+  for (const [file, text] of Object.entries(options.files ?? {})) {
+    fs.writeText(join(PROJECT, ...file.split('/')), text);
+  }
   const examples = await parseExamples(fakeBundler(), loaded.kit);
   const measure = options.measure ?? fakeMeasure();
   const styles = fakeStyles(options.styles);
@@ -208,18 +214,80 @@ test('outlines are compared', async () => {
       key: 'kitIssue.originalDiffers',
       params: {
         key: 'Button.1',
-        width: 1280,
-        state: 'focus 1',
         element: 'button',
         property: 'outline',
         copy: 'none',
         original: RING.value,
+        where: '1280 px: focus 1',
       },
     },
   ]);
   assert.deepEqual(result.originals, [
     { key: 'Button.1', width: 1280, frames: 2, differences: 1, score: 100 },
   ]);
+});
+
+test("a component's own tag in another display than the app gives it is a finding (W37)", async () => {
+  const host = (value: string): PlacedRead[] => [{ place: '/0', element: 'app-button', value }];
+  const measure = fakeMeasure((input) =>
+    measured({
+      frames: [frameOf('rest', -1, undefined, [], host(input.search === '' ? 'inline' : 'block'))],
+    }),
+  );
+  const { result } = await run({ measure });
+  assert.equal(result.state, 'failed');
+  assert.deepEqual(
+    result.issues.map((issue) => issue.params),
+    [
+      {
+        key: 'Button.1',
+        element: 'app-button',
+        property: 'display',
+        copy: 'block',
+        original: 'inline',
+        where: '1280 px: rest',
+      },
+    ],
+  );
+});
+
+test('an example that stands in a page the component is not always on is a finding (W42)', async () => {
+  const loaded = codeLoaded((json) => {
+    const [button] = json.components as {
+      examples: { around?: unknown }[];
+      project: { name?: string };
+    }[];
+    if (!button?.examples[0]) return;
+    button.project.name = 'app-button';
+    button.examples[0].around = [{ tag: 'div', attributes: { class: 'profile-page' } }];
+  });
+  const files = {
+    'src/components/button.html': '<button class="btn"><app-button-icon /></button>',
+    'src/components/profile.html': '<div class="profile-page"><app-button></app-button></div>',
+    'src/components/article.html': '<div class="article-page"><app-button></app-button></div>',
+    'src/components/home.html': '<div class="home-page"><app-link></app-link></div>',
+  };
+  const { result } = await run({ loaded, files });
+  assert.equal(result.state, 'failed');
+  assert.deepEqual(result.issues, [
+    {
+      step: 'original',
+      path: 'components.0.examples.0',
+      key: 'kitIssue.originalAroundElsewhere',
+      params: {
+        key: 'Button.1',
+        component: 'Button',
+        page: 'profile-page',
+        file: 'src/components/article.html',
+      },
+    },
+  ]);
+  // Every page that uses it is that page: nothing.
+  const alone = await run({
+    loaded,
+    files: { 'src/components/profile.html': files['src/components/profile.html'] },
+  });
+  assert.deepEqual(alone.result.issues, []);
 });
 
 test('frames that do not match', async () => {
@@ -237,12 +305,11 @@ test('frames that do not match', async () => {
       key: 'kitIssue.originalDiffers',
       params: {
         key: 'Button.1',
-        width: 1280,
-        state: 'rest',
         element: 'root',
         property: 'states',
         copy: 'rest, hover 1',
         original: 'rest',
+        where: '1280 px: rest',
       },
     },
   ]);
@@ -262,16 +329,44 @@ test('a wrong value in the rest frame is named, with the frame it is in', async 
     [
       {
         key: 'Button.1',
-        width: 1280,
-        state: 'rest',
         element: 'button',
         property: 'opacity',
         copy: '0.5',
         original: '1',
+        where: '1280 px: rest',
       },
     ],
   );
   assert.equal(result.originals[0]?.differences, 1);
+});
+
+test('a difference in several states and widths is one finding that names them', async () => {
+  const measure = fakeMeasure((input) => {
+    const nodes = frameOf('rest', -1).facts.nodes;
+    const first = nodes[0];
+    assert.ok(first);
+    const own = input.search === '' ? nodes : [{ ...first, opacity: 0.5 }, ...nodes.slice(1)];
+    return measured({ frames: [frameOf('rest', -1, own), frameOf('hover', 0, own)] });
+  });
+  const css = '.btn { padding: 4px; }\n@media (min-width: 600px) { .btn { padding: 8px; } }';
+  const { result } = await run({ styles: { 'src/button.css': { ok: true, css } }, measure });
+  assert.deepEqual(
+    result.issues.map((issue) => issue.params),
+    [
+      {
+        key: 'Button.1',
+        element: 'button',
+        property: 'opacity',
+        copy: '0.5',
+        original: '1',
+        where: '1280 px: rest, hover 1; 390 px: rest, hover 1',
+      },
+    ],
+  );
+  assert.deepEqual(
+    result.originals.map((entry) => entry.differences),
+    [2, 2],
+  );
 });
 
 test('states and widths', async () => {

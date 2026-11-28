@@ -76,6 +76,19 @@ export function buildPath(url: string): string {
   }
 }
 
+/**
+ * A console message as a person reads it: without the format string React logs first
+ * (`%o\n\n%s\n\n%s`), whose values the browser only appends, and without the lines of a stack.
+ */
+export function consoleText(text: string): string {
+  return text
+    .replace(/^(?:\s*%[sdifoOc])+\s*/, '')
+    .split('\n')
+    .filter((line) => !/^\s+at /.test(line))
+    .join('\n')
+    .trim();
+}
+
 export function a11yFindings(violations: AxeViolation[], seen: Seen): RawFinding[] {
   return violations.flatMap((violation) =>
     violation.nodes.map((node): RawFinding => {

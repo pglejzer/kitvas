@@ -3,7 +3,7 @@
 // compared in numbers (ADR 0093). Never throws: what cannot be drawn is advice, what cannot be
 // measured is an issue. A failed step makes `valid` false but never blocks a draft.
 
-import { join, relative } from 'node:path';
+import { join, posix, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { LoadedKit } from '../../../kit/index.ts';
 import {
@@ -16,7 +16,9 @@ import {
 import type { Drawn } from '../../domain/kit/compared.ts';
 import type { OriginalEntry, VerifyIssue } from '../../domain/kit/kit-verify.ts';
 import { lookScore, ORIGINAL_LINE } from '../../domain/kit/look-score.ts';
+import { aroundPage, type Owner, usedElsewhere } from '../../domain/kit/original-around.ts';
 import {
+  compareHosts,
   compareLayers,
   compareOutlines,
   DIFFS_MAX,
@@ -55,7 +57,7 @@ export type OriginalInput = {
   examples: ParsedExample[];
   measure: Measurer;
   projectStyles: ProjectStyles;
-  fs: Pick<BuildFs, 'readText' | 'writeText'>;
+  fs: Pick<BuildFs, 'listFiles' | 'readText' | 'writeText'>;
 };
 
 export type OriginalResult = StepResult & { originals: OriginalEntry[]; drawn: Drawn[] };
@@ -103,11 +105,24 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
   const issues: VerifyIssue[] = [];
   const originals: OriginalEntry[] = [];
   const drawn: Drawn[] = [];
+  // The project's files under the kit's source, read once, for the pages a component is used on (W42).
+  let texts: { file: string; text: string }[] | undefined;
+  const projectTexts = () => {
+    texts ??= input.fs.listFiles(join(project, ...source.path.split('/'))).map((rel) => {
+      const file = posix.join(source.path, rel);
+      return { file, text: input.fs.readText(join(project, ...file.split('/'))) ?? '' };
+    });
+    return texts;
+  };
+  const owners: Owner[] = kit.components.flatMap(({ project: from }) =>
+    from?.name === undefined ? [] : [{ name: from.name, files: from.files ?? [] }],
+  );
 
   for (const [index, component] of kit.components.entries()) {
     const found: VerifyIssue[] = [];
     const entries: OriginalEntry[] = [];
     let why: Drawn['why'] | undefined;
+    const pages = new Set<string>();
 
     for (const [number, example] of component.examples.entries()) {
       if (example.original === undefined) continue;
@@ -134,6 +149,21 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
       if (refused !== undefined) {
         refuse(refused);
         continue;
+      }
+
+      // A page's rule is the copy's only when every page that uses the component is that page (W42).
+      const standsIn = aroundPage(example.around);
+      const name = component.project?.name;
+      if (standsIn !== undefined && name !== undefined && !pages.has(standsIn)) {
+        pages.add(standsIn);
+        for (const file of usedElsewhere(projectTexts(), name, standsIn, owners)) {
+          found.push({
+            step: 'original',
+            path: at,
+            key: 'kitIssue.originalAroundElsewhere',
+            params: { key, component: component.name, page: standsIn, file },
+          });
+        }
       }
 
       // The page's styles: the app's own, then each component the fragment marks, in kit order.
@@ -184,12 +214,22 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
       const page = join(dir, 'originals', `${key}.html`);
       input.fs.writeText(
         page,
-        originalPage({ markup, styles, base, frame: CATALOG_BODY_RULE, shell: source.shell }),
+        originalPage({
+          markup,
+          styles,
+          base,
+          frame: CATALOG_BODY_RULE,
+          shell: source.shell,
+          around: example.around,
+        }),
       );
 
       const widths = hasBreakpoint(sheets) ? [DESKTOP, PHONE] : [DESKTOP];
       const here: VerifyIssue[] = [];
       const there: OriginalEntry[] = [];
+      // One finding for a difference, with the states and widths it is in: a copy that is off by
+      // a pixel is off in every state of every width, and is one fix.
+      const differs = new Map<string, { diff: OriginalDiff; where: Map<number, string[]> }>();
       let partial: string[] = [];
       try {
         for (const width of widths) {
@@ -233,18 +273,17 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
             if (!originalFrame || label(originalFrame) !== label(copyFrame)) continue;
             const layers = compareLayers(copyFrame.facts, originalFrame.facts);
             const outlines = compareOutlines(copyFrame.outlines, originalFrame.outlines);
-            const all = [...layers.diffs, ...outlines];
+            const hosts = compareHosts(copyFrame.hosts, originalFrame.hosts);
+            const all = [...layers.diffs, ...outlines, ...hosts];
             const kept = all.slice(0, DIFFS_MAX);
             more += layers.more + (all.length - kept.length);
             for (const diff of kept) reported.push({ state: label(copyFrame), diff });
           }
           for (const { state, diff } of reported) {
-            here.push({
-              step: 'original',
-              path: at,
-              key: 'kitIssue.originalDiffers',
-              params: { key, width, state, ...diff },
-            });
+            const id = [diff.element, diff.property, diff.copy, diff.original].join('\n');
+            const group = differs.get(id) ?? { diff, where: new Map<number, string[]>() };
+            group.where.set(width, [...(group.where.get(width) ?? []), state]);
+            differs.set(id, group);
           }
           if (more > 0) {
             here.push({
@@ -302,6 +341,15 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
         });
         why = 'partial';
         break;
+      }
+      for (const { diff, where } of differs.values()) {
+        const states = [...where].map(([width, list]) => `${width} px: ${list.join(', ')}`);
+        found.push({
+          step: 'original',
+          path: at,
+          key: 'kitIssue.originalDiffers',
+          params: { key, ...diff, where: states.join('; ') },
+        });
       }
       found.push(...here);
       entries.push(...there);

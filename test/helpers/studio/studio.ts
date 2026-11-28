@@ -51,7 +51,7 @@ export async function studioOver(
       kits: builtinKits(),
       t,
       assets: fakeAssets,
-      version: '1.0.0',
+      version: '1.1.0',
       onError: (error) => errors.push(error),
       ...extra,
     },

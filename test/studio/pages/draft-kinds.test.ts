@@ -26,7 +26,7 @@ function pages(store: DraftStore) {
     t,
     skin: '/* skin */',
     frame: { port: 5001, key: 'k3y' },
-    version: '1.0.0',
+    version: '1.1.0',
     projectKit: () => 'kitvas-ui',
   });
   return async (id: string, ask: Ask = {}): Promise<string> => {

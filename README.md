@@ -8,7 +8,7 @@
 <p align="center"><strong>Build with your design system. Validate automatically. Edit visually.</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-b4571a" alt="Version 1.0.0">
+  <img src="https://img.shields.io/badge/version-1.1.0-b4571a" alt="Version 1.1.0">
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-PolyForm%20Shield%201.0.0-b4571a" alt="License: PolyForm Shield 1.0.0"></a>
   <img src="https://img.shields.io/badge/node-24.22.3%2B%20%7C%2026.13.1%2B-b4571a" alt="Node 24.22.3 or later, or 26.13.1 or later">
   <a href="https://github.com/sponsors/pglejzer"><img src="https://img.shields.io/badge/sponsor-GitHub%20Sponsors-b4571a" alt="Sponsor kitvas on GitHub Sponsors"></a>
@@ -150,7 +150,7 @@ There is no global `kitvas` command. In these docs `kitvas <command>` means `nod
 
 ## Status
 
-1.0.0. Prototypes are React, with SCSS or with Tailwind 3 or 4 when the kit uses it (built with your project's own Tailwind), whatever your application is written in. A hand-off puts a finished prototype into your project in the project's own technology. Ideas for later are in [IDEAS.md](IDEAS.md).
+1.1.0. Prototypes are React, with SCSS or with Tailwind 3 or 4 when the kit uses it (built with your project's own Tailwind), whatever your application is written in. A hand-off puts a finished prototype into your project in the project's own technology. Ideas for later are in [IDEAS.md](IDEAS.md).
 
 ## Develop
 
