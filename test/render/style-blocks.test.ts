@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { pathToFileURL } from 'node:url';
-import { rebaseUrls, styleBlocks } from '../../src/render/domain/style-blocks.ts';
+import { decoratorStyles, rebaseUrls, styleBlocks } from '../../src/render/domain/style-blocks.ts';
 
 test('blocks of another file, in order', () => {
   const text = [
@@ -24,6 +24,32 @@ test('blocks of another file, in order', () => {
   assert.match(blocks[0]?.css ?? '', /\.a \{ color: red; \}/);
   assert.match(blocks[1]?.css ?? '', /\$c: blue;/);
   assert.deepEqual(styleBlocks('<p>no styles</p>'), []);
+});
+
+test("an Angular component's styles are the strings of its decorator, one or a list", () => {
+  const one = [
+    "@Component({ selector: 'app-list', template: `<ul></ul>`,",
+    '  styles: `',
+    '    .page-link { cursor: pointer; }',
+    '    a[disabled] { opacity: 0.5; }',
+    '  `,',
+    '})',
+  ].join('\n');
+  assert.deepEqual(decoratorStyles(one), [
+    {
+      lang: 'css',
+      css: '\n    .page-link { cursor: pointer; }\n    a[disabled] { opacity: 0.5; }\n  ',
+    },
+  ]);
+  const list =
+    '@Component({\n  styles: [`.a { color: red; }`, \'.b { content: "\\\\201C"; }\'],\n})';
+  assert.deepEqual(
+    decoratorStyles(list).map((block) => block.css),
+    ['.a { color: red; }', '.b { content: "\\\\201C"; }'],
+  );
+  // Only a component's decorator holds them; files with styleUrl alone have none.
+  assert.deepEqual(decoratorStyles("export const theme = { styles: 'x' };"), []);
+  assert.deepEqual(decoratorStyles("@Component({ styleUrl: './a.css' })"), []);
 });
 
 test('a relative address becomes absolute only when its file exists', () => {

@@ -1,10 +1,11 @@
-// Compiles a project's style file: a style file whole, any other file by its `<style>` blocks.
+// Compiles a project's style file: a style file whole, an Angular component by the `styles` of
+// its decorator, any other file by its `<style>` blocks.
 // Every result goes through the Sass compiler, plain CSS too, so the text is `expanded`; plain CSS
 // the compiler cannot parse is kept as it is.
 
 import { dirname, extname, posix } from 'node:path';
 import { readProjectResolve } from '../../shared/index.ts';
-import { rebaseUrls, styleBlocks } from '../domain/style-blocks.ts';
+import { decoratorStyles, rebaseUrls, styleBlocks } from '../domain/style-blocks.ts';
 import type {
   ProjectStyleResult,
   ProjectStyles,
@@ -66,7 +67,7 @@ export function createProjectStyles(deps: ProjectStylesDeps): ProjectStyles {
     if (whole !== undefined) {
       sources = [{ syntax: whole, text }];
     } else {
-      const blocks = styleBlocks(text);
+      const blocks = /\.[cm]?[jt]s$/i.test(file) ? decoratorStyles(text) : styleBlocks(text);
       if (blocks.length === 0) return fail('unsupported', `${file} has no style block.`);
       const unknown = blocks.find((block) => SYNTAX_OF_LANG[block.lang] === undefined);
       if (unknown !== undefined) {

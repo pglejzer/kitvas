@@ -15,6 +15,30 @@ export function styleBlocks(text: string): { lang: string; css: string }[] {
   });
 }
 
+/**
+ * The strings of an Angular component's `styles` (one string or an array of them), as `css`
+ * blocks; none when the file declares no component.
+ */
+export function decoratorStyles(text: string): { lang: string; css: string }[] {
+  if (!/@Component\s*\(/.test(text)) return [];
+  const found: { lang: string; css: string }[] = [];
+  for (const match of text.matchAll(/\bstyles\s*:\s*(\[?)/g)) {
+    let at = match.index + match[0].length;
+    for (;;) {
+      while (/[\s,]/.test(text[at] ?? '')) at += 1;
+      const quote = text[at];
+      if (quote !== '`' && quote !== "'" && quote !== '"') break;
+      let end = at + 1;
+      while (end < text.length && text[end] !== quote) end += text[end] === '\\' ? 2 : 1;
+      if (end >= text.length) break;
+      found.push({ lang: 'css', css: text.slice(at + 1, end) });
+      at = end + 1;
+      if (match[1] === '') break;
+    }
+  }
+  return found;
+}
+
 const URL_CALL = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)"'\s]*))\s*\)/gi;
 /** A scheme (`data:`, `https:`), a fragment, or an absolute path: never a file beside the sheet. */
 const NOT_RELATIVE = /^(?:[a-z][a-z0-9+.-]*:|#|\/|\\)/i;
