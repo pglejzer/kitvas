@@ -1,6 +1,6 @@
 # 0085. A check puts every control under a real pointer, gives it focus and uses it
 
-Date: 2026-11-26. Status: accepted. Adds two passes to `0044-page-facts-and-extra-passes.md`; the order of the others stays.
+Date: 2026-11-26. Status: accepted, changed in part by ADR 0096. Adds two passes to `0044-page-facts-and-extra-passes.md`; the order of the others stays.
 
 ## Context
 

@@ -3,7 +3,24 @@
 import { A11Y_STATE_CONTRAST } from '../guidelines/a11y.ts';
 import type { StateText } from '../page/facts.ts';
 import { contrast } from './colour.ts';
-import { ruleFinding, type VisitRule } from './types.ts';
+import { ruleFinding, type VisitInput, type VisitRule } from './types.ts';
+
+/**
+ * The draft passed a class or a style to the kit component that holds the node, or to one around
+ * it (ADR 0096). Without one, the state's look is the kit's own.
+ */
+function draftStyled(input: VisitInput, node: number): boolean {
+  const styled = new Set(
+    input.report.usage
+      .filter(({ props }) => 'className' in props || 'style' in props)
+      .map(({ id }) => id),
+  );
+  for (let at = node; at !== -1; at = input.facts.nodes[at]?.parent ?? -1) {
+    const ks = input.facts.nodes[at]?.ks ?? null;
+    if (ks !== null && styled.has(ks)) return true;
+  }
+  return false;
+}
 
 /** The lowest contrast among the texts that fall under their minimum; null when none does. */
 function lowestUnder(texts: readonly StateText[]): number | null {
@@ -35,7 +52,7 @@ const stateContrast: VisitRule = {
           node: read.node,
           message: { key, params: { name: read.name, ratio: lowest.toFixed(1) } },
           hint: { key: 'checkHint.a11yStateContrast', params: { min: ratio } },
-          kit: 'keep',
+          kit: draftStyled(input, read.node) ? 'keep' : 'review',
         }),
       ];
     });
