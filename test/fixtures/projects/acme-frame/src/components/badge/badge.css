@@ -1,0 +1,18 @@
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.badge--new {
+  color: #ffffff;
+  background-color: #1f6f43;
+}
+
+.badge--quiet {
+  color: #444444;
+  background-color: #e4e4e4;
+}
