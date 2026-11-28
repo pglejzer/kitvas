@@ -217,7 +217,7 @@ const codeKitJson = (): Json => ({
   source: { type: 'code', path: 'src/app/ui' },
 });
 
-type RawComponent = { project?: unknown; examples: { original?: string }[] };
+type RawComponent = { project?: unknown; examples: { original?: string; around?: unknown }[] };
 
 const componentsOf = (raw: Json): RawComponent[] => raw.components as RawComponent[];
 
@@ -263,7 +263,7 @@ test('a code source may say what the app has around every component', () => {
   assert.doesNotThrow(() => kitOf(withShell({ wrappers: wrappers(6) })));
 });
 
-test('project and original are refused outside a code kit', () => {
+test('project, original and around are refused outside a code kit', () => {
   const raw = webKitJson();
   at(componentsOf(raw), 0).project = { files: ['src/button.js'] };
   assert.deepEqual(sourceIssues(kitOf(raw)), [
@@ -276,11 +276,17 @@ test('project and original are refused outside a code kit', () => {
 
   const withOriginal = webKitJson();
   at(at(componentsOf(withOriginal), 0).examples, 0).original = 'originals/Button.1.html';
+  at(at(componentsOf(withOriginal), 0).examples, 0).around = [{ attributes: { class: 'page' } }];
   assert.deepEqual(sourceIssues(kitOf(withOriginal)), [
     {
       path: 'components.Button.examples.0.original',
       key: 'kitIssue.onlyCodeKit',
       params: { component: 'Button', field: 'original' },
+    },
+    {
+      path: 'components.Button.examples.0.around',
+      key: 'kitIssue.onlyCodeKit',
+      params: { component: 'Button', field: 'around' },
     },
   ]);
 

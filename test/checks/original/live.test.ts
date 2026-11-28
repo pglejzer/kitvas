@@ -175,6 +175,114 @@ test('one changed value in a copy is named with both values, and nothing else is
   );
 });
 
+test('a root whose content floats out of it is shot with that content and compared', async (t) => {
+  await onFixture(
+    t,
+    'acme-templates',
+    (dir, kitDir) => {
+      // The root keeps no height of its own: its button floats.
+      change(
+        join(dir, 'src', 'app', 'button', 'button.component.css'),
+        ':host {\n  display: inline-flex;\n}',
+        ':host {\n  display: block;\n}\n\n.btn {\n  float: right;\n}',
+      );
+      change(
+        join(kitDir, 'components', 'Button.module.css'),
+        '.host {\n  display: inline-flex;\n}',
+        '.host {\n  display: block;\n}\n\n.button {\n  float: right;\n}',
+      );
+    },
+    (file) => {
+      assert.deepEqual(ofOriginal(file), []);
+      const buttons = (file.originals ?? []).filter((entry) => entry.key.startsWith('Button.'));
+      assert.ok(buttons.length >= 3, `${buttons.length} measures`);
+      for (const entry of buttons) assert.equal(entry.score, 100, entry.key);
+    },
+  );
+});
+
+test("a rule of the app's page reaches the original only inside the example's around", async (t) => {
+  await onFixture(
+    t,
+    'acme-templates',
+    (dir, kitDir) => {
+      // The app rounds its buttons more on one page; the copy holds that page's rule (W42).
+      writeFileSync(
+        join(dir, 'src', 'page.css'),
+        '.settings-page .btn {\n  border-radius: 8px;\n}\n',
+      );
+      change(
+        join(kitDir, 'components', 'Button.module.css'),
+        '.host {\n  display: inline-flex;\n}',
+        '.host {\n  display: inline-flex;\n}\n\n.host .button {\n  border-radius: var(--kit-radius-md);\n}',
+      );
+      const file = join(kitDir, 'kit.json');
+      const kit = JSON.parse(readFileSync(file, 'utf8')) as {
+        source: { styles: string[] };
+        components: { examples: { around?: unknown }[] }[];
+      };
+      kit.source.styles = ['src/page.css'];
+      const example = kit.components[0]?.examples[0];
+      assert.ok(example);
+      example.around = [{ tag: 'div', attributes: { class: 'settings-page' } }];
+      writeFileSync(file, JSON.stringify(kit, null, 2));
+    },
+    (file) => {
+      const of = (key: string) =>
+        ofOriginal(file).filter(
+          (issue) => issue.params?.key === key && issue.key === 'kitIssue.originalDiffers',
+        );
+      assert.deepEqual(of('Button.1'), []);
+      const outside = of('Button.2');
+      assert.ok(outside.length > 0);
+      assert.ok(outside.every((issue) => issue.params?.property === 'border-radius'));
+    },
+  );
+});
+
+test("what a component passes into a nested one takes the passer's scoped styles", async (t) => {
+  await onFixture(
+    t,
+    'acme-sfc',
+    (dir, kitDir) => {
+      // The card passes its own element into the button's slot, inside the button's own label.
+      const vue = join(dir, 'src', 'components', 'Card.vue');
+      change(
+        vue,
+        '<AcmeButton class="action">{{ actionLabel }}</AcmeButton>',
+        '<AcmeButton class="action"><span class="price">{{ actionLabel }}</span></AcmeButton>',
+      );
+      change(
+        vue,
+        '.action {\n  align-self: flex-start;\n}',
+        '.action {\n  align-self: flex-start;\n}\n\n.price {\n  font-weight: 700;\n}',
+      );
+      change(
+        join(kitDir, 'originals', 'Card.1.html'),
+        '<span class="label">Choose plan</span>',
+        '<span class="label"><span class="price" data-kv-slot="Card">Choose plan</span></span>',
+      );
+      change(
+        join(kitDir, 'components', 'Card.tsx'),
+        '<Button className={styles.action}>{actionLabel}</Button>',
+        '<Button className={styles.action}>\n        <span className={styles.price}>{actionLabel}</span>\n      </Button>',
+      );
+      change(
+        join(kitDir, 'components', 'Card.module.css'),
+        '.action {\n  align-self: flex-start;\n}',
+        '.action {\n  align-self: flex-start;\n}\n\n.price {\n  font-weight: 700;\n}',
+      );
+    },
+    (file) => {
+      const card = ofOriginal(file).filter((issue) =>
+        String(issue.params?.key).startsWith('Card.'),
+      );
+      assert.deepEqual(card, []);
+      assert.ok((file.originals ?? []).some((entry) => entry.key === 'Card.1'));
+    },
+  );
+});
+
 test("a style only the project's build could read leaves its component read, never compared", async (t) => {
   await onFixture(
     t,

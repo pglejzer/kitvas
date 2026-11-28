@@ -177,7 +177,10 @@ function importIssueKey(kit: Kit): string {
   return isWrittenKit(kit) ? 'kitIssue.importNotKitPath' : 'kitIssue.importNotProjectPath';
 }
 
-/** `project` and `original` belong to a `code` kit, and a component names files or a package. */
+/**
+ * `project`, `original` and `around` belong to a `code` kit, and a component names files or a
+ * package.
+ */
 function codeKitIssues(kit: Kit): KitIssue[] {
   const issues: KitIssue[] = [];
   const isCode = kit.source.type === 'code';
@@ -200,12 +203,14 @@ function codeKitIssues(kit: Kit): KitIssue[] {
     }
     if (isCode) continue;
     for (const [index, example] of component.examples.entries()) {
-      if (example.original === undefined) continue;
-      issues.push({
-        path: `components.${component.name}.examples.${index}.original`,
-        key: 'kitIssue.onlyCodeKit',
-        params: { component: component.name, field: 'original' },
-      });
+      for (const field of ['original', 'around'] as const) {
+        if (example[field] === undefined) continue;
+        issues.push({
+          path: `components.${component.name}.examples.${index}.${field}`,
+          key: 'kitIssue.onlyCodeKit',
+          params: { component: component.name, field },
+        });
+      }
     }
   }
   return issues;

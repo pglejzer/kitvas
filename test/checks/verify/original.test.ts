@@ -208,12 +208,11 @@ test('outlines are compared', async () => {
       key: 'kitIssue.originalDiffers',
       params: {
         key: 'Button.1',
-        width: 1280,
-        state: 'focus 1',
         element: 'button',
         property: 'outline',
         copy: 'none',
         original: RING.value,
+        where: '1280 px: focus 1',
       },
     },
   ]);
@@ -237,12 +236,11 @@ test('frames that do not match', async () => {
       key: 'kitIssue.originalDiffers',
       params: {
         key: 'Button.1',
-        width: 1280,
-        state: 'rest',
         element: 'root',
         property: 'states',
         copy: 'rest, hover 1',
         original: 'rest',
+        where: '1280 px: rest',
       },
     },
   ]);
@@ -262,16 +260,44 @@ test('a wrong value in the rest frame is named, with the frame it is in', async 
     [
       {
         key: 'Button.1',
-        width: 1280,
-        state: 'rest',
         element: 'button',
         property: 'opacity',
         copy: '0.5',
         original: '1',
+        where: '1280 px: rest',
       },
     ],
   );
   assert.equal(result.originals[0]?.differences, 1);
+});
+
+test('a difference in several states and widths is one finding that names them', async () => {
+  const measure = fakeMeasure((input) => {
+    const nodes = frameOf('rest', -1).facts.nodes;
+    const first = nodes[0];
+    assert.ok(first);
+    const own = input.search === '' ? nodes : [{ ...first, opacity: 0.5 }, ...nodes.slice(1)];
+    return measured({ frames: [frameOf('rest', -1, own), frameOf('hover', 0, own)] });
+  });
+  const css = '.btn { padding: 4px; }\n@media (min-width: 600px) { .btn { padding: 8px; } }';
+  const { result } = await run({ styles: { 'src/button.css': { ok: true, css } }, measure });
+  assert.deepEqual(
+    result.issues.map((issue) => issue.params),
+    [
+      {
+        key: 'Button.1',
+        element: 'button',
+        property: 'opacity',
+        copy: '0.5',
+        original: '1',
+        where: '1280 px: rest, hover 1; 390 px: rest, hover 1',
+      },
+    ],
+  );
+  assert.deepEqual(
+    result.originals.map((entry) => entry.differences),
+    [2, 2],
+  );
 });
 
 test('states and widths', async () => {

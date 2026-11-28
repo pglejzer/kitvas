@@ -855,6 +855,33 @@
         "original": {
           "type": "string",
           "pattern": "^originals\\/[A-Za-z0-9_-]+\\.[1-9][0-9]*\\.html$"
+        },
+        "around": {
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "tag": {
+                "default": "div",
+                "type": "string",
+                "pattern": "^(?:div|main|section|article|aside|header|footer|nav|form|span|[a-z][a-z0-9]*-[a-z0-9-]*)$"
+              },
+              "attributes": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^(?!on)[a-z_:][a-z0-9_.:-]*$"
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 2000
+                }
+              }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "required": [

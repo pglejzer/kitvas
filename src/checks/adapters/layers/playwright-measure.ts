@@ -134,10 +134,34 @@ function unreadOf(probe: { selectors: string[]; declarations: [string, string][]
   return unread;
 }
 
-/** The root's first element with the reach of its shadow, as `look` shoots an example. */
+/**
+ * Runs in the page: the boxes of the root and of every element inside it that has a size, joined,
+ * as `boundingBox` gives them, so content that floats out of its root (a floated button in a root
+ * of no size) is the shot, wherever the empty root stands. The root's own box when none has one.
+ */
+function drawnBox(root: Element): { x: number; y: number; width: number; height: number } {
+  const own = root.getBoundingClientRect();
+  let drawn: [number, number, number, number] | undefined;
+  for (const element of [root, ...root.querySelectorAll('*')]) {
+    const box = element.getBoundingClientRect();
+    if (box.width === 0 || box.height === 0) continue;
+    drawn = drawn
+      ? [
+          Math.min(drawn[0], box.left),
+          Math.min(drawn[1], box.top),
+          Math.max(drawn[2], box.right),
+          Math.max(drawn[3], box.bottom),
+        ]
+      : [box.left, box.top, box.right, box.bottom];
+  }
+  const [left, top, right, bottom] = drawn ?? [own.left, own.top, own.right, own.bottom];
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+/** The root's first element and what it draws, with the reach of its shadow. */
 async function shoot(page: Page, file: string): Promise<Uint8Array | undefined> {
   const root = page.locator('#root > *').first();
-  const box = (await root.count()) > 0 ? await root.boundingBox() : null;
+  const box = (await root.count()) > 0 ? await root.evaluate(drawnBox) : null;
   if (box === null) return undefined;
   const reach = await root.evaluate(shadowReach, REACH_MAX);
   const size = await page.evaluate(pageSize);

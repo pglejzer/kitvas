@@ -6,6 +6,11 @@
 export const ORIGINAL_MAX = 200_000;
 /** The attribute on the root of every kit component in an original; its value is the name. */
 export const SCOPE_MARK = 'data-kv-scope';
+/**
+ * The attribute on what a component passes into a nested one (a Vue slot's content, what Angular
+ * projects); its value is the name of the component that passes it.
+ */
+export const SLOT_MARK = 'data-kv-slot';
 
 export type OriginalStyle = {
   css: string;
@@ -30,6 +35,8 @@ export type OriginalPageInput = {
   /** The rule of kitvas's own frame, the one a catalog page has (`CATALOG_BODY_RULE`). */
   frame: string;
   shell: OriginalShell | undefined;
+  /** The page's elements around this example's component (its `around`), inside the shell. */
+  around?: OriginalShell['wrappers'] | undefined;
 };
 
 const REFUSED_TAGS =
@@ -104,11 +111,13 @@ function rootSelectors(css: string, mark: string): string {
 /**
  * Styles that reach one component alone (spike 13). The scope starts at the parent of the marked
  * root, because a plain selector inside `@scope` never matches the scope's own root; it ends at the
- * root's siblings and at everything inside a nested component's root.
+ * root's siblings and at everything inside a nested component's root but what this component passes
+ * into it (`SLOT_MARK`) and the element that holds that: the app's scoped styles reach it too.
  */
 export function scopedCss(css: string, name: string): string {
   const mark = `[${SCOPE_MARK}="${name}"]`;
-  const ends = `:scope > :not(${mark}), ${mark} [${SCOPE_MARK}] > *`;
+  const slot = `[${SLOT_MARK}="${name}"]`;
+  const ends = `:scope > :not(${mark}), ${mark} [${SCOPE_MARK}] > :not(${slot}, :has(${slot}))`;
   return `@scope (:has(> ${mark})) to (${ends}) {\n${rootSelectors(css, mark)}\n}\n`;
 }
 
@@ -127,12 +136,19 @@ const attributesOf = (attributes: Record<string, string>): string =>
 
 /**
  * The whole document: the styles in order, the frame's own rule last, the markup in `#root`, and
- * the app's shell around it. The page's own mount has the id `root`, so a wrapper never takes it:
- * a rule the project wrote for `#root` already applies.
+ * the app's shell and the example's page around it. The page's own mount has the id `root`, so a
+ * wrapper never takes it: a rule the project wrote for `#root` already applies.
  */
-export function originalPage({ markup, styles, base, frame, shell }: OriginalPageInput): string {
+export function originalPage({
+  markup,
+  styles,
+  base,
+  frame,
+  shell,
+  around = [],
+}: OriginalPageInput): string {
   const html = { lang: 'en', ...shell?.html };
-  const wrappers = (shell?.wrappers ?? []).map(({ tag, attributes }) => {
+  const wrappers = [...(shell?.wrappers ?? []), ...around].map(({ tag, attributes }) => {
     const kept = Object.fromEntries(
       Object.entries(attributes).filter(([name, value]) => name !== 'id' || value !== 'root'),
     );

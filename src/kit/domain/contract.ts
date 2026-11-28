@@ -99,6 +99,28 @@ export const StateEntrySchema = z.strictObject({
   onChange: text,
 });
 
+/** An attribute of an element of the app's shell: never an event handler. */
+const shellAttributes = z.record(
+  z.string().regex(/^(?!on)[a-z_:][a-z0-9_.:-]*$/i),
+  z.string().max(2000),
+);
+
+/** Elements of the app around a component, from the outside in; kitvas gives them no box. */
+const wrappersSchema = z
+  .array(
+    z.strictObject({
+      /** A plain container, or a custom element (a name with a hyphen). */
+      tag: z
+        .string()
+        .regex(
+          /^(?:div|main|section|article|aside|header|footer|nav|form|span|[a-z][a-z0-9]*-[a-z0-9-]*)$/,
+        )
+        .default('div'),
+      attributes: shellAttributes.default({}),
+    }),
+  )
+  .max(6);
+
 export const ExampleSchema = z.strictObject({
   title: text,
   code: text,
@@ -107,6 +129,11 @@ export const ExampleSchema = z.strictObject({
   reference: z.string().regex(REFERENCE_PATH).optional(),
   /** `code` kits: the original's own markup for this example. */
   original: z.string().regex(ORIGINAL_PATH).optional(),
+  /**
+   * `code` kits: the elements of the app's page this example's component stands in, inside the
+   * shell, whose rules reach it (`.article-page .card`); the original is drawn inside them.
+   */
+  around: wrappersSchema.optional(),
 });
 
 /** Where a `code` kit's component comes from in the project: its files or a library, never both. */
@@ -222,12 +249,6 @@ const resolveSchema = z.strictObject({
   types: z.array(projectPath).default([]),
 });
 
-/** An attribute of an element of the app's shell: never an event handler. */
-const shellAttributes = z.record(
-  z.string().regex(/^(?!on)[a-z_:][a-z0-9_.:-]*$/i),
-  z.string().max(2000),
-);
-
 /**
  * What the app has around every component and its styles depend on: the attributes of its
  * `<html>` and `<body>` (a theme class, a `data-theme`) and the elements between the body and a
@@ -237,21 +258,7 @@ const shellAttributes = z.record(
 const shellSchema = z.strictObject({
   html: shellAttributes.default({}),
   body: shellAttributes.default({}),
-  wrappers: z
-    .array(
-      z.strictObject({
-        /** A plain container, or a custom element (a name with a hyphen). */
-        tag: z
-          .string()
-          .regex(
-            /^(?:div|main|section|article|aside|header|footer|nav|form|span|[a-z][a-z0-9]*-[a-z0-9-]*)$/,
-          )
-          .default('div'),
-        attributes: shellAttributes.default({}),
-      }),
-    )
-    .max(6)
-    .default([]),
+  wrappers: wrappersSchema.default([]),
 });
 
 export const KitSchema = z.strictObject({

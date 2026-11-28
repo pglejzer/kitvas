@@ -184,12 +184,22 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
       const page = join(dir, 'originals', `${key}.html`);
       input.fs.writeText(
         page,
-        originalPage({ markup, styles, base, frame: CATALOG_BODY_RULE, shell: source.shell }),
+        originalPage({
+          markup,
+          styles,
+          base,
+          frame: CATALOG_BODY_RULE,
+          shell: source.shell,
+          around: example.around,
+        }),
       );
 
       const widths = hasBreakpoint(sheets) ? [DESKTOP, PHONE] : [DESKTOP];
       const here: VerifyIssue[] = [];
       const there: OriginalEntry[] = [];
+      // One finding for a difference, with the states and widths it is in: a copy that is off by
+      // a pixel is off in every state of every width, and is one fix.
+      const differs = new Map<string, { diff: OriginalDiff; where: Map<number, string[]> }>();
       let partial: string[] = [];
       try {
         for (const width of widths) {
@@ -239,12 +249,10 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
             for (const diff of kept) reported.push({ state: label(copyFrame), diff });
           }
           for (const { state, diff } of reported) {
-            here.push({
-              step: 'original',
-              path: at,
-              key: 'kitIssue.originalDiffers',
-              params: { key, width, state, ...diff },
-            });
+            const id = [diff.element, diff.property, diff.copy, diff.original].join('\n');
+            const group = differs.get(id) ?? { diff, where: new Map<number, string[]>() };
+            group.where.set(width, [...(group.where.get(width) ?? []), state]);
+            differs.set(id, group);
           }
           if (more > 0) {
             here.push({
@@ -302,6 +310,15 @@ export async function originalStep(input: OriginalInput): Promise<OriginalResult
         });
         why = 'partial';
         break;
+      }
+      for (const { diff, where } of differs.values()) {
+        const states = [...where].map(([width, list]) => `${width} px: ${list.join(', ')}`);
+        found.push({
+          step: 'original',
+          path: at,
+          key: 'kitIssue.originalDiffers',
+          params: { key, ...diff, where: states.join('; ') },
+        });
       }
       found.push(...here);
       entries.push(...there);

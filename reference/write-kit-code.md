@@ -8,7 +8,7 @@ Read by the `tailor` agent when the kit's source is `code`, after `write-kit.md`
 - The copy (W37 to W43)
 - Tokens (W44 to W45)
 - kit.json and the shell (W46 to W50)
-- Originals (W51 to W56)
+- Originals (W51 to W56, W51a, W53a)
 - Findings (W57 to W61)
 - Report (W62)
 
@@ -20,12 +20,12 @@ Read by the `tailor` agent when the kit's source is `code`, after `write-kit.md`
 
 ## The copy
 
-- W37: The copy keeps the source's elements in the source's order. This includes the element a component's own tag stands for: if the source's component is drawn as a custom element around a button, the copy has that wrapper too. Never merge, drop, reorder or add an element to make the code tidier. kitvas pairs the two pages element by element.
+- W37: The copy keeps the source's elements in the source's order. This includes the element a component's own tag stands for: if the source's component is drawn as a custom element around a button, the copy has that wrapper too. Never merge, drop, reorder or add an element to make the code tidier. kitvas pairs the two pages element by element. A template with several root elements (a Vue fragment) gets one plain `div` around them, in the copy and in its original alike, so the component has one root for its id (W10).
 - W38: What the component takes from its parent is a prop. A class or an attribute that picks a variant is an enum prop with the source's own values. What it reports to its parent (a click, a change, an open or a close) is a callback prop. Content from its parent is `children`; a named place for content is a node prop. A value bound both ways is `value` with `onChange`. Names and values stay the source's, so the hand-off can map back by name.
 - W39: Keep only what a pointer and keys can do: open, close, select, check, type, switch. Leave out data loading, services, stores, routing, validation rules and translations. A text the source takes from a translation table is the text of its default language, as an example's own text.
 - W40: A choice the source makes at run time and that changes the look is a prop or an example of its own, never a hidden branch. A disabled, checked, selected or invalid case is an example of its own (W53).
 - W41: Every value the component inherits in the app is written in the copy's own styles: a font family, size and line height, a colour, a text alignment, a box sizing. The copy is drawn without the app's shell (W47), so nothing may come from above it. Write the value you found where the source gets it from, as a token (W44).
-- W42: Styles that the source scopes to the component are the copy's CSS Module. A rule that the project writes for a whole page and that reaches the component is written into the copy as a rule of the component, from the value it gives. Never copy a rule that names another component's class.
+- W42: Styles that the source scopes to the component are the copy's CSS Module. A rule that the project writes for a whole page and that reaches the component on every page that uses it is written into the copy as a rule of the component, from the value it gives, and its original stands in that page (W51a). A rule of one page among several that use the component stays out of the copy and goes to `gaps` with `unverified`. Never copy a rule that names another component's class.
 - W43: A style that only the project's own build can read (a selector or an at-rule the browser does not know, a value computed at run time) cannot be drawn. Write the copy from what you read, put the style in `gaps` with `unsupported`, and expect the component to be compared as `read`.
 
 ## Tokens
@@ -45,9 +45,11 @@ Read by the `tailor` agent when the kit's source is `code`, after `write-kit.md`
 ## Originals
 
 - W51: Write one original for each example: `originals/<Name>.<n>.html`, named in the example's `original`. It is a fragment of plain HTML with one root element: the component's root as the project's code draws it for that example, with the source's own class names and attributes. At most 200000 characters.
+- W51a: An example whose component a page's rule reaches (W42) names that page's elements in `around`, from the outside in, the way `source.shell` names its wrappers: `"around": [{ "tag": "div", "attributes": { "class": "article-page" } }]`. Write only the elements and classes the rule names. kitvas draws the original inside them and gives them no box.
 - W52: Fill the source's template with the example's values and write the result. Never rewrite a style, a class or an attribute to make the page simpler, and never write an inline style the source does not have.
-- W53: The fragment holds no doctype and none of the tags `html`, `head`, `body`, `script`, `style`, `link`, `iframe`, `object`, `embed`, `base`, `meta`. No attribute starting with `on`, no `javascript:` address, no `http:`, `https:` or `//` address. A relative address is read from the project folder. kitvas never opens a fragment that breaks one of these.
-- W54: The root element of every kit component in the fragment, the example's own and each nested one, carries `data-kv-scope="<component name>"`, scoped or not. The marks say whose styles the page needs. A nested component that is not in the kit takes any other name.
+- W53: The fragment holds no doctype and none of the tags `html`, `head`, `body`, `script`, `style`, `link`, `iframe`, `object`, `embed`, `base`, `meta`. No attribute starting with `on`, no `javascript:` address, no `http:`, `https:` or `//` address. A relative address is read from the project folder. kitvas never opens a fragment that breaks one of these. A link to an outside address keeps it in the copy and has `#` in the original: an address changes nothing of the look.
+- W53a: A picture the source takes from a file or from data (a logo, an avatar) is a prop of the copy, as the source names it (W38). Its examples give the stand-in below, and its originals take it as their `src`, so both sides draw the same plain grey picture and the kit page shows no broken one; the picture goes to `gaps` with `missing`. The stand-in: `data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221%22%20height%3D%221%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23d4d4d8%22%2F%3E%3C%2Fsvg%3E`. A copy never points at a file: kitvas serves none of the project's, and the page reports a missing one as an error.
+- W54: The root element of every kit component in the fragment, the example's own and each nested one, carries `data-kv-scope="<component name>"`, scoped or not. The marks say whose styles the page needs. A nested component that is not in the kit takes any other name. Each element a component passes into a nested one (what a Vue slot or an Angular `ng-content` takes) carries `data-kv-slot="<the passing component name>"`: the passer's scoped styles reach it, as in the app.
 - W55: A disabled, checked, selected or invalid case is an example with its own original. Hover, focus and the pressed look are not examples: kitvas reads them on both sides.
 - W56: A control in an original is real: a `button`, `a`, `input`, as in the copy. kitvas presses and focuses at most four controls of a page.
 
